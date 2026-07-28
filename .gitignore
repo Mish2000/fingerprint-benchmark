@@ -1,0 +1,22 @@
+# Generated artifacts — never tracked.
+workspace/**
+!workspace/.gitkeep
+
+# Fingerprint imagery is redistribution-restricted (see docs/adr/0004 and the
+# SD300 README: "Users of SD 300 shall adhere to all terms agreed to upon
+# obtaining SD 300"). The repository holds instructions and manifests only.
+data/**
+!data/README.md
+*.png
+*.pgm
+*.wsq
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.idea/
+.venv/
+.env

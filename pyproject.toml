@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fpbench"
+version = "0.1.0"
+description = "Reproducible benchmark harness for fingerprint recognition algorithms on NIST SD300"
+requires-python = ">=3.11"
+dependencies = [
+    "pyarrow>=15",
+    "PyYAML>=6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+markers = [
+    "dataset: requires a local copy of NIST SD300 (set FPBENCH_SD300_ROOT)",
+]

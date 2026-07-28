@@ -1,0 +1,49 @@
+# The supervisor-defined SD300 protocol.
+#
+# 50 subjects that are complete in all three releases, ten anatomical fingers
+# each, in both plain and rolled impressions: 500 plain + 500 rolled images per
+# release. Four comparison stages are generated over that set.
+
+protocol:
+  id: sd300_50_subjects
+
+dataset:
+  id: sd300
+  ref: configs/datasets/sd300.yaml
+
+cohort:
+  size: 50
+
+  # Arbitrary but reproducible. Changing this seed changes which 50 subjects
+  # are studied and therefore invalidates every result already produced.
+  seed: 20260728
+
+  # TEST forbids threshold calibration on this cohort. A separate development
+  # cohort must be drawn for that.
+  role: test
+
+  releases: [SD300A, SD300B, SD300C]
+
+  require:
+    all_ten_plain: true
+    all_ten_roll: true
+    # A subject must be complete in *every* release listed above, so the same
+    # 50 subjects are studied at 500, 1000 and 2000 ppi.
+    common_across_releases: true
+
+pairs:
+  # Each image against itself. Detects failures that have nothing to do with
+  # cross-impression matching.
+  plain_self: true
+  roll_self: true
+
+  # The substantive comparison: plain against rolled, same anatomical finger.
+  plain_roll_mated: true
+
+  plain_roll_non_mated:
+    enabled: true
+    # Plain finger i against rolled finger i+shift, within the same subject,
+    # wrapping at ten. Guaranteed impostor pairs; the expectation is 0% matches.
+    # See docs/adr/0008-non-mated-pairing-strategy.md — this reading of the
+    # protocol is an assumption and is open for review.
+    finger_shift: 1

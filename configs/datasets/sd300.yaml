@@ -1,0 +1,33 @@
+# NIST Special Database 300 — releases A, B and C.
+#
+# The dataset root is redistribution-restricted and machine-specific, so it is
+# referenced through an environment variable rather than committed:
+#
+#   PowerShell:  $env:FPBENCH_SD300_ROOT = "C:\fingerprint-datasets\NIST"
+#   bash:        export FPBENCH_SD300_ROOT=/data/NIST
+#
+# The root is the directory that contains sd300a/, sd300b/ and sd300c/.
+
+dataset:
+  id: sd300
+  provider: sd300
+  root: ${FPBENCH_SD300_ROOT}
+
+  options:
+    image_format: png
+
+    # Read each PNG header during a scan so that metadata_ppi and PPI anomalies
+    # are recorded in images.parquet. Adds one small read per file over ~58k
+    # files. Validation reads headers regardless of this setting.
+    read_png_metadata: true
+
+    # Effective resolutions are policy, not configuration: they live in
+    # fpbench.datasets.sd300.ppi_policy so that no experiment can quietly
+    # reinterpret SD300C. Only the on-disk location is configurable here.
+    releases:
+      SD300A:
+        directory: sd300a
+      SD300B:
+        directory: sd300b
+      SD300C:
+        directory: sd300c

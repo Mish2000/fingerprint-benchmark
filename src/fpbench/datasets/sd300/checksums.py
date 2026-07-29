@@ -1,8 +1,15 @@
 """The SHA-256 manifests NIST ships alongside each image directory.
 
-Every image directory is accompanied by ``checksum_PPI_EXT_IMPRESSION.csv``
-with a ``sha256,filename`` header. Reading them is cheap; verifying them means
-hashing 113 GB, so verification is always opt-in.
+Every image directory is accompanied by ``checksum_PPI_EXT_IMPRESSION.csv``.
+Reading them is cheap; verifying them means hashing 113 GB, so verification is
+always opt-in.
+
+The header is not consistent across the delivery: SD300A and SD300C use
+``sha256,filename`` while SD300B uses ``sha256,name``. Both are accepted. This
+matters more than it looks — a reader that only knows one spelling silently
+finds no declared digests at all for the other release, and since an image with
+no official digest is refused, the entire 1000 ppi release would drop out of
+the study without anything obviously breaking.
 """
 
 from __future__ import annotations
@@ -24,6 +31,9 @@ __all__ = [
 
 _READ_CHUNK = 1 << 20
 
+#: Column headers NIST has used for the file name, in order of preference.
+_FILENAME_COLUMNS = ("filename", "name")
+
 
 def checksum_filename(ppi: int, impression: Impression, extension: str = "png") -> str:
     """Name of the NIST checksum file for one impression directory."""
@@ -42,12 +52,17 @@ def load_checksums(path: Path) -> dict[str, str]:
     result: dict[str, str] = {}
     with path.open("r", encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
-        if reader.fieldnames is None or "sha256" not in reader.fieldnames:
+        fieldnames = reader.fieldnames or ()
+        name_column = next(
+            (column for column in _FILENAME_COLUMNS if column in fieldnames), None
+        )
+        if "sha256" not in fieldnames or name_column is None:
             raise DatasetLayoutError(
-                f"{path}: expected a 'sha256,filename' header, got {reader.fieldnames}"
+                f"{path}: expected a 'sha256' column and one of "
+                f"{list(_FILENAME_COLUMNS)}, got {reader.fieldnames}"
             )
         for row in reader:
-            filename = (row.get("filename") or "").strip()
+            filename = (row.get(name_column) or "").strip()
             digest = (row.get("sha256") or "").strip().lower()
             if not filename and not digest:
                 continue

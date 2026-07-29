@@ -14,9 +14,27 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Mapping, Sequence, TypeVar
 
-__all__ = ["to_plain", "write_json", "read_json", "stable_hash"]
+__all__ = [
+    "to_plain",
+    "write_json",
+    "read_json",
+    "stable_hash",
+    "freeze_str_mapping",
+]
 
 T = TypeVar("T")
+
+
+def freeze_str_mapping(value: Mapping[str, Any]) -> Mapping[str, str]:
+    """A read-only string-to-string view, detached from the caller's dict.
+
+    Frozen models use this in ``__post_init__`` so that a caller holding a
+    reference to the mapping it passed in cannot mutate a stored record
+    afterwards.
+    """
+    from types import MappingProxyType
+
+    return MappingProxyType({str(k): str(v) for k, v in dict(value).items()})
 
 
 def to_plain(value: Any) -> Any:

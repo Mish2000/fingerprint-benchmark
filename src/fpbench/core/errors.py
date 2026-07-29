@@ -17,6 +17,10 @@ __all__ = [
     "InsufficientCohortError",
     "StorageError",
     "ManifestExistsError",
+    "ResultConflictError",
+    "ImagePreparationError",
+    "ExecutionError",
+    "PreflightError",
 ]
 
 
@@ -50,3 +54,35 @@ class StorageError(FpbenchError):
 
 class ManifestExistsError(StorageError):
     """Refused to overwrite an existing manifest (see docs/adr/0005)."""
+
+
+class ResultConflictError(StorageError):
+    """A stored artefact exists but describes something else.
+
+    Raised when a run manifest or a job result is already on disk under an
+    identifier that should have been unique, and its fingerprint disagrees with
+    what is being written. Never resolved by overwriting: the correct response
+    is a new run, not a lost result (docs/adr/0009).
+    """
+
+
+class ImagePreparationError(FpbenchError):
+    """An image could not be made ready for an adapter.
+
+    Raised by an :class:`~fpbench.imaging.base.ImagePreparer`. The runner turns
+    it into a recorded ``PREPARATION_FAILED`` result rather than letting it
+    abort the run.
+    """
+
+
+class ExecutionError(FpbenchError):
+    """A run could not be carried out as defined."""
+
+
+class PreflightError(ExecutionError):
+    """The runner's inputs disagree with the run definition.
+
+    A run-level fault — a mismatched adapter, an unavailable environment, the
+    wrong preparer. It must stop the run before any job executes, rather than
+    producing thousands of identical per-pair failures.
+    """

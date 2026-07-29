@@ -17,6 +17,11 @@ __all__ = [
     "ProtocolStage",
     "CohortRole",
     "ChecksumStatus",
+    "ScoreDirection",
+    "ExecutionStatus",
+    "EnvironmentStatus",
+    "FailureStage",
+    "FailureCode",
 ]
 
 
@@ -106,3 +111,71 @@ class ChecksumStatus(str, Enum):
     NOT_VERIFIED = "not_verified"
     VERIFIED = "verified"
     MISMATCH = "mismatch"
+
+
+class ScoreDirection(str, Enum):
+    """Which way a matcher's score runs.
+
+    Declared by the algorithm and carried on every result, because a threshold
+    is meaningless without it and different matchers disagree.
+    """
+
+    HIGHER_IS_BETTER = "higher_is_better"
+    LOWER_IS_BETTER = "lower_is_better"
+
+
+class ExecutionStatus(str, Enum):
+    """Whether a comparison produced a usable score.
+
+    There is deliberately no ``SKIPPED`` member. Skipping is something the
+    runner does about a job; it is never an algorithm's answer about a pair of
+    images, and conflating the two would corrupt every denominator.
+    """
+
+    SUCCESS = "success"
+    FAILURE = "failure"
+
+
+class EnvironmentStatus(str, Enum):
+    """Whether an adapter's dependencies are present and usable."""
+
+    READY = "ready"
+    UNAVAILABLE = "unavailable"
+
+
+class FailureStage(str, Enum):
+    """Where in the pipeline a failure happened.
+
+    The stage answers "whose problem is this?"; :class:`FailureCode` answers
+    "what exactly went wrong?".
+    """
+
+    INPUT = "input"
+    PREPARATION = "preparation"
+    ENVIRONMENT = "environment"
+    QUALITY = "quality"
+    EXTRACTION = "extraction"
+    MATCHING = "matching"
+    ADAPTER = "adapter"
+    TIMEOUT = "timeout"
+
+
+class FailureCode(str, Enum):
+    """The taxonomy locked in docs/adr/0006.
+
+    None of these is a biometric decision. A comparison that ran correctly and
+    scored below threshold is a ``SUCCESS`` with a low score, never a failure.
+    """
+
+    INPUT_INVALID = "input_invalid"
+    IMAGE_DECODE_FAILED = "image_decode_failed"
+    PREPARATION_FAILED = "preparation_failed"
+    QUALITY_REJECTED = "quality_rejected"
+    TEMPLATE_EXTRACTION_FAILED = "template_extraction_failed"
+    MATCHING_FAILED = "matching_failed"
+    NO_SCORE = "no_score"
+    TIMEOUT = "timeout"
+    PROCESS_CRASHED = "process_crashed"
+    DEPENDENCY_MISSING = "dependency_missing"
+    UNSUPPORTED_RESOLUTION = "unsupported_resolution"
+    INTERNAL_ERROR = "internal_error"

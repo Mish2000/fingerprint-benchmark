@@ -53,6 +53,7 @@ __all__ = [
     "UnavailableAdapter",
     "StrayWriteAdapter",
     "CountingPreparer",
+    "ExplodingPreparer",
 ]
 
 FIXED_SCORE = 42.5
@@ -302,3 +303,16 @@ class CountingPreparer(ImagePreparer):
     ) -> PreparedImage:
         self.calls += 1
         return self.delegate.prepare(image, dataset_root, profile)
+
+
+class ExplodingPreparer(ImagePreparer):
+    """Raises an unexpected exception before an adapter can be called."""
+
+    @property
+    def preparer_id(self) -> str:
+        return IdentityImagePreparer().preparer_id
+
+    def prepare(
+        self, image: ImageRecord, dataset_root: Path, profile: ExecutionProfile
+    ) -> PreparedImage:
+        raise RuntimeError("preparer failed unexpectedly")

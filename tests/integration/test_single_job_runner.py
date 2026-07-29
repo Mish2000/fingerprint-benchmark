@@ -38,6 +38,7 @@ from fakes import (
     CountingAdapter,
     CountingPreparer,
     ExplodingAdapter,
+    ExplodingPreparer,
     FailingAdapter,
     NaNAdapter,
     TimingOutAdapter,
@@ -498,6 +499,27 @@ def test_a_missing_file_is_recorded_as_a_preparation_failure(
 
     assert record.failure.code is FailureCode.PREPARATION_FAILED
     assert record.failure.stage is FailureStage.PREPARATION
+    assert adapter.compare_calls == 0
+
+
+def test_an_unexpected_preparer_exception_is_recorded_as_preparation_failure(
+    dataset_root, workspace, image_index
+):
+    adapter = CountingAdapter()
+    run, runner = make_runner(
+        adapter,
+        dataset_root,
+        workspace,
+        image_index,
+        preparer=ExplodingPreparer(),
+    )
+
+    record = runner.execute(build_comparison_job(run, MATED_PAIR), MATED_PAIR).result
+
+    assert record.status is ExecutionStatus.FAILURE
+    assert record.failure.code is FailureCode.INTERNAL_ERROR
+    assert record.failure.stage is FailureStage.PREPARATION
+    assert record.failure.details["kind"] == "preparer_exception"
     assert adapter.compare_calls == 0
 
 

@@ -177,12 +177,46 @@ class SingleJobRunner:
         adapter_ns = 0
         failure: FailureInfo | None = None
         match_result: RawMatchResult | None = None
+        left_record: ImageRecord | None = None
+        right_record: ImageRecord | None = None
+        working_directory: Path | None = None
+        artifact_directory: Path | None = None
+        left: PreparedImage | None = None
+        right: PreparedImage | None = None
+        context: ComparisonContext | None = None
 
         try:
             left_record = self._require_image(job.left_image_id)
             right_record = self._require_image(job.right_image_id)
-            working_directory, artifact_directory = self._job_directories(job)
+        except _RecordedFailure as exc:
+            failure = exc.info
+        except Exception as exc:  # noqa: BLE001 - one bad input must be recorded
+            failure = self._failure(
+                FailureCode.INTERNAL_ERROR,
+                FailureStage.INPUT,
+                f"{type(exc).__name__}: {exc}",
+                details={
+                    "kind": "runner_exception",
+                    "exception_type": type(exc).__name__,
+                },
+            )
 
+        if failure is None:
+            try:
+                working_directory, artifact_directory = self._job_directories(job)
+            except Exception as exc:  # noqa: BLE001 - filesystem setup is per-job
+                failure = self._failure(
+                    FailureCode.INTERNAL_ERROR,
+                    FailureStage.PREPARATION,
+                    f"{type(exc).__name__}: {exc}",
+                    details={
+                        "kind": "job_directory_exception",
+                        "exception_type": type(exc).__name__,
+                    },
+                )
+
+        if failure is None:
+            assert left_record is not None and right_record is not None
             preparation_start = perf_counter_ns()
             try:
                 # Both sides are prepared independently, even when the job is a
@@ -192,59 +226,82 @@ class SingleJobRunner:
                 # in.
                 left = self._prepare(left_record)
                 right = self._prepare(right_record)
+            except ImagePreparationError as exc:
+                failure = self._failure(
+                    FailureCode.PREPARATION_FAILED,
+                    FailureStage.PREPARATION,
+                    str(exc),
+                )
+            except Exception as exc:  # noqa: BLE001 - one bad image must be recorded
+                failure = self._failure(
+                    FailureCode.INTERNAL_ERROR,
+                    FailureStage.PREPARATION,
+                    f"{type(exc).__name__}: {exc}",
+                    details={
+                        "kind": "preparer_exception",
+                        "exception_type": type(exc).__name__,
+                    },
+                )
             finally:
                 preparation_ns = perf_counter_ns() - preparation_start
 
-            context = ComparisonContext(
-                run_id=self._run.run_id,
-                job_id=job.job_id,
-                attempt=job.attempt,
-                working_directory=working_directory,
-                artifact_directory=artifact_directory,
-                timeout_seconds=self._run.execution_profile.timeout_seconds,
-                deterministic_seed=self._run.execution_profile.deterministic_seed,
-            )
+        if failure is None:
+            assert working_directory is not None and artifact_directory is not None
+            try:
+                context = ComparisonContext(
+                    run_id=self._run.run_id,
+                    job_id=job.job_id,
+                    attempt=job.attempt,
+                    working_directory=working_directory,
+                    artifact_directory=artifact_directory,
+                    timeout_seconds=self._run.execution_profile.timeout_seconds,
+                    deterministic_seed=self._run.execution_profile.deterministic_seed,
+                )
+            except Exception as exc:  # noqa: BLE001 - context setup is per-job
+                failure = self._failure(
+                    FailureCode.INTERNAL_ERROR,
+                    FailureStage.PREPARATION,
+                    f"{type(exc).__name__}: {exc}",
+                    details={
+                        "kind": "runner_exception",
+                        "exception_type": type(exc).__name__,
+                    },
+                )
 
+        if failure is None:
+            assert left is not None and right is not None and context is not None
             adapter_start = perf_counter_ns()
             try:
                 match_result = self._adapter.compare(left, right, context)
+                self._validate_adapter_result(match_result)
+            except TimeoutError as exc:
+                # Stage 3A does not cancel in-process work; it only records a
+                # timeout an adapter chose to raise.
+                failure = self._failure(
+                    FailureCode.TIMEOUT,
+                    FailureStage.TIMEOUT,
+                    str(exc) or "adapter timed out",
+                    retryable=True,
+                )
+            except AdapterContractViolation as exc:
+                failure = self._failure(
+                    FailureCode.INTERNAL_ERROR,
+                    FailureStage.ADAPTER,
+                    str(exc),
+                    details={"kind": "adapter_contract_violation"},
+                )
+            except Exception as exc:  # noqa: BLE001 - deliberately broad
+                # KeyboardInterrupt, SystemExit and GeneratorExit derive from
+                # BaseException and keep propagating. Any ordinary exception is
+                # one bad comparison, not a reason to lose the run.
+                failure = self._failure(
+                    FailureCode.INTERNAL_ERROR,
+                    FailureStage.ADAPTER,
+                    f"{type(exc).__name__}: {exc}",
+                    details={"exception_type": type(exc).__name__},
+                )
             finally:
                 adapter_ns = perf_counter_ns() - adapter_start
-
-            self._validate_adapter_result(match_result)
-
-        except _RecordedFailure as exc:
-            failure = exc.info
-        except ImagePreparationError as exc:
-            failure = self._failure(
-                FailureCode.PREPARATION_FAILED, FailureStage.PREPARATION, str(exc)
-            )
-        except TimeoutError as exc:
-            # Stage 3A does not cancel in-process work; it only records a
-            # timeout an adapter chose to raise.
-            failure = self._failure(
-                FailureCode.TIMEOUT,
-                FailureStage.TIMEOUT,
-                str(exc) or "adapter timed out",
-                retryable=True,
-            )
-        except AdapterContractViolation as exc:
-            failure = self._failure(
-                FailureCode.INTERNAL_ERROR,
-                FailureStage.ADAPTER,
-                str(exc),
-                details={"kind": "adapter_contract_violation"},
-            )
-        except Exception as exc:  # noqa: BLE001 - deliberately broad, see below
-            # Broad, but not bare: KeyboardInterrupt, SystemExit and
-            # GeneratorExit derive from BaseException and must keep propagating.
-            # Anything else is one bad comparison, not a reason to lose a run.
-            failure = self._failure(
-                FailureCode.INTERNAL_ERROR,
-                FailureStage.ADAPTER,
-                f"{type(exc).__name__}: {exc}",
-                details={"exception_type": type(exc).__name__},
-            )
 
         if failure is not None:
             match_result = RawMatchResult.failed(

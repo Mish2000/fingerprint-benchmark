@@ -1,0 +1,27 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      # Tests marked `dataset` need a local copy of NIST SD300, which is
+      # redistribution-restricted and cannot be uploaded here. Everything else
+      # runs against synthetic SD300-shaped fixtures built in a temp directory,
+      # so CI still covers the whole pipeline.
+      - name: Test
+        run: pytest -m "not dataset"

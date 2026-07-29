@@ -2,8 +2,10 @@
 
 ## Status
 
-Accepted. Not yet implemented — `fpbench.adapters` does not exist in the
-current stage. Binding on the code that will create it.
+Accepted. Implemented in `fpbench.adapters.base`, with the shared suite in
+`tests/contract/test_adapter_contract.py` and `dummy_sha256` as the first
+adapter to pass it. The optional capabilities are named but not yet declared by
+any adapter — they arrive with the first matcher that offers one.
 
 ## Context
 

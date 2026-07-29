@@ -2,8 +2,10 @@
 
 ## Status
 
-Accepted. Not yet implemented — `fpbench.decisions` does not exist in the
-current stage.
+Accepted. Partly implemented: adapters return a raw score and a score
+direction, and results are stored with neither threshold nor decision.
+`fpbench.decisions` and the `DecisionPolicy` that reads those scores do not
+exist yet.
 
 ## Context
 

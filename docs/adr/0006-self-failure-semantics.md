@@ -2,9 +2,11 @@
 
 ## Status
 
-Accepted. Not yet implemented — the failure taxonomy belongs to the runner.
-The SELF-filtering logic that depends on it exists in
-`fpbench.protocols.self_filtering`.
+Accepted. Implemented: the taxonomy is `fpbench.core.enums.FailureCode` and
+`FailureStage`, results carry `ExecutionStatus` and a structured `FailureInfo`
+in separate columns, and `fpbench.execution.runner` maps every failure path
+onto a specific code. The SELF-filtering logic that consumes the distinction
+lives in `fpbench.protocols.self_filtering`.
 
 ## Context
 

@@ -2,8 +2,10 @@
 
 ## Status
 
-Accepted. Not yet implemented — `fpbench.execution` does not exist in the
-current stage. Binding on the code that will create it.
+Accepted. Implemented: `fpbench.adapters.registry` is the only module that
+names an algorithm, `SingleJobRunner` receives its adapter and preparer by
+injection, and a test walks the source tree to assert that no algorithm id
+appears outside `fpbench/adapters/`.
 
 ## Context
 

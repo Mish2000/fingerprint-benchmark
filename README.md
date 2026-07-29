@@ -12,35 +12,44 @@ The organising principle:
 
 ## What exists right now
 
-Phase 2 is the reproducible experiment definition: **datasets, protocol,
+Phase 2 built the reproducible experiment definition: **datasets, protocol,
 provenance and manifest storage**. It records which exact image delivery was
 audited, which 50 subjects were chosen, and which 6,000 comparisons the
 protocol calls for — with no algorithm involved.
+
+Phase 3A added the **execution foundation**: an image preparation contract, an
+adapter contract with a registry and a deterministic stand-in matcher, derived
+run and job identity, and a single-job runner that stores one immutable result
+per job and can be interrupted and resumed. No thresholds, no decisions, no
+real matcher.
 
 | Package | Status | Responsibility |
 |---|---|---|
 | `fpbench.core` | built | shared vocabulary; stdlib only, imports nothing from the project |
 | `fpbench.datasets` | built | what images exist on disk, and do they match their own declarations |
 | `fpbench.protocols` | built | which subjects take part, and which comparisons that implies |
-| `fpbench.storage` | built (phase 2) | immutable manifests plus run-scoped SELF eligibility |
-| `fpbench.imaging` | not yet | resampling, format conversion, transform provenance |
-| `fpbench.adapters` | not yet | one package per algorithm, behind a shared contract |
+| `fpbench.storage` | built | immutable manifests, run manifests, raw results |
+| `fpbench.imaging` | built (identity only) | the image preparation contract; resampling and conversion still to come |
+| `fpbench.adapters` | built | the adapter contract, the registry and `dummy_sha256` |
+| `fpbench.execution` | built (single job) | run and job identity, and a resumable single-job runner |
 | `fpbench.decisions` | not yet | thresholds, calibration, score → decision |
-| `fpbench.execution` | not yet | planner, runner, retries, timeouts |
 | `fpbench.evaluation` | not yet | protocol metrics, FMR/FNMR, failure analysis, reports |
 | `fpbench.cli` | not yet | command-line entry points |
 
-Two deliberate omissions worth naming, so they read as decisions rather than
-oversights:
+Deliberate omissions, so they read as decisions rather than oversights:
 
-* **`core` defines only the models the built packages exchange.** `PreparedImage`,
-  `RawMatchResult`, `DecisionResult`, `FailureInfo`, `ExecutionProfile` and
-  `AlgorithmDescriptor` are named in the architecture but not written yet —
-  their fields cannot be designed honestly without a real adapter to satisfy.
-* **`storage` implements manifests and the one result artifact whose contract
-  phase 2 already fixes.** General result and artifact stores wait on the
-  runner; per-finger SELF eligibility is already scoped by run and decision
-  profile so it cannot be confused across algorithms or thresholds.
+* **No real matcher yet.** `dummy_sha256` produces a deterministic pseudo-score
+  and nothing else; it exists to exercise the harness, and no biometric
+  conclusion may be drawn from it.
+* **No thresholds anywhere.** Raw scores are stored with their score direction
+  and no decision. Applying a threshold is a separate, later record against
+  those unchanged scores.
+* **No batch runner, no retries, no parallelism.** One job at a time. The
+  storage layout is already the one that makes parallel execution safe, but the
+  execution side of it is not written.
+* **Optional adapter capabilities are named, not implemented.** Template
+  extraction, caching and minutiae export land with the first matcher that
+  actually offers them.
 
 ## Setup
 
@@ -65,6 +74,19 @@ pytest -m "not dataset"
 
 `pytest` without the marker filter also runs the checks against the real
 release; those are skipped automatically when `FPBENCH_SD300_ROOT` is unset.
+CI runs `pytest -m "not dataset"` on every push and pull request — SD300 is
+redistribution-restricted and cannot be uploaded, so the synthetic fixtures are
+what CI exercises.
+
+The suite has four levels:
+
+```
+tests/unit/          individual functions and model invariants
+tests/contract/      one suite every adapter must pass, parametrised over the registry
+tests/integration/   dataset → manifest → cohort → pairs, and pair → runner → result
+tests/…              marked `dataset`: assertions that only mean something
+                     against the real 58,305-image delivery
+```
 
 ## Building the experiment
 
@@ -221,17 +243,117 @@ different-finger negative sanity test: plain finger *i* against rolled finger
 *i+1*, wrapping at ten. See
 [ADR 0008](docs/adr/0008-non-mated-pairing-strategy.md).
 
+## Running a comparison (phase 3A)
+
+Phase 3A adds the execution path: a pair goes in, a stored raw result comes
+out, and the whole thing can be interrupted and resumed without duplicating
+work or losing any. The only matcher so far is `dummy_sha256`, which derives a
+deterministic score from the two images' official digests. **It performs no
+biometric matching and no research claim may rest on its output.** It exists so
+that the harness can be exercised while a bug is still unambiguously the
+harness's fault.
+
+Continuing from the manifests built above:
+
+```python
+from fpbench.adapters import create_adapter
+from fpbench.execution import (
+    DEFAULT_EXECUTION_PROFILE,
+    SingleJobRunner,
+    build_comparison_job,
+    create_run_definition,
+)
+from fpbench.imaging import IdentityImagePreparer
+from fpbench.storage import ResultStore
+
+adapter = create_adapter("dummy_sha256")
+pair_manifest_hash = store.pair_manifest_metadata(
+    protocol.protocol_id, cohort.cohort_id
+)["pair_manifest_hash"]
+
+run = create_run_definition(
+    protocol_id=protocol.protocol_id,
+    cohort_id=cohort.cohort_id,
+    pair_manifest_hash=pair_manifest_hash,
+    algorithm=adapter.descriptor,
+    environment=adapter.validate_environment(),
+    execution_profile=DEFAULT_EXECUTION_PROFILE,
+)
+
+runner = SingleJobRunner(
+    run=run,
+    adapter=adapter,
+    preparer=IdentityImagePreparer(),
+    result_store=ResultStore(Path("workspace")),
+    dataset_root=provider.root,
+    image_index={image.image_id: image for image in images},
+    workspace_root=Path("workspace"),
+)
+
+for pair in pairs:
+    outcome = runner.execute(build_comparison_job(run, pair), pair)
+    print(outcome.disposition.value, outcome.result.raw_score)
+```
+
+Produces, under `workspace/`:
+
+```
+results/<run_id>/run.json                        the run manifest
+results/<run_id>/raw/jobs/<job_id>.parquet       one immutable row per job
+work/<run_id>/<job_id>/                          adapter scratch, disposable
+artifacts/<run_id>/<job_id>/                     adapter artefacts, if any
+```
+
+### Resume
+
+`run_id` and `job_id` are *derived*, not assigned: `run_id` is the first twelve
+characters of a digest over the protocol, cohort, pair manifest hash, algorithm
+and adapter versions, environment, execution profile, seed and replicate index.
+Identical inputs therefore land in the same directory, and re-executing a job
+whose result is already stored returns `SKIPPED_EXISTING` without preparing an
+image or calling the adapter. A stored result whose `job_fingerprint` disagrees
+raises `ResultConflictError` — nothing is ever overwritten
+([ADR 0009](docs/adr/0009-one-immutable-result-per-job.md)).
+
+Changing anything that could change a score — a new pair manifest, a bumped
+adapter version, a different seed — produces a new `run_id` instead of quietly
+mixing incomparable results together.
+
+### What is recorded, and what is not
+
+A stored result carries its own provenance: protocol, cohort, pair manifest
+hash, algorithm fingerprint, execution profile hash, timings and either a raw
+score or a structured failure. It carries **no** threshold, **no** decision,
+**no** ground truth, **no** protocol stage and **no** absolute path. Evaluation
+joins the ground truth back in from the pair manifest through `pair_id`.
+
+Operational failures and biometric outcomes stay apart: a comparison that ran
+and scored low is a `success` with a low score, while one that never produced a
+score is a `failure` with a specific code — `input_invalid`,
+`preparation_failed`, `timeout`, `internal_error`
+([ADR 0006](docs/adr/0006-self-failure-semantics.md)). An adapter that throws,
+returns NaN, or contradicts its own declared score direction becomes a recorded
+`internal_error` with `details.kind = adapter_contract_violation`; it never
+takes the run down with it.
+
+The adapter is told nothing about the comparison it is performing. It receives
+two prepared images and an operational context with no `pair_id`, no
+`protocol_stage`, no `ground_truth` and no threshold, and `job_id` is a hash so
+that nothing leaks through it
+([ADR 0010](docs/adr/0010-adapter-context-excludes-ground-truth.md)).
+
 ## Next stage
 
-The natural order from here, one reviewable step at a time:
+1. decision policies, native thresholds and calibration on a development
+   cohort;
+2. the first real adapter (SourceAFIS), which joins the existing contract suite
+   automatically by being registered;
+3. a batch runner over the full 6,000-pair plan, plus retries and timeouts;
+4. evaluation: protocol metrics, SELF-filtered results, failure analysis,
+   FMR/FNMR;
+5. a CLI over all of it.
 
-1. a dummy adapter that returns a deterministic score from `pair_id` — enough
-   to exercise the runner, the decision layer and the storage schema before any
-   real matcher's failure modes enter the picture;
-2. the runner and the raw-result store;
-3. decision policies and native thresholds;
-4. the first real adapter;
-5. evaluation and reporting.
-
-The dummy adapter comes first on purpose: it lets the architecture be tested
-while a bug is still unambiguously the harness's fault.
+Also outstanding, and cheap: the `imaging` layer currently offers only the
+identity preparer. Resampling — 2000 ppi and 1000 ppi down to 500 — becomes a
+second preparer with its own id, so results produced under each remain
+distinguishable.

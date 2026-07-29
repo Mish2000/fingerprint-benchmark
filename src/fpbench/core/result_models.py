@@ -29,6 +29,7 @@ Equally deliberate is what a result does *not* carry:
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Mapping
 
@@ -148,6 +149,8 @@ class RawResultRecord:
             "execution_profile_id",
         ):
             validate_id(getattr(self, name))
+        if self.result_id != self.job_id:
+            raise ValueError("result_id must equal job_id in result schema version 1")
         if int(self.attempt) < 1:
             raise ValueError("attempt is 1-based")
         object.__setattr__(self, "attempt", int(self.attempt))
@@ -167,6 +170,10 @@ class RawResultRecord:
                 raise ValueError("a successful result must carry a score")
             if self.failure is not None:
                 raise ValueError("a successful result must not carry a failure")
+            score = float(self.raw_score)
+            if not math.isfinite(score):
+                raise ValueError("raw_score must be finite")
+            object.__setattr__(self, "raw_score", score)
         else:
             if self.raw_score is not None:
                 raise ValueError("a failed result must not carry a score")

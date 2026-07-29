@@ -135,6 +135,24 @@ def test_two_runs_coexist(store):
 # -------------------------------------------------------------- raw results
 
 
+def test_raw_result_record_rejects_nan():
+    with pytest.raises(ValueError, match="raw_score must be finite"):
+        make_record(make_run(), raw_score=float("nan"))
+
+
+@pytest.mark.parametrize("raw_score", [float("inf"), float("-inf")])
+def test_raw_result_record_rejects_infinity(raw_score):
+    with pytest.raises(ValueError, match="raw_score must be finite"):
+        make_record(make_run(), raw_score=raw_score)
+
+
+def test_raw_result_record_rejects_result_id_that_differs_from_job_id():
+    with pytest.raises(
+        ValueError, match="result_id must equal job_id in result schema version 1"
+    ):
+        make_record(make_run(), result_id="job_different_result")
+
+
 def test_raw_result_round_trips(store):
     run = make_run()
     store.ensure_run(run)

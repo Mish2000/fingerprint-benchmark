@@ -60,3 +60,14 @@ def test_protocol_object_exposes_its_releases():
     protocol = SD300Protocol.from_config_file(PROTOCOL_CONFIG)
     assert protocol.releases == ("SD300A", "SD300B", "SD300C")
     assert protocol.dataset_id == "sd300"
+
+
+def test_sd300_protocol_rejects_non_common_cross_release_cohorts(tmp_path):
+    path = tmp_path / "configs" / "protocols" / "invalid.yaml"
+    path.parent.mkdir(parents=True)
+    document = PROTOCOL_CONFIG.read_text(encoding="utf-8").replace(
+        "common_across_releases: true", "common_across_releases: false"
+    )
+    path.write_text(document, encoding="utf-8")
+    with pytest.raises(ConfigurationError, match="common_across_releases=true"):
+        load_protocol_config(path)

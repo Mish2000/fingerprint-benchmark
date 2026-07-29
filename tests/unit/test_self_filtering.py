@@ -3,6 +3,7 @@ from __future__ import annotations
 from fpbench.core.enums import FingerprintPosition, ProtocolStage
 from fpbench.protocols.pair_generation import PairPlan, generate_pairs
 from fpbench.protocols.self_filtering import (
+    build_self_eligibility,
     collect_failed_fingers,
     select_self_eligible_pairs,
 )
@@ -78,3 +79,28 @@ def test_the_original_manifest_is_never_mutated():
     before = list(ALL_PAIRS)
     select_self_eligible_pairs(ALL_PAIRS, images(), {THUMB})
     assert list(ALL_PAIRS) == before
+
+
+def test_explicit_eligibility_records_keep_plain_and_roll_decisions_separate():
+    self_pairs = [
+        pair
+        for pair in ALL_PAIRS
+        if pair.protocol_stage.is_self
+        and pair.left_image_id.endswith("_f01")
+        and SUBJECTS[0] in pair.left_image_id
+    ]
+    plain = next(
+        pair for pair in self_pairs
+        if pair.protocol_stage is ProtocolStage.PLAIN_SELF
+    )
+    [record] = [
+        record
+        for record in build_self_eligibility(
+            ALL_PAIRS, images(), {plain.pair_id}
+        )
+        if (record.release, record.subject_id, record.finger_position) == THUMB
+    ]
+    assert not record.plain_self_passed
+    assert record.roll_self_passed
+    assert not record.eligible
+    assert record.exclusion_reason == "plain_self_failed"

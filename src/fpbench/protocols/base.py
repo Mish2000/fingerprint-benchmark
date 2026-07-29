@@ -2,7 +2,7 @@
 
 A protocol answers two questions and nothing else:
 
-    build_cohort(subjects)        which subjects take part?
+    build_cohort(subjects, image_manifest_hashes)  which subjects take part?
     build_pairs(cohort, images)   which comparisons does that imply?
 
 It never runs an algorithm, applies a threshold or reads a result. Its output —
@@ -13,7 +13,7 @@ algorithm (docs/adr/0001).
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Iterable, Sequence
+from typing import Iterable, Mapping, Sequence
 
 from fpbench.core.models import Cohort, ComparisonPair, ImageRecord, SubjectRecord
 
@@ -32,7 +32,11 @@ class Protocol(ABC):
         """Dataset releases this protocol runs over."""
 
     @abstractmethod
-    def build_cohort(self, subjects: Iterable[SubjectRecord]) -> Cohort:
+    def build_cohort(
+        self,
+        subjects: Iterable[SubjectRecord],
+        image_manifest_hashes: Mapping[str, str],
+    ) -> Cohort:
         """Choose the participating subjects from the dataset's subject manifest."""
 
     @abstractmethod

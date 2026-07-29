@@ -34,7 +34,13 @@ def to_plain(value: Any) -> Any:
         return value.value
     if isinstance(value, Mapping):
         return {str(k): to_plain(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple, set, frozenset)):
+    if isinstance(value, (set, frozenset)):
+        plain = [to_plain(v) for v in value]
+        return sorted(
+            plain,
+            key=lambda item: json.dumps(item, sort_keys=True, ensure_ascii=False),
+        )
+    if isinstance(value, (list, tuple)):
         return [to_plain(v) for v in value]
     if isinstance(value, Path):
         return value.as_posix()

@@ -45,6 +45,13 @@ def test_plain_thumbs_do_not_appear_under_their_anatomical_codes(frgp):
     assert not resolution.is_known
 
 
+def test_frgp_15_is_unknown_not_a_multi_finger_capture():
+    resolution = resolve_position(Impression.PLAIN, 15)
+    assert resolution.position is None
+    assert not resolution.is_multi_finger
+    assert not resolution.is_known
+
+
 def test_a_complete_subject_needs_ten_of_each():
     assert len(expected_frgps(Impression.PLAIN)) == 10
     assert len(expected_frgps(Impression.ROLL)) == 10

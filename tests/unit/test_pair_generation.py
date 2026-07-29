@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from dataclasses import replace
 
 import pytest
 
@@ -35,6 +36,7 @@ def image(subject, impression, position, *, multi=False):
         is_multi_finger=multi,
         relative_path=f"{subject}_{impression.value}_{label}.png",
         effective_ppi=500,
+        expected_sha256="0" * 64,
     )
 
 
@@ -56,7 +58,13 @@ def cohort(subjects=SUBJECTS):
         role=CohortRole.TEST,
         releases=(RELEASE,),
         subject_ids=subjects,
-        selection=CohortSelection(seed=1, size=len(subjects), candidate_ids=subjects, criteria={}),
+        selection=CohortSelection(
+            seed=1,
+            size=len(subjects),
+            candidate_ids=subjects,
+            criteria={},
+            image_manifest_hashes={RELEASE: "a" * 64},
+        ),
     )
 
 
@@ -155,3 +163,18 @@ def test_an_incomplete_subject_is_a_hard_error():
     ]
     with pytest.raises(ProtocolError):
         generate_pairs(cohort(), incomplete, PairPlan())
+
+
+def test_a_blocked_image_cannot_enter_the_pair_index():
+    blocked = replace(images()[0], blocking_issues=("png_header_unreadable",))
+    index = build_image_index([blocked])
+    assert index == {}
+
+
+def test_image_metadata_is_defensively_frozen():
+    source = {"frgp": "11"}
+    record = replace(images()[0], metadata=source)
+    source["frgp"] = "99"
+    assert record.metadata["frgp"] == "11"
+    with pytest.raises(TypeError):
+        record.metadata["frgp"] = "12"

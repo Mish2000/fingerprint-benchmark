@@ -28,7 +28,6 @@ def provider(sd300_root) -> SD300DatasetProvider:
     return SD300DatasetProvider(
         root=sd300_root,
         layouts=[SD300ReleaseLayout(release, release.lower()) for release in RELEASES],
-        read_png_metadata=True,
     )
 
 
@@ -60,6 +59,14 @@ def test_c_images_are_used_at_2000_ppi_regardless_of_their_metadata(images):
     records = images["SD300C"]
     assert all(record.effective_ppi == 2000 for record in records)
     assert sum(1 for r in records if r.metadata_ppi == 5080) == SD300C_PPI_ANOMALIES
+
+
+def test_the_real_release_contains_no_frgp_15(images):
+    assert all(
+        record.metadata["frgp"] != "15"
+        for records in images.values()
+        for record in records
+    )
 
 
 @pytest.mark.parametrize("release", RELEASES)

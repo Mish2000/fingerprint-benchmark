@@ -49,8 +49,17 @@ def load_checksums(path: Path) -> dict[str, str]:
         for row in reader:
             filename = (row.get("filename") or "").strip()
             digest = (row.get("sha256") or "").strip().lower()
-            if filename and digest:
-                result[filename] = digest
+            if not filename and not digest:
+                continue
+            if not filename or len(digest) != 64 or any(
+                char not in "0123456789abcdef" for char in digest
+            ):
+                raise DatasetLayoutError(
+                    f"{path}: invalid checksum row for {filename or '<missing filename>'}"
+                )
+            if filename in result:
+                raise DatasetLayoutError(f"{path}: duplicate checksum entry for {filename}")
+            result[filename] = digest
     return result
 
 

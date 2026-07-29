@@ -16,10 +16,8 @@ dataset:
   options:
     image_format: png
 
-    # Read each PNG header during a scan so that metadata_ppi and PPI anomalies
-    # are recorded in images.parquet. Adds one small read per file over ~58k
-    # files. Validation reads headers regardless of this setting.
-    read_png_metadata: true
+    # Every scan reads each small PNG header. This is mandatory: validation
+    # errors must be known before cohort eligibility or pair generation.
 
     # Effective resolutions are policy, not configuration: they live in
     # fpbench.datasets.sd300.ppi_policy so that no experiment can quietly

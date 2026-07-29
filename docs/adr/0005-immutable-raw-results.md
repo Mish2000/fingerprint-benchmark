@@ -2,8 +2,9 @@
 
 ## Status
 
-Accepted. Implemented for manifests in `fpbench.storage.manifest_store`. The
-result store follows when the runner exists.
+Accepted. Implemented for manifests and run-scoped SELF eligibility in
+`fpbench.storage.manifest_store`. The general result store follows when the
+runner exists.
 
 ## Context
 
@@ -36,10 +37,11 @@ Enforcement in code:
 * Each manifest carries its creation time, the `fpbench` version and its row
   count in the parquet schema metadata — inside the file, where it cannot drift
   away from the data it describes.
-* Derived views are written to a separate `derived/` directory and *do* default
-  to overwriting, because they legitimately change as more of the experiment
-  runs. `self_eligible_pairs.parquet` is such a view; it never modifies
-  `pairs.parquet`.
+* SELF eligibility is immutable at
+  `results/<run>/decisions/<decision-profile>/self_eligibility.parquet`. A new
+  threshold or algorithm version gets a new decision profile or run rather
+  than overwriting a protocol-wide derived file. `pairs.parquet` is never
+  modified.
 
 Changing a threshold produces new decision records against unchanged raw
 scores. It never re-runs a matcher and never edits a stored score.

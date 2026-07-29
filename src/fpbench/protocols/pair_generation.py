@@ -73,7 +73,7 @@ def build_image_index(images: Iterable[ImageRecord]) -> ImageIndex:
         tuple[str, SubjectId, Impression, FingerprintPosition], ImageRecord
     ] = {}
     for image in images:
-        if not image.is_single_finger:
+        if not image.is_single_finger or not image.is_usable:
             continue
         key = (image.release, image.subject_id, image.impression, image.position)
         existing = index.get(key)
@@ -96,7 +96,7 @@ def _require(
         return index[(release, subject_id, impression, position)]
     except KeyError:
         raise ProtocolError(
-            f"cohort subject {subject_id} has no {impression.value} image for "
+            f"cohort subject {subject_id} has no usable {impression.value} image for "
             f"{position.label} in {release}; the cohort criteria should have "
             f"excluded this subject"
         ) from None
@@ -111,8 +111,8 @@ def generate_pairs(
 ) -> tuple[ComparisonPair, ...]:
     """Produce every pair the plan calls for, in a stable order.
 
-    Ordering is (release, subject, finger, stage) so that regenerating the
-    manifest yields a byte-identical file.
+    Ordering is (release, subject, finger, stage) so regeneration yields a
+    semantically identical manifest with the same content hash.
     """
     index = build_image_index(images)
     pairs: list[ComparisonPair] = []

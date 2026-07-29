@@ -11,10 +11,10 @@ can be held to.
 | [0002](0002-minimal-adapter-contract.md) | Adapters must implement `compare`, nothing more | Accepted, not yet implemented |
 | [0003](0003-decision-outside-adapter.md) | Thresholds are applied outside the adapter | Accepted, not yet implemented |
 | [0004](0004-sd300c-effective-ppi.md) | SD300C is used at 2000 ppi despite its metadata | Accepted, implemented |
-| [0005](0005-immutable-raw-results.md) | Manifests and raw results are immutable | Accepted, implemented for manifests |
+| [0005](0005-immutable-raw-results.md) | Manifests and raw results are immutable | Accepted, implemented |
 | [0006](0006-self-failure-semantics.md) | An operational failure is not a non-match | Accepted, not yet implemented |
 | [0007](0007-no-algorithm-branching-in-runner.md) | No algorithm-specific branching outside adapters | Accepted, not yet implemented |
-| [0008](0008-non-mated-pairing-strategy.md) | Impostor pairs shift the finger within a subject | **Proposed — needs review** |
+| [0008](0008-non-mated-pairing-strategy.md) | Impostor pairs shift the finger within a subject | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

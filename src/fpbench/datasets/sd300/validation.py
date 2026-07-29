@@ -56,6 +56,11 @@ class IssueCode:
     METADATA_PPI_ANOMALY = "metadata_ppi_anomaly"
     UNEXPECTED_METADATA_PPI = "unexpected_metadata_ppi"
     NON_SQUARE_RESOLUTION = "non_square_resolution"
+    CHECKSUM_NOT_DECLARED = "checksum_not_declared"
+    CHECKSUM_MISMATCH = "checksum_mismatch"
+    CHECKSUM_MANIFEST_MISSING = "checksum_manifest_missing"
+    CHECKSUM_MANIFEST_INVALID = "checksum_manifest_invalid"
+    CHECKSUM_DECLARED_FILE_MISSING = "checksum_declared_file_missing"
 
 
 class PngHeaderError(ValueError):

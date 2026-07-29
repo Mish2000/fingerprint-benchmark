@@ -84,6 +84,11 @@ def load_protocol_config(path: Path) -> SD300ProtocolConfig:
             require.get("common_across_releases", True)
         ),
     )
+    if not criteria.require_common_across_releases:
+        raise ConfigurationError(
+            f"{path}: SD300Protocol requires common_across_releases=true because "
+            "pair generation requires every selected subject in every release"
+        )
 
     non_mated = pairs.get("plain_roll_non_mated") or {}
     if isinstance(non_mated, bool):  # allow the terse form
@@ -109,6 +114,11 @@ class SD300Protocol(Protocol):
     """50 complete subjects, four comparison stages, per release."""
 
     def __init__(self, config: SD300ProtocolConfig) -> None:
+        if not config.criteria.require_common_across_releases:
+            raise ConfigurationError(
+                "SD300Protocol requires common_across_releases=true because pair "
+                "generation requires every selected subject in every release"
+            )
         self.config = config
         self.protocol_id = config.protocol_id
         self.dataset_id = config.dataset_id
@@ -121,12 +131,17 @@ class SD300Protocol(Protocol):
     def releases(self) -> tuple[str, ...]:
         return self.config.criteria.releases
 
-    def build_cohort(self, subjects: Iterable[SubjectRecord]) -> Cohort:
+    def build_cohort(
+        self,
+        subjects: Iterable[SubjectRecord],
+        image_manifest_hashes: Mapping[str, str],
+    ) -> Cohort:
         return select_cohort(
             protocol_id=self.protocol_id,
             dataset_id=self.dataset_id,
             subjects=subjects,
             criteria=self.config.criteria,
+            image_manifest_hashes=image_manifest_hashes,
         )
 
     def build_pairs(

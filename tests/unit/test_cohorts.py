@@ -3,11 +3,12 @@ from __future__ import annotations
 import pytest
 
 from fpbench.core.enums import CohortRole, FingerprintPosition
-from fpbench.core.errors import InsufficientCohortError
+from fpbench.core.errors import InsufficientCohortError, ProtocolError
 from fpbench.core.models import SubjectRecord
 from fpbench.protocols.cohorts import CohortCriteria, eligible_subjects, select_cohort
 
 ALL_TEN = tuple(FingerprintPosition)
+MANIFEST_HASHES = {"SD300A": "a" * 64, "SD300B": "b" * 64}
 
 
 def subject(subject_id: str, release: str, *, plain=ALL_TEN, roll=ALL_TEN):
@@ -61,10 +62,12 @@ def test_the_cross_release_requirement_can_be_relaxed():
 def test_selection_is_reproducible_for_a_given_seed():
     subjects = population(20)
     first = select_cohort(
-        protocol_id="p", dataset_id="sd300", subjects=subjects, criteria=criteria()
+        protocol_id="p", dataset_id="sd300", subjects=subjects, criteria=criteria(),
+        image_manifest_hashes=MANIFEST_HASHES,
     )
     second = select_cohort(
-        protocol_id="p", dataset_id="sd300", subjects=subjects, criteria=criteria()
+        protocol_id="p", dataset_id="sd300", subjects=subjects, criteria=criteria(),
+        image_manifest_hashes=MANIFEST_HASHES,
     )
     assert first == second
     assert first.subject_ids == tuple(sorted(first.subject_ids))
@@ -72,15 +75,22 @@ def test_selection_is_reproducible_for_a_given_seed():
 
 def test_a_different_seed_gives_a_different_cohort_id():
     subjects = population(20)
-    a = select_cohort(protocol_id="p", dataset_id="sd300", subjects=subjects, criteria=criteria(seed=1))
-    b = select_cohort(protocol_id="p", dataset_id="sd300", subjects=subjects, criteria=criteria(seed=2))
+    a = select_cohort(
+        protocol_id="p", dataset_id="sd300", subjects=subjects,
+        criteria=criteria(seed=1), image_manifest_hashes=MANIFEST_HASHES,
+    )
+    b = select_cohort(
+        protocol_id="p", dataset_id="sd300", subjects=subjects,
+        criteria=criteria(seed=2), image_manifest_hashes=MANIFEST_HASHES,
+    )
     assert a.cohort_id != b.cohort_id
 
 
 def test_the_full_candidate_pool_is_recorded():
     subjects = population(20)
     cohort = select_cohort(
-        protocol_id="p", dataset_id="sd300", subjects=subjects, criteria=criteria()
+        protocol_id="p", dataset_id="sd300", subjects=subjects, criteria=criteria(),
+        image_manifest_hashes=MANIFEST_HASHES,
     )
     assert cohort.selection.candidate_count == 20
     assert set(cohort.subject_ids) <= set(cohort.selection.candidate_ids)
@@ -93,6 +103,7 @@ def test_too_few_candidates_is_an_error_not_a_short_cohort():
             dataset_id="sd300",
             subjects=population(2),
             criteria=criteria(size=50),
+            image_manifest_hashes=MANIFEST_HASHES,
         )
 
 
@@ -102,5 +113,62 @@ def test_the_role_is_carried_into_the_cohort():
         dataset_id="sd300",
         subjects=population(5),
         criteria=criteria(role=CohortRole.DEVELOPMENT),
+        image_manifest_hashes=MANIFEST_HASHES,
     )
     assert cohort.role is CohortRole.DEVELOPMENT
+
+
+def test_source_manifest_change_always_changes_the_cohort_id():
+    subjects = population(20)
+    first = select_cohort(
+        protocol_id="p", dataset_id="sd300", subjects=subjects,
+        criteria=criteria(), image_manifest_hashes=MANIFEST_HASHES,
+    )
+    changed = select_cohort(
+        protocol_id="p", dataset_id="sd300", subjects=subjects,
+        criteria=criteria(),
+        image_manifest_hashes={**MANIFEST_HASHES, "SD300B": "c" * 64},
+    )
+    assert changed.subject_ids == first.subject_ids
+    assert changed.cohort_id != first.cohort_id
+
+
+def test_candidate_pool_change_changes_the_cohort_id():
+    first = select_cohort(
+        protocol_id="p", dataset_id="sd300", subjects=population(20),
+        criteria=criteria(), image_manifest_hashes=MANIFEST_HASHES,
+    )
+    changed = select_cohort(
+        protocol_id="p", dataset_id="sd300", subjects=population(21),
+        criteria=criteria(), image_manifest_hashes=MANIFEST_HASHES,
+    )
+    assert changed.cohort_id != first.cohort_id
+
+
+def test_every_selected_release_requires_an_image_manifest_hash():
+    with pytest.raises(ProtocolError, match="SD300B"):
+        select_cohort(
+            protocol_id="p", dataset_id="sd300", subjects=population(5),
+            criteria=criteria(), image_manifest_hashes={"SD300A": "a" * 64},
+        )
+
+
+def test_image_manifest_hashes_must_be_full_sha256_values():
+    with pytest.raises(ProtocolError, match="SD300B"):
+        select_cohort(
+            protocol_id="p", dataset_id="sd300", subjects=population(5),
+            criteria=criteria(),
+            image_manifest_hashes={"SD300A": "a" * 64, "SD300B": "short"},
+        )
+
+
+def test_selection_provenance_mappings_are_defensively_frozen():
+    source = dict(MANIFEST_HASHES)
+    cohort = select_cohort(
+        protocol_id="p", dataset_id="sd300", subjects=population(5),
+        criteria=criteria(), image_manifest_hashes=source,
+    )
+    source["SD300A"] = "f" * 64
+    assert cohort.selection.image_manifest_hashes["SD300A"] == "a" * 64
+    with pytest.raises(TypeError):
+        cohort.selection.criteria["new"] = "value"

@@ -16,6 +16,7 @@ __all__ = [
     "GroundTruth",
     "ProtocolStage",
     "CohortRole",
+    "ChecksumStatus",
 ]
 
 
@@ -97,3 +98,11 @@ class CohortRole(str, Enum):
 
     TEST = "test"
     DEVELOPMENT = "development"
+
+
+class ChecksumStatus(str, Enum):
+    """Whether the bytes on disk were checked against the official digest."""
+
+    NOT_VERIFIED = "not_verified"
+    VERIFIED = "verified"
+    MISMATCH = "mismatch"

@@ -15,10 +15,12 @@ manifest row is a reproducibility hazard.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Mapping
 
 from fpbench.core.enums import (
     CohortRole,
+    ChecksumStatus,
     FingerprintPosition,
     GroundTruth,
     Impression,
@@ -32,6 +34,7 @@ __all__ = [
     "ComparisonPair",
     "CohortSelection",
     "Cohort",
+    "SelfEligibilityRecord",
 ]
 
 
@@ -53,8 +56,13 @@ class ImageRecord:
             ``metadata_ppi`` and docs/adr/0004.
         metadata: Dataset-native fields kept verbatim (e.g. SD300 ``frgp``).
             Anything in here is opaque to the protocol and analysis layers.
-        anomalies: Codes emitted by the dataset's validator. A non-empty tuple
-            does not by itself disqualify the image; the protocol decides.
+        expected_sha256: Digest declared by the dataset publisher. This is
+            provenance, not proof that the local bytes match it; see
+            ``checksum_status``.
+        anomalies: Non-blocking validation findings retained for audit.
+        blocking_issues: Validation ERROR codes. A record carrying one remains
+            in the image manifest for audit but cannot affect eligibility or
+            enter a comparison pair.
     """
 
     image_id: ImageId
@@ -66,14 +74,29 @@ class ImageRecord:
     is_multi_finger: bool
     relative_path: str
     effective_ppi: int
+    expected_sha256: str
     metadata_ppi: int | None = None
-    sha256: str | None = None
+    checksum_status: ChecksumStatus = ChecksumStatus.NOT_VERIFIED
     metadata: Mapping[str, str] = field(default_factory=dict)
     anomalies: tuple[str, ...] = ()
+    blocking_issues: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        digest = self.expected_sha256.lower()
+        if len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+            raise ValueError("expected_sha256 must be a 64-character hexadecimal digest")
+        object.__setattr__(self, "expected_sha256", digest)
+        object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))
+        object.__setattr__(self, "anomalies", tuple(self.anomalies))
+        object.__setattr__(self, "blocking_issues", tuple(self.blocking_issues))
 
     @property
     def is_single_finger(self) -> bool:
         return self.position is not None and not self.is_multi_finger
+
+    @property
+    def is_usable(self) -> bool:
+        return not self.blocking_issues and self.checksum_status is not ChecksumStatus.MISMATCH
 
 
 @dataclass(frozen=True, slots=True)
@@ -130,6 +153,16 @@ class CohortSelection:
     size: int
     candidate_ids: tuple[SubjectId, ...]
     criteria: Mapping[str, str]
+    image_manifest_hashes: Mapping[str, str]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "candidate_ids", tuple(self.candidate_ids))
+        object.__setattr__(self, "criteria", MappingProxyType(dict(self.criteria)))
+        object.__setattr__(
+            self,
+            "image_manifest_hashes",
+            MappingProxyType(dict(self.image_manifest_hashes)),
+        )
 
     @property
     def candidate_count(self) -> int:
@@ -147,3 +180,16 @@ class Cohort:
     releases: tuple[str, ...]
     subject_ids: tuple[SubjectId, ...]
     selection: CohortSelection
+
+
+@dataclass(frozen=True, slots=True)
+class SelfEligibilityRecord:
+    """Per-finger SELF decision derived within one run and decision profile."""
+
+    release: str
+    subject_id: SubjectId
+    finger_position: FingerprintPosition
+    plain_self_passed: bool
+    roll_self_passed: bool
+    eligible: bool
+    exclusion_reason: str | None = None

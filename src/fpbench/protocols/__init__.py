@@ -13,6 +13,7 @@ from fpbench.protocols.sd300_protocol import (
     load_protocol_config,
 )
 from fpbench.protocols.self_filtering import (
+    build_self_eligibility,
     collect_failed_fingers,
     select_self_eligible_pairs,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "SD300Protocol",
     "SD300ProtocolConfig",
     "build_image_index",
+    "build_self_eligibility",
     "collect_failed_fingers",
     "eligible_subjects",
     "generate_pairs",

@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterator, Mapping, Sequence
 
-from fpbench.core.enums import Impression
+from fpbench.core.enums import ChecksumStatus, Impression
 from fpbench.core.errors import ConfigurationError, DatasetLayoutError
 from fpbench.core.identifiers import ImageId, SubjectId, compose_id
 from fpbench.core.models import ImageRecord
@@ -84,18 +84,9 @@ class SD300DatasetProvider(DatasetProvider):
         self,
         root: Path,
         layouts: Sequence[SD300ReleaseLayout],
-        *,
-        read_png_metadata: bool = False,
     ) -> None:
-        """
-        Args:
-            read_png_metadata: When true, :meth:`scan` reads each PNG header so
-                that ``metadata_ppi`` and PPI anomalies land in the image
-                manifest. Costs one small read per file across ~58k files, so
-                it is off by default; :meth:`validate` always reads headers.
-        """
+        """Configure releases; scans always validate each small PNG header."""
         self.root = Path(root)
-        self.read_png_metadata = read_png_metadata
         self._layouts: dict[str, SD300ReleaseLayout] = {
             layout.release: layout for layout in layouts
         }
@@ -132,7 +123,12 @@ class SD300DatasetProvider(DatasetProvider):
                 SD300ReleaseLayout(
                     release=release,
                     directory=str(
-                        settings.get("directory", DEFAULT_RELEASE_DIRECTORIES.get(release, release.lower()))
+                        settings.get(
+                            "directory",
+                            DEFAULT_RELEASE_DIRECTORIES.get(
+                                release, release.lower()
+                            ),
+                        )
                     ),
                     image_format=str(settings.get("image_format", image_format)).lower(),
                 )
@@ -141,7 +137,6 @@ class SD300DatasetProvider(DatasetProvider):
         return cls(
             root=spec.root,
             layouts=layouts,
-            read_png_metadata=bool(options.get("read_png_metadata", False)),
         )
 
     @property
@@ -158,14 +153,21 @@ class SD300DatasetProvider(DatasetProvider):
 
     # ----------------------------------------------------------------- public
 
-    def scan(self, release: str) -> Iterator[ImageRecord]:
-        """Yield one record per readable image in ``release``.
+    def scan(
+        self, release: str, *, verify_checksums: bool = False
+    ) -> Iterator[ImageRecord]:
+        """Yield one audited record per officially declared image.
 
         Files whose names cannot be parsed are skipped here and reported by
         :meth:`validate`: a record that cannot be described faithfully is worse
-        than a missing one.
+        than a missing one. PNG headers are always validated. Set
+        ``verify_checksums`` to hash the bytes and persist VERIFIED/MISMATCH
+        evidence; the default still records NIST's expected digest without
+        reading all image bytes.
         """
-        for record, _ in self._walk(release, read_header=self.read_png_metadata):
+        for record, _ in self._walk(
+            release, read_header=True, verify_checksum=verify_checksums
+        ):
             if record is not None:
                 yield record
 
@@ -173,7 +175,9 @@ class SD300DatasetProvider(DatasetProvider):
         """Check names, layout and PNG headers for every file in ``release``."""
         issues: list[ValidationIssue] = []
         checked = 0
-        for _, file_issues in self._walk(release, read_header=True):
+        for _, file_issues in self._walk(
+            release, read_header=True, verify_checksum=False
+        ):
             checked += 1
             issues.extend(file_issues)
 
@@ -206,10 +210,11 @@ class SD300DatasetProvider(DatasetProvider):
                 issues.append(
                     ValidationIssue(
                         code=reason,
-                        severity=Severity.ERROR
-                        if reason != "unlisted_file"
-                        else Severity.WARNING,
-                        detail=f"expected {expected.get(filename, '-')}, got {actual or 'missing'}",
+                        severity=Severity.ERROR,
+                        detail=(
+                            f"expected {expected.get(filename, '-')}, "
+                            f"got {actual or 'missing'}"
+                        ),
                         relative_path=self._relative(directory / filename),
                     )
                 )
@@ -218,7 +223,7 @@ class SD300DatasetProvider(DatasetProvider):
     # ---------------------------------------------------------------- internal
 
     def _walk(
-        self, release: str, *, read_header: bool
+        self, release: str, *, read_header: bool, verify_checksum: bool = False
     ) -> Iterator[tuple[ImageRecord | None, tuple[ValidationIssue, ...]]]:
         """Single traversal shared by :meth:`scan` and :meth:`validate`."""
         layout = self.layout(release)
@@ -226,8 +231,21 @@ class SD300DatasetProvider(DatasetProvider):
             directory = layout.impression_directory(self.root, impression)
             if not directory.is_dir():
                 continue
+            try:
+                expected = checksums.load_checksums(
+                    layout.checksum_path(self.root, impression)
+                )
+            except DatasetLayoutError:
+                expected = {}
             for path in iter_image_files(directory, layout.image_format):
-                yield self._build(release, layout, path, read_header=read_header)
+                yield self._build(
+                    release,
+                    layout,
+                    path,
+                    expected_sha256=expected.get(path.name),
+                    read_header=read_header,
+                    verify_checksum=verify_checksum,
+                )
 
     def _build(
         self,
@@ -235,7 +253,9 @@ class SD300DatasetProvider(DatasetProvider):
         layout: SD300ReleaseLayout,
         path: Path,
         *,
+        expected_sha256: str | None,
         read_header: bool,
+        verify_checksum: bool,
     ) -> tuple[ImageRecord | None, tuple[ValidationIssue, ...]]:
         relative = self._relative(path)
         parsed: SD300Filename | None = try_parse(path.name)
@@ -247,8 +267,34 @@ class SD300DatasetProvider(DatasetProvider):
             header=header,
             header_error=header_error,
         )
-        if parsed is None:
-            return None, issues
+        issues = list(issues)
+        checksum_status = ChecksumStatus.NOT_VERIFIED
+        if expected_sha256 is None:
+            issues.append(
+                ValidationIssue(
+                    code=IssueCode.CHECKSUM_NOT_DECLARED,
+                    severity=Severity.ERROR,
+                    detail="image is absent from the official NIST checksum manifest",
+                    relative_path=relative,
+                )
+            )
+        elif verify_checksum:
+            actual_sha256 = checksums.sha256_file(path)
+            if actual_sha256 == expected_sha256:
+                checksum_status = ChecksumStatus.VERIFIED
+            else:
+                checksum_status = ChecksumStatus.MISMATCH
+                issues.append(
+                    ValidationIssue(
+                        code=IssueCode.CHECKSUM_MISMATCH,
+                        severity=Severity.ERROR,
+                        detail=f"expected {expected_sha256}, got {actual_sha256}",
+                        relative_path=relative,
+                    )
+                )
+
+        if parsed is None or expected_sha256 is None:
+            return None, tuple(issues)
 
         resolution = resolve_position(parsed.impression, parsed.frgp)
         suffix = (
@@ -270,19 +316,22 @@ class SD300DatasetProvider(DatasetProvider):
             is_multi_finger=resolution.is_multi_finger,
             relative_path=relative,
             effective_ppi=layout.effective_ppi,
+            expected_sha256=expected_sha256,
             metadata_ppi=metadata_ppi,
+            checksum_status=checksum_status,
             metadata={
                 "frgp": f"{parsed.frgp:02d}",
                 "filename_ppi": str(parsed.ppi),
                 "image_format": layout.image_format,
             },
             anomalies=tuple(
-                issue.code
-                for issue in issues
-                if issue.code != IssueCode.FILENAME_UNPARSEABLE
+                issue.code for issue in issues if issue.severity is not Severity.ERROR
+            ),
+            blocking_issues=tuple(
+                issue.code for issue in issues if issue.severity is Severity.ERROR
             ),
         )
-        return record, issues
+        return record, tuple(issues)
 
     def _relative(self, path: Path) -> str:
         """Path from the dataset root, POSIX-style, so manifests stay portable."""
@@ -311,12 +360,39 @@ class SD300DatasetProvider(DatasetProvider):
             if not checksum_path.is_file():
                 issues.append(
                     ValidationIssue(
-                        code="missing_checksum_file",
-                        severity=Severity.WARNING,
+                        code=IssueCode.CHECKSUM_MANIFEST_MISSING,
+                        severity=Severity.ERROR,
                         detail="NIST checksum manifest not present",
                         relative_path=self._relative_or_none(checksum_path),
                     )
                 )
+                continue
+            try:
+                expected = checksums.load_checksums(checksum_path)
+            except DatasetLayoutError as exc:
+                issues.append(
+                    ValidationIssue(
+                        code=IssueCode.CHECKSUM_MANIFEST_INVALID,
+                        severity=Severity.ERROR,
+                        detail=str(exc),
+                        relative_path=self._relative_or_none(checksum_path),
+                    )
+                )
+                continue
+            if directory.is_dir():
+                present = {
+                    path.name
+                    for path in iter_image_files(directory, layout.image_format)
+                }
+                for filename in sorted(set(expected) - present):
+                    issues.append(
+                        ValidationIssue(
+                            code=IssueCode.CHECKSUM_DECLARED_FILE_MISSING,
+                            severity=Severity.ERROR,
+                            detail="file declared by NIST checksum manifest is missing",
+                            relative_path=self._relative_or_none(directory / filename),
+                        )
+                    )
         return issues
 
     def _relative_or_none(self, path: Path) -> str | None:

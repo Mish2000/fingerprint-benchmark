@@ -5,19 +5,19 @@ release: all ten anatomical fingers present as plain impressions *and* as
 rolled impressions, with simultaneous-capture slap images excluded.
 
 The choice among eligible subjects is arbitrary but reproducible: candidates
-are sorted, then sampled with a fixed seed. The full candidate pool is recorded
-alongside the winners, so a later change to the eligibility rules cannot pass
-unnoticed.
+are ranked by SHA-256(seed || subject_id). The full candidate pool, winners and
+source image-manifest hashes are fingerprinted, so neither an eligibility
+change nor changed source bytes can silently reuse a cohort id.
 """
 
 from __future__ import annotations
 
-import random
+import hashlib
 from dataclasses import dataclass
 from typing import Iterable, Mapping
 
 from fpbench.core.enums import CohortRole, Impression
-from fpbench.core.errors import InsufficientCohortError
+from fpbench.core.errors import InsufficientCohortError, ProtocolError
 from fpbench.core.identifiers import CohortId, SubjectId, compose_id
 from fpbench.core.models import Cohort, CohortSelection, SubjectRecord
 from fpbench.core.serialization import stable_hash
@@ -93,6 +93,7 @@ def select_cohort(
     dataset_id: str,
     subjects: Iterable[SubjectRecord],
     criteria: CohortCriteria,
+    image_manifest_hashes: Mapping[str, str],
 ) -> Cohort:
     """Draw a reproducible cohort of ``criteria.size`` eligible subjects.
 
@@ -101,6 +102,26 @@ def select_cohort(
             requested size. Quietly returning a short cohort would change the
             denominator of every reported rate.
     """
+    missing_hashes = set(criteria.releases) - set(image_manifest_hashes)
+    if missing_hashes:
+        raise ProtocolError(
+            f"missing image manifest hash(es) for releases {sorted(missing_hashes)}"
+        )
+    source_hashes = {
+        release: image_manifest_hashes[release].lower()
+        for release in criteria.releases
+    }
+    invalid_hashes = [
+        release
+        for release, digest in source_hashes.items()
+        if len(digest) != 64
+        or any(char not in "0123456789abcdef" for char in digest.lower())
+    ]
+    if invalid_hashes:
+        raise ProtocolError(
+            f"invalid image manifest hash(es) for releases {invalid_hashes}"
+        )
+
     candidates = eligible_subjects(subjects, criteria)
     if len(candidates) < criteria.size:
         raise InsufficientCohortError(
@@ -108,20 +129,34 @@ def select_cohort(
             f"{list(criteria.releases)}, but {criteria.size} were requested"
         )
 
-    rng = random.Random(criteria.seed)
-    chosen = tuple(sorted(rng.sample(candidates, criteria.size)))
+    def rank(subject_id: SubjectId) -> tuple[bytes, str]:
+        payload = f"{criteria.seed}\0{subject_id}".encode("utf-8")
+        return hashlib.sha256(payload).digest(), str(subject_id)
+
+    chosen = tuple(sorted(sorted(candidates, key=rank)[: criteria.size]))
 
     selection = CohortSelection(
         seed=criteria.seed,
         size=criteria.size,
         candidate_ids=candidates,
         criteria=criteria.as_criteria_map(),
+        image_manifest_hashes=source_hashes,
     )
     # The id changes whenever anything that could change the membership changes,
     # so two cohorts drawn under different rules can never collide on disk.
     fingerprint = stable_hash(
-        {**criteria.as_criteria_map(), "seed": criteria.seed, "size": criteria.size},
-        length=8,
+        {
+            "dataset_id": dataset_id,
+            "protocol_id": protocol_id,
+            "role": criteria.role,
+            "criteria": criteria.as_criteria_map(),
+            "seed": criteria.seed,
+            "size": criteria.size,
+            "candidate_ids": candidates,
+            "selected_subject_ids": chosen,
+            "image_manifest_hashes": source_hashes,
+        },
+        length=12,
     )
     return Cohort(
         cohort_id=CohortId(compose_id(protocol_id, criteria.role.value, fingerprint)),

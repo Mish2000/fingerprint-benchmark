@@ -18,7 +18,8 @@ SD300 card layout, per the README and the files on disk:
 Note that the plain thumbs arrive under 11/12 while the segmented plain fingers
 keep their anatomical numbers; plain 01 and plain 06 do not exist. FRGP 13/14
 are simultaneous captures containing four fingers in one image and must never
-enter a comparison — they are the images the protocol excludes.
+enter a comparison — they are the images the protocol excludes. FRGP 15 has no
+defined meaning in SD300 and is deliberately left unknown.
 """
 
 from __future__ import annotations
@@ -58,7 +59,7 @@ ROLL_FRGP_TO_POSITION: Mapping[int, FingerprintPosition] = MappingProxyType(
 )
 
 #: Simultaneous-capture plain images. Excluded from every comparison.
-MULTI_FINGER_FRGP: frozenset[int] = frozenset({13, 14, 15})
+MULTI_FINGER_FRGP: frozenset[int] = frozenset({13, 14})
 
 
 @dataclass(frozen=True, slots=True)

@@ -33,7 +33,6 @@ def synthetic_provider(synthetic_root: Path) -> SD300DatasetProvider:
             SD300ReleaseLayout("SD300A", "sd300a"),
             SD300ReleaseLayout("SD300B", "sd300b"),
         ],
-        read_png_metadata=True,
     )
 
 

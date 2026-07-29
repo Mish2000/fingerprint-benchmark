@@ -16,24 +16,33 @@ from typing import Any, Iterable, Mapping, Sequence
 import pyarrow as pa
 
 from fpbench.core.enums import (
+    ChecksumStatus,
     FingerprintPosition,
     GroundTruth,
     Impression,
     ProtocolStage,
 )
 from fpbench.core.identifiers import ImageId, PairId, SubjectId
-from fpbench.core.models import ComparisonPair, ImageRecord, SubjectRecord
+from fpbench.core.models import (
+    ComparisonPair,
+    ImageRecord,
+    SelfEligibilityRecord,
+    SubjectRecord,
+)
 
 __all__ = [
     "IMAGE_SCHEMA",
     "SUBJECT_SCHEMA",
     "PAIR_SCHEMA",
+    "SELF_ELIGIBILITY_SCHEMA",
     "images_to_table",
     "table_to_images",
     "subjects_to_table",
     "table_to_subjects",
     "pairs_to_table",
     "table_to_pairs",
+    "self_eligibility_to_table",
+    "table_to_self_eligibility",
 ]
 
 IMAGE_SCHEMA = pa.schema(
@@ -48,11 +57,13 @@ IMAGE_SCHEMA = pa.schema(
         pa.field("is_multi_finger", pa.bool_(), nullable=False),
         pa.field("relative_path", pa.string(), nullable=False),
         pa.field("effective_ppi", pa.int32(), nullable=False),
-        # What the file itself declares; null when headers were not read.
+        # What the file declares; null when its header could not be read.
         pa.field("metadata_ppi", pa.int32(), nullable=True),
-        pa.field("sha256", pa.string(), nullable=True),
+        pa.field("expected_sha256", pa.string(), nullable=False),
+        pa.field("checksum_status", pa.string(), nullable=False),
         pa.field("metadata", pa.map_(pa.string(), pa.string()), nullable=False),
         pa.field("anomalies", pa.list_(pa.string()), nullable=False),
+        pa.field("blocking_issues", pa.list_(pa.string()), nullable=False),
     ]
 )
 
@@ -77,6 +88,18 @@ PAIR_SCHEMA = pa.schema(
         pa.field("right_image_id", pa.string(), nullable=False),
         pa.field("ground_truth", pa.string(), nullable=False),
         pa.field("protocol_stage", pa.string(), nullable=False),
+    ]
+)
+
+SELF_ELIGIBILITY_SCHEMA = pa.schema(
+    [
+        pa.field("release", pa.string(), nullable=False),
+        pa.field("subject_id", pa.string(), nullable=False),
+        pa.field("finger_position", pa.int8(), nullable=False),
+        pa.field("plain_self_passed", pa.bool_(), nullable=False),
+        pa.field("roll_self_passed", pa.bool_(), nullable=False),
+        pa.field("eligible", pa.bool_(), nullable=False),
+        pa.field("exclusion_reason", pa.string(), nullable=True),
     ]
 )
 
@@ -113,9 +136,11 @@ def images_to_table(images: Iterable[ImageRecord]) -> pa.Table:
             "relative_path": image.relative_path,
             "effective_ppi": image.effective_ppi,
             "metadata_ppi": image.metadata_ppi,
-            "sha256": image.sha256,
+            "expected_sha256": image.expected_sha256,
+            "checksum_status": image.checksum_status.value,
             "metadata": dict(image.metadata),
             "anomalies": list(image.anomalies),
+            "blocking_issues": list(image.blocking_issues),
         }
         for image in images
     ]
@@ -139,9 +164,11 @@ def table_to_images(table: pa.Table) -> list[ImageRecord]:
             relative_path=row["relative_path"],
             effective_ppi=row["effective_ppi"],
             metadata_ppi=row["metadata_ppi"],
-            sha256=row["sha256"],
+            expected_sha256=row["expected_sha256"],
+            checksum_status=ChecksumStatus(row["checksum_status"]),
             metadata=_as_dict(row["metadata"]),
             anomalies=tuple(row["anomalies"] or ()),
+            blocking_issues=tuple(row["blocking_issues"] or ()),
         )
         for row in table.to_pylist()
     ]
@@ -212,6 +239,42 @@ def table_to_pairs(table: pa.Table) -> list[ComparisonPair]:
             right_image_id=ImageId(row["right_image_id"]),
             ground_truth=GroundTruth(row["ground_truth"]),
             protocol_stage=ProtocolStage(row["protocol_stage"]),
+        )
+        for row in table.to_pylist()
+    ]
+
+
+# ------------------------------------------------------------ SELF decisions
+
+
+def self_eligibility_to_table(
+    records: Iterable[SelfEligibilityRecord],
+) -> pa.Table:
+    rows = [
+        {
+            "release": record.release,
+            "subject_id": str(record.subject_id),
+            "finger_position": int(record.finger_position),
+            "plain_self_passed": record.plain_self_passed,
+            "roll_self_passed": record.roll_self_passed,
+            "eligible": record.eligible,
+            "exclusion_reason": record.exclusion_reason,
+        }
+        for record in records
+    ]
+    return _table(rows, SELF_ELIGIBILITY_SCHEMA)
+
+
+def table_to_self_eligibility(table: pa.Table) -> list[SelfEligibilityRecord]:
+    return [
+        SelfEligibilityRecord(
+            release=row["release"],
+            subject_id=SubjectId(row["subject_id"]),
+            finger_position=FingerprintPosition(row["finger_position"]),
+            plain_self_passed=row["plain_self_passed"],
+            roll_self_passed=row["roll_self_passed"],
+            eligible=row["eligible"],
+            exclusion_reason=row["exclusion_reason"],
         )
         for row in table.to_pylist()
     ]

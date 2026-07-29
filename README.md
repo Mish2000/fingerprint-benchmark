@@ -12,9 +12,9 @@ The organising principle:
 
 ## What exists right now
 
-This is the first implementation stage: **datasets, protocol and manifest
-storage**. It ends with a complete, reproducible experiment definition — which
-images exist, which 50 subjects were chosen, and which 6,000 comparisons the
+Phase 2 is the reproducible experiment definition: **datasets, protocol,
+provenance and manifest storage**. It records which exact image delivery was
+audited, which 50 subjects were chosen, and which 6,000 comparisons the
 protocol calls for — with no algorithm involved.
 
 | Package | Status | Responsibility |
@@ -22,7 +22,7 @@ protocol calls for — with no algorithm involved.
 | `fpbench.core` | built | shared vocabulary; stdlib only, imports nothing from the project |
 | `fpbench.datasets` | built | what images exist on disk, and do they match their own declarations |
 | `fpbench.protocols` | built | which subjects take part, and which comparisons that implies |
-| `fpbench.storage` | built (manifests) | immutable manifests as parquet + JSON |
+| `fpbench.storage` | built (phase 2) | immutable manifests plus run-scoped SELF eligibility |
 | `fpbench.imaging` | not yet | resampling, format conversion, transform provenance |
 | `fpbench.adapters` | not yet | one package per algorithm, behind a shared contract |
 | `fpbench.decisions` | not yet | thresholds, calibration, score → decision |
@@ -37,8 +37,10 @@ oversights:
   `RawMatchResult`, `DecisionResult`, `FailureInfo`, `ExecutionProfile` and
   `AlgorithmDescriptor` are named in the architecture but not written yet —
   their fields cannot be designed honestly without a real adapter to satisfy.
-* **`storage` implements the manifest store only.** The result and artifact
-  stores wait on the runner for the same reason.
+* **`storage` implements manifests and the one result artifact whose contract
+  phase 2 already fixes.** General result and artifact stores wait on the
+  runner; per-finger SELF eligibility is already scoped by run and decision
+  profile so it cannot be confused across algorithms or thresholds.
 
 ## Setup
 
@@ -81,19 +83,41 @@ protocol = SD300Protocol.from_config_file(Path("configs/protocols/sd300_50_subje
 store = ManifestStore(Path("workspace"))
 
 images, subjects = [], []
+image_manifest_hashes = {}
+validation_override_reason = None  # set a documented reason only when intentional
+verify_checksums = False  # set True before constructing final research manifests
 for release in protocol.releases:
-    release_images = list(provider.scan(release))
+    report = provider.validate(release)
+    store.write_validation_report(
+        report, dataset_id=protocol.dataset_id, release=release
+    )
+    if not report.is_clean and validation_override_reason is None:
+        raise RuntimeError(f"{release}: blocking dataset validation errors")
+
+    release_images = list(
+        provider.scan(release, verify_checksums=verify_checksums)
+    )
     release_subjects = summarise_subjects(release_images)
-    store.write_images(release_images, dataset_id="sd300", release=release)
-    store.write_subjects(release_subjects, dataset_id="sd300", release=release)
+    store.write_images(
+        release_images,
+        dataset_id=protocol.dataset_id,
+        release=release,
+        validation_override_reason=validation_override_reason,
+    )
+    store.write_subjects(
+        release_subjects, dataset_id=protocol.dataset_id, release=release
+    )
+    image_manifest_hashes[release] = store.image_manifest_hash(
+        protocol.dataset_id, release
+    )
     images += release_images
     subjects += release_subjects
 
-cohort = protocol.build_cohort(subjects)
+cohort = protocol.build_cohort(subjects, image_manifest_hashes)
 pairs = protocol.build_pairs(cohort, images)
 
 store.write_cohort(cohort)
-store.write_pairs(pairs, protocol_id=protocol.protocol_id)
+store.write_pairs(pairs, cohort=cohort)
 ```
 
 Produces, under `workspace/manifests/`:
@@ -101,10 +125,11 @@ Produces, under `workspace/manifests/`:
 ```
 datasets/sd300/SD300A/images.parquet      19,435 rows
 datasets/sd300/SD300A/subjects.parquet       888 rows
+datasets/sd300/SD300A/validation.json       audit report
 datasets/sd300/SD300B/...
 datasets/sd300/SD300C/...
-protocols/sd300_50_subjects/cohort.json    50 subjects (of 832 eligible)
-protocols/sd300_50_subjects/pairs.parquet   6,000 rows
+protocols/sd300_50_subjects/cohorts/<cohort_id>/cohort.json
+protocols/sd300_50_subjects/cohorts/<cohort_id>/pairs.parquet
 ```
 
 Checking a release against its own declarations:
@@ -115,12 +140,32 @@ report.is_clean        # True — the PPI defect is a warning, not an error
 report.counts_by_code  # {'metadata_ppi_anomaly': 10115}
 ```
 
+Every scanned `ImageRecord` carries NIST's `expected_sha256`. A regular scan
+does not hash 113 GB; `checksum_status` remains `not_verified`. Before final
+research runs, perform and persist a full verification once:
+
+```python
+verified_images = list(provider.scan("SD300A", verify_checksums=True))
+assert all(image.checksum_status.value == "verified" for image in verified_images)
+# Use verified_images as release_images before selecting the final cohort.
+```
+
+Warnings remain usable, including the documented SD300C metadata anomaly.
+Validation errors remain in `images.parquet` through `blocking_issues` for
+audit only when `write_images()` receives a non-empty, documented
+`validation_override_reason`; otherwise storage refuses the write.
+`summarise_subjects()` and pair indexing always ignore blocked records. A
+parseable file absent from NIST's checksum manifest is reported as an error and
+is not minted as an `ImageRecord`, because no official source digest can be
+attached.
+
 ## The protocol
 
 50 subjects that are complete in **all three** releases — ten anatomical
 fingers, present as both plain and rolled impressions. 500 plain + 500 rolled
 images per release. Simultaneous-capture slap images (FRGP 13/14) are excluded
-at indexing time and can never enter a comparison.
+at indexing time and can never enter a comparison. FRGP 15 is unknown in SD300
+and is never treated as a multi-finger image.
 
 Four stages per release, 500 pairs each:
 
@@ -134,12 +179,16 @@ Four stages per release, 500 pairs each:
 The PLAIN–ROLL stage is reported twice: over all 500 pairs, and over only those
 whose finger survived both SELF stages. A finger that fails *either* SELF stage
 disqualifies its pair — failing PLAIN SELF is sufficient regardless of ROLL
-SELF. That filtered set is a **derived view** written beside `pairs.parquet`;
-the pair manifest itself is never modified.
+SELF. The pair manifest itself is never modified. The decision is stored as an
+explicit per-finger table at
+`results/<run_id>/decisions/<decision_profile_id>/self_eligibility.parquet`,
+from which the eligible pair view can be derived for that exact run/profile.
 
-Cohort selection is arbitrary but reproducible: candidates are sorted and
-sampled with a recorded seed, and the full eligible pool is stored alongside the
-50 winners so a later change to the eligibility rules cannot pass unnoticed.
+Cohort selection is arbitrary but reproducible: candidates are ranked by
+`SHA256(seed || subject_id)`. The cohort id fingerprints source image-manifest
+hashes, criteria, the full candidate pool and the 50 winners. Pair manifests
+carry protocol id, cohort id, the composite image-manifest hash, their own
+semantic content hash and schema version in Parquet metadata.
 
 ## Architecture
 
@@ -165,17 +214,12 @@ The rules exist so that adding an algorithm cannot change the experiment, and
 changing the experiment cannot silently change what an algorithm does. Every
 decision behind them is recorded in [docs/adr](docs/adr/README.md).
 
-## Open questions
+## Pairing decision
 
-One assumption is load-bearing and has not been confirmed:
-
-* **How impostor pairs are built.** The protocol says "plain finger 1 against
-  rolled finger 2". This implementation reads that as *the same subject's*
-  finger *i* against finger *i+1* — the harder, more conservative construction.
-  The alternative is pairing across subjects, which yields a different and
-  more favourable false-match figure.
-  See [ADR 0008](docs/adr/0008-non-mated-pairing-strategy.md); changing it is
-  one config value.
+The non-mated stage is the accepted deterministic same-subject,
+different-finger negative sanity test: plain finger *i* against rolled finger
+*i+1*, wrapping at ten. See
+[ADR 0008](docs/adr/0008-non-mated-pairing-strategy.md).
 
 ## Next stage
 

@@ -7,6 +7,7 @@ library. Every other package may import core; core imports none of them.
 from fpbench.core.enums import (
     ALL_POSITIONS,
     CohortRole,
+    ChecksumStatus,
     FingerprintPosition,
     GroundTruth,
     Hand,
@@ -19,6 +20,7 @@ from fpbench.core.models import (
     CohortSelection,
     ComparisonPair,
     ImageRecord,
+    SelfEligibilityRecord,
     SubjectRecord,
 )
 
@@ -27,6 +29,7 @@ __all__ = [
     "Cohort",
     "CohortId",
     "CohortRole",
+    "ChecksumStatus",
     "CohortSelection",
     "ComparisonPair",
     "FingerprintPosition",
@@ -34,6 +37,7 @@ __all__ = [
     "Hand",
     "ImageId",
     "ImageRecord",
+    "SelfEligibilityRecord",
     "Impression",
     "PairId",
     "ProtocolStage",

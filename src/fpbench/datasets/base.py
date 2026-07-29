@@ -125,6 +125,8 @@ def summarise_subjects(images: Iterable[ImageRecord]) -> list[SubjectRecord]:
 
     buckets: dict[tuple[str, str], list[ImageRecord]] = {}
     for image in images:
+        if not image.is_usable:
+            continue
         buckets.setdefault((image.release, image.subject_id), []).append(image)
 
     records: list[SubjectRecord] = []

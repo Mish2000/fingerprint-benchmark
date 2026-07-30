@@ -6,9 +6,11 @@ are deliberately kept *out* of the descriptor fingerprint and out of stored
 results: where a jar lives on one machine says nothing about the experiment, and a
 result that embeds it stops being portable evidence.
 
-The expected versions are configuration rather than constants so that upgrading
-SourceAFIS is an explicit edit with a visible diff. The adapter refuses to run
-against anything else (docs/adr/0015).
+The expected versions are fixed constants for this adapter version. The public
+configuration repeats them for an auditable manifest, but cannot override them:
+upgrading SourceAFIS or the bridge protocol must be an explicit code change that
+updates the dependency, descriptor, pipeline metadata, regression score,
+documentation, and adapter version together (docs/adr/0015).
 """
 
 from __future__ import annotations
@@ -62,14 +64,20 @@ class SourceAfisJavaConfig:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "jvm_args", tuple(str(arg) for arg in self.jvm_args))
-        for name in (
-            "expected_sourceafis_version",
-            "expected_bridge_version",
-            "expected_bridge_protocol",
-        ):
+        pinned_expectations = (
+            ("expected_sourceafis_version", EXPECTED_SOURCEAFIS_VERSION),
+            ("expected_bridge_version", EXPECTED_BRIDGE_VERSION),
+            ("expected_bridge_protocol", EXPECTED_BRIDGE_PROTOCOL),
+        )
+        for name, expected in pinned_expectations:
             value = str(getattr(self, name)).strip()
             if not value:
                 raise ConfigurationError(f"{name} must not be empty")
+            if value != expected:
+                raise ConfigurationError(
+                    f"{name} is fixed at {expected!r} for this adapter version; "
+                    f"got {value!r}"
+                )
             object.__setattr__(self, name, value)
 
         root = Path(self.project_root) if self.project_root else _repository_root()

@@ -34,7 +34,11 @@ from fpbench.adapters.sourceafis_java.bridge_models import (
     BridgeContractViolation,
     BridgeVersionInfo,
 )
-from fpbench.adapters.sourceafis_java.config import SourceAfisJavaConfig
+from fpbench.adapters.sourceafis_java.config import (
+    EXPECTED_BRIDGE_PROTOCOL,
+    EXPECTED_SOURCEAFIS_VERSION,
+    SourceAfisJavaConfig,
+)
 from fpbench.adapters.sourceafis_java.failure_mapping import (
     contract_violation,
     map_bridge_failure,
@@ -67,13 +71,15 @@ PIPELINE_METADATA: Mapping[str, str] = {
     "family_id": "sourceafis",
     "pipeline_kind": "end_to_end_image_matcher",
     "extractor_id": "sourceafis_java",
-    "extractor_version": "3.18.1",
+    "extractor_version": EXPECTED_SOURCEAFIS_VERSION,
     "matcher_id": "sourceafis_java",
-    "matcher_version": "3.18.1",
-    "upstream_artifact": "com.machinezoo.sourceafis:sourceafis:3.18.1",
+    "matcher_version": EXPECTED_SOURCEAFIS_VERSION,
+    "upstream_artifact": (
+        f"com.machinezoo.sourceafis:sourceafis:{EXPECTED_SOURCEAFIS_VERSION}"
+    ),
     "implementation_language": "java",
     "integration_mode": "subprocess_per_comparison",
-    "bridge_protocol": "fpbench.sourceafis.bridge.v1",
+    "bridge_protocol": EXPECTED_BRIDGE_PROTOCOL,
     "input_mode": "encoded_image",
     "dpi_policy": "explicit_effective_ppi",
     "probe_side": "left",
@@ -95,7 +101,7 @@ class SourceAfisJavaAdapter(FingerprintAlgorithmAdapter):
             adapter_id=ADAPTER_ID,
             adapter_version="1",
             adapter_contract_version=ADAPTER_CONTRACT_VERSION,
-            implementation_version=self._config.expected_sourceafis_version,
+            implementation_version=EXPECTED_SOURCEAFIS_VERSION,
             score_direction=ScoreDirection.HIGHER_IS_BETTER,
             deterministic=True,
             capabilities=(),

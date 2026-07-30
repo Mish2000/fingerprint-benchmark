@@ -22,6 +22,7 @@ from fpbench.adapters.sourceafis_java.adapter import (
 from fpbench.adapters.sourceafis_java.config import (
     DEFAULT_JVM_ARGS,
     EXPECTED_BRIDGE_PROTOCOL,
+    EXPECTED_BRIDGE_VERSION,
     EXPECTED_SOURCEAFIS_VERSION,
     SourceAfisJavaConfig,
 )
@@ -162,6 +163,32 @@ def test_configuration_can_override_the_jar_and_java(tmp_path):
     )
     assert adapter.config.bridge_jar == tmp_path / "custom.jar"
     assert str(adapter.config.java_executable) == "java17"
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        pytest.param(
+            "expected_sourceafis_version", "3.19.0", id="sourceafis-version"
+        ),
+        pytest.param("expected_bridge_version", "2", id="bridge-version"),
+        pytest.param(
+            "expected_bridge_protocol",
+            "fpbench.sourceafis.bridge.v2",
+            id="bridge-protocol",
+        ),
+    ],
+)
+def test_pipeline_identity_versions_cannot_be_overridden(field, value):
+    with pytest.raises(ConfigurationError, match=field):
+        create_adapter(ADAPTER_ID, {field: value})
+
+
+def test_default_config_uses_the_pinned_pipeline_identity():
+    config = SourceAfisJavaConfig()
+    assert config.expected_sourceafis_version == EXPECTED_SOURCEAFIS_VERSION
+    assert config.expected_bridge_version == EXPECTED_BRIDGE_VERSION
+    assert config.expected_bridge_protocol == EXPECTED_BRIDGE_PROTOCOL
 
 
 def test_a_relative_jar_is_anchored_to_the_repository():

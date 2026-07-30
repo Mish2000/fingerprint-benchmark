@@ -122,6 +122,19 @@ class SingleJobRunner:
         self._workspace_root = Path(workspace_root).resolve()
         self._preflight()
 
+    @property
+    def run(self) -> RunDefinition:
+        """The run this runner is bound to.
+
+        Exposed so that a batch executor can check its plan against the same
+        run without reaching into private state.
+        """
+        return self._run
+
+    @property
+    def result_store(self) -> ResultStore:
+        return self._result_store
+
     # --------------------------------------------------------------- preflight
 
     def _preflight(self) -> None:

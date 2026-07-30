@@ -12,17 +12,21 @@ it covers. That gives two things at once:
 
 That second property is why the id is not something readable like
 ``sourceafis_sd300b_plain_roll_00001000_f01``.
+
+The :class:`~fpbench.core.execution_plan_models.ComparisonJob` container lives
+in ``core`` so that the storage layer can persist plans without depending on
+this package; it is re-exported here because the rules for *deriving* a job are
+this module's business and callers should not have to know where the container
+is declared. Data there, policy here — the same split as ``RunDefinition``.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from fpbench.core.execution_models import FINGERPRINT_LENGTH
-from fpbench.core.identifiers import ImageId, PairId
+from fpbench.core.execution_plan_models import ComparisonJob
 from fpbench.core.models import ComparisonPair
+from fpbench.core.result_models import RunDefinition
 from fpbench.core.serialization import stable_hash
-from fpbench.execution.run_definition import RunDefinition
 
 __all__ = ["ComparisonJob", "build_comparison_job", "JOB_SCHEMA_VERSION", "JOB_ID_LENGTH"]
 
@@ -34,38 +38,18 @@ JOB_SCHEMA_VERSION = "1"
 JOB_ID_LENGTH = 16
 
 
-@dataclass(frozen=True, slots=True)
-class ComparisonJob:
-    """A single planned comparison.
-
-    Carries ``pair_id`` because the runner and the result store need to join
-    back to the pair manifest. The adapter never sees this object — it receives
-    a :class:`~fpbench.core.execution_models.ComparisonContext`, which does not
-    include the pair.
-    """
-
-    job_id: str
-    job_fingerprint: str
-    run_id: str
-    pair_id: PairId
-    left_image_id: ImageId
-    right_image_id: ImageId
-    attempt: int = 1
-
-    def __post_init__(self) -> None:
-        if int(self.attempt) < 1:
-            raise ValueError("attempt is 1-based")
-        object.__setattr__(self, "attempt", int(self.attempt))
-
-
 def build_comparison_job(
     run: RunDefinition, pair: ComparisonPair, *, attempt: int = 1
 ) -> ComparisonJob:
     """Derive the job that covers ``pair`` within ``run``.
 
-    ``attempt`` is always 1 in stage 3A — there are no automatic retries yet —
-    but it is part of the fingerprint so that a future retry produces a
+    ``attempt`` is always 1 through stage 3B — there are no automatic retries
+    yet — but it is part of the fingerprint so that a future retry produces a
     distinct job rather than colliding with the attempt it is replacing.
+
+    This is the only place job identity is minted. The planner calls it rather
+    than deriving ids of its own, so there is exactly one answer to "which job
+    covers this pair in this run?".
     """
     fingerprint = stable_hash(
         {

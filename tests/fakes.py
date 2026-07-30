@@ -54,6 +54,8 @@ __all__ = [
     "StrayWriteAdapter",
     "CountingPreparer",
     "ExplodingPreparer",
+    "SometimesFailingAdapter",
+    "InterruptingAdapter",
 ]
 
 FIXED_SCORE = 42.5
@@ -316,3 +318,56 @@ class ExplodingPreparer(ImagePreparer):
         self, image: ImageRecord, dataset_root: Path, profile: ExecutionProfile
     ) -> PreparedImage:
         raise RuntimeError("preparer failed unexpectedly")
+
+
+class SometimesFailingAdapter(_ReadyAdapter):
+    """Fails every ``fail_every``-th comparison and scores the rest.
+
+    Stands in for a real matcher on a real dataset, where a handful of images
+    simply will not yield a template. A run made of these must still finish and
+    still verify (docs/adr/0013).
+    """
+
+    algorithm_id = "sometimes_failing_adapter"
+
+    def __init__(self, *, fail_every: int = 3, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.fail_every = fail_every
+
+    def _respond(self, left, right, context) -> RawMatchResult:
+        if self.compare_calls % self.fail_every == 0:
+            return RawMatchResult.failed(
+                failure=FailureInfo(
+                    code=FailureCode.TEMPLATE_EXTRACTION_FAILED,
+                    stage=FailureStage.EXTRACTION,
+                    message="no minutiae found",
+                ),
+                score_direction=self.descriptor.score_direction,
+            )
+        return RawMatchResult.success(
+            raw_score=float(self.compare_calls),
+            score_direction=self.descriptor.score_direction,
+        )
+
+
+class InterruptingAdapter(_ReadyAdapter):
+    """Raises KeyboardInterrupt once it has been called ``after`` times.
+
+    Reproduces someone pressing Ctrl-C part-way through a long run. The
+    exception must travel all the way out: it is not a comparison failure and
+    must never be recorded as one.
+    """
+
+    algorithm_id = "interrupting_adapter"
+
+    def __init__(self, *, after: int = 3, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.after = after
+
+    def _respond(self, left, right, context) -> RawMatchResult:
+        if self.compare_calls > self.after:
+            raise KeyboardInterrupt("operator stopped the run")
+        return RawMatchResult.success(
+            raw_score=float(self.compare_calls),
+            score_direction=self.descriptor.score_direction,
+        )

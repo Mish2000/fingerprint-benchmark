@@ -10,6 +10,8 @@ the ``artifacts`` column so those references have somewhere to land.
 """
 
 from fpbench.storage.manifest_store import ManifestStore
+from fpbench.storage.plan_schemas import PLANNED_JOB_SCHEMA
+from fpbench.storage.plan_store import PlanStore
 from fpbench.storage.result_schemas import RAW_RESULT_SCHEMA
 from fpbench.storage.result_store import ResultStore
 from fpbench.storage.schemas import (
@@ -23,6 +25,8 @@ __all__ = [
     "IMAGE_SCHEMA",
     "ManifestStore",
     "PAIR_SCHEMA",
+    "PLANNED_JOB_SCHEMA",
+    "PlanStore",
     "RAW_RESULT_SCHEMA",
     "ResultStore",
     "SELF_ELIGIBILITY_SCHEMA",

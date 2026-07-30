@@ -40,12 +40,14 @@ from fpbench.core.result_models import (
     RunDefinition,
     raw_result_hash,
 )
+from fpbench.core.run_state_models import RunCompletion
 from fpbench.core.serialization import read_json, write_json
-from fpbench.storage import result_schemas
+from fpbench.storage import layout, result_schemas
 
 __all__ = ["ResultStore"]
 
 _RUN_MANIFEST = "run.json"
+_COMPLETION_MANIFEST = "completion.json"
 
 
 class ResultStore:
@@ -58,10 +60,10 @@ class ResultStore:
 
     @property
     def results_root(self) -> Path:
-        return self.root / "results"
+        return layout.results_root(self.root)
 
     def run_dir(self, run_id: str) -> Path:
-        return self.results_root / validate_id(run_id)
+        return layout.run_directory(self.root, run_id)
 
     def run_manifest_path(self, run_id: str) -> Path:
         return self.run_dir(run_id) / _RUN_MANIFEST
@@ -71,6 +73,13 @@ class ResultStore:
 
     def raw_result_path(self, run_id: str, job_id: str) -> Path:
         return self.raw_jobs_dir(run_id) / f"{validate_id(job_id)}.parquet"
+
+    def completion_path(self, run_id: str) -> Path:
+        return self.run_dir(run_id) / _COMPLETION_MANIFEST
+
+    def derived_path(self, run_id: str, name: str) -> Path:
+        """A regenerable artefact. Free to overwrite, free to delete."""
+        return layout.derived_directory(self.root, run_id) / name
 
     # -------------------------------------------------------------------- run
 
@@ -120,7 +129,71 @@ class ResultStore:
             )
         )
 
+    # ------------------------------------------------------------- completion
+
+    def has_completion(self, run_id: str) -> bool:
+        return self.completion_path(run_id).is_file()
+
+    def ensure_completion(self, completion: RunCompletion) -> Path:
+        """Write ``completion.json`` once, or confirm the stored one matches.
+
+        Idempotent for the same fingerprint, a conflict for a different one.
+        There is no overwrite: a run that has already been declared verified
+        cannot quietly be declared verified about something else.
+        """
+        path = self.completion_path(completion.run_id)
+        if path.is_file():
+            stored = self.read_completion(completion.run_id)
+            if stored.completion_fingerprint != completion.completion_fingerprint:
+                raise ResultConflictError(
+                    f"{path} already declares completion "
+                    f"{stored.completion_fingerprint[:12]}..., not "
+                    f"{completion.completion_fingerprint[:12]}..."
+                )
+            return path
+        return write_json(path, completion)
+
+    def read_completion(self, run_id: str) -> RunCompletion:
+        path = self.completion_path(run_id)
+        if not path.is_file():
+            raise StorageError(f"completion manifest not found: {path}")
+        payload = read_json(path)
+        try:
+            return RunCompletion(
+                completion_id=payload["completion_id"],
+                completion_fingerprint=payload["completion_fingerprint"],
+                run_id=payload["run_id"],
+                run_fingerprint=payload["run_fingerprint"],
+                plan_id=payload["plan_id"],
+                plan_fingerprint=payload["plan_fingerprint"],
+                pair_manifest_hash=payload["pair_manifest_hash"],
+                audit_fingerprint=payload["audit_fingerprint"],
+                planned_jobs=payload["planned_jobs"],
+                success_count=payload["success_count"],
+                failure_count=payload["failure_count"],
+                completed_utc=payload["completed_utc"],
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise StorageError(
+                f"{path}: unreadable completion manifest ({exc})"
+            ) from exc
+
+    def write_derived(self, run_id: str, name: str, value: object) -> Path:
+        """Persist a regenerable snapshot. Overwriting is expected here."""
+        return write_json(self.derived_path(run_id, name), value)
+
     # ------------------------------------------------------------ raw results
+
+    def stored_job_ids(self, run_id: str) -> tuple[str, ...]:
+        """Every job id that has a result file, sorted.
+
+        Reads the directory rather than any counter: the files are the only
+        thing that can say what was actually stored (docs/adr/0012).
+        """
+        directory = self.raw_jobs_dir(run_id)
+        if not directory.is_dir():
+            return ()
+        return tuple(sorted(path.stem for path in directory.glob("*.parquet")))
 
     def has_raw_result(self, run_id: str, job_id: str) -> bool:
         return self.raw_result_path(run_id, job_id).is_file()

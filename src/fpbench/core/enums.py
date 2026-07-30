@@ -22,6 +22,9 @@ __all__ = [
     "EnvironmentStatus",
     "FailureStage",
     "FailureCode",
+    "RunState",
+    "IntegritySeverity",
+    "IntegrityIssueCode",
 ]
 
 
@@ -179,3 +182,62 @@ class FailureCode(str, Enum):
     DEPENDENCY_MISSING = "dependency_missing"
     UNSUPPORTED_RESOLUTION = "unsupported_resolution"
     INTERNAL_ERROR = "internal_error"
+
+
+class RunState(str, Enum):
+    """How far a run has got, and whether it can be believed.
+
+    There is deliberately no ``RUNNING``. State is derived from files on disk,
+    and after a crash nothing on disk can tell you whether a process is still
+    alive — a persisted ``RUNNING`` would be a lie the moment the machine
+    rebooted (docs/adr/0012).
+    """
+
+    #: The plan exists; no results have been stored yet.
+    PLANNED = "planned"
+    #: Some planned jobs have results, some do not.
+    PARTIAL = "partial"
+    #: Every planned job has a readable result, but no completion manifest has
+    #: been written — nothing has yet verified the run as a whole.
+    COMPLETE = "complete"
+    #: A clean audit ran and its completion manifest is on disk.
+    VERIFIED = "verified"
+    #: An integrity problem was found: corruption, a conflict, a result that
+    #: belongs to no planned job, mismatched provenance.
+    INVALID = "invalid"
+
+
+class IntegritySeverity(str, Enum):
+    """Whether an audit finding blocks a run from being called verified."""
+
+    WARNING = "warning"
+    ERROR = "error"
+
+
+class IntegrityIssueCode(str, Enum):
+    """What an audit found wrong.
+
+    None of these describes a biometric outcome. A comparison that failed to
+    produce a score is a perfectly valid stored result (docs/adr/0013); these
+    codes are about results that are missing, duplicated, unreadable, or
+    claiming to belong to something they do not.
+    """
+
+    MISSING_RESULT = "missing_result"
+    EXTRA_RESULT = "extra_result"
+    RESULT_UNREADABLE = "result_unreadable"
+    PATH_JOB_ID_MISMATCH = "path_job_id_mismatch"
+    RUN_ID_MISMATCH = "run_id_mismatch"
+    JOB_FINGERPRINT_MISMATCH = "job_fingerprint_mismatch"
+    PAIR_ID_MISMATCH = "pair_id_mismatch"
+    IMAGE_IDS_MISMATCH = "image_ids_mismatch"
+    PAIR_MANIFEST_HASH_MISMATCH = "pair_manifest_hash_mismatch"
+    ALGORITHM_FINGERPRINT_MISMATCH = "algorithm_fingerprint_mismatch"
+    EXECUTION_PROFILE_HASH_MISMATCH = "execution_profile_hash_mismatch"
+    RESULT_HASH_MISMATCH = "result_hash_mismatch"
+    RESULT_METADATA_MISSING = "result_metadata_missing"
+    RESULT_SCHEMA_MISMATCH = "result_schema_mismatch"
+    DUPLICATE_PAIR_ID = "duplicate_pair_id"
+    DUPLICATE_JOB_ID = "duplicate_job_id"
+    DUPLICATE_JOB_FINGERPRINT = "duplicate_job_fingerprint"
+    PLAN_CONFLICT = "plan_conflict"

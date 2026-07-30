@@ -21,6 +21,10 @@ __all__ = [
     "ImagePreparationError",
     "ExecutionError",
     "PreflightError",
+    "PlanningError",
+    "PlanConflictError",
+    "RunIntegrityError",
+    "IncompleteRunError",
 ]
 
 
@@ -86,3 +90,35 @@ class PreflightError(ExecutionError):
     wrong preparer. It must stop the run before any job executes, rather than
     producing thousands of identical per-pair failures.
     """
+
+
+class PlanningError(ExecutionError):
+    """An execution plan cannot be built from the given inputs.
+
+    Duplicated pairs, or a pair manifest that does not belong to the run.
+    Building a plan anyway would produce a run whose results cannot be
+    attributed to any particular set of comparisons (docs/adr/0011).
+    """
+
+
+class PlanConflictError(ExecutionError):
+    """A different plan is already stored under this run.
+
+    Plans are immutable. Since a run's identity already covers its pair
+    manifest, this normally means the stored plan was edited or a fingerprint
+    rule changed — never something to resolve by overwriting.
+    """
+
+
+class RunIntegrityError(ExecutionError):
+    """Stored results contradict the plan or each other.
+
+    Distinct from a comparison that failed: that is a valid recorded result and
+    a run full of them can still be complete (docs/adr/0013). This is a missing
+    result, an extra one, a corrupt file, or provenance that does not match —
+    conditions under which continuing would mix incomparable results together.
+    """
+
+
+class IncompleteRunError(ExecutionError):
+    """An operation needed every planned job to have a result, and some do not."""

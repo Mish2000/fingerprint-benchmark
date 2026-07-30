@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from fpbench.core.enums import RunState
+from fpbench.core.serialization import write_json
 from fpbench.execution.progress import inspect_run_progress
 from fpbench.execution.runner import SingleJobRunner
 from fakes import SometimesFailingAdapter
-from runworld import build_world
+from runworld import build_world, write_result_file
 
 
 @pytest.fixture
@@ -99,6 +102,41 @@ def test_a_completion_manifest_for_another_plan_does_not_verify(world, tmp_path)
         run=world.run, plan=other.plan, result_store=world.result_store
     )
     assert snapshot.state is not RunState.VERIFIED
+
+
+def test_changed_results_after_completion_make_progress_invalid(world):
+    run_jobs(world)
+    world.completion_service.finalise(run=world.run, plan=world.plan)
+
+    job = world.plan.jobs[0].job
+    store = world.result_store
+    record = store.read_raw_result(world.run.run_id, job.job_id)
+    stale_hash = store.raw_result_metadata(world.run.run_id, job.job_id)[
+        "result_hash"
+    ]
+    write_result_file(
+        store.raw_result_path(world.run.run_id, job.job_id),
+        replace(record, raw_score=record.raw_score + 1.0),
+        metadata={"result_hash": stale_hash},
+    )
+
+    snapshot = progress(world)
+    assert snapshot.completion_manifest_present
+    assert snapshot.state is RunState.INVALID
+
+
+def test_a_tampered_completion_fingerprint_makes_progress_invalid(world):
+    run_jobs(world)
+    world.completion_service.finalise(run=world.run, plan=world.plan)
+    completion = world.result_store.read_completion(world.run.run_id)
+    write_json(
+        world.result_store.completion_path(world.run.run_id),
+        replace(completion, completion_fingerprint="0" * 64),
+    )
+
+    snapshot = progress(world)
+    assert snapshot.completion_manifest_present
+    assert snapshot.state is RunState.INVALID
 
 
 # --------------------------------------------------------------------- counts

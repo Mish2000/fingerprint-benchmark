@@ -14,7 +14,10 @@ from fpbench.core.errors import (
 )
 from fpbench.core.run_state_models import RunCompletion
 from fpbench.execution.audit import audit_run
-from fpbench.execution.completion import build_run_completion
+from fpbench.execution.completion import (
+    build_run_completion,
+    completion_fingerprint_of,
+)
 from fakes import SometimesFailingAdapter
 from runworld import build_world
 
@@ -49,6 +52,7 @@ def test_a_clean_finished_run_produces_a_completion(world):
     assert completion.success_count == world.plan.total_jobs
     assert completion.failure_count == 0
     assert completion.completion_id == f"completion_{completion.completion_fingerprint[:12]}"
+    assert completion_fingerprint_of(completion) == completion.completion_fingerprint
 
 
 def test_a_completion_names_the_audit_it_rests_on(world):

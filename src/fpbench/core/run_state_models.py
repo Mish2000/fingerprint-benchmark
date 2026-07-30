@@ -262,3 +262,7 @@ class RunCompletion:
                 "a completed run accounts for every planned job: "
                 f"{self.success_count} + {self.failure_count} != {self.planned_jobs}"
             )
+        completed_utc = str(self.completed_utc).strip()
+        if not completed_utc:
+            raise ValueError("completed_utc must not be empty")
+        object.__setattr__(self, "completed_utc", completed_utc)

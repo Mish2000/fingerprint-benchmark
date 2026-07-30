@@ -21,7 +21,9 @@ from fpbench.core.enums import ExecutionStatus, RunState
 from fpbench.core.errors import StorageError
 from fpbench.core.execution_plan_models import ExecutionPlan
 from fpbench.core.result_models import RunDefinition
-from fpbench.core.run_state_models import RunProgress
+from fpbench.core.run_state_models import COMPLETION_ID_LENGTH, RunProgress
+from fpbench.execution.audit import audit_run
+from fpbench.execution.completion import completion_fingerprint_of
 from fpbench.storage.result_store import ResultStore
 
 __all__ = ["inspect_run_progress", "PROGRESS_SNAPSHOT_NAME"]
@@ -78,6 +80,7 @@ def inspect_run_progress(
         extra=extra,
         unreadable=unreadable,
         provenance_conflict=provenance_conflict,
+        completion_present=completion_present,
         completion_valid=completion_valid,
     )
 
@@ -107,12 +110,31 @@ def _completion_matches(
     """
     try:
         completion = result_store.read_completion(run.run_id)
-    except StorageError:
+        expected_fingerprint = completion_fingerprint_of(completion)
+        expected_id = f"completion_{expected_fingerprint[:COMPLETION_ID_LENGTH]}"
+        if completion.completion_fingerprint != expected_fingerprint:
+            return False
+        if completion.completion_id != expected_id:
+            return False
+        if not (
+            completion.run_id == run.run_id
+            and completion.run_fingerprint == run.run_fingerprint
+            and completion.plan_id == plan.plan_id
+            and completion.plan_fingerprint == plan.definition.plan_fingerprint
+            and completion.pair_manifest_hash == run.pair_manifest_hash
+            and completion.planned_jobs == plan.total_jobs
+            and bool(completion.completed_utc.strip())
+        ):
+            return False
+        audit = audit_run(run=run, plan=plan, result_store=result_store)
+    except (StorageError, ValueError):
         return False
     return (
-        completion.run_fingerprint == run.run_fingerprint
-        and completion.plan_fingerprint == plan.definition.plan_fingerprint
-        and completion.planned_jobs == plan.total_jobs
+        audit.is_clean
+        and audit.audit_fingerprint == completion.audit_fingerprint
+        and audit.valid_results == completion.planned_jobs
+        and audit.success_count == completion.success_count
+        and audit.failure_count == completion.failure_count
     )
 
 
@@ -123,9 +145,15 @@ def _state(
     extra: int,
     unreadable: int,
     provenance_conflict: bool,
+    completion_present: bool,
     completion_valid: bool,
 ) -> RunState:
-    if extra or unreadable or provenance_conflict:
+    if (
+        extra
+        or unreadable
+        or provenance_conflict
+        or (completion_present and not completion_valid)
+    ):
         return RunState.INVALID
     if completion_valid:
         return RunState.VERIFIED

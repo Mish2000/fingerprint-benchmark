@@ -33,7 +33,47 @@ from fpbench.core.serialization import stable_hash
 from fpbench.execution.audit import audit_run
 from fpbench.storage.result_store import ResultStore
 
-__all__ = ["RunCompletionService", "build_run_completion"]
+__all__ = [
+    "RunCompletionService",
+    "build_run_completion",
+    "completion_fingerprint_of",
+]
+
+
+def _completion_fingerprint(
+    *,
+    run_fingerprint: str,
+    plan_fingerprint: str,
+    audit_fingerprint: str,
+    planned_jobs: int,
+    success_count: int,
+    failure_count: int,
+) -> str:
+    return stable_hash(
+        {
+            "schema": "run_completion_fingerprint_v1",
+            "completion_schema_version": COMPLETION_SCHEMA_VERSION,
+            "run_fingerprint": run_fingerprint,
+            "plan_fingerprint": plan_fingerprint,
+            "audit_fingerprint": audit_fingerprint,
+            "planned_jobs": planned_jobs,
+            "success_count": success_count,
+            "failure_count": failure_count,
+        },
+        length=FINGERPRINT_LENGTH,
+    )
+
+
+def completion_fingerprint_of(completion: RunCompletion) -> str:
+    """Recompute a completion manifest's digest from its durable fields."""
+    return _completion_fingerprint(
+        run_fingerprint=completion.run_fingerprint,
+        plan_fingerprint=completion.plan_fingerprint,
+        audit_fingerprint=completion.audit_fingerprint,
+        planned_jobs=completion.planned_jobs,
+        success_count=completion.success_count,
+        failure_count=completion.failure_count,
+    )
 
 
 def build_run_completion(
@@ -65,18 +105,13 @@ def build_run_completion(
             f"{plan.total_jobs} planned jobs"
         )
 
-    fingerprint = stable_hash(
-        {
-            "schema": "run_completion_fingerprint_v1",
-            "completion_schema_version": COMPLETION_SCHEMA_VERSION,
-            "run_fingerprint": run.run_fingerprint,
-            "plan_fingerprint": plan.definition.plan_fingerprint,
-            "audit_fingerprint": audit.audit_fingerprint,
-            "planned_jobs": plan.total_jobs,
-            "success_count": audit.success_count,
-            "failure_count": audit.failure_count,
-        },
-        length=FINGERPRINT_LENGTH,
+    fingerprint = _completion_fingerprint(
+        run_fingerprint=run.run_fingerprint,
+        plan_fingerprint=plan.definition.plan_fingerprint,
+        audit_fingerprint=audit.audit_fingerprint,
+        planned_jobs=plan.total_jobs,
+        success_count=audit.success_count,
+        failure_count=audit.failure_count,
     )
 
     return RunCompletion(

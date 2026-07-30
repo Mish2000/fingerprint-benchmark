@@ -29,7 +29,12 @@ recomputed from the files rather than counted; and a run is declared verified
 only after an integrity audit accounts for every planned comparison. All 6,000
 comparisons of the protocol run end to end under the dummy matcher.
 
-Still no thresholds, no decisions, and no real matcher.
+Phase 4A added the **first real biometric integration**: SourceAFIS for Java 3.18.1,
+behind a stateless Java subprocess bridge. It enters through exactly the same adapter
+contract the dummy matcher used — nothing in the runner, the planner, the executor or
+the storage layer knows it exists.
+
+Still no thresholds and no decisions.
 
 | Package | Status | Responsibility |
 |---|---|---|
@@ -37,8 +42,8 @@ Still no thresholds, no decisions, and no real matcher.
 | `fpbench.datasets` | built | what images exist on disk, and do they match their own declarations |
 | `fpbench.protocols` | built | which subjects take part, and which comparisons that implies |
 | `fpbench.storage` | built | immutable manifests, plans, run manifests, raw results |
-| `fpbench.imaging` | built (identity only) | the image preparation contract; resampling and conversion still to come |
-| `fpbench.adapters` | built | the adapter contract, the registry and `dummy_sha256` |
+| `fpbench.imaging` | built (identity only) | the image preparation contract; resampling still to come |
+| `fpbench.adapters` | built | the contract, the registry, `dummy_sha256` and `sourceafis_java` |
 | `fpbench.execution` | built (sequential) | plan, run, resume, progress, audit, completion |
 | `fpbench.decisions` | not yet | thresholds, calibration, score → decision |
 | `fpbench.evaluation` | not yet | protocol metrics, FMR/FNMR, failure analysis, reports |
@@ -46,19 +51,20 @@ Still no thresholds, no decisions, and no real matcher.
 
 Deliberate omissions, so they read as decisions rather than oversights:
 
-* **No real matcher yet.** `dummy_sha256` produces a deterministic pseudo-score
-  and nothing else; it exists to exercise the harness, and no biometric
-  conclusion may be drawn from it.
-* **No thresholds anywhere.** Raw scores are stored with their score direction
-  and no decision. Applying a threshold is a separate, later record against
-  those unchanged scores.
-* **Sequential only.** One job at a time, no retries, no worker pool, no hard
-  timeout termination. The storage layout is already the one that makes
-  parallelism safe — one immutable file per job, no shared table, no locks — so
-  adding workers later changes the executor and nothing beneath it.
-* **Optional adapter capabilities are named, not implemented.** Template
-  extraction, caching and minutiae export land with the first matcher that
-  actually offers them.
+* **No thresholds anywhere.** Raw scores are stored with their score direction and no
+  decision. SourceAFIS documents a recommended threshold of 40; that stays
+  documentation until a decision policy applies it to unchanged stored scores.
+* **No accuracy claim.** SourceAFIS has run 24 real SD300 comparisons as a
+  compatibility pilot. That is not a result, and no full run has been performed.
+* **Sequential only.** One job at a time, no retries, no worker pool, no hard timeout
+  termination. The storage layout is already the one that makes parallelism safe — one
+  immutable file per job, no shared table, no locks — so adding workers later changes
+  the executor and nothing beneath it.
+* **One JVM per SourceAFIS comparison.** Correct and slow, on purpose. Whether to move
+  to a persistent worker is a question for measurement, not guesswork
+  ([ADR 0015](docs/adr/0015-sourceafis-uses-stateless-java-bridge.md)).
+* **No templates stored, cached or serialised**, and no algorithm transparency output.
+  Optional adapter capabilities are named in the contract, not implemented.
 
 ## Setup
 
@@ -66,6 +72,13 @@ Deliberate omissions, so they read as decisions rather than oversights:
 conda env create -f environment.yml
 conda activate fingerprint-benchmark
 pip install -e ".[dev]"
+```
+
+The environment includes JDK 17 and Maven, because the SourceAFIS adapter runs a Java
+bridge. Build it once:
+
+```bash
+make sourceafis-build
 ```
 
 Point the harness at your NIST delivery (the directory holding `sd300a/`,
@@ -78,23 +91,24 @@ $env:FPBENCH_SD300_ROOT = "C:\fingerprint-datasets\NIST"
 Run the tests:
 
 ```bash
-pytest -m "not dataset and not full_run"
+make test
 ```
 
-That is exactly what CI runs on every push and pull request. Two markers are
-excluded:
+which is `pytest -m "not dataset and not sourceafis and not full_run"` — exactly what
+CI runs on every push and pull request. Three markers are excluded, each with its own
+way in:
 
-* `dataset` — needs the real SD300 delivery. Skipped automatically when
-  `FPBENCH_SD300_ROOT` is unset; run `pytest -m "not full_run"` locally to
-  include them.
-* `full_run` — executes all 6,000 comparisons under the dummy matcher and takes
-  a couple of minutes. It has its own manually triggered workflow,
-  [full-dummy-run.yml](.github/workflows/full-dummy-run.yml), and should be run
-  before declaring a stage finished:
+| Marker | Needs | How to run it |
+|---|---|---|
+| `dataset` | the real SD300 delivery | `pytest -m dataset` with `FPBENCH_SD300_ROOT` set; skipped automatically when it is not |
+| `sourceafis` | a JVM and the built bridge | `make sourceafis-test`; its own [workflow](.github/workflows/sourceafis-adapter.yml) |
+| `full_run` | a couple of minutes | `make full-run`; its own [workflow](.github/workflows/full-dummy-run.yml) |
 
-```bash
-pytest -m full_run
-```
+`make test-all` runs everything available on the machine.
+
+Set `FPBENCH_REQUIRE_SOURCEAFIS=1` — as the Make targets and CI do — to turn "the
+bridge is unavailable" from a skip into a failure. Without it, a broken Java build would
+produce a green run full of skips.
 
 The suite has five levels:
 
@@ -458,6 +472,60 @@ two prepared images and an operational context with no `pair_id`, no
 that nothing leaks through it
 ([ADR 0010](docs/adr/0010-adapter-context-excludes-ground-truth.md)).
 
+## The first real algorithm
+
+`sourceafis_java` — SourceAFIS for Java 3.18.1, extraction and matching, pinned exactly.
+It is registered like any other adapter and selected by id:
+
+```python
+adapter = create_adapter("sourceafis_java_subprocess")
+adapter.validate_environment()   # READY, or a reason why not
+```
+
+Nothing else changes. The same `SingleJobRunner`, the same planner, the same executor,
+the same stored result schema — swapping the adapter is the only difference between a
+dummy run and a real one, which is what
+[ADR 0007](docs/adr/0007-no-algorithm-branching-in-runner.md) was for.
+
+What the integration commits to:
+
+* **The identity names the whole pipeline**, extractor and matcher both, so the next
+  algorithm — where they differ — cannot be mislabelled
+  ([ADR 0014](docs/adr/0014-algorithm-identity-describes-full-pipeline.md)).
+* **One stateless JVM per comparison.** No state can carry between comparisons, a crash
+  costs one result, and the JVM's arguments, locale and timezone are pinned. The jar's
+  SHA-256 is part of the environment fingerprint, and the bridge reports the SourceAFIS
+  version *SourceAFIS itself* reports at runtime — so a jar built from a different
+  release is refused during preflight
+  ([ADR 0015](docs/adr/0015-sourceafis-uses-stateless-java-bridge.md)).
+* **Explicit DPI per side**, from `effective_ppi`: 500, 1000 and 2000, all verified to be
+  accepted with no clamp and no fallback. SourceAFIS ignores embedded DPI, which is
+  exactly why SD300C's false 5080 header cannot mislead it
+  ([ADR 0016](docs/adr/0016-sourceafis-receives-explicit-effective-dpi.md)).
+* **Both sides extracted independently**, even for a SELF comparison where the two paths
+  are identical. The bridge reports `extraction_count: 2` and the adapter refuses any
+  other value.
+* **Left is the probe, right the candidate.** Fixed; never reversed or averaged.
+* **Raw score only.** No threshold, no decision, no template stored or cached, no
+  transparency output.
+
+Full details, including the wire protocol and what has deliberately *not* been done, are
+in [docs/algorithms/sourceafis-java.md](docs/algorithms/sourceafis-java.md).
+
+### The SD300 pilot
+
+```bash
+make sourceafis-sd300-smoke
+```
+
+24 real comparisons — one subject, two fingers, four stages, three releases — drawn from
+the real execution plan. It asserts that all 24 produce a raw score at 500, 1000 and
+2000 ppi with no crash, timeout or rejected resolution.
+
+It leaves the run `PARTIAL` and writes no completion manifest, because 24 of 6,000
+comparisons must never be able to look finished. **No accuracy conclusion follows from
+it.**
+
 ## Architecture note: where the models live
 
 Two containers sit in `core` rather than in the package that derives them:
@@ -470,14 +538,16 @@ containers so callers import model and factory from one place.
 
 ## Next stage
 
-1. decision policies, native thresholds and calibration on a development
-   cohort;
-2. the first real adapter (SourceAFIS), which joins the existing contract suite
-   automatically by being registered;
-3. resampling as a second image preparer — 2000 ppi and 1000 ppi down to 500 —
-   with its own `preparer_id`, so results produced under each stay
-   distinguishable;
-4. evaluation: protocol metrics, SELF-filtered results, failure analysis,
-   FMR/FNMR;
-5. parallel execution and a retry policy keyed to the failure taxonomy;
-6. a CLI over all of it.
+1. measure the pilot — JVM startup cost, extraction time at each resolution, peak
+   memory, failure rate, timeout headroom — and decide between the stateless process, a
+   persistent Java worker, a batch bridge or a container;
+2. a full 6,000-comparison SourceAFIS run once that decision is made;
+3. decision policies, native thresholds (SourceAFIS's documented 40 among them) and
+   calibration on a development cohort;
+4. resampling as a second image preparer — 2000 ppi and 1000 ppi down to 500 — with its
+   own `preparer_id`, so results produced under each stay distinguishable;
+5. evaluation: protocol metrics, SELF-filtered results, failure analysis, FMR/FNMR;
+6. NBIS as the second algorithm — `nbis_mindtct_bozorth3`, both halves named — which is
+   the real test of whether the adapter contract holds;
+7. parallel execution and a retry policy keyed to the failure taxonomy;
+8. a CLI over all of it.

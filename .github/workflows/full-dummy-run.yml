@@ -5,9 +5,16 @@ name: full dummy run
 # run it before declaring a stage finished, and after any change to planning,
 # execution, storage or auditing.
 #
+# Since stage 4B it also covers the provenance chain at full scale: external
+# finalisation, a 6,000-entry result-set manifest and a sanitised receipt. Those
+# need six thousand rows rather than sixteen, and running six thousand real
+# SourceAFIS comparisons here to prove something about bookkeeping would take
+# hours (docs/adr/0019, docs/adr/0020).
+#
 # No biometric conclusion can be drawn from it. The dummy matcher scores image
 # digests. What a green run proves is that 6,000 comparisons can be planned,
-# executed, resumed, audited and verified without one being lost or duplicated.
+# executed, resumed, audited, verified and attributed without one being lost or
+# duplicated.
 
 on:
   workflow_dispatch:

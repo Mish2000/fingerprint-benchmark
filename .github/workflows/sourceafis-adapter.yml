@@ -2,10 +2,12 @@ name: sourceafis adapter
 
 # Builds the Java bridge from source and runs everything that needs a real JVM and a
 # real SourceAFIS 3.18.1 on the classpath: the Java unit tests, the Python adapter
-# tests, the generic adapter contract suite, and the pinned regression score.
+# tests, the generic adapter contract suite, the pinned regression score, and — since
+# stage 4B — the runtime-bundle, provenance and research-mode suites plus a synthetic
+# end-to-end research run that finalises externally and reaches RESEARCH_READY.
 #
-# The SD300 smoke test is excluded. It needs the NIST delivery, which is
-# redistribution-restricted and is not present on a public runner.
+# The SD300 smoke test and the 6,000-comparison run are excluded. Both need the NIST
+# delivery, which is redistribution-restricted and is not present on a public runner.
 
 on:
   push:
@@ -13,20 +15,52 @@ on:
       - "integrations/sourceafis-java/**"
       - "src/fpbench/adapters/sourceafis_java/**"
       - "src/fpbench/adapters/registry.py"
+      - "src/fpbench/experiments/**"
+      - "src/fpbench/provenance/**"
+      - "src/fpbench/core/runtime_models.py"
+      - "src/fpbench/core/provenance_models.py"
+      - "src/fpbench/core/result_set_models.py"
+      - "src/fpbench/core/research_models.py"
+      - "src/fpbench/storage/runtime_bundle_store.py"
+      - "src/fpbench/storage/result_set_store.py"
+      - "src/fpbench/execution/research.py"
+      - "src/fpbench/execution/result_set.py"
       - "tests/**sourceafis**"
+      - "tests/**research**"
+      - "tests/**runtime_bundle**"
+      - "tests/**result_set**"
+      - "tests/**provenance**"
       - "tests/synthetic_ridges.py"
+      - "tests/runworld.py"
       - "tests/contract/**"
       - "configs/algorithms/sourceafis*"
+      - "configs/experiments/**"
       - ".github/workflows/sourceafis-adapter.yml"
   pull_request:
     paths:
       - "integrations/sourceafis-java/**"
       - "src/fpbench/adapters/sourceafis_java/**"
       - "src/fpbench/adapters/registry.py"
+      - "src/fpbench/experiments/**"
+      - "src/fpbench/provenance/**"
+      - "src/fpbench/core/runtime_models.py"
+      - "src/fpbench/core/provenance_models.py"
+      - "src/fpbench/core/result_set_models.py"
+      - "src/fpbench/core/research_models.py"
+      - "src/fpbench/storage/runtime_bundle_store.py"
+      - "src/fpbench/storage/result_set_store.py"
+      - "src/fpbench/execution/research.py"
+      - "src/fpbench/execution/result_set.py"
       - "tests/**sourceafis**"
+      - "tests/**research**"
+      - "tests/**runtime_bundle**"
+      - "tests/**result_set**"
+      - "tests/**provenance**"
       - "tests/synthetic_ridges.py"
+      - "tests/runworld.py"
       - "tests/contract/**"
       - "configs/algorithms/sourceafis*"
+      - "configs/experiments/**"
       - ".github/workflows/sourceafis-adapter.yml"
 
 jobs:
@@ -69,7 +103,23 @@ jobs:
         run: |
           java -jar integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar version
 
+      # The provenance machinery does not need a JVM and must hold on a runner
+      # whose own checkout is a detached head with no clean-tree guarantee. Each
+      # of these builds its own throwaway git repository or its own bundle, so a
+      # failure here is a failure of the code rather than of the runner.
+      - name: Run the provenance, runtime-bundle and result-set tests
+        run: >-
+          pytest -q
+          tests/unit/test_software_provenance.py
+          tests/unit/test_research_environment.py
+          tests/unit/test_runtime_bundle_store.py
+          tests/unit/test_result_set_store.py
+          tests/unit/test_research_status.py
+          tests/unit/test_external_finalisation.py
+          tests/unit/test_sourceafis_validation.py
+
       # Includes the generic adapter contract suite, which is parametrised over the
-      # registry and so covers SourceAFIS automatically.
+      # registry and so covers SourceAFIS automatically, plus the research-mode
+      # adapter tests and the synthetic end-to-end research run.
       - name: Run the SourceAFIS Python tests
         run: pytest -m "sourceafis and not dataset"

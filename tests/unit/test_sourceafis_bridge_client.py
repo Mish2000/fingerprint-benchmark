@@ -246,9 +246,20 @@ def test_a_negative_score_is_refused():
         parse(success_response(score=-1.0))
 
 
-@pytest.mark.parametrize("count", [0, 1, 3])
-def test_an_extraction_count_other_than_two_is_refused(count):
-    """Two independent extractions is the whole SELF guarantee (docs/adr/0016)."""
+@pytest.mark.parametrize(
+    "count",
+    [
+        pytest.param(0, id="zero"),
+        pytest.param(1, id="one"),
+        pytest.param(3, id="three"),
+        pytest.param(2.5, id="float"),
+        pytest.param("2", id="string"),
+        pytest.param(True, id="boolean"),
+        pytest.param(None, id="null"),
+    ],
+)
+def test_only_the_json_integer_two_is_a_valid_extraction_count(count):
+    """Two independent extractions is an exact wire-level guarantee."""
     with pytest.raises(BridgeContractViolation, match="extraction_count"):
         parse(success_response(extraction_count=count))
 
@@ -258,9 +269,33 @@ def test_a_success_without_the_total_timing_is_refused():
         parse(success_response(timings_ms={"matching": 1.0}))
 
 
-def test_a_failure_carrying_a_score_is_refused():
-    with pytest.raises(BridgeContractViolation, match="must not carry a score"):
-        parse(failure_response(score=1.0))
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        pytest.param("code", "matching_failed", id="code"),
+        pytest.param("stage", "matching", id="stage"),
+        pytest.param("side", "left", id="side"),
+        pytest.param("message", "failure", id="message"),
+        pytest.param("exception_type", "RuntimeException", id="exception-type"),
+    ],
+)
+def test_a_success_carrying_a_failure_field_is_refused(field, value):
+    with pytest.raises(BridgeContractViolation, match=field):
+        parse(success_response(**{field: value}))
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        pytest.param("score", 1.0, id="score"),
+        pytest.param("score", None, id="null-score"),
+        pytest.param("extraction_count", 2, id="extraction-count"),
+        pytest.param("extraction_count", None, id="null-extraction-count"),
+    ],
+)
+def test_a_failure_carrying_a_success_field_is_refused(field, value):
+    with pytest.raises(BridgeContractViolation, match=field):
+        parse(failure_response(**{field: value}))
 
 
 def test_a_failure_without_a_code_is_refused():

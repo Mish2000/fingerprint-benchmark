@@ -37,6 +37,8 @@ SCHEMA_VERSION = "1"
 REQUIRED_EXTRACTION_COUNT = 2
 
 _TIMING_KEYS_SUCCESS = ("bridge_total",)
+_SUCCESS_FORBIDDEN_FIELDS = ("code", "stage", "side", "message", "exception_type")
+_FAILURE_FORBIDDEN_FIELDS = ("score", "extraction_count")
 
 
 class BridgeContractViolation(Exception):
@@ -209,13 +211,17 @@ def parse_compare_response(
     status = str(_require(document, "status", what))
 
     if status == "success":
+        _reject_present_fields(document, _SUCCESS_FORBIDDEN_FIELDS, what, status)
         score = _parse_score(_require(document, "score", what), what)
-        extraction_count = int(_require(document, "extraction_count", what))
-        if extraction_count != REQUIRED_EXTRACTION_COUNT:
+        extraction_count = _require(document, "extraction_count", what)
+        if (
+            type(extraction_count) is not int
+            or extraction_count != REQUIRED_EXTRACTION_COUNT
+        ):
             raise BridgeContractViolation(
-                f"{what}: extraction_count is {extraction_count}, expected "
-                f"{REQUIRED_EXTRACTION_COUNT}; both sides must be extracted "
-                f"independently"
+                f"{what}: extraction_count must be the JSON integer "
+                f"{REQUIRED_EXTRACTION_COUNT}, got {extraction_count!r}; both sides "
+                f"must be extracted independently"
             )
         for key in _TIMING_KEYS_SUCCESS:
             if key not in timings:
@@ -231,8 +237,7 @@ def parse_compare_response(
         )
 
     if status == "failure":
-        if document.get("score") is not None:
-            raise BridgeContractViolation(f"{what}: a failure must not carry a score")
+        _reject_present_fields(document, _FAILURE_FORBIDDEN_FIELDS, what, status)
         return BridgeCompareResult(
             request_id=request_id,
             status=status,
@@ -249,6 +254,19 @@ def parse_compare_response(
         )
 
     raise BridgeContractViolation(f"{what}: unknown status {status!r}")
+
+
+def _reject_present_fields(
+    document: Mapping[str, Any],
+    forbidden_fields: tuple[str, ...],
+    what: str,
+    status: str,
+) -> None:
+    present = [field for field in forbidden_fields if field in document]
+    if present:
+        raise BridgeContractViolation(
+            f"{what}: a {status} response must not contain fields {present!r}"
+        )
 
 
 def _parse_score(value: Any, what: str) -> float:

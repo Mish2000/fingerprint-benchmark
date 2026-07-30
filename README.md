@@ -279,11 +279,12 @@ different-finger negative sanity test: plain finger *i* against rolled finger
 ## Running the experiment
 
 A pair goes in, a stored raw result comes out, and the whole thing can be
-interrupted and resumed without duplicating work or losing any. The only matcher
-so far is `dummy_sha256`, which derives a deterministic score from the two
-images' official digests. **It performs no biometric matching and no research
-claim may rest on its output.** It exists so that the harness can be exercised
-while a bug is still unambiguously the harness's fault.
+interrupted and resumed without duplicating work or losing any. The harness-only
+matcher is `dummy_sha256`, which derives a deterministic score from the two images'
+official digests. **It performs no biometric matching and no research claim may rest
+on its output.** It exists so that the harness can be exercised while a bug is still
+unambiguously the harness's fault. The first real biometric matcher,
+`sourceafis_java`, is described below.
 
 ### 1. Define the run and plan it
 

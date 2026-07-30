@@ -76,3 +76,14 @@ def _ensure_builtin_adapters() -> None:
         from fpbench.adapters.dummy.adapter import DummyShaAdapter
 
         register_adapter("dummy_sha256", DummyShaAdapter.from_config)
+
+    if "sourceafis_java_subprocess" not in ADAPTERS:
+        # Registering it does not require Java. The adapter reports its own
+        # environment as UNAVAILABLE when the JVM or the bridge jar is missing, so
+        # listing the registry stays cheap and never fails on a machine that has no
+        # JDK installed.
+        from fpbench.adapters.sourceafis_java.adapter import SourceAfisJavaAdapter
+
+        register_adapter(
+            "sourceafis_java_subprocess", SourceAfisJavaAdapter.from_config
+        )

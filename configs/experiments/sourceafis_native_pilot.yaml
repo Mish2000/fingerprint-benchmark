@@ -1,0 +1,54 @@
+# The stage 4A SourceAFIS pilot: a compatibility check, not an experiment.
+#
+# It exists to answer one question — can SourceAFIS 3.18.1 process this SD300 delivery
+# at all three resolutions without crashing, timing out or rejecting a DPI? — and to
+# produce the measurements needed before committing to a full run: JVM startup cost,
+# extraction time per resolution, peak memory, failure rate, timeout headroom
+# (docs/adr/0015).
+#
+# It is deliberately partial. No completion manifest is written and the run stays
+# PARTIAL, because 24 of 6,000 comparisons must never be able to look finished
+# (docs/adr/0012).
+
+experiment:
+  id: sourceafis_native_pilot_v1
+  kind: compatibility_pilot
+
+dataset:
+  ref: configs/datasets/sd300.yaml
+
+protocol:
+  ref: configs/protocols/sd300_50_subjects.yaml
+
+algorithm:
+  ref: configs/algorithms/sourceafis_java_3_18_1.yaml
+
+execution:
+  # Identity preparation at native resolution: the bytes NIST delivered, plus the
+  # effective DPI. SourceAFIS does its own internal scaling to 500 ppi, which is a
+  # different thing from the shared canonical-500 resampling a later profile may add
+  # (docs/adr/0016).
+  profile_id: native_identity_60s_v1
+  preparer_id: identity
+  timeout_seconds: 60
+  deterministic_seed: 0
+  parameters:
+    resolution_mode: native
+    input_format: png
+    shared_resampling: none
+
+scope:
+  # Deterministic: the first cohort subject, the first two canonical fingers, every
+  # stage, every release. Jobs are taken from the real execution plan rather than
+  # assembled separately.
+  subjects: 1
+  fingers: 2
+  stages: all
+  releases: [SD300A, SD300B, SD300C]
+  expected_jobs: 24
+
+# Nothing below exists yet, and saying so here is the point.
+decisions:
+  profiles: []          # no threshold is applied in stage 4A
+reporting:
+  enabled: false        # no accuracy claim may rest on 24 comparisons

@@ -1,0 +1,47 @@
+# SourceAFIS for Java 3.18.1, behind the stateless subprocess bridge.
+#
+# Everything here is either an identity that must not drift or a path that must not
+# be committed. The versions are checked at runtime: the bridge reports what
+# SourceAFIS itself says it is, and the adapter refuses to run when it disagrees
+# (docs/adr/0015).
+#
+# There is no threshold in this file, and there will not be one. SourceAFIS documents
+# a recommended threshold of 40; that number belongs to a decision profile, applied
+# later to unchanged raw scores (docs/adr/0003).
+
+algorithm:
+  id: sourceafis_java
+  display_name: SourceAFIS for Java
+  adapter_id: sourceafis_java_subprocess
+
+  # For reference only — the adapter derives all of this itself, so a mistake here
+  # cannot change what runs.
+  implementation_version: "3.18.1"
+  upstream_artifact: com.machinezoo.sourceafis:sourceafis:3.18.1
+  license: Apache-2.0
+  score_direction: higher_is_better
+
+adapter:
+  # Resolved against PATH. CI installs Java 17; locally, activating the conda
+  # environment puts the pinned JDK on PATH.
+  java_executable: java
+
+  # Built by `make sourceafis-build`. Relative paths are anchored to the repository
+  # root, and the resolved path never enters a descriptor or a stored result.
+  bridge_jar: integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
+
+  # Refuse anything else. A jar built against a different SourceAFIS release would
+  # otherwise produce results attributed to a version that never ran.
+  expected_sourceafis_version: "3.18.1"
+  expected_bridge_version: "1"
+  expected_bridge_protocol: fpbench.sourceafis.bridge.v1
+
+  # Part of the environment fingerprint, not of the execution profile: these describe
+  # the machine the algorithm ran on, not the experiment.
+  jvm_args:
+    - -Djava.awt.headless=true
+    - -Duser.language=en
+    - -Duser.country=US
+    - -Duser.timezone=UTC
+    - -Xms64m
+    - -Xmx2g

@@ -6,3 +6,8 @@ dependencies:
   - pyarrow>=15
   - pyyaml>=6
   - pytest>=8
+  # The SourceAFIS adapter runs a Java bridge. 17 is the project's reference JVM:
+  # the exact Java version reaches the environment fingerprint, so a run produced
+  # on a different JVM is a different run (docs/adr/0015).
+  - openjdk=17
+  - maven=3.9.16

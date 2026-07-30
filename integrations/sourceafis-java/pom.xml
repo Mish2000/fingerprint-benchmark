@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The fpbench SourceAFIS bridge.
+
+  A deliberately small Java program: read two images, extract two templates,
+  match them, print one JSON document. It exists because SourceAFIS is a Java
+  library and the harness is Python, and because a subprocess boundary is the
+  cheapest way to be certain the algorithm cannot see anything the harness did
+  not hand it (docs/adr/0015).
+
+  Every version here is pinned. A benchmark whose dependency resolution can
+  drift is a benchmark whose numbers can drift.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.fpbench</groupId>
+  <artifactId>fpbench-sourceafis-bridge</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+
+  <name>fpbench SourceAFIS bridge</name>
+  <description>Stateless JSON-over-stdio bridge to SourceAFIS for Java</description>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>17</maven.compiler.release>
+
+    <!-- The identity of the algorithm under test. Never a range, never LATEST. -->
+    <sourceafis.version>3.18.1</sourceafis.version>
+    <!-- Same version SourceAFIS itself depends on, declared rather than inherited. -->
+    <jackson.version>2.15.3</jackson.version>
+    <junit.version>5.10.2</junit.version>
+
+    <bridge.jar.name>fpbench-sourceafis-bridge</bridge.jar.name>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.machinezoo.sourceafis</groupId>
+      <artifactId>sourceafis</artifactId>
+      <version>${sourceafis.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <!-- The bridge always runs headless with a fixed locale; the tests
+               must run the same way or they are testing something else. -->
+          <argLine>-Djava.awt.headless=true -Duser.language=en -Duser.country=US -Duser.timezone=UTC</argLine>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.5.2</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals><goal>shade</goal></goals>
+            <configuration>
+              <!-- A fixed output name. The Python side resolves an exact path
+                   and must never have to glob for a jar. -->
+              <finalName>${bridge.jar.name}</finalName>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>org.fpbench.sourceafisbridge.BridgeMain</mainClass>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+              </transformers>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <!-- Signatures cannot survive shading, and module-info from
+                         several jars would collide. -->
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>module-info.class</exclude>
+                    <exclude>META-INF/versions/*/module-info.class</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

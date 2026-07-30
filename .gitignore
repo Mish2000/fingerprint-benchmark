@@ -20,3 +20,10 @@ dist/
 .idea/
 .venv/
 .env
+
+# Java build output. The bridge is built from source on every machine and in CI;
+# a committed 27 MB shaded jar would be a binary nobody could review, and its
+# SHA-256 is part of the environment fingerprint precisely so that a locally
+# built jar is verifiable rather than trusted.
+integrations/*/target/
+*.class

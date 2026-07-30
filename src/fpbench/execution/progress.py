@@ -5,12 +5,26 @@ immutable plan and the result files actually present on disk, because a counter
 can say "5,000 done" while 4,999 files exist and nothing about the counter would
 reveal the difference (docs/adr/0012).
 
-This is the cheap question. It reads every stored result once — it has to, to
-tell a success from a failure — but it does not compare every field of
-provenance. That is :func:`fpbench.execution.audit.audit_run`, and it is the
-only thing allowed to conclude that a run is sound. What this function *can*
-do is refuse to call a run ``VERIFIED`` without a completion manifest, and drop
-straight to ``INVALID`` the moment something does not add up.
+How much checking happens depends on what is on disk, and the expensive path is the
+one that matters:
+
+* **Without a completion manifest**, this is a lightweight inspection. It reads every
+  stored result once — it has to, to tell a success from a failure — and checks only
+  that each one plainly belongs to this run. Everything subtler is
+  :func:`fpbench.execution.audit.audit_run`'s job, and a run in this state can be
+  ``PLANNED``, ``PARTIAL``, ``COMPLETE`` or ``INVALID``, but never ``VERIFIED``.
+
+* **With a completion manifest**, ``VERIFIED`` is reported only after the manifest is
+  revalidated *and* a full current audit confirms that the result files still match
+  it: the completion fingerprint is recomputed, its id re-derived, its run, plan, pair
+  manifest and job count compared, then :func:`audit_run` is run over the results as
+  they are now and its fingerprint and counts checked against what the manifest
+  claims. A completion manifest that no longer describes the files beneath it makes
+  the run ``INVALID`` rather than ``VERIFIED``.
+
+In other words: a manifest is never taken at its word. It is a claim about a set of
+files, and the claim is re-tested every time the state is asked for
+(docs/adr/0012).
 """
 
 from __future__ import annotations

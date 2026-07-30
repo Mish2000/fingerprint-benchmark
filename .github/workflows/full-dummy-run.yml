@@ -1,0 +1,34 @@
+name: full dummy run
+
+# The complete 6,000-job protocol executed with the deterministic dummy matcher.
+# It takes minutes rather than seconds, so it is not part of the ordinary suite;
+# run it before declaring a stage finished, and after any change to planning,
+# execution, storage or auditing.
+#
+# No biometric conclusion can be drawn from it. The dummy matcher scores image
+# digests. What a green run proves is that 6,000 comparisons can be planned,
+# executed, resumed, audited and verified without one being lost or duplicated.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  full-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      # The 6,000 result files stay in the runner's temp directory and are never
+      # uploaded: results belong in a workspace, not in version control.
+      - name: Execute the full dummy protocol
+        run: pytest -m full_run -q

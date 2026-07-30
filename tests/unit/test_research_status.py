@@ -395,10 +395,21 @@ def test_evidence_copy_is_idempotent_only_for_identical_bytes(tmp_path):
     receipt = finalise_research_world(world)
     repository = tmp_path / "repository"
 
-    path = write_evidence_copy(receipt, repository_root=repository)
+    path = (
+        repository
+        / "evidence"
+        / "sourceafis-native-full"
+        / f"{receipt.run_id}.json"
+    )
+    write_json(path, receipt)
     original = path.read_bytes()
     assert write_evidence_copy(receipt, repository_root=repository) == path
     assert path.read_bytes() == original
+
+    created = write_evidence_copy(
+        receipt, repository_root=tmp_path / "empty_repository"
+    )
+    assert created.is_file()
 
     changed = replace(receipt, timing_summary={"adapter_ms.count": "999"})
     with pytest.raises(ResultConflictError, match="refusing to overwrite"):

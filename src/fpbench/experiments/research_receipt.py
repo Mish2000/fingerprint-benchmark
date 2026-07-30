@@ -357,12 +357,17 @@ def write_evidence_copy(
     before it can start (docs/adr/0017).
     """
     import json
+    import os
 
     path = Path(repository_root) / directory / f"{receipt.run_id}.json"
-    payload = (
+    rendered = (
         json.dumps(to_plain(receipt), indent=2, ensure_ascii=False, sort_keys=False)
         + "\n"
-    ).encode("utf-8")
+    )
+    # Match ``Path.write_text``/``write_json`` on the current platform. Git may
+    # check the committed copy out with native line endings, and byte identity
+    # must not mistake that representation detail for different evidence.
+    payload = rendered.replace("\n", os.linesep).encode("utf-8")
     if path.is_file():
         if path.read_bytes() != payload:
             raise ResultConflictError(

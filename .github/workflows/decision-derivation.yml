@@ -84,16 +84,19 @@ jobs:
       # calibrated. Cheap, and it is the one file a well-meaning edit could turn
       # into a research claim.
       - name: Confirm the documented profile is still documented
-        run: >-
-          python -c "
-          from pathlib import Path;
-          from fpbench.decisions import load_decision_profile;
-          p = load_decision_profile(
-              Path('configs/decisions/sourceafis_java_3_18_1_documented_40_v1.yaml'),
-              algorithm_fingerprint='0'*64);
-          assert p.threshold == '40', p.threshold;
-          assert p.origin.value == 'documented_native', p.origin;
-          assert not p.calibration_performed;
-          assert p.metadata['calibration_test_cohort_used'] == 'false';
-          print('documented profile ok:', p.profile_id)
-          "
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.decisions import load_decision_profile
+
+          profile = load_decision_profile(
+              Path("configs/decisions/sourceafis_java_3_18_1_documented_40_v1.yaml"),
+              algorithm_fingerprint="0" * 64,
+          )
+          assert profile.threshold == "40", profile.threshold
+          assert profile.origin.value == "documented_native", profile.origin
+          assert not profile.calibration_performed
+          assert profile.metadata["calibration_test_cohort_used"] == "false"
+          print("documented profile ok:", profile.profile_id)
+          PY

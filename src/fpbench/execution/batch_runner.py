@@ -36,6 +36,7 @@ from fpbench.core.execution_plan_models import ExecutionPlan
 from fpbench.core.identifiers import PairId
 from fpbench.core.models import ComparisonPair
 from fpbench.core.result_models import RunDefinition
+from fpbench.execution.audit import validate_existing_results
 from fpbench.execution.completion import RunCompletionService
 from fpbench.execution.runner import JobDisposition, SingleJobRunner
 from fpbench.storage.plan_store import PlanStore
@@ -157,8 +158,17 @@ class SequentialRunExecutor:
             )
 
         self._plan_store.ensure_plan(self._plan)
-        stored_plan = self._plan_store.read_plan_definition(run.run_id)
-        if stored_plan.plan_fingerprint != self._plan.definition.plan_fingerprint:
+        stored_plan = self._plan_store.read_plan(run.run_id)
+        stored_definition = stored_plan.definition
+        expected_definition = self._plan.definition
+        if (
+            stored_definition.plan_fingerprint
+            != expected_definition.plan_fingerprint
+            or stored_definition.job_manifest_hash
+            != expected_definition.job_manifest_hash
+            or stored_definition.total_jobs != expected_definition.total_jobs
+            or stored_plan.jobs != self._plan.jobs
+        ):
             raise PlanConflictError(
                 f"stored plan for {run.run_id} is {stored_plan.plan_id}, not "
                 f"{self._plan.plan_id}"
@@ -182,6 +192,16 @@ class SequentialRunExecutor:
         """
         if max_new_jobs is not None and int(max_new_jobs) <= 0:
             raise ValueError("max_new_jobs must be a positive number of jobs, or None")
+
+        # Resume is allowed only from evidence that is sound *now*. This reads
+        # every existing result and checks its row, parquet metadata, content
+        # hash, schema and provenance before the adapter can be called for any
+        # new job. Missing results are expected and do not fail this check.
+        validate_existing_results(
+            run=self.run,
+            plan=self._plan,
+            result_store=self._result_store,
+        )
 
         started_utc = _utc_now()
         visited = 0

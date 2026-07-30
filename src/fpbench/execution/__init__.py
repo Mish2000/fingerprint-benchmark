@@ -6,7 +6,11 @@ its preparer by injection and never names a specific algorithm
 (docs/adr/0007).
 """
 
-from fpbench.execution.audit import audit_run, verify_run_completion
+from fpbench.execution.audit import (
+    audit_run,
+    validate_existing_results,
+    verify_run_completion,
+)
 from fpbench.execution.batch_runner import RunExecutionSummary, SequentialRunExecutor
 from fpbench.execution.completion import RunCompletionService, build_run_completion
 from fpbench.execution.jobs import ComparisonJob, build_comparison_job
@@ -42,5 +46,6 @@ __all__ = [
     "create_run_definition",
     "inspect_run_progress",
     "run_fingerprint_of",
+    "validate_existing_results",
     "verify_run_completion",
 ]

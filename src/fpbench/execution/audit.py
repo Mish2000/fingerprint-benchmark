@@ -27,7 +27,7 @@ from fpbench.core.enums import (
     IntegrityIssueCode,
     IntegritySeverity,
 )
-from fpbench.core.errors import StorageError
+from fpbench.core.errors import RunIntegrityError, StorageError
 from fpbench.core.execution_models import FINGERPRINT_LENGTH
 from fpbench.core.execution_plan_models import ExecutionPlan, PlannedJob
 from fpbench.core.result_models import (
@@ -40,7 +40,12 @@ from fpbench.core.run_state_models import IntegrityIssue, RunAuditReport
 from fpbench.core.serialization import stable_hash
 from fpbench.storage.result_store import ResultStore
 
-__all__ = ["audit_run", "verify_run_completion", "SUPPORTED_RESULT_SCHEMA_VERSIONS"]
+__all__ = [
+    "audit_run",
+    "validate_existing_results",
+    "verify_run_completion",
+    "SUPPORTED_RESULT_SCHEMA_VERSIONS",
+]
 
 #: Schema versions this audit knows how to interpret. A result written by a
 #: future version is refused rather than half-understood.
@@ -65,6 +70,50 @@ def audit_run(
     result_store: ResultStore,
 ) -> RunAuditReport:
     """Compare every stored result against the plan that called for it."""
+    return _inspect_results(
+        run=run,
+        plan=plan,
+        result_store=result_store,
+        missing_are_errors=True,
+    )
+
+
+def validate_existing_results(
+    *,
+    run: RunDefinition,
+    plan: ExecutionPlan,
+    result_store: ResultStore,
+) -> RunAuditReport:
+    """Validate every result already present without requiring a complete run.
+
+    Called before each batch-executor invocation. Missing results are expected
+    during resume and remain listed in the report, but they are not integrity
+    issues here. Any existing unreadable, unplanned, self-contradictory or
+    provenance-conflicting result stops the invocation before new work is
+    written.
+    """
+    report = _inspect_results(
+        run=run,
+        plan=plan,
+        result_store=result_store,
+        missing_are_errors=False,
+    )
+    if not report.is_clean:
+        codes = sorted({issue.code.value for issue in report.errors})
+        raise RunIntegrityError(
+            f"run {run.run_id} has invalid existing results: {', '.join(codes[:5])}"
+        )
+    return report
+
+
+def _inspect_results(
+    *,
+    run: RunDefinition,
+    plan: ExecutionPlan,
+    result_store: ResultStore,
+    missing_are_errors: bool,
+) -> RunAuditReport:
+    """Shared implementation for completion audits and resume validation."""
     issues: list[IntegrityIssue] = []
     missing: list[str] = []
 
@@ -78,13 +127,14 @@ def audit_run(
         job_id = planned.job.job_id
         if not result_store.has_raw_result(run.run_id, job_id):
             missing.append(job_id)
-            issues.append(
-                _issue(
-                    IntegrityIssueCode.MISSING_RESULT,
-                    f"planned job {job_id} has no stored result",
-                    job_id=job_id,
+            if missing_are_errors:
+                issues.append(
+                    _issue(
+                        IntegrityIssueCode.MISSING_RESULT,
+                        f"planned job {job_id} has no stored result",
+                        job_id=job_id,
+                    )
                 )
-            )
             continue
 
         record = _read(result_store, run.run_id, job_id, issues)

@@ -10,7 +10,6 @@ from fpbench.core.enums import ExecutionStatus, IntegrityIssueCode, RunState
 from fpbench.core.errors import (
     PlanConflictError,
     PreflightError,
-    ResultConflictError,
     RunIntegrityError,
     StorageError,
 )
@@ -324,6 +323,27 @@ def test_a_stored_plan_that_disagrees_is_a_conflict(world):
         )
 
 
+def test_a_tampered_stored_job_manifest_is_refused_before_execution(tmp_path):
+    adapter = CountingAdapter()
+    world = build_world(tmp_path, subjects=2, fingers=2, adapter=adapter)
+    world.plan_store.ensure_plan(world.plan)
+
+    last = world.plan.jobs[-1]
+    tampered = replace(
+        last, job=replace(last.job, pair_id=PairId(f"{last.job.pair_id}_edited"))
+    )
+    forged = replace(world.plan, jobs=world.plan.jobs[:-1] + (tampered,))
+    world.plan_store.jobs_path(world.run.run_id).unlink()
+    world.plan_store._write_jobs(  # noqa: SLF001 - deliberately forging damage
+        forged
+    )
+
+    with pytest.raises(StorageError, match="job manifest hash"):
+        world.executor()
+
+    assert adapter.compare_calls == 0
+
+
 def test_a_failed_preflight_executes_nothing(world):
     partial_index = dict(world.pair_index)
     partial_index.pop(world.plan.jobs[0].job.pair_id)
@@ -363,7 +383,7 @@ def test_a_conflicting_result_stops_the_run(tmp_path):
 
     fresh = CountingAdapter()
     resumed = replace(world, adapter=fresh)
-    with pytest.raises(ResultConflictError):
+    with pytest.raises(RunIntegrityError):
         resumed.executor().execute()
 
     assert fresh.compare_calls == 0
@@ -381,7 +401,7 @@ def test_a_corrupt_result_stops_the_run_and_shows_up_in_the_audit(tmp_path):
 
     fresh = CountingAdapter()
     resumed = replace(world, adapter=fresh)
-    with pytest.raises(StorageError):
+    with pytest.raises(RunIntegrityError):
         resumed.executor().execute()
 
     assert fresh.compare_calls == 0
@@ -389,6 +409,32 @@ def test_a_corrupt_result_stops_the_run_and_shows_up_in_the_audit(tmp_path):
     assert IntegrityIssueCode.RESULT_UNREADABLE in {i.code for i in report.issues}
     assert progress(world).state is RunState.INVALID
     assert not world.result_store.has_completion(world.run.run_id)
+
+
+def test_resume_rejects_a_stale_result_hash_before_new_work(tmp_path):
+    first_adapter = CountingAdapter()
+    world = build_world(tmp_path, subjects=2, fingers=2, adapter=first_adapter)
+    world.executor().execute(max_new_jobs=3)
+
+    job = world.plan.jobs[0].job
+    store = world.result_store
+    record = store.read_raw_result(world.run.run_id, job.job_id)
+    stale_hash = store.raw_result_metadata(world.run.run_id, job.job_id)[
+        "result_hash"
+    ]
+    write_result_file(
+        store.raw_result_path(world.run.run_id, job.job_id),
+        replace(record, raw_score=record.raw_score + 1.0),
+        metadata={"result_hash": stale_hash},
+    )
+
+    resumed_adapter = CountingAdapter()
+    resumed = replace(world, adapter=resumed_adapter)
+    with pytest.raises(RunIntegrityError, match="result_hash_mismatch"):
+        resumed.executor().execute()
+
+    assert resumed_adapter.compare_calls == 0
+    assert len(store.stored_job_ids(world.run.run_id)) == 3
 
 
 def test_an_extra_result_prevents_verification(tmp_path):

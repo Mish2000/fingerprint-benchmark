@@ -18,13 +18,17 @@ __all__ = [
     "StorageError",
     "ManifestExistsError",
     "ResultConflictError",
+    "RuntimeBundleConflictError",
+    "ResultSetConflictError",
     "ImagePreparationError",
     "ExecutionError",
     "PreflightError",
+    "ResearchPreflightError",
     "PlanningError",
     "PlanConflictError",
     "RunIntegrityError",
     "IncompleteRunError",
+    "RuntimeDriftError",
 ]
 
 
@@ -70,6 +74,27 @@ class ResultConflictError(StorageError):
     """
 
 
+class RuntimeBundleConflictError(StorageError):
+    """A different runtime bundle is already stored under this bundle id.
+
+    A bundle id is the first twelve characters of a digest over its assets'
+    contents, so this normally means the stored bundle was tampered with or a
+    fingerprint rule changed. Never resolved by overwriting: the executable a
+    finished run was produced with must stay exactly as it was
+    (docs/adr/0018).
+    """
+
+
+class ResultSetConflictError(StorageError):
+    """A different result set is already stored under this run.
+
+    Raised when the ordered collection of raw result hashes on disk disagrees
+    with the one being written. Two different sets of scores are two different
+    result sets, and the second must never be able to overwrite the first
+    (docs/adr/0019).
+    """
+
+
 class ImagePreparationError(FpbenchError):
     """An image could not be made ready for an adapter.
 
@@ -89,6 +114,30 @@ class PreflightError(ExecutionError):
     A run-level fault — a mismatched adapter, an unavailable environment, the
     wrong preparer. It must stop the run before any job executes, rather than
     producing thousands of identical per-pair failures.
+    """
+
+
+class ResearchPreflightError(PreflightError):
+    """A research run's provenance preconditions are not met.
+
+    Distinct from an ordinary :class:`PreflightError` because it is never about
+    the machine being wrong — it is about the *evidence* being insufficient: an
+    uncommitted working tree, a different commit than the run was defined under,
+    a dataset whose checksums were never verified. There is no override. Code
+    that is not committed cannot be recovered from a receipt written a year
+    later, so the fix is to commit it, not to record that it was dirty
+    (docs/adr/0017).
+    """
+
+
+class RuntimeDriftError(FpbenchError):
+    """The pinned executable changed while a run was using it.
+
+    Deliberately *not* an :class:`ExecutionError` subclass that a runner might
+    reasonably record: this is never a comparison failure. A result written
+    after the bytes underneath the adapter changed would claim provenance it
+    does not have, so this exception is fatal to the whole invocation and must
+    reach the caller unrecorded (docs/adr/0018).
     """
 
 

@@ -15,6 +15,14 @@ threshold. SourceAFIS documents a recommended 40, and that number lives in the
 documentation until a decision policy — a separate layer, a separate record — asks
 for it. The adapter stores a raw score and the direction it runs in, and stops
 (docs/adr/0003).
+
+Stage 4B adds one thing: in **research mode** the adapter refuses to run
+anything but the exact bytes it was pinned to. The digest is recomputed at
+preflight, the file's identity is re-checked before every comparison, and every
+stored result names the runtime bundle and the fpbench commit that produced it.
+A jar replaced mid-run raises rather than being recorded — a result written
+after the executable changed would claim provenance it does not have
+(docs/adr/0018).
 """
 
 from __future__ import annotations
@@ -44,7 +52,13 @@ from fpbench.adapters.sourceafis_java.failure_mapping import (
     map_bridge_failure,
     process_crash,
 )
+from fpbench.adapters.sourceafis_java.runtime_guard import (
+    FileIdentity,
+    require_unchanged,
+    snapshot_file_identity,
+)
 from fpbench.core.enums import EnvironmentStatus, ScoreDirection
+from fpbench.core.errors import RuntimeDriftError
 from fpbench.core.execution_models import (
     AlgorithmDescriptor,
     ComparisonContext,
@@ -110,6 +124,8 @@ class SourceAfisJavaAdapter(FingerprintAlgorithmAdapter):
         # Resolved once per adapter instance, on first use. A run is thousands of
         # comparisons and re-checking the JVM for each of them would be pure waste.
         self._resolved: tuple[JavaRuntime, Path, BridgeVersionInfo] | None = None
+        # Taken during environment validation, compared before every comparison.
+        self._jar_identity: FileIdentity | None = None
 
     @classmethod
     def from_config(cls, config: Mapping[str, object]) -> "SourceAfisJavaAdapter":
@@ -123,6 +139,10 @@ class SourceAfisJavaAdapter(FingerprintAlgorithmAdapter):
     def descriptor(self) -> AlgorithmDescriptor:
         return self._descriptor
 
+    @property
+    def research_mode(self) -> bool:
+        return self._config.research_mode
+
     # ---------------------------------------------------------- environment
 
     def validate_environment(self) -> EnvironmentReport:
@@ -132,13 +152,37 @@ class SourceAfisJavaAdapter(FingerprintAlgorithmAdapter):
         assumed, so a jar built against a different release is refused here instead
         of producing thousands of results attributed to a version that never ran.
 
+        In research mode the jar's own bytes are checked against the pin *before*
+        anything else, so a wrong or replaced runtime is caught without a JVM
+        even being started, and the file's identity is recorded for the cheap
+        per-comparison drift check (docs/adr/0018).
+
         A missing dependency is reported, never raised: it is one fault of the run,
         not six thousand identical per-pair failures.
         """
+        self._jar_identity = None
+
         try:
-            java = self._client.resolve_java()
             jar = self._client.resolve_jar()
             digest, size = self._client.jar_digest(jar)
+        except BridgeUnavailable as exc:
+            return self._unavailable(str(exc))
+
+        if self._config.research_mode:
+            mismatch = self._pin_mismatch(jar, digest, size)
+            if mismatch is not None:
+                return self._unavailable(mismatch)
+
+        # Taken here, against the bytes just hashed, rather than after the JVM
+        # check: the snapshot's job is to describe the file whose digest was
+        # approved, and a missing JVM says nothing about that file.
+        try:
+            self._jar_identity = snapshot_file_identity(jar)
+        except RuntimeDriftError as exc:  # pragma: no cover - it existed a moment ago
+            return self._unavailable(str(exc))
+
+        try:
+            java = self._client.resolve_java()
             version = self._client.version(java, jar)
         except BridgeUnavailable as exc:
             return self._unavailable(str(exc))
@@ -166,18 +210,75 @@ class SourceAfisJavaAdapter(FingerprintAlgorithmAdapter):
             )
 
         self._resolved = (java, jar, version)
+        dependencies = {
+            "sourceafis": version.sourceafis_version,
+            "bridge.version": version.bridge_version,
+            "bridge.protocol": version.bridge_protocol,
+            "bridge.jar.sha256": digest,
+            "bridge.jar.size": str(size),
+            "jvm.args": self._config.jvm_args_text,
+        }
+        if self._config.research_mode:
+            # Part of the environment, and therefore of the run's identity: two
+            # runs from two bundles are two runs even when the jars happen to
+            # hash the same, because the bundle is what a receipt can be
+            # checked against later.
+            dependencies["runtime.bundle.id"] = str(self._config.runtime_bundle_id)
+            dependencies["runtime.bundle.fingerprint"] = str(
+                self._config.runtime_bundle_fingerprint
+            )
+
         return EnvironmentReport(
             status=EnvironmentStatus.READY,
             implementation_version=version.sourceafis_version,
             runtime=self._client.runtime_description(java, version),
-            dependencies={
-                "sourceafis": version.sourceafis_version,
-                "bridge.version": version.bridge_version,
-                "bridge.protocol": version.bridge_protocol,
-                "bridge.jar.sha256": digest,
-                "bridge.jar.size": str(size),
-                "jvm.args": self._config.jvm_args_text,
-            },
+            dependencies=dependencies,
+        )
+
+    def _pin_mismatch(self, jar: Path, digest: str, size: int) -> str | None:
+        """Why the jar on disk is not the one this adapter was pinned to.
+
+        Returns ``None`` when it is. A mismatch is reported as UNAVAILABLE
+        rather than raised: it is a fault of the run's setup, and the run must
+        not start at all (docs/adr/0018).
+        """
+        if jar.is_symlink():
+            return (
+                "the pinned bridge jar is a symlink; a runtime bundle owns its "
+                "bytes rather than pointing at someone else's"
+            )
+        if digest != self._config.expected_bridge_jar_sha256:
+            return (
+                f"the bridge jar hashes to {digest[:12]}..., but this run is "
+                f"pinned to {str(self._config.expected_bridge_jar_sha256)[:12]}..."
+            )
+        if size != self._config.expected_bridge_jar_size:
+            return (
+                f"the bridge jar is {size} bytes, but this run is pinned to "
+                f"{self._config.expected_bridge_jar_size}"
+            )
+        return None
+
+    def check_runtime_integrity(self) -> None:
+        """Confirm the pinned jar has not been replaced since preflight.
+
+        One ``stat``, not a re-hash: this runs before every comparison and the
+        full digest runs before and after the executor. Outside research mode
+        there is nothing pinned and nothing to check.
+
+        Raises:
+            RuntimeDriftError: the file changed. Fatal to the invocation — never
+                a comparison failure (docs/adr/0018).
+        """
+        if not self._config.research_mode:
+            return
+        if self._jar_identity is None:
+            raise RuntimeDriftError(
+                "the SourceAFIS runtime was never validated; a research "
+                "comparison cannot be attributed to an unchecked executable"
+            )
+        require_unchanged(
+            self._config.bridge_jar, self._jar_identity, label="SourceAFIS bridge jar"
         )
 
     def _unavailable(self, message: str) -> EnvironmentReport:
@@ -210,8 +311,14 @@ class SourceAfisJavaAdapter(FingerprintAlgorithmAdapter):
         SD300C is 2000 even though the PNG header says 5080. SourceAFIS ignores
         embedded DPI and needs to be told, which is exactly why this works
         (docs/adr/0004, docs/adr/0016).
+
+        Raises:
+            RuntimeDriftError: in research mode, when the pinned jar is no longer
+                the file preflight approved. Deliberately the one thing this
+                method raises instead of recording.
         """
         java, jar, version = self._require_resolved()
+        self.check_runtime_integrity()
 
         try:
             result = self._client.compare(
@@ -311,4 +418,22 @@ class SourceAfisJavaAdapter(FingerprintAlgorithmAdapter):
         }
         if extraction_count is not None:
             metadata["extraction_count"] = str(extraction_count)
+        if self._config.research_mode:
+            # Identity, not diagnostics. A result found on its own must be able
+            # to say which executable and which harness commit produced it,
+            # without consulting the run manifest beside it. Still no path: a
+            # digest is portable evidence, a directory is not.
+            metadata.update(
+                {
+                    "runtime_bundle_id": str(self._config.runtime_bundle_id),
+                    "runtime_bundle_fingerprint": str(
+                        self._config.runtime_bundle_fingerprint
+                    ),
+                    "bridge_jar_sha256": str(self._config.expected_bridge_jar_sha256),
+                    "bridge_jar_size": str(self._config.expected_bridge_jar_size),
+                    "fpbench_source_revision": str(
+                        self._config.fpbench_source_revision
+                    ),
+                }
+            )
         return metadata

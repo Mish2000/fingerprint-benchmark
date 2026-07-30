@@ -23,6 +23,7 @@ __all__ = [
     "FailureStage",
     "FailureCode",
     "RunState",
+    "ResearchRunStatus",
     "IntegritySeverity",
     "IntegrityIssueCode",
 ]
@@ -207,6 +208,35 @@ class RunState(str, Enum):
     INVALID = "invalid"
 
 
+class ResearchRunStatus(str, Enum):
+    """How much of a research run's evidence chain is in place.
+
+    A superset of :class:`RunState`, not a replacement for it. ``VERIFIED``
+    answers "were these results audited against their plan?"; it says nothing
+    about *which executable* produced them, *which source revision* drove it, or
+    whether the exact ordered collection of scores has been given an identity
+    that a later analysis can cite. Those are the three questions that separate
+    a sound run from a run something may be published from (docs/adr/0020).
+    """
+
+    #: No run manifest, or no plan beside it.
+    NOT_PREPARED = "not_prepared"
+    #: Run, plan and runtime reference are written; no comparison has been made.
+    PREPARED = "prepared"
+    #: Some planned jobs have results, some do not.
+    PARTIAL = "partial"
+    #: Every planned job has a result; nothing has verified them as a whole.
+    RESULTS_COMPLETE = "results_complete"
+    #: The core audit passed and ``completion.json`` is on disk, but the
+    #: result-set manifest or the research receipt is missing.
+    CORE_VERIFIED = "core_verified"
+    #: Every link is present and revalidated: audit, runtime bundle, source
+    #: revision, result-set identity and sanitised receipt.
+    RESEARCH_READY = "research_ready"
+    #: Something in the chain contradicts something else.
+    INVALID = "invalid"
+
+
 class IntegritySeverity(str, Enum):
     """Whether an audit finding blocks a run from being called verified."""
 
@@ -237,6 +267,27 @@ class IntegrityIssueCode(str, Enum):
     RESULT_HASH_MISMATCH = "result_hash_mismatch"
     RESULT_METADATA_MISSING = "result_metadata_missing"
     RESULT_SCHEMA_MISMATCH = "result_schema_mismatch"
+    #: The stored result names a different executable, bundle or source
+    #: revision than the run it belongs to (docs/adr/0017, docs/adr/0018).
+    RESULT_RUNTIME_MISMATCH = "result_runtime_mismatch"
+    #: The result's own account of how it was produced — integration mode,
+    #: extraction policy, template caching — contradicts the algorithm's
+    #: contract. Still not a biometric finding: it says the pipeline was not
+    #: the pipeline that was agreed, not that a comparison went badly.
+    RESULT_PIPELINE_MISMATCH = "result_pipeline_mismatch"
+    #: The comparison ran at a different resolution than the pair's release
+    #: declares (docs/adr/0004, docs/adr/0016).
+    RESULT_RESOLUTION_MISMATCH = "result_resolution_mismatch"
+    #: The result carries an artefact reference the run forbids.
+    RESULT_UNEXPECTED_ARTIFACT = "result_unexpected_artifact"
+    #: The comparison produced no score for a reason that indicates broken
+    #: infrastructure rather than an algorithm declining a print.
+    RESULT_BLOCKING_FAILURE = "result_blocking_failure"
+    #: A failure code no policy has classified. Never guessed at.
+    RESULT_UNKNOWN_FAILURE_CODE = "result_unknown_failure_code"
+    #: A stored score is absent, non-finite or outside the algorithm's declared
+    #: range. Not a threshold check — a well-formedness check.
+    RESULT_SCORE_INVALID = "result_score_invalid"
     DUPLICATE_PAIR_ID = "duplicate_pair_id"
     DUPLICATE_JOB_ID = "duplicate_job_id"
     DUPLICATE_JOB_FINGERPRINT = "duplicate_job_fingerprint"

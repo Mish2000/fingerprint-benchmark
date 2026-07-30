@@ -370,22 +370,62 @@ def test_the_adapter_imports_no_protocol_or_evaluation_code():
         assert "fpbench.execution" not in source, path.name
 
 
-def test_no_module_outside_adapters_names_this_adapter():
+def test_no_module_outside_adapters_and_experiments_names_this_adapter():
     """docs/adr/0007, checked mechanically.
 
     A prose mention is fine — ``execution/jobs.py`` uses a SourceAFIS-shaped string
     as an example of a job id that would leak too much. What must not exist is an
     import or a reference to the adapter's identifiers.
+
+    ``experiments/`` is exempt, and the exemption is the reason the package
+    exists. An experiment is *allowed* to name its algorithm: "run SourceAFIS
+    over SD300 at native resolution" is a sentence about one experiment, and
+    somewhere has to be able to say it. What ADR 0007 forbids is the harness —
+    the planner, the runner, the executor, the stores — behaving differently
+    depending on which algorithm it is carrying, and none of those is in this
+    exemption.
     """
     root = Path(__file__).resolve().parents[2] / "src" / "fpbench"
+    exempt = {("adapters",), ("experiments",)}
     offenders = []
     for path in root.rglob("*.py"):
-        if path.relative_to(root).parts[:1] == ("adapters",):
+        if path.relative_to(root).parts[:1] in exempt:
             continue
         text = path.read_text(encoding="utf-8")
         if "sourceafis_java" in text or "sourceafis import" in text:
             offenders.append(str(path.relative_to(root)))
     assert offenders == [], f"SourceAFIS leaked outside adapters/: {offenders}"
+
+
+def test_the_harness_itself_still_names_no_algorithm():
+    """The exemption above must not become a loophole.
+
+    Every package the *harness* is made of is re-checked here by name, so
+    adding an algorithm-specific line to the planner or the result store fails
+    even though ``experiments/`` may hold one.
+
+    Prose still passes, as it does above: ``runtime_models`` explains what a
+    ``sourceafis_bridge_jar`` role would be, and ``research_models`` carries the
+    agreed receipt field name. What must not appear is the adapter's own
+    identifier, because that is the only form a branch could take.
+    """
+    root = Path(__file__).resolve().parents[2] / "src" / "fpbench"
+    harness = (
+        "core",
+        "datasets",
+        "protocols",
+        "storage",
+        "imaging",
+        "execution",
+        "provenance",
+    )
+    offenders = []
+    for package in harness:
+        for path in (root / package).rglob("*.py"):
+            text = path.read_text(encoding="utf-8")
+            if "sourceafis_java" in text or "sourceafis import" in text:
+                offenders.append(str(path.relative_to(root)))
+    assert offenders == [], f"an algorithm reached the harness: {offenders}"
 
 
 def test_the_result_metadata_names_no_decision():

@@ -20,18 +20,26 @@ protocol calls for — with no algorithm involved.
 Phase 3A added the **execution foundation**: an image preparation contract, an
 adapter contract with a registry and a deterministic stand-in matcher, derived
 run and job identity, and a single-job runner that stores one immutable result
-per job and can be interrupted and resumed. No thresholds, no decisions, no
-real matcher.
+per job and can be interrupted and resumed.
+
+Phase 3B added **full-run planning and orchestration**: a pair manifest becomes
+an immutable, deterministically ordered execution plan; a sequential executor
+walks it, stops anywhere, and resumes without repeating work; progress is
+recomputed from the files rather than counted; and a run is declared verified
+only after an integrity audit accounts for every planned comparison. All 6,000
+comparisons of the protocol run end to end under the dummy matcher.
+
+Still no thresholds, no decisions, and no real matcher.
 
 | Package | Status | Responsibility |
 |---|---|---|
 | `fpbench.core` | built | shared vocabulary; stdlib only, imports nothing from the project |
 | `fpbench.datasets` | built | what images exist on disk, and do they match their own declarations |
 | `fpbench.protocols` | built | which subjects take part, and which comparisons that implies |
-| `fpbench.storage` | built | immutable manifests, run manifests, raw results |
+| `fpbench.storage` | built | immutable manifests, plans, run manifests, raw results |
 | `fpbench.imaging` | built (identity only) | the image preparation contract; resampling and conversion still to come |
 | `fpbench.adapters` | built | the adapter contract, the registry and `dummy_sha256` |
-| `fpbench.execution` | built (single job) | run and job identity, and a resumable single-job runner |
+| `fpbench.execution` | built (sequential) | plan, run, resume, progress, audit, completion |
 | `fpbench.decisions` | not yet | thresholds, calibration, score → decision |
 | `fpbench.evaluation` | not yet | protocol metrics, FMR/FNMR, failure analysis, reports |
 | `fpbench.cli` | not yet | command-line entry points |
@@ -44,9 +52,10 @@ Deliberate omissions, so they read as decisions rather than oversights:
 * **No thresholds anywhere.** Raw scores are stored with their score direction
   and no decision. Applying a threshold is a separate, later record against
   those unchanged scores.
-* **No batch runner, no retries, no parallelism.** One job at a time. The
-  storage layout is already the one that makes parallel execution safe, but the
-  execution side of it is not written.
+* **Sequential only.** One job at a time, no retries, no worker pool, no hard
+  timeout termination. The storage layout is already the one that makes
+  parallelism safe — one immutable file per job, no shared table, no locks — so
+  adding workers later changes the executor and nothing beneath it.
 * **Optional adapter capabilities are named, not implemented.** Template
   extraction, caching and minutiae export land with the first matcher that
   actually offers them.
@@ -69,21 +78,31 @@ $env:FPBENCH_SD300_ROOT = "C:\fingerprint-datasets\NIST"
 Run the tests:
 
 ```bash
-pytest -m "not dataset"
+pytest -m "not dataset and not full_run"
 ```
 
-`pytest` without the marker filter also runs the checks against the real
-release; those are skipped automatically when `FPBENCH_SD300_ROOT` is unset.
-CI runs `pytest -m "not dataset"` on every push and pull request — SD300 is
-redistribution-restricted and cannot be uploaded, so the synthetic fixtures are
-what CI exercises.
+That is exactly what CI runs on every push and pull request. Two markers are
+excluded:
 
-The suite has four levels:
+* `dataset` — needs the real SD300 delivery. Skipped automatically when
+  `FPBENCH_SD300_ROOT` is unset; run `pytest -m "not full_run"` locally to
+  include them.
+* `full_run` — executes all 6,000 comparisons under the dummy matcher and takes
+  a couple of minutes. It has its own manually triggered workflow,
+  [full-dummy-run.yml](.github/workflows/full-dummy-run.yml), and should be run
+  before declaring a stage finished:
+
+```bash
+pytest -m full_run
+```
+
+The suite has five levels:
 
 ```
 tests/unit/          individual functions and model invariants
 tests/contract/      one suite every adapter must pass, parametrised over the registry
-tests/integration/   dataset → manifest → cohort → pairs, and pair → runner → result
+tests/integration/   dataset → manifest → cohort → pairs, and plan → executor → verified run
+tests/regression/    pinned run, plan and job identities
 tests/…              marked `dataset`: assertions that only mean something
                      against the real 58,305-image delivery
 ```
@@ -243,15 +262,16 @@ different-finger negative sanity test: plain finger *i* against rolled finger
 *i+1*, wrapping at ten. See
 [ADR 0008](docs/adr/0008-non-mated-pairing-strategy.md).
 
-## Running a comparison (phase 3A)
+## Running the experiment
 
-Phase 3A adds the execution path: a pair goes in, a stored raw result comes
-out, and the whole thing can be interrupted and resumed without duplicating
-work or losing any. The only matcher so far is `dummy_sha256`, which derives a
-deterministic score from the two images' official digests. **It performs no
-biometric matching and no research claim may rest on its output.** It exists so
-that the harness can be exercised while a bug is still unambiguously the
-harness's fault.
+A pair goes in, a stored raw result comes out, and the whole thing can be
+interrupted and resumed without duplicating work or losing any. The only matcher
+so far is `dummy_sha256`, which derives a deterministic score from the two
+images' official digests. **It performs no biometric matching and no research
+claim may rest on its output.** It exists so that the harness can be exercised
+while a bug is still unambiguously the harness's fault.
+
+### 1. Define the run and plan it
 
 Continuing from the manifests built above:
 
@@ -259,50 +279,132 @@ Continuing from the manifests built above:
 from fpbench.adapters import create_adapter
 from fpbench.execution import (
     DEFAULT_EXECUTION_PROFILE,
-    SingleJobRunner,
-    build_comparison_job,
+    build_execution_plan,
     create_run_definition,
 )
-from fpbench.imaging import IdentityImagePreparer
-from fpbench.storage import ResultStore
 
 adapter = create_adapter("dummy_sha256")
-pair_manifest_hash = store.pair_manifest_metadata(
+pair_metadata = store.pair_manifest_metadata(
     protocol.protocol_id, cohort.cohort_id
-)["pair_manifest_hash"]
+)
 
 run = create_run_definition(
     protocol_id=protocol.protocol_id,
     cohort_id=cohort.cohort_id,
-    pair_manifest_hash=pair_manifest_hash,
+    pair_manifest_hash=pair_metadata["pair_manifest_hash"],
     algorithm=adapter.descriptor,
     environment=adapter.validate_environment(),
     execution_profile=DEFAULT_EXECUTION_PROFILE,
 )
 
-runner = SingleJobRunner(
-    run=run,
-    adapter=adapter,
-    preparer=IdentityImagePreparer(),
-    result_store=ResultStore(Path("workspace")),
-    dataset_root=provider.root,
-    image_index={image.image_id: image for image in images},
-    workspace_root=Path("workspace"),
+plan = build_execution_plan(
+    run=run, pairs=pairs, pair_manifest_metadata=pair_metadata
+)
+# 6,000 jobs: 1,500 per stage, 2,000 per release
+plan.definition.stage_counts, plan.definition.release_counts
+```
+
+The planner refuses a pair manifest that does not belong to the run, refuses
+duplicates, and imposes its own order — stage, then release, then `pair_id` — so
+that shuffling the input cannot change the plan or a single job id
+([ADR 0011](docs/adr/0011-immutable-deterministic-execution-plan.md)).
+
+### 2. Execute it
+
+```python
+from fpbench.execution import (
+    RunCompletionService,
+    SequentialRunExecutor,
+    SingleJobRunner,
+)
+from fpbench.imaging import IdentityImagePreparer
+from fpbench.storage import ResultStore
+
+result_store = ResultStore(Path("workspace"))
+executor = SequentialRunExecutor(
+    plan=plan,
+    pair_index={pair.pair_id: pair for pair in pairs},
+    job_runner=SingleJobRunner(
+        run=run,
+        adapter=adapter,
+        preparer=IdentityImagePreparer(),
+        result_store=result_store,
+        dataset_root=provider.root,
+        image_index={image.image_id: image for image in images},
+        workspace_root=Path("workspace"),
+    ),
+    result_store=result_store,
+    completion_service=RunCompletionService(result_store=result_store),
 )
 
-for pair in pairs:
-    outcome = runner.execute(build_comparison_job(run, pair), pair)
-    print(outcome.disposition.value, outcome.result.raw_score)
+summary = executor.execute()
+summary.newly_executed_jobs, summary.remaining_jobs, summary.verified
 ```
+
+To run a slice instead of the whole thing — for a smoke test, or just to stop
+for the night:
+
+```python
+executor.execute(max_new_jobs=500)
+```
+
+Jobs already stored are checked and skipped without counting against the budget,
+so a resumed run spends its allowance on new work.
 
 Produces, under `workspace/`:
 
 ```
-results/<run_id>/run.json                        the run manifest
-results/<run_id>/raw/jobs/<job_id>.parquet       one immutable row per job
-work/<run_id>/<job_id>/                          adapter scratch, disposable
+results/<run_id>/run.json                        the run manifest      immutable
+results/<run_id>/plan/plan.json                  the plan definition   immutable
+results/<run_id>/plan/jobs.parquet               one row per job       immutable
+results/<run_id>/raw/jobs/<job_id>.parquet       one row per result    immutable
+results/<run_id>/completion.json                 written after a clean audit
+results/<run_id>/derived/                        progress snapshots    disposable
+work/<run_id>/<job_id>/                          adapter scratch       disposable
 artifacts/<run_id>/<job_id>/                     adapter artefacts, if any
 ```
+
+### 3. Check progress, and audit
+
+```python
+from fpbench.execution import audit_run, inspect_run_progress
+
+progress = inspect_run_progress(run=run, plan=plan, result_store=result_store)
+progress.state              # planned | partial | complete | verified | invalid
+progress.stored_results, progress.missing_results
+
+report = audit_run(run=run, plan=plan, result_store=result_store)
+report.is_clean, report.success_count, report.failure_count
+report.missing_job_ids, report.extra_result_job_ids
+```
+
+Progress is recomputed from the plan and the files every time it is asked for —
+there is no counter anywhere, and no persisted `RUNNING` state, because after a
+crash nothing on disk could honestly claim either
+([ADR 0012](docs/adr/0012-run-progress-is-derived.md)).
+
+`COMPLETE` and `VERIFIED` are different claims. The first says every planned job
+has a result; the second says an audit compared each of those results against
+the plan — job fingerprint, pair, images, pair manifest hash, algorithm
+fingerprint, execution profile hash, and the digest in its own parquet header —
+and found nothing wrong. Only a clean audit writes `completion.json`, and only
+that file makes a run `VERIFIED`.
+
+A run can be verified with failures in it. 30 comparisons that produced no score
+out of 6,000 is a finished, trustworthy run with 30 failures to analyse
+([ADR 0013](docs/adr/0013-comparison-failure-does-not-invalidate-run.md)). What
+does stop a run is a *conflict*: a result contradicting the plan, a corrupt file,
+a job that does not match its pair.
+
+### The full protocol under the dummy matcher
+
+```bash
+pytest -m full_run
+```
+
+Plans and executes all 6,000 comparisons, audits them, verifies the run, then
+re-runs it to confirm that the second pass performs zero comparisons. Takes a
+couple of minutes.
 
 ### Resume
 
@@ -317,7 +419,21 @@ raises `ResultConflictError` — nothing is ever overwritten
 
 Changing anything that could change a score — a new pair manifest, a bumped
 adapter version, a different seed — produces a new `run_id` instead of quietly
-mixing incomparable results together.
+mixing incomparable results together. The same holds for `plan_id`, and a
+different plan under an existing run is a `PlanConflictError` rather than a
+silent replacement.
+
+In practice, resuming looks like this:
+
+```
+executor.execute(max_new_jobs=137)   → 137 results,  state PARTIAL
+executor.execute(max_new_jobs=200)   → 137 skipped, 200 new, state PARTIAL
+executor.execute()                   → the rest, audit, completion, VERIFIED
+```
+
+`Ctrl-C` at any point leaves every already-written result intact and complete;
+the interrupted job is simply not among them. `KeyboardInterrupt` is never
+caught and never recorded as a comparison failure.
 
 ### What is recorded, and what is not
 
@@ -342,18 +458,26 @@ two prepared images and an operational context with no `pair_id`, no
 that nothing leaks through it
 ([ADR 0010](docs/adr/0010-adapter-context-excludes-ground-truth.md)).
 
+## Architecture note: where the models live
+
+Two containers sit in `core` rather than in the package that derives them:
+`RunDefinition` and `ComparisonJob` (with `ExecutionPlan` and the run-state
+records). The reason is the dependency rule — `storage` must persist them and is
+only allowed to import `core` — and the split is consistent: the *data* lives in
+`core`, the *rules for deriving it* live in `execution`, and
+`fpbench.execution.run_definition` / `fpbench.execution.jobs` re-export the
+containers so callers import model and factory from one place.
+
 ## Next stage
 
 1. decision policies, native thresholds and calibration on a development
    cohort;
 2. the first real adapter (SourceAFIS), which joins the existing contract suite
    automatically by being registered;
-3. a batch runner over the full 6,000-pair plan, plus retries and timeouts;
+3. resampling as a second image preparer — 2000 ppi and 1000 ppi down to 500 —
+   with its own `preparer_id`, so results produced under each stay
+   distinguishable;
 4. evaluation: protocol metrics, SELF-filtered results, failure analysis,
    FMR/FNMR;
-5. a CLI over all of it.
-
-Also outstanding, and cheap: the `imaging` layer currently offers only the
-identity preparer. Resampling — 2000 ppi and 1000 ppi down to 500 — becomes a
-second preparer with its own id, so results produced under each remain
-distinguishable.
+5. parallel execution and a retry policy keyed to the failure taxonomy;
+6. a CLI over all of it.

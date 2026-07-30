@@ -32,7 +32,13 @@ comparisons of the protocol run end to end under the dummy matcher.
 Phase 4A added the **first real biometric integration**: SourceAFIS for Java 3.18.1,
 behind a stateless Java subprocess bridge. It enters through exactly the same adapter
 contract the dummy matcher used — nothing in the runner, the planner, the executor or
-the storage layer knows it exists.
+the storage layer knows it exists. It closed with a green adapter workflow and a
+24/24 SD300 compatibility pilot.
+
+Phase 4B added **research-grade provenance**: a run now identifies the fpbench commit
+that produced it and the exact bytes of the executable it ran, the raw results acquire
+an immutable identity of their own, and "finished" and "trustworthy" became separate
+states with a revalidation step between them.
 
 Still no thresholds and no decisions.
 
@@ -41,10 +47,12 @@ Still no thresholds and no decisions.
 | `fpbench.core` | built | shared vocabulary; stdlib only, imports nothing from the project |
 | `fpbench.datasets` | built | what images exist on disk, and do they match their own declarations |
 | `fpbench.protocols` | built | which subjects take part, and which comparisons that implies |
-| `fpbench.storage` | built | immutable manifests, plans, run manifests, raw results |
+| `fpbench.storage` | built | immutable manifests, plans, run manifests, raw results, runtime bundles, result sets |
 | `fpbench.imaging` | built (identity only) | the image preparation contract; resampling still to come |
 | `fpbench.adapters` | built | the contract, the registry, `dummy_sha256` and `sourceafis_java` |
-| `fpbench.execution` | built (sequential) | plan, run, resume, progress, audit, completion |
+| `fpbench.provenance` | built | which build of the harness, and which executable, produced a result |
+| `fpbench.execution` | built (sequential) | plan, run, resume, progress, audit, completion, result set, research state |
+| `fpbench.experiments` | built (one experiment) | the SourceAFIS native full run: prepare / execute / status / finalize |
 | `fpbench.decisions` | not yet | thresholds, calibration, score → decision |
 | `fpbench.evaluation` | not yet | protocol metrics, FMR/FNMR, failure analysis, reports |
 | `fpbench.cli` | not yet | command-line entry points |
@@ -54,8 +62,9 @@ Deliberate omissions, so they read as decisions rather than oversights:
 * **No thresholds anywhere.** Raw scores are stored with their score direction and no
   decision. SourceAFIS documents a recommended threshold of 40; that stays
   documentation until a decision policy applies it to unchanged stored scores.
-* **No accuracy claim.** SourceAFIS has run 24 real SD300 comparisons as a
-  compatibility pilot. That is not a result, and no full run has been performed.
+* **No accuracy claim, even now that 6,000 real scores exist.** Not because scores are
+  missing, but because decision profiles, SELF eligibility, metric definitions and
+  failure denominators are. See [What 6,000 scores do not entitle us to say](#what-6000-scores-do-not-entitle-us-to-say).
 * **Sequential only.** One job at a time, no retries, no worker pool, no hard timeout
   termination. The storage layout is already the one that makes parallelism safe — one
   immutable file per job, no shared table, no locks — so adding workers later changes
@@ -370,14 +379,23 @@ Produces, under `workspace/`:
 
 ```
 results/<run_id>/run.json                        the run manifest      immutable
+results/<run_id>/runtime.json                    which bundle ran it   immutable
 results/<run_id>/plan/plan.json                  the plan definition   immutable
 results/<run_id>/plan/jobs.parquet               one row per job       immutable
 results/<run_id>/raw/jobs/<job_id>.parquet       one row per result    immutable
+results/<run_id>/result-set/manifest.json        the results' identity immutable
+results/<run_id>/result-set/results.parquet      one row per result    immutable
 results/<run_id>/completion.json                 written after a clean audit
-results/<run_id>/derived/                        progress snapshots    disposable
+results/<run_id>/research-receipt.json           sanitised, committable
+results/<run_id>/derived/                        progress, summaries   disposable
+runtime/bundles/<bundle_id>/                     pinned executables    immutable
 work/<run_id>/<job_id>/                          adapter scratch       disposable
 artifacts/<run_id>/<job_id>/                     adapter artefacts, if any
 ```
+
+The last four arrive with a research run; an ordinary dummy run produces only the
+first block ([ADR 0018](docs/adr/0018-external-runtime-assets-are-content-addressed.md),
+[ADR 0019](docs/adr/0019-result-sets-have-independent-immutable-identity.md)).
 
 ### 3. Check progress, and audit
 
@@ -527,28 +545,175 @@ It leaves the run `PARTIAL` and writes no completion manifest, because 24 of 6,0
 comparisons must never be able to look finished. **No accuracy conclusion follows from
 it.**
 
+## The full run, and what makes it research-grade
+
+A pilot can run from a build directory. A run whose numbers will be cited cannot, and
+the four things that separate them are all provenance rather than scale.
+
+### The build jar is not the runtime
+
+The adapter ordinarily runs `integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar`,
+which is convenient and is *build output*: one `mvnw package` replaces those bytes at the
+same path. Before a research run, the jar is copied once into an immutable bundle
+identified by its contents:
+
+```
+workspace/runtime/bundles/<bundle_id>/
+├── bundle.json
+└── assets/fpbench-sourceafis-bridge.jar
+```
+
+`bundle_id` derives from the digests, not the path — so the same jar built on another
+machine materialises to the same id, and a jar that differs by one byte can never be
+mistaken for it. No symlink and no hardlink: a hardlink would let a rebuild rewrite the
+"immutable" asset in place. A research adapter refuses to run anything outside its
+bundle, re-hashes it before and after every executor invocation, and `stat`s it before
+every single comparison. A jar replaced mid-run raises `RuntimeDriftError`, which stops
+the executor and is **never** recorded as a comparison failure
+([ADR 0018](docs/adr/0018-external-runtime-assets-are-content-addressed.md)).
+
+### The commit is part of the run's identity
+
+Nothing in a run currently covers the Python between the pair manifest and the stored
+result — request serialisation, failure mapping, resume, metadata, audit — and all of it
+can change a result. So a research run captures its own source revision and folds it into
+the environment, which is already inside the run fingerprint.
+
+Two consequences, both intended. **A dirty working tree cannot start a research run**;
+there is no override, because uncommitted code cannot be recovered from a receipt written
+a year later. And **a documentation-only commit produces a new `run_id`** — the harness
+cannot tell which lines of a diff could change a number, so it treats them all as if they
+could. To resume a run, check out the commit it was created from
+([ADR 0017](docs/adr/0017-research-runs-pin-fpbench-source-revision.md)).
+
+### prepare / execute / status / finalize
+
+```bash
+python -m fpbench.experiments.sourceafis_native_full prepare
+python -m fpbench.experiments.sourceafis_native_full execute --max-new-jobs 500
+python -m fpbench.experiments.sourceafis_native_full execute
+python -m fpbench.experiments.sourceafis_native_full status
+python -m fpbench.experiments.sourceafis_native_full finalize
+```
+
+`prepare` is where everything stops if it is going to: a dirty tree, an unbuilt jar, an
+image without VERIFIED checksum evidence, a protocol that does not yield exactly 6,000
+comparisons. It hashes the delivery once to build the image manifests, materialises the
+bundle, derives the run and the plan, and writes the run's runtime binding. Running it
+again with the same inputs produces the same `run_id`, the same `plan_id` and the same
+`bundle_id`, and overwrites nothing.
+
+`execute` can be run as often as it takes — a few hundred comparisons at a time, or the
+rest of them. Existing results are checked and skipped without calling Java, so a resumed
+run spends its budget on new work. Every invocation re-verifies the bundle's full digest
+on the way in and on the way out, and re-checks that the commit still matches.
+
+`execute` always passes `finalize=False`, so a run with all 6,000 results reports
+`completed` and **not** `verified`, and has no completion manifest. That is the point:
+something has to revalidate the runtime before anything says the run is sound.
+
+`finalize` does that, in a fixed order that stops at the first failure — runtime, source
+revision, clean tree, core audit, SourceAFIS evidence validation, result set, completion,
+operational summary, receipt, then re-reads all of it. Any failure leaves the completion,
+the result set and the receipt unwritten
+([ADR 0020](docs/adr/0020-research-finalization-follows-runtime-revalidation.md)).
+
+### RESEARCH_READY
+
+`status` reports a state stronger than `VERIFIED`, recomputed from the files every time:
+
+```
+NOT_PREPARED → PREPARED → PARTIAL → RESULTS_COMPLETE → CORE_VERIFIED → RESEARCH_READY
+                                                    ↘ INVALID
+```
+
+`CORE_VERIFIED` is a real and common state: the audit passed and `completion.json` exists,
+but the results have no citable identity yet. `RESEARCH_READY` needs the whole chain —
+audit, runtime bundle, source revision, result set and receipt — and any broken link
+reports `INVALID` rather than degrading quietly.
+
+### The result set
+
+`completion.json` says a run was audited. It does not say *which scores* — and the
+decision stage has to be able to name them and re-check that claim later. So finalisation
+writes an immutable index:
+
+```
+results/<run_id>/result-set/manifest.json      the identity
+results/<run_id>/result-set/results.parquet    ordinal, job_id, result_hash
+```
+
+`result_set_fingerprint` covers the run, the plan, the runtime bundle, and the ordered
+`(ordinal, job_id, result_hash)` triples. One changed score changes it. One changed
+failure code changes it. Rewriting the same results tomorrow does not, because no
+timestamp is in it. Every hash is re-derived from the raw files when the set is written
+*and* when it is verified
+([ADR 0019](docs/adr/0019-result-sets-have-independent-immutable-identity.md)).
+
+### The receipt
+
+One file from the run is meant to leave the workspace and enter version control:
+
+```
+results/<run_id>/research-receipt.json          in the workspace
+evidence/sourceafis-native-full/<run_id>.json   committed
+```
+
+It is defined by what it must not contain. No score, no subject id, no image id, no
+filename, no dataset path, no workspace path, no template, no minutiae, no absolute path
+to anything — enforced mechanically over the rendered document, not by care. What it does
+contain is identifiers, fingerprints and counts: the commit, the cohort, the pair manifest
+hash, the run, the plan, the environment, the runtime bundle, the jar digest, the result
+set, the audit, the validation, the completion, and the failure counts by code.
+
+And a sentence it states verbatim:
+
+> This receipt proves execution completeness and provenance. It contains no biometric
+> performance conclusion.
+
+### What 6,000 scores do not entitle us to say
+
+Nothing about accuracy. Not FMR, not FNMR, not EER, not a best threshold, not a count of
+matches or false matches, not which resolution "won".
+
+The reason is not that scores are missing. It is that a number derived from them means
+nothing until the things that define it exist: decision profiles, the SELF eligibility
+rule, the unconditional and conditional PLAIN–ROLL reporting the supervisor asked for,
+the denominators that decide how a template-extraction failure is counted, and the
+provenance of whichever threshold is applied. Those are the next stage
+([ADR 0003](docs/adr/0003-decision-outside-adapter.md)).
+
 ## Architecture note: where the models live
 
-Two containers sit in `core` rather than in the package that derives them:
+Several containers sit in `core` rather than in the package that derives them:
 `RunDefinition` and `ComparisonJob` (with `ExecutionPlan` and the run-state
-records). The reason is the dependency rule — `storage` must persist them and is
-only allowed to import `core` — and the split is consistent: the *data* lives in
-`core`, the *rules for deriving it* live in `execution`, and
-`fpbench.execution.run_definition` / `fpbench.execution.jobs` re-export the
-containers so callers import model and factory from one place.
+records), and since stage 4B also `SoftwareProvenance`, `RuntimeBundleDefinition`,
+`RunRuntimeReference`, `ResultSetManifest` and `ResearchRunReceipt`. The reason is
+the dependency rule — `storage` must persist them and is only allowed to import
+`core` — and the split is consistent: the *data* lives in `core`, the *rules for
+deriving it* live in the package that owns them, and that package re-exports the
+container so callers import model and factory from one place.
+
+`fpbench.experiments` is the one package allowed to know both what an experiment is
+and what an algorithm is. That is what makes it possible for
+[ADR 0007](docs/adr/0007-no-algorithm-branching-in-runner.md) to keep holding
+everywhere else: "run SourceAFIS over SD300 at native resolution" is a sentence about
+one experiment, and it needs somewhere to live that is not the planner.
 
 ## Next stage
 
-1. measure the pilot — JVM startup cost, extraction time at each resolution, peak
-   memory, failure rate, timeout headroom — and decide between the stateless process, a
-   persistent Java worker, a batch bridge or a container;
-2. a full 6,000-comparison SourceAFIS run once that decision is made;
-3. decision policies, native thresholds (SourceAFIS's documented 40 among them) and
-   calibration on a development cohort;
+1. decision policies, native thresholds (SourceAFIS's documented 40 among them) and
+   calibration on a development cohort — the layer that makes any of the 6,000 stored
+   scores mean something;
+2. SELF eligibility as an explicit per-finger table, and the conditional PLAIN–ROLL
+   reporting the supervisor's protocol asks for;
+3. evaluation: protocol metrics, failure analysis, FMR/FNMR with stated denominators;
 4. resampling as a second image preparer — 2000 ppi and 1000 ppi down to 500 — with its
    own `preparer_id`, so results produced under each stay distinguishable;
-5. evaluation: protocol metrics, SELF-filtered results, failure analysis, FMR/FNMR;
-6. NBIS as the second algorithm — `nbis_mindtct_bozorth3`, both halves named — which is
-   the real test of whether the adapter contract holds;
+5. NBIS as the second algorithm — `nbis_mindtct_bozorth3`, both halves named — which is
+   the real test of whether the adapter contract holds, and the second consumer of the
+   runtime-bundle mechanism;
+6. the persistent-JVM decision, on the strength of the full run's operational summary
+   rather than a guess ([ADR 0015](docs/adr/0015-sourceafis-uses-stateless-java-bridge.md));
 7. parallel execution and a retry policy keyed to the failure taxonomy;
 8. a CLI over all of it.

@@ -194,12 +194,58 @@ the bridge protocol or version disagrees, or SourceAFIS on the classpath is not 
 That last check reads the version *from SourceAFIS at runtime*, so a jar built from a
 different release cannot quietly produce results attributed to 3.18.1.
 
+## 10b. Research mode
+
+The adapter has two modes, and the difference is not what it computes.
+
+In **development mode** it runs `integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar`,
+which is what `make sourceafis-test` and the pilot use. Convenient, and unsuitable for a
+run whose numbers will be cited: that file is build output, and one `mvnw package`
+replaces it at the same path.
+
+In **research mode** the configuration additionally carries
+
+```python
+runtime_bundle_id            runtime_<12 hex>
+runtime_bundle_fingerprint   64 hex
+expected_bridge_jar_sha256   64 hex
+expected_bridge_jar_size     bytes
+fpbench_source_revision      40-character commit SHA
+research_mode                True
+```
+
+All of them are required together — half a pin is not a pin — and the jar must live
+inside `workspace/runtime/bundles/<bundle_id>/assets/`. `validate_environment()` then
+re-hashes the jar **before** locating Java, so a wrong pin costs a hash rather than a
+run, and records the file's identity (device, inode, size, `mtime_ns`). Before every
+`compare()` that identity is re-checked with one `stat`; a mismatch raises
+`RuntimeDriftError`, which the runner re-raises unrecorded and which stops the executor
+immediately. The full digest is verified before and after each executor invocation
+([ADR 0018](../adr/0018-external-runtime-assets-are-content-addressed.md)).
+
+Every stored result then carries five extra metadata fields:
+
+```yaml
+runtime_bundle_id: runtime_...
+runtime_bundle_fingerprint: ...
+bridge_jar_sha256: ...
+bridge_jar_size: ...
+fpbench_source_revision: ...
+```
+
+Still no path, and still no threshold. A result found on its own can say which executable
+and which harness commit produced it without consulting anything beside it.
+
 ## 11. Known limitations
 
 * **One JVM per comparison.** Correct and slow. Whether to keep paying for it is a
-  question for the pilot's measurements, not for guesswork.
-* **`adapter_ms` includes JVM startup**, so it is not a measure of the algorithm.
-* **No full run yet.** See below.
+  question for the full run's operational summary, not for guesswork.
+* **`adapter_ms` includes JVM startup**, so it is not a measure of the algorithm. The
+  bridge's own `bridge_total`, `left_template_extraction`, `right_template_extraction`
+  and `matching` are reported separately for exactly this reason.
+* **A byte-identical replacement of the pinned jar still raises `RuntimeDriftError`.**
+  The cheap check cannot tell a harmless copy from a harmful one without re-hashing
+  27 MB, and stopping is the only safe reading.
 * **No accuracy claim.** See below.
 * The synthetic test fixtures are procedural textures, not fingerprints; the scores they
   produce describe the generator, not SourceAFIS
@@ -209,20 +255,22 @@ different release cannot quietly produce results attributed to 3.18.1.
 
 ## 12. What has *not* been done
 
-**There is no full 6,000-comparison SourceAFIS run.** Stage 4A deliberately stops at a
-24-job pilot: one subject, two fingers, four stages, three releases, taken from the real
-execution plan. The run is left `PARTIAL` and no completion manifest is written, because
-24 of 6,000 comparisons must never be able to look finished
-([ADR 0012](../adr/0012-run-progress-is-derived.md)).
-
-Before a full run happens, the pilot needs to answer: what does JVM startup cost, how
-long does extraction take at 500/1000/2000 ppi, what is peak memory, what is the failure
-rate, and is a 60-second timeout the right budget? Those answers decide between keeping
-the stateless process, a persistent Java worker, a batch bridge, or a containerised
-worker — and that decision must not be pre-empted by adding a lifecycle to the adapter
-contract first.
+**The integration mode has not changed.** Stage 4B runs the same stateless subprocess it
+always did. A persistent JVM worker would be a different pipeline in every way that
+matters — new adapter version, new `integration_mode`, new descriptor fingerprint, new
+run, new ADR — and adopting one quietly in order to finish 6,000 comparisons faster would
+make the results incomparable with everything before them
+([ADR 0015](../adr/0015-sourceafis-uses-stateless-java-bridge.md)). The full run's
+operational summary is what that decision should rest on.
 
 **There is no accuracy claim, and no comparison against the dummy adapter.** No
-threshold has been applied, no decision has been made, no SELF filtering has been
-derived from real results, and no FMR, FNMR, ROC, DET or EER has been computed. The
-24 pilot scores demonstrate compatibility and nothing else.
+threshold has been applied, no decision has been made, no SELF filtering has been derived
+from real results, and no FMR, FNMR, ROC, DET or EER has been computed. Six thousand raw
+scores do not change this: what is missing is not data but the definitions that would
+make a number derived from it mean something — decision profiles, the SELF eligibility
+rule, the failure denominators, and the provenance of whichever threshold is applied
+([ADR 0003](../adr/0003-decision-outside-adapter.md)).
+
+**Nothing is cached, stored or reused between comparisons.** No template is serialised,
+no transparency output is produced, no artefact is written. The evidence validator checks
+that `artifacts == ()` on every result rather than trusting it.

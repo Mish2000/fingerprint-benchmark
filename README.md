@@ -40,31 +40,40 @@ that produced it and the exact bytes of the executable it ran, the raw results a
 an immutable identity of their own, and "finished" and "trustworthy" became separate
 states with a revalidation step between them.
 
-Still no thresholds and no decisions.
+Phase 5A added the **decision layer**: a documented threshold with a traceable origin,
+6,000 deterministic decisions derived from unchanged scores, 1,500 per-finger SELF
+eligibility verdicts, and the three evaluation views the protocol asks for — each with
+an immutable identity, and none of them a metric.
+
+Still no FMR, no FNMR, no EER, and no accuracy claim.
 
 | Package | Status | Responsibility |
 |---|---|---|
 | `fpbench.core` | built | shared vocabulary; stdlib only, imports nothing from the project |
 | `fpbench.datasets` | built | what images exist on disk, and do they match their own declarations |
 | `fpbench.protocols` | built | which subjects take part, and which comparisons that implies |
-| `fpbench.storage` | built | immutable manifests, plans, run manifests, raw results, runtime bundles, result sets |
+| `fpbench.storage` | built | immutable manifests, plans, results, runtime bundles, result sets, decisions |
 | `fpbench.imaging` | built (identity only) | the image preparation contract; resampling still to come |
 | `fpbench.adapters` | built | the contract, the registry, `dummy_sha256` and `sourceafis_java` |
 | `fpbench.provenance` | built | which build of the harness, and which executable, produced a result |
 | `fpbench.execution` | built (sequential) | plan, run, resume, progress, audit, completion, result set, research state |
-| `fpbench.experiments` | built (one experiment) | the SourceAFIS native full run: prepare / execute / status / finalize |
-| `fpbench.decisions` | not yet | thresholds, calibration, score → decision |
-| `fpbench.evaluation` | not yet | protocol metrics, FMR/FNMR, failure analysis, reports |
+| `fpbench.decisions` | built | threshold profiles, the decision function, decision sets |
+| `fpbench.eligibility` | built | SELF units, the both-must-match rule, eligibility sets |
+| `fpbench.evaluation` | built (views only) | which comparisons an evaluation covers; **no metrics yet** |
+| `fpbench.derivations` | built | derivation receipts, finalization markers, derivation status |
+| `fpbench.experiments` | built (two) | the SourceAFIS full run, and the decisions derived from it |
 | `fpbench.cli` | not yet | command-line entry points |
 
 Deliberate omissions, so they read as decisions rather than oversights:
 
-* **No thresholds anywhere.** Raw scores are stored with their score direction and no
-  decision. SourceAFIS documents a recommended threshold of 40; that stays
-  documentation until a decision policy applies it to unchanged stored scores.
-* **No accuracy claim, even now that 6,000 real scores exist.** Not because scores are
-  missing, but because decision profiles, SELF eligibility, metric definitions and
-  failure denominators are. See [What 6,000 scores do not entitle us to say](#what-6000-scores-do-not-entitle-us-to-say).
+* **No calibrated threshold.** The only profile is SourceAFIS's own documented 40,
+  recorded as `origin: documented_native` so it can never be presented as something this
+  project measured. A calibrated profile needs a development cohort, and drawing one from
+  the 50 test subjects is refused outright
+  ([ADR 0021](docs/adr/0021-decision-profiles-are-immutable-and-external.md)).
+* **No accuracy claim, even now that 6,000 scores have been decided.** Not because
+  anything is missing from the data, but because the denominators are not defined. See
+  [What the decisions do not entitle us to say](#what-the-decisions-do-not-entitle-us-to-say).
 * **Sequential only.** One job at a time, no retries, no worker pool, no hard timeout
   termination. The storage layout is already the one that makes parallelism safe — one
   immutable file per job, no shared table, no locks — so adding workers later changes
@@ -112,6 +121,10 @@ way in:
 | `dataset` | the real SD300 delivery | `pytest -m dataset` with `FPBENCH_SD300_ROOT` set; skipped automatically when it is not |
 | `sourceafis` | a JVM and the built bridge | `make sourceafis-test`; its own [workflow](.github/workflows/sourceafis-adapter.yml) |
 | `full_run` | a couple of minutes | `make full-run`; its own [workflow](.github/workflows/full-dummy-run.yml) |
+
+The `decisions` marker is *not* excluded — the decision layer needs no JVM and no data,
+so it runs in the ordinary suite. `make decisions-test` runs it alone, and it has its own
+[workflow](.github/workflows/decision-derivation.yml).
 
 `make test-all` runs everything available on the machine.
 
@@ -389,6 +402,7 @@ results/<run_id>/completion.json                 written after a clean audit
 results/<run_id>/research-receipt.json           sanitised, committable
 results/<run_id>/research-finalization.json      last-written commit marker
 results/<run_id>/derived/                        progress, summaries   disposable
+results/<run_id>/decisions/<set_id>/             one threshold applied immutable
 runtime/bundles/<bundle_id>/                     pinned executables    immutable
 work/<run_id>/<job_id>/                          adapter scratch       disposable
 artifacts/<run_id>/<job_id>/                     adapter artefacts, if any
@@ -676,17 +690,122 @@ And a sentence it states verbatim:
 > This receipt proves execution completeness and provenance. It contains no biometric
 > performance conclusion.
 
-### What 6,000 scores do not entitle us to say
+## Decisions
+
+Stage 5A applies a threshold to those 6,000 stored scores. It changes nothing about them:
+`raw/jobs/` and `result-set/` are read, hashed and left alone, and everything the stage
+produces lands in a new `decisions/` subtree beneath the run.
+
+### The threshold, and where it came from
+
+```
+configs/decisions/sourceafis_java_3_18_1_documented_40_v1.yaml
+```
+
+SourceAFIS documents a recommended threshold of 40. That is a number *its authors*
+published about *their* evaluation, and the profile says so in a field that reaches its
+own fingerprint:
+
+```yaml
+profile:  { origin: documented_native }
+rule:     { comparator: greater_than_or_equal, threshold: "40" }
+calibration: { performed: false, test_cohort_used: false }
+```
+
+Presenting it as a calibrated threshold would change `origin`, which changes the
+fingerprint, which changes every decision derived under it. A profile whose config claims
+`test_cohort_used: true` is refused outright — choosing a threshold on the same 50
+subjects it is reported over is the one form of leakage that would invalidate everything.
+
+The threshold is a **canonical decimal string**, not a float: `"40"`, `"40.0"` and
+`"4e1"` all normalise to `"40"`, and the comparison is done in `Decimal`. **A score of
+exactly 40 is a MATCH.** No epsilon, no rounding, no clipping
+([ADR 0021](docs/adr/0021-decision-profiles-are-immutable-and-external.md)).
+
+### A failure is still not a non-match
+
+```
+SUCCESS + score  → DECIDED,     decision = match | non_match
+FAILURE          → UNDECIDABLE, decision = null, failure code preserved
+```
+
+There is no `NO_MATCH_DUE_TO_FAILURE` and there will not be one. For the current SD300
+run the second branch is unused — all 6,000 comparisons scored — and the code supports it
+because the next run may not.
+
+### prepare / derive / status / finalize
+
+```bash
+python -m fpbench.experiments.sourceafis_native_decisions prepare
+python -m fpbench.experiments.sourceafis_native_decisions derive
+python -m fpbench.experiments.sourceafis_native_decisions status
+python -m fpbench.experiments.sourceafis_native_decisions finalize
+```
+
+`prepare` refuses a dirty tree, a source run that is not `RESEARCH_READY`, or a profile
+that does not describe this exact algorithm build. `derive` produces the decisions, the
+eligibility set and the three views, and can be repeated. `finalize` re-verifies the
+whole chain from the raw scores upward and only then writes the receipt and the marker.
+
+The status chain mirrors the run's:
+
+```
+RESEARCH_READY raw run
+        ↓
+NOT_PREPARED → PROFILE_READY → DECISIONS_READY → ELIGIBILITY_READY → VIEWS_READY → DECISION_READY
+                                                                                 ↘ INVALID
+```
+
+`DECISION_READY` is recomputed from the files every time it is asked for: every decision
+re-derived from its raw score, every verdict from its two SELF decisions, every inclusion
+flag from its verdict. **`DECISION_READY` ≠ performance evaluated.**
+
+### SELF eligibility
+
+1,500 units — one per (release, subject, anatomical finger), 500 per release. A unit is
+eligible only when *both* its SELF comparisons matched under this profile. A SELF
+comparison that produced no score makes the unit `UNDETERMINED` rather than
+`INELIGIBLE`, because "we could not tell" is not "it failed"
+([docs/evaluation/self-eligibility.md](docs/evaluation/self-eligibility.md)).
+
+Eligibility is stored *beneath the decision set*, because the same finger can change
+status when the threshold does.
+
+### Three views, no metrics
+
+| View | Rows | Included |
+|---|---|---|
+| `plain_roll_mated_unconditional_v1` | 1,500 | all |
+| `plain_roll_mated_both_self_match_v1` | 1,500 | where the finger passed both SELF tests |
+| `plain_roll_non_mated_same_subject_cyclic_v1` | 1,500 | all — no SELF filter |
+
+The conditional view **keeps its excluded rows**, each with the reason
+(`self_ineligible` or `self_undetermined`) and the eligibility unit that caused it.
+Dropping them would make the inclusion rule unauditable
+([ADR 0024](docs/adr/0024-conditional-mated-evaluation-requires-both-self-matches.md)).
+
+The impostor view records what it is — closed set, same subject, cyclic shift 1 — and
+what it is not: `primary_fmr_estimate: false`. A view or policy name containing `fmr`,
+`fnmr`, `eer` or `accuracy` is refused by the code, because a name outlives its caveat
+([ADR 0025](docs/adr/0025-same-subject-different-finger-is-a-sanity-check.md)).
+
+### What the decisions do not entitle us to say
 
 Nothing about accuracy. Not FMR, not FNMR, not EER, not a best threshold, not a count of
 matches or false matches, not which resolution "won".
 
-The reason is not that scores are missing. It is that a number derived from them means
-nothing until the things that define it exist: decision profiles, the SELF eligibility
-rule, the unconditional and conditional PLAIN–ROLL reporting the supervisor asked for,
-the denominators that decide how a template-extraction failure is counted, and the
-provenance of whichever threshold is applied. Those are the next stage
-([ADR 0003](docs/adr/0003-decision-outside-adapter.md)).
+The reason is no longer that scores are missing, or even that decisions are. It is that
+the remaining definitions do not exist: how a failed comparison is counted, whether an
+`UNDETERMINED` unit is excluded or imputed, what the denominator of a conditional report
+is, and whether 40 is a defensible threshold for *this* data rather than for SourceAFIS's
+own. Those are the next stage ([ADR 0003](docs/adr/0003-decision-outside-adapter.md)).
+
+The derivation receipt says the same thing in its own text, and carries no outcome count
+of any kind — not how many matched, not how many fingers were eligible, not how many rows
+the conditional view included:
+
+> This receipt proves deterministic decision and eligibility derivation. It contains no
+> biometric performance metric or conclusion.
 
 ## Architecture note: where the models live
 
@@ -707,18 +826,23 @@ one experiment, and it needs somewhere to live that is not the planner.
 
 ## Next stage
 
-1. decision policies, native thresholds (SourceAFIS's documented 40 among them) and
-   calibration on a development cohort — the layer that makes any of the 6,000 stored
-   scores mean something;
-2. SELF eligibility as an explicit per-finger table, and the conditional PLAIN–ROLL
-   reporting the supervisor's protocol asks for;
-3. evaluation: protocol metrics, failure analysis, FMR/FNMR with stated denominators;
+1. metrics over the three views — FMR, FNMR and the conditional PLAIN–ROLL report — with
+   the one thing that makes them honest written down first: what happens to a failed
+   comparison and to an `UNDETERMINED` finger in each denominator;
+2. a development cohort and a calibration manifest, so that a *calibrated* threshold
+   becomes possible without touching the 50 test subjects
+   ([ADR 0021](docs/adr/0021-decision-profiles-are-immutable-and-external.md));
+3. failure analysis over the algorithmic failure codes the run recorded;
 4. resampling as a second image preparer — 2000 ppi and 1000 ppi down to 500 — with its
-   own `preparer_id`, so results produced under each stay distinguishable;
+   own `preparer_id`, so results produced under each stay distinguishable, and its own
+   decision-profile scope;
 5. NBIS as the second algorithm — `nbis_mindtct_bozorth3`, both halves named — which is
    the real test of whether the adapter contract holds, and the second consumer of the
    runtime-bundle mechanism;
 6. the persistent-JVM decision, on the strength of the full run's operational summary
    rather than a guess ([ADR 0015](docs/adr/0015-sourceafis-uses-stateless-java-bridge.md));
-7. parallel execution and a retry policy keyed to the failure taxonomy;
-8. a CLI over all of it.
+7. a better negative set, if a real false-match rate is ever wanted: cross-subject, and
+   either exhaustive or a stated sample
+   ([ADR 0025](docs/adr/0025-same-subject-different-finger-is-a-sanity-check.md));
+8. parallel execution, a retry policy keyed to the failure taxonomy, and a CLI over all
+   of it.

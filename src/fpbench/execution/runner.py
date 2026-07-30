@@ -22,9 +22,14 @@ with ``status = failure`` and a specific failure code. A run of 6,000
 comparisons must not die on the first bad pair, and a comparison that never
 produced a score must never be silently counted as a non-match (docs/adr/0006).
 
-Preflight is the exception. A mismatched adapter, an unavailable environment or
-the wrong preparer is a fault of the *run*, and it raises before any job
-executes rather than producing thousands of identical per-pair failures.
+Preflight is the exception — and, since stage 4B, so is runtime drift. A
+mismatched adapter, an unavailable environment or the wrong preparer is a fault
+of the *run*, and it raises before any job executes rather than producing
+thousands of identical per-pair failures. A pinned executable that changes
+half way through is the same kind of fault discovered late:
+``RuntimeDriftError`` is re-raised unrecorded, because a stored failure would
+imply the run is otherwise sound when what actually happened is that nothing
+after that point can be attributed (docs/adr/0018).
 """
 
 from __future__ import annotations
@@ -49,6 +54,7 @@ from fpbench.core.errors import (
     ImagePreparationError,
     PreflightError,
     ResultConflictError,
+    RuntimeDriftError,
 )
 from fpbench.core.execution_models import (
     ComparisonContext,
@@ -287,6 +293,13 @@ class SingleJobRunner:
             try:
                 match_result = self._adapter.compare(left, right, context)
                 self._validate_adapter_result(match_result)
+            except RuntimeDriftError:
+                # Deliberately first, and deliberately re-raised. The pinned
+                # executable changed under the run: this is not a fact about
+                # this pair, and recording it as INTERNAL_ERROR would bury the
+                # one thing that invalidates everything else. No result is
+                # written for this job (docs/adr/0018).
+                raise
             except TimeoutError as exc:
                 # Stage 3A does not cancel in-process work; it only records a
                 # timeout an adapter chose to raise.

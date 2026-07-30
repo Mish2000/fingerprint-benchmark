@@ -34,6 +34,7 @@ from fpbench.core.execution_models import (
     ExecutionProfile,
 )
 from fpbench.core.identifiers import CohortId, validate_id
+from fpbench.core.research_models import ResearchRunReceipt
 from fpbench.core.result_models import (
     RESULT_SCHEMA_VERSION,
     RawResultRecord,
@@ -41,6 +42,7 @@ from fpbench.core.result_models import (
     raw_result_hash,
 )
 from fpbench.core.run_state_models import RunCompletion
+from fpbench.core.runtime_models import RunRuntimeReference
 from fpbench.core.serialization import read_json, write_json
 from fpbench.storage import layout, result_schemas
 
@@ -48,6 +50,8 @@ __all__ = ["ResultStore"]
 
 _RUN_MANIFEST = "run.json"
 _COMPLETION_MANIFEST = "completion.json"
+_RUNTIME_REFERENCE = "runtime.json"
+_RESEARCH_RECEIPT = "research-receipt.json"
 
 
 class ResultStore:
@@ -76,6 +80,12 @@ class ResultStore:
 
     def completion_path(self, run_id: str) -> Path:
         return self.run_dir(run_id) / _COMPLETION_MANIFEST
+
+    def runtime_reference_path(self, run_id: str) -> Path:
+        return self.run_dir(run_id) / _RUNTIME_REFERENCE
+
+    def research_receipt_path(self, run_id: str) -> Path:
+        return self.run_dir(run_id) / _RESEARCH_RECEIPT
 
     def derived_path(self, run_id: str, name: str) -> Path:
         """A regenerable artefact. Free to overwrite, free to delete."""
@@ -182,6 +192,90 @@ class ResultStore:
         """Persist a regenerable snapshot. Overwriting is expected here."""
         return write_json(self.derived_path(run_id, name), value)
 
+    # -------------------------------------------------------- runtime binding
+
+    def has_runtime_reference(self, run_id: str) -> bool:
+        return self.runtime_reference_path(run_id).is_file()
+
+    def ensure_runtime_reference(self, reference: RunRuntimeReference) -> Path:
+        """Record which runtime bundle this run is bound to, once.
+
+        Written before the first comparison and never rewritten. A run that
+        changes its executable half way through is not one run, and the correct
+        response is a new bundle and a new run rather than an edited binding
+        (docs/adr/0018).
+        """
+        path = self.runtime_reference_path(reference.run_id)
+        if path.is_file():
+            stored = self.read_runtime_reference(reference.run_id)
+            if (
+                stored.runtime_reference_fingerprint
+                != reference.runtime_reference_fingerprint
+            ):
+                raise ResultConflictError(
+                    f"{path} already binds run {reference.run_id} to runtime "
+                    f"{stored.bundle_id}; refusing to rebind it to "
+                    f"{reference.bundle_id}"
+                )
+            return path
+        return write_json(path, reference)
+
+    def read_runtime_reference(self, run_id: str) -> RunRuntimeReference:
+        path = self.runtime_reference_path(run_id)
+        if not path.is_file():
+            raise StorageError(f"runtime reference not found: {path}")
+        payload = read_json(path)
+        try:
+            return RunRuntimeReference(
+                runtime_reference_id=payload["runtime_reference_id"],
+                runtime_reference_fingerprint=payload[
+                    "runtime_reference_fingerprint"
+                ],
+                run_id=payload["run_id"],
+                run_fingerprint=payload["run_fingerprint"],
+                environment_fingerprint=payload["environment_fingerprint"],
+                bundle_id=payload["bundle_id"],
+                bundle_fingerprint=payload["bundle_fingerprint"],
+                asset_sha256s=payload["asset_sha256s"],
+                created_utc=payload["created_utc"],
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise StorageError(
+                f"{path}: unreadable runtime reference ({exc})"
+            ) from exc
+
+    # ------------------------------------------------------- research receipt
+
+    def has_research_receipt(self, run_id: str) -> bool:
+        return self.research_receipt_path(run_id).is_file()
+
+    def ensure_research_receipt(self, receipt: ResearchRunReceipt) -> Path:
+        """Write the sanitised receipt once, or confirm the stored one matches."""
+        from fpbench.core.research_models import research_receipt_fingerprint
+
+        path = self.research_receipt_path(receipt.run_id)
+        if path.is_file():
+            stored = self.read_research_receipt(receipt.run_id)
+            if research_receipt_fingerprint(stored) != research_receipt_fingerprint(
+                receipt
+            ):
+                raise ResultConflictError(
+                    f"{path} already carries a different research receipt for run "
+                    f"{receipt.run_id}"
+                )
+            return path
+        return write_json(path, receipt)
+
+    def read_research_receipt(self, run_id: str) -> ResearchRunReceipt:
+        path = self.research_receipt_path(run_id)
+        if not path.is_file():
+            raise StorageError(f"research receipt not found: {path}")
+        payload = read_json(path)
+        try:
+            return ResearchRunReceipt(**payload)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise StorageError(f"{path}: unreadable research receipt ({exc})") from exc
+
     # ------------------------------------------------------------ raw results
 
     def stored_job_ids(self, run_id: str) -> tuple[str, ...]:
@@ -285,10 +379,20 @@ class ResultStore:
 
     @staticmethod
     def _read_table(path: Path) -> pa.Table:
+        """Read one result file and close it before returning.
+
+        ``pq.read_table`` leaves the underlying handle to be closed whenever the
+        reader is collected, which on Windows means a file that was just read can
+        still be locked against deletion or replacement for an arbitrary while.
+        Reading through an explicit context manager makes the close deterministic
+        — a run that reads six thousand results and then tidies up should not
+        depend on when the garbage collector last ran.
+        """
         if not path.is_file():
             raise StorageError(f"result not found: {path}")
         try:
-            return pq.read_table(path)
+            with pq.ParquetFile(path) as reader:
+                return reader.read()
         except (pa.ArrowInvalid, OSError) as exc:
             raise StorageError(f"{path}: unreadable parquet ({exc})") from exc
 

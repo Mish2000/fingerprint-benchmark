@@ -1,8 +1,8 @@
 """Orchestration: what to run, and running it.
 
 Dependency rule: ``execution`` is the one package allowed to import ``core``,
-``imaging``, ``adapters`` and ``storage`` together. It receives its adapter and
-its preparer by injection and never names a specific algorithm
+``imaging``, ``adapters``, ``provenance`` and ``storage`` together. It receives
+its adapter and its preparer by injection and never names a specific algorithm
 (docs/adr/0007).
 """
 
@@ -16,6 +16,12 @@ from fpbench.execution.completion import RunCompletionService, build_run_complet
 from fpbench.execution.jobs import ComparisonJob, build_comparison_job
 from fpbench.execution.planner import STAGE_ORDER, build_execution_plan
 from fpbench.execution.progress import inspect_run_progress
+from fpbench.execution.research import ResearchModeAdapter, inspect_research_run
+from fpbench.execution.result_set import (
+    ResultSetEntry,
+    ResultSetManifest,
+    build_result_set,
+)
 from fpbench.execution.run_definition import (
     DEFAULT_EXECUTION_PROFILE,
     RunDefinition,
@@ -33,6 +39,9 @@ __all__ = [
     "DEFAULT_EXECUTION_PROFILE",
     "JobDisposition",
     "JobExecutionOutcome",
+    "ResearchModeAdapter",
+    "ResultSetEntry",
+    "ResultSetManifest",
     "RunCompletionService",
     "RunDefinition",
     "RunExecutionSummary",
@@ -42,8 +51,10 @@ __all__ = [
     "audit_run",
     "build_comparison_job",
     "build_execution_plan",
+    "build_result_set",
     "build_run_completion",
     "create_run_definition",
+    "inspect_research_run",
     "inspect_run_progress",
     "run_fingerprint_of",
     "validate_existing_results",

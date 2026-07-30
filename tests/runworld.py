@@ -23,9 +23,15 @@ from fpbench.core.enums import GroundTruth, Impression, ProtocolStage
 from fpbench.core.execution_plan_models import ExecutionPlan
 from fpbench.core.identifiers import CohortId, ImageId, PairId
 from fpbench.core.models import ComparisonPair, ImageRecord
+from fpbench.core.provenance_models import (
+    PROVENANCE_KIND_GIT,
+    SoftwareProvenance,
+)
 from fpbench.core.result_models import RawResultRecord, RunDefinition
+from fpbench.core.runtime_models import RunRuntimeReference, RuntimeBundleDefinition
 from fpbench.execution.completion import RunCompletionService
 from fpbench.execution.planner import build_execution_plan
+from fpbench.execution.research import ResearchModeAdapter
 from fpbench.execution.run_definition import (
     DEFAULT_EXECUTION_PROFILE,
     create_run_definition,
@@ -34,7 +40,9 @@ from fpbench.execution.runner import SingleJobRunner
 from fpbench.imaging.identity import IdentityImagePreparer
 from fpbench.storage.plan_store import PlanStore
 from fpbench.storage.result_schemas import raw_results_to_table
+from fpbench.storage.result_set_store import ResultSetStore
 from fpbench.storage.result_store import ResultStore
+from fpbench.storage.runtime_bundle_store import RuntimeBundleStore
 from fakes import image_record, sha256_of
 from support import make_png
 
@@ -43,12 +51,58 @@ __all__ = [
     "build_world",
     "PROTOCOL_ID",
     "COHORT_ID",
+    "TEST_REVISION",
+    "FAKE_ASSET_ROLE",
+    "finalise_research_world",
     "pair_manifest_hash_for",
+    "research_provenance",
+    "structural_validation_report",
+    "write_fake_asset",
     "write_result_file",
 ]
 
 PROTOCOL_ID = "sd300_50_subjects"
 COHORT_ID = CohortId("sd300_50_subjects_test_ab12cd34")
+
+#: A plausible commit SHA for tests that must not depend on the state of the
+#: repository they happen to be running inside.
+TEST_REVISION = "0123456789abcdef0123456789abcdef01234567"
+
+#: Runtime bundles are keyed by role, and the role names a file the adapter
+#: needs. The dummy matcher needs nothing, so its tests use a stand-in.
+FAKE_ASSET_ROLE = "test_runtime_asset"
+
+
+def research_provenance(
+    *,
+    revision: str = TEST_REVISION,
+    clean: bool = True,
+    package_version: str = "0.1.0",
+    dependency_versions: Mapping[str, str] | None = None,
+) -> SoftwareProvenance:
+    """A synthetic, research-grade provenance.
+
+    Built by hand rather than captured, so that a test's outcome never depends
+    on whether the working tree it runs in happens to be committed.
+    """
+    return SoftwareProvenance(
+        provenance_kind=PROVENANCE_KIND_GIT,
+        source_revision=revision,
+        source_tree_clean=clean,
+        package_version=package_version,
+        python_version="3.12.0",
+        python_implementation="CPython",
+        dependency_versions=dependency_versions or {"pyarrow": "15.0.0", "pyyaml": "6.0"},
+    )
+
+
+def write_fake_asset(directory: Path, payload: bytes = b"not really a jar") -> Path:
+    """A file to materialise into a bundle when the content does not matter."""
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / "fpbench-test-runtime.jar"
+    path.write_bytes(payload)
+    return path
 
 
 def pair_manifest_hash_for(pairs: Sequence[ComparisonPair]) -> str:
@@ -96,9 +150,19 @@ class RunWorld:
     preparer: object
     pair_manifest_metadata: Mapping[str, str] = field(default_factory=dict)
 
+    #: Present only for a research world. A plain world has no pinned runtime
+    #: and cannot be finalised as research, which is the correct default.
+    software: SoftwareProvenance | None = None
+    bundle: RuntimeBundleDefinition | None = None
+    runtime_reference: RunRuntimeReference | None = None
+
     @property
     def pair_index(self) -> dict[PairId, ComparisonPair]:
         return {pair.pair_id: pair for pair in self.pairs}
+
+    @property
+    def image_index(self) -> dict[ImageId, ImageRecord]:
+        return dict(self.images)
 
     @property
     def result_store(self) -> ResultStore:
@@ -107,6 +171,14 @@ class RunWorld:
     @property
     def plan_store(self) -> PlanStore:
         return PlanStore(self.workspace)
+
+    @property
+    def result_set_store(self) -> ResultSetStore:
+        return ResultSetStore(self.workspace)
+
+    @property
+    def bundle_store(self) -> RuntimeBundleStore:
+        return RuntimeBundleStore(self.workspace)
 
     @property
     def completion_service(self) -> RunCompletionService:
@@ -146,6 +218,9 @@ def build_world(
     adapter=None,
     preparer=None,
     replicate_index: int = 0,
+    research: bool = False,
+    software: SoftwareProvenance | None = None,
+    asset_role: str = FAKE_ASSET_ROLE,
 ) -> RunWorld:
     """Assemble a self-consistent run, plan and workspace.
 
@@ -156,6 +231,11 @@ def build_world(
             the protocol it is standing in for.
         replicate_index: Passed through to the run definition, so a test can
             obtain a genuinely different run over the same pairs.
+        research: Materialise a runtime bundle, fold source and runtime
+            provenance into the environment, and write the run's runtime
+            binding — everything a run needs before it can be finalised as
+            research. The matcher stays the dummy one: what is under test here
+            is the evidence chain, not any algorithm.
     """
     if fingers < 2:
         raise ValueError("build_world needs at least two fingers per subject")
@@ -169,6 +249,18 @@ def build_world(
     images = _build_images(dataset_root, subjects, fingers, releases)
     pairs = _build_pairs(subjects, fingers, releases)
     manifest_hash = pair_manifest_hash_for(pairs)
+
+    bundle = None
+    reference = None
+    if research:
+        software = software or research_provenance()
+        bundle = RuntimeBundleStore(workspace).materialize(
+            adapter_id=adapter.descriptor.adapter_id,
+            assets={asset_role: write_fake_asset(tmp_path / "build")},
+        )
+        adapter = ResearchModeAdapter(
+            delegate=adapter, software=software, runtime_bundle=bundle
+        )
 
     run = create_run_definition(
         protocol_id=PROTOCOL_ID,
@@ -188,6 +280,17 @@ def build_world(
         run=run, pairs=pairs, pair_manifest_metadata=metadata
     )
 
+    if research:
+        assert bundle is not None
+        reference = RunRuntimeReference.create(
+            run_id=run.run_id,
+            run_fingerprint=run.run_fingerprint,
+            environment_fingerprint=run.environment_fingerprint,
+            bundle=bundle,
+            created_utc="2026-07-30T00:00:00+00:00",
+        )
+        ResultStore(workspace).ensure_runtime_reference(reference)
+
     return RunWorld(
         workspace=workspace,
         dataset_root=dataset_root,
@@ -198,7 +301,108 @@ def build_world(
         adapter=adapter,
         preparer=preparer,
         pair_manifest_metadata=metadata,
+        software=software,
+        bundle=bundle,
+        runtime_reference=reference,
     )
+
+
+# ------------------------------------------------------- research finalisation
+
+
+def structural_validation_report(world: RunWorld):
+    """A stand-in for the SourceAFIS evidence validator.
+
+    The real validator knows what SourceAFIS is; the dummy matcher is not
+    SourceAFIS and never will be. This produces a report of the same shape over
+    the dummy run's actual results, so that finalisation, the result set and the
+    receipt can be exercised at full scale without a JVM. It checks nothing
+    about a pipeline and claims nothing about one — the algorithm-specific
+    checks are covered in ``tests/unit/test_sourceafis_validation.py`` and, with
+    a real matcher, in the integration suite.
+    """
+    from fpbench.core.enums import ExecutionStatus
+    from fpbench.core.serialization import stable_hash
+    from fpbench.experiments.sourceafis_validation import SourceAfisValidationReport
+
+    successes = 0
+    failures: dict[str, int] = {}
+    total = 0
+    store = world.result_store
+    for planned in world.plan.jobs:
+        record = store.read_raw_result(world.run.run_id, planned.job.job_id)
+        total += 1
+        if record.status is ExecutionStatus.SUCCESS:
+            successes += 1
+        elif record.failure is not None:
+            code = record.failure.code.value
+            failures[code] = failures.get(code, 0) + 1
+
+    return SourceAfisValidationReport(
+        run_id=world.run.run_id,
+        plan_id=world.plan.plan_id,
+        total_results=total,
+        successful_results=successes,
+        algorithmic_failures=total - successes,
+        blocking_failures=0,
+        failure_counts=failures,
+        issues=(),
+        validation_fingerprint=stable_hash(
+            {
+                "schema": "structural_validation_v1",
+                "run_fingerprint": world.run.run_fingerprint,
+                "plan_fingerprint": world.plan.definition.plan_fingerprint,
+                "total": total,
+                "successes": successes,
+                "failures": dict(sorted(failures.items())),
+            },
+            length=64,
+        ),
+        inspected_utc="2026-07-30T00:00:00+00:00",
+    )
+
+
+def finalise_research_world(world: RunWorld, *, dataset_id: str = "sd300"):
+    """Run the external finalisation sequence over a completed dummy world.
+
+    The same order the real entry point uses: audit, evidence validation,
+    result set, completion, receipt (docs/adr/0020).
+    """
+    from fpbench.execution.completion import build_run_completion
+    from fpbench.execution.result_set import build_result_set
+    from fpbench.experiments.research_receipt import build_research_receipt
+
+    assert world.runtime_reference is not None and world.software is not None
+
+    audit = world.completion_service.audit(run=world.run, plan=world.plan)
+    validation = structural_validation_report(world)
+
+    manifest, entries = build_result_set(
+        run=world.run,
+        plan=world.plan,
+        result_store=world.result_store,
+        runtime_reference=world.runtime_reference,
+    )
+    world.result_set_store.ensure_result_set(manifest, entries)
+
+    completion = build_run_completion(run=world.run, plan=world.plan, audit=audit)
+    world.result_store.ensure_completion(completion)
+
+    receipt = build_research_receipt(
+        run=world.run,
+        plan=world.plan,
+        pairs=world.pair_index,
+        software=world.software,
+        runtime_reference=world.runtime_reference,
+        result_set=manifest,
+        audit=audit,
+        validation=validation,
+        completion=completion,
+        dataset_id=dataset_id,
+        primary_asset_role=next(iter(world.runtime_reference.asset_sha256s)),
+    )
+    world.result_store.ensure_research_receipt(receipt)
+    return receipt
 
 
 # ------------------------------------------------------------------ builders

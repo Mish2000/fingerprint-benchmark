@@ -5,14 +5,21 @@ and executed through the real pipeline: the real ``SD300Protocol``, the real
 manifest store, the real planner, the real executor, the real audit. Only the
 imagery is synthetic.
 
+Since stage 4B it also carries the full provenance chain at scale: a
+content-addressed runtime bundle, a run whose environment names its source
+revision, external finalisation, a 6,000-entry result-set manifest and a
+sanitised receipt. Those need to be exercised at six thousand rows rather than
+sixteen, and running six thousand real SourceAFIS comparisons in CI to do it
+would take hours to prove something about bookkeeping.
+
 Marked ``full_run`` and excluded from the ordinary suite, because it takes
 minutes rather than seconds. It has its own CI workflow.
 
 **No biometric claim is made or possible here.** Every ``ImageRecord`` points at
 the same handful of tiny PNGs; only the ids and digests differ. The dummy
 matcher scores those digests. What this test proves is that the harness can
-plan, execute, resume, audit and verify six thousand comparisons without losing
-or duplicating one — nothing whatsoever about fingerprints.
+plan, execute, resume, audit, verify and *attribute* six thousand comparisons
+without losing or duplicating one — nothing whatsoever about fingerprints.
 """
 
 from __future__ import annotations
@@ -27,14 +34,18 @@ from fpbench.core.enums import (
     FingerprintPosition,
     Impression,
     ProtocolStage,
+    ResearchRunStatus,
     RunState,
 )
 from fpbench.core.identifiers import ImageId, SubjectId
 from fpbench.core.models import ImageRecord, SubjectRecord
+from fpbench.core.runtime_models import RunRuntimeReference
 from fpbench.execution.batch_runner import SequentialRunExecutor
 from fpbench.execution.completion import RunCompletionService
 from fpbench.execution.planner import build_execution_plan
 from fpbench.execution.progress import inspect_run_progress
+from fpbench.execution.research import ResearchModeAdapter, inspect_research_run
+from fpbench.execution.result_set import build_result_set
 from fpbench.execution.run_definition import (
     DEFAULT_EXECUTION_PROFILE,
     create_run_definition,
@@ -44,8 +55,11 @@ from fpbench.imaging.identity import IdentityImagePreparer
 from fpbench.protocols.sd300_protocol import SD300Protocol
 from fpbench.storage.manifest_store import ManifestStore
 from fpbench.storage.plan_store import PlanStore
+from fpbench.storage.result_set_store import ResultSetStore
 from fpbench.storage.result_store import ResultStore
+from fpbench.storage.runtime_bundle_store import RuntimeBundleStore
 from fakes import CountingPreparer, sha256_of
+from runworld import FAKE_ASSET_ROLE, research_provenance, write_fake_asset
 from support import make_png
 
 pytestmark = pytest.mark.full_run
@@ -143,7 +157,16 @@ def world(tmp_path_factory, protocol):
         protocol.protocol_id, cohort.cohort_id
     )
 
-    adapter = DummyShaAdapter()
+    # The provenance chain, at scale. The bundle holds a stand-in file rather
+    # than a jar: what is under test is that 6,000 results can be bound to one
+    # identified executable, not what that executable does.
+    software = research_provenance()
+    bundle = RuntimeBundleStore(workspace).materialize(
+        adapter_id=DummyShaAdapter().descriptor.adapter_id,
+        assets={FAKE_ASSET_ROLE: write_fake_asset(root / "build")},
+    )
+    adapter = _adapter(software, bundle)
+
     run = create_run_definition(
         protocol_id=protocol.protocol_id,
         cohort_id=cohort.cohort_id,
@@ -156,6 +179,15 @@ def world(tmp_path_factory, protocol):
         run=run, pairs=pairs, pair_manifest_metadata=pair_metadata
     )
 
+    reference = RunRuntimeReference.create(
+        run_id=run.run_id,
+        run_fingerprint=run.run_fingerprint,
+        environment_fingerprint=run.environment_fingerprint,
+        bundle=bundle,
+        created_utc="2026-07-30T00:00:00+00:00",
+    )
+    ResultStore(workspace).ensure_runtime_reference(reference)
+
     return {
         "dataset_root": dataset_root,
         "workspace": workspace,
@@ -164,11 +196,20 @@ def world(tmp_path_factory, protocol):
         "pairs": pairs,
         "run": run,
         "plan": plan,
+        "software": software,
+        "bundle": bundle,
+        "runtime_reference": reference,
     }
 
 
+def _adapter(software, bundle) -> ResearchModeAdapter:
+    return ResearchModeAdapter(
+        delegate=DummyShaAdapter(), software=software, runtime_bundle=bundle
+    )
+
+
 def _executor(world, *, adapter=None, preparer=None):
-    adapter = adapter or DummyShaAdapter()
+    adapter = adapter or _adapter(world["software"], world["bundle"])
     preparer = preparer or IdentityImagePreparer()
     result_store = ResultStore(world["workspace"])
     job_runner = SingleJobRunner(
@@ -224,9 +265,15 @@ def test_the_ordinals_are_contiguous(world):
 # ------------------------------------------------------------------ execution
 
 
-def test_a_full_run_executes_stores_audits_and_verifies(world):
-    """The single expensive test: everything, once, in order."""
-    summary = _executor(world).execute()
+def test_a_full_run_executes_and_stores_without_declaring_itself_finished(world):
+    """The single expensive test: 6,000 comparisons, once, with no completion.
+
+    ``finalize=False`` is what a research run uses. Every result is present and
+    the audit is clean, and the run is still not verified — because nothing has
+    yet re-checked that the executable underneath it is the one it started with
+    (docs/adr/0020).
+    """
+    summary = _executor(world).execute(finalize=False)
 
     assert summary.newly_executed_jobs == EXPECTED_JOBS
     assert summary.skipped_existing_jobs == 0
@@ -234,10 +281,11 @@ def test_a_full_run_executes_stores_audits_and_verifies(world):
     assert summary.successful_results_seen == EXPECTED_JOBS
     assert summary.failed_results_seen == 0
     assert summary.completed
-    assert summary.verified
+    assert not summary.verified
 
     result_store = ResultStore(world["workspace"])
     assert len(result_store.stored_job_ids(world["run"].run_id)) == EXPECTED_JOBS
+    assert not result_store.has_completion(world["run"].run_id)
 
     from fpbench.execution.audit import audit_run
 
@@ -255,31 +303,122 @@ def test_a_full_run_executes_stores_audits_and_verifies(world):
     progress = inspect_run_progress(
         run=world["run"], plan=world["plan"], result_store=result_store
     )
-    assert progress.state is RunState.VERIFIED
+    assert progress.state is RunState.COMPLETE
     assert progress.stored_results == EXPECTED_JOBS
     assert progress.missing_results == 0
-
-    completion = result_store.read_completion(world["run"].run_id)
-    assert completion.planned_jobs == EXPECTED_JOBS
-    assert completion.success_count == EXPECTED_JOBS
-    assert completion.audit_fingerprint == report.audit_fingerprint
 
 
 def test_a_second_run_does_nothing_at_all(world):
     """Depends on the run above; ordering within the module is deliberate."""
     # A resumed run must use an adapter whose descriptor matches the run
     # definition exactly, so the real matcher is wrapped rather than replaced.
-    counting = _CountingWrapper(DummyShaAdapter())
+    counting = _CountingWrapper(_adapter(world["software"], world["bundle"]))
     preparer = CountingPreparer()
 
-    summary = _executor(world, adapter=counting, preparer=preparer).execute()
+    summary = _executor(world, adapter=counting, preparer=preparer).execute(
+        finalize=False
+    )
 
     assert summary.newly_executed_jobs == 0
     assert summary.skipped_existing_jobs == EXPECTED_JOBS
     assert summary.remaining_jobs == 0
     assert counting.compare_calls == 0
     assert preparer.calls == 0
-    assert summary.completed and summary.verified
+    assert summary.completed and not summary.verified
+
+
+# ------------------------------------------------------------- finalisation
+
+
+def test_external_finalisation_produces_the_whole_evidence_chain(world):
+    """Six thousand result hashes, one completion, one sanitised receipt."""
+    from runworld import RunWorld, finalise_research_world
+
+    receipt = finalise_research_world(_as_run_world(world))
+
+    result_store = ResultStore(world["workspace"])
+    completion = result_store.read_completion(world["run"].run_id)
+    assert completion.planned_jobs == EXPECTED_JOBS
+    assert completion.success_count == EXPECTED_JOBS
+
+    manifest, entries = ResultSetStore(world["workspace"]).read_result_set(
+        world["run"].run_id
+    )
+    assert manifest.total_results == EXPECTED_JOBS
+    assert len(entries) == EXPECTED_JOBS
+    assert [entry.ordinal for entry in entries] == list(range(EXPECTED_JOBS))
+    assert [entry.job_id for entry in entries] == list(world["plan"].job_ids())
+    assert len({entry.result_hash for entry in entries}) == EXPECTED_JOBS
+
+    assert receipt.planned_jobs == EXPECTED_JOBS
+    assert receipt.stored_results == EXPECTED_JOBS
+    assert receipt.blocking_failure_count == 0
+    assert receipt.release_counts == {
+        release: EXPECTED_PER_RELEASE for release in RELEASES
+    }
+    assert receipt.stage_counts == {
+        stage.value: EXPECTED_PER_STAGE for stage in ProtocolStage
+    }
+
+    state = inspect_research_run(
+        run=world["run"], plan=world["plan"], result_store=result_store
+    )
+    assert state.status is ResearchRunStatus.RESEARCH_READY
+
+
+def test_one_changed_result_would_change_the_result_set_fingerprint(world):
+    """The property that makes citing a result set worth anything."""
+    from fpbench.core.result_set_models import ResultSetEntry, result_set_fingerprint
+
+    manifest, entries = ResultSetStore(world["workspace"]).read_result_set(
+        world["run"].run_id
+    )
+    mutated = (
+        ResultSetEntry(entries[0].ordinal, entries[0].job_id, "a" * 64),
+        *entries[1:],
+    )
+    assert (
+        result_set_fingerprint(
+            run_fingerprint=manifest.run_fingerprint,
+            plan_fingerprint=manifest.plan_fingerprint,
+            runtime_bundle_fingerprint=manifest.runtime_bundle_fingerprint,
+            entries=mutated,
+            success_count=manifest.success_count,
+            failure_count=manifest.failure_count,
+        )
+        != manifest.result_set_fingerprint
+    )
+
+
+def test_the_receipt_carries_no_path_no_score_and_no_conclusion(world):
+    path = ResultStore(world["workspace"]).research_receipt_path(
+        world["run"].run_id
+    )
+    text = path.read_text(encoding="utf-8")
+    assert str(world["workspace"]) not in text
+    assert str(world["dataset_root"]) not in text
+    for forbidden in ("raw_score", "subject_id", "image_id", "threshold", "eer"):
+        assert forbidden not in text.lower()
+    assert "no biometric performance conclusion" in text
+
+
+def _as_run_world(world):
+    """Adapt the dict fixture to the shape ``finalise_research_world`` expects."""
+    from runworld import RunWorld
+
+    return RunWorld(
+        workspace=world["workspace"],
+        dataset_root=world["dataset_root"],
+        images=world["images"],
+        pairs=world["pairs"],
+        run=world["run"],
+        plan=world["plan"],
+        adapter=_adapter(world["software"], world["bundle"]),
+        preparer=IdentityImagePreparer(),
+        software=world["software"],
+        bundle=world["bundle"],
+        runtime_reference=world["runtime_reference"],
+    )
 
 
 class _CountingWrapper:

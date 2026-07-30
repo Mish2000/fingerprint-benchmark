@@ -17,8 +17,9 @@ not reimplement resume, it simply asks.
 **A failed comparison is not a failed run.** An adapter that cannot score a
 pair produces a stored failure, and the walk continues. What stops the walk is
 a *conflict*: a result that contradicts the plan, a corrupt file, a job that
-does not match its pair. Those mean the directory can no longer be trusted, and
-continuing would mix incomparable results together (docs/adr/0013).
+does not match its pair, or a pinned executable that changed underneath the
+adapter. Those mean the directory can no longer be trusted, and continuing
+would mix incomparable results together (docs/adr/0013, docs/adr/0018).
 
 The executor never sees a score and never names an algorithm. It moves through
 ordinals, hands each job to the runner it was given, and counts what comes back.
@@ -176,7 +177,12 @@ class SequentialRunExecutor:
 
     # ----------------------------------------------------------------- execute
 
-    def execute(self, *, max_new_jobs: int | None = None) -> RunExecutionSummary:
+    def execute(
+        self,
+        *,
+        max_new_jobs: int | None = None,
+        finalize: bool = True,
+    ) -> RunExecutionSummary:
         """Walk the plan in ordinal order, executing what is not already done.
 
         Args:
@@ -185,6 +191,18 @@ class SequentialRunExecutor:
                 against the budget, so a resumed run makes real progress rather
                 than spending its allowance re-confirming old work. ``None``
                 means finish the plan.
+            finalize: Whether a finished run should be audited and its
+                completion manifest written here. The default is ``True`` and
+                stays ``True``, because for an ordinary run there is nothing to
+                check between the last comparison and the audit.
+
+                A research run passes ``False``. There *is* something to check
+                first — that the pinned executable is still the one the run
+                started with — and an executor that has no idea a runtime bundle
+                exists is the wrong place to check it. The run then reports
+                ``completed`` without ``verified`` until an external finalizer
+                revalidates its provenance and writes the completion
+                (docs/adr/0020).
 
         Returns:
             A summary of this invocation. ``completed`` and ``verified`` refer
@@ -236,7 +254,7 @@ class SequentialRunExecutor:
         remaining = self._remaining_jobs()
         completed = remaining == 0
         verified = False
-        if completed:
+        if completed and finalize:
             # Only now is a full audit meaningful, and only a clean one earns a
             # completion manifest. An unclean audit raises rather than silently
             # returning a run that looks finished.

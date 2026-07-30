@@ -1,0 +1,64 @@
+# The stage 4B full run: 6,000 real SD300 comparisons through SourceAFIS 3.18.1.
+#
+# Unlike the 4A pilot, this is the experiment rather than a compatibility check —
+# and everything that distinguishes an experiment from a trial run is a provenance
+# requirement rather than a bigger number. The jar is pinned by content, the fpbench
+# commit is part of the run's identity, and the run is not finished when the last
+# comparison ends: it is finished when the runtime has been revalidated, the results
+# audited, their collection given an identity, and a sanitised receipt written
+# (docs/adr/0017 through docs/adr/0020).
+#
+# It produces raw scores and nothing else. There is no threshold here, no decision
+# profile, and no metric. That is not an omission to be filled in later by whoever
+# reads this file — it is the scope of the stage.
+
+experiment:
+  id: sourceafis_native_full_v1
+  kind: full_raw_score_run
+
+  # Deliberate repeats of an identical run get a new index. SourceAFIS is
+  # deterministic, so a second replicate would prove only that the harness is too.
+  replicate_index: 0
+
+dataset:
+  ref: configs/datasets/sd300.yaml
+
+  # Every participating image must carry VERIFIED checksum evidence before it can
+  # enter a research run. The hashing happens once, when the manifests are first
+  # built; afterwards the immutable manifest is the evidence, and re-hashing 113 GB
+  # on every invocation would buy nothing.
+  require_verified_checksums: true
+
+protocol:
+  ref: configs/protocols/sd300_50_subjects.yaml
+
+algorithm:
+  ref: configs/algorithms/sourceafis_java_3_18_1.yaml
+
+execution:
+  # Identity preparation at native resolution: the bytes NIST delivered, plus the
+  # effective DPI for the release. SourceAFIS does its own internal scaling to
+  # 500 ppi, which is a different thing from the shared canonical-500 resampling a
+  # later profile may add (docs/adr/0016).
+  profile_id: native_identity_60s_v1
+  preparer_id: identity
+  timeout_seconds: 60
+  deterministic_seed: 0
+
+  parameters:
+    resolution_mode: native
+    shared_resampling: none
+
+runtime:
+  # The jar is copied into an immutable, content-addressed bundle before the run
+  # starts, and the run refuses to execute anything else (docs/adr/0018).
+  materialization_policy: content_addressed_copy_v1
+  research_mode: true
+
+# Nothing below exists yet, and saying so here is the point.
+decisions:
+  profiles: []          # no threshold is applied in stage 4B
+
+reporting:
+  biometric_metrics: false   # no FMR, no FNMR, no EER, no accuracy claim
+  operational_summary: true  # timings, counts and failure codes only

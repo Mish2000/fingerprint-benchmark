@@ -13,7 +13,10 @@ from fpbench.storage.manifest_store import ManifestStore
 from fpbench.storage.plan_schemas import PLANNED_JOB_SCHEMA
 from fpbench.storage.plan_store import PlanStore
 from fpbench.storage.result_schemas import RAW_RESULT_SCHEMA
+from fpbench.storage.result_set_schemas import RESULT_SET_ENTRY_SCHEMA
+from fpbench.storage.result_set_store import ResultSetStore
 from fpbench.storage.result_store import ResultStore
+from fpbench.storage.runtime_bundle_store import RuntimeBundleStore
 from fpbench.storage.schemas import (
     IMAGE_SCHEMA,
     PAIR_SCHEMA,
@@ -28,7 +31,10 @@ __all__ = [
     "PLANNED_JOB_SCHEMA",
     "PlanStore",
     "RAW_RESULT_SCHEMA",
+    "RESULT_SET_ENTRY_SCHEMA",
+    "ResultSetStore",
     "ResultStore",
+    "RuntimeBundleStore",
     "SELF_ELIGIBILITY_SCHEMA",
     "SUBJECT_SCHEMA",
 ]

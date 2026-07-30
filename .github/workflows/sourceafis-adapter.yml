@@ -115,6 +115,7 @@ jobs:
           tests/unit/test_runtime_bundle_store.py
           tests/unit/test_result_set_store.py
           tests/unit/test_research_status.py
+          tests/unit/test_research_finalization_transaction.py
           tests/unit/test_external_finalisation.py
           tests/unit/test_sourceafis_validation.py
 

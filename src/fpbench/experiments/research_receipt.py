@@ -19,26 +19,34 @@ import datetime as _dt
 from pathlib import Path
 from typing import Any, Mapping
 
-from fpbench.core.errors import RunIntegrityError
+from fpbench.core.errors import ResultConflictError, RunIntegrityError
 from fpbench.core.execution_plan_models import ExecutionPlan
 from fpbench.core.identifiers import PairId
 from fpbench.core.models import ComparisonPair
 from fpbench.core.provenance_models import SoftwareProvenance
 from fpbench.core.research_models import (
     NO_CONCLUSION_STATEMENT,
+    RESEARCH_FINALIZATION_SCHEMA_VERSION,
     RESEARCH_RECEIPT_SCHEMA_VERSION,
+    ResearchFinalizationMarker,
     ResearchRunReceipt,
+    research_finalization_fingerprint,
+    research_receipt_content_hash,
+    research_receipt_fingerprint,
 )
 from fpbench.core.result_models import RunDefinition
 from fpbench.core.result_set_models import ResultSetManifest
 from fpbench.core.run_state_models import RunAuditReport, RunCompletion
 from fpbench.core.runtime_models import RunRuntimeReference
-from fpbench.core.serialization import write_json
+from fpbench.core.serialization import to_plain
 from fpbench.adapters.sourceafis_java.config import BRIDGE_JAR_ROLE
 from fpbench.experiments.sourceafis_validation import SourceAfisValidationReport
 
 __all__ = [
+    "build_research_finalization_marker",
     "build_research_receipt",
+    "verify_research_finalization_marker",
+    "verify_research_receipt",
     "write_evidence_copy",
     "EVIDENCE_DIRECTORY",
 ]
@@ -144,6 +152,197 @@ def build_research_receipt(
     )
 
 
+def verify_research_receipt(
+    *,
+    run: RunDefinition,
+    plan: ExecutionPlan,
+    pairs: Mapping[PairId, ComparisonPair],
+    runtime_reference: RunRuntimeReference,
+    result_set: ResultSetManifest,
+    current_audit: RunAuditReport,
+    current_algorithm_validation: SourceAfisValidationReport,
+    completion: RunCompletion,
+    receipt: ResearchRunReceipt,
+    primary_asset_role: str = BRIDGE_JAR_ROLE,
+) -> None:
+    """Re-derive every load-bearing receipt claim from current evidence.
+
+    The receipt is never its own proof.  This verifier intentionally compares
+    fields one by one rather than relying on the receipt fingerprint: a forged
+    receipt can be internally self-consistent while contradicting the run it
+    purports to summarize.
+
+    Raises:
+        RunIntegrityError: any receipt field disagrees with the current chain.
+    """
+    _require_consistent(
+        run=run,
+        plan=plan,
+        runtime_reference=runtime_reference,
+        result_set=result_set,
+        audit=current_audit,
+        validation=current_algorithm_validation,
+        completion=completion,
+    )
+
+    release_counts: dict[str, int] = {}
+    stage_counts: dict[str, int] = {}
+    dataset_ids: set[str] = set()
+    for planned in plan.jobs:
+        pair = pairs.get(planned.job.pair_id)
+        if pair is None:
+            raise RunIntegrityError(
+                f"pair {planned.job.pair_id} is planned but absent from the pair "
+                "manifest"
+            )
+        dataset_ids.add(pair.dataset_id)
+        release_counts[pair.release] = release_counts.get(pair.release, 0) + 1
+        stage = pair.protocol_stage.value
+        stage_counts[stage] = stage_counts.get(stage, 0) + 1
+    if len(dataset_ids) != 1:
+        raise RunIntegrityError(
+            f"the planned pairs name {sorted(dataset_ids)!r} datasets, expected one"
+        )
+
+    primary_sha = dict(runtime_reference.asset_sha256s).get(primary_asset_role)
+    if primary_sha is None:
+        raise RunIntegrityError(
+            f"the runtime reference holds no {primary_asset_role!r} asset"
+        )
+
+    source_commit = run.environment.runtime.get("fpbench.source.revision")
+    source_clean = run.environment.runtime.get("fpbench.source.clean") == "true"
+    expected: dict[str, Any] = {
+        "schema_version": RESEARCH_RECEIPT_SCHEMA_VERSION,
+        "source_commit": source_commit,
+        "source_tree_clean": source_clean,
+        "dataset_id": next(iter(dataset_ids)),
+        "cohort_id": str(run.cohort_id),
+        "pair_manifest_hash": run.pair_manifest_hash,
+        "run_id": run.run_id,
+        "run_fingerprint": run.run_fingerprint,
+        "plan_id": plan.plan_id,
+        "plan_fingerprint": plan.definition.plan_fingerprint,
+        "environment_fingerprint": run.environment_fingerprint,
+        "runtime_bundle_id": runtime_reference.bundle_id,
+        "runtime_bundle_fingerprint": runtime_reference.bundle_fingerprint,
+        "bridge_jar_sha256": primary_sha,
+        "result_set_id": result_set.result_set_id,
+        "result_set_fingerprint": result_set.result_set_fingerprint,
+        "audit_fingerprint": current_audit.audit_fingerprint,
+        "sourceafis_validation_fingerprint": (
+            current_algorithm_validation.validation_fingerprint
+        ),
+        "completion_id": completion.completion_id,
+        "completion_fingerprint": completion.completion_fingerprint,
+        "planned_jobs": plan.total_jobs,
+        "stored_results": current_algorithm_validation.total_results,
+        "success_count": current_algorithm_validation.successful_results,
+        "algorithmic_failure_count": (
+            current_algorithm_validation.algorithmic_failures
+        ),
+        "blocking_failure_count": current_algorithm_validation.blocking_failures,
+        "failure_counts": dict(current_algorithm_validation.failure_counts),
+        "release_counts": dict(sorted(release_counts.items())),
+        "stage_counts": dict(sorted(stage_counts.items())),
+    }
+    for field_name, expected_value in expected.items():
+        actual = getattr(receipt, field_name)
+        if isinstance(actual, Mapping):
+            actual = dict(actual)
+        if actual != expected_value:
+            raise RunIntegrityError(
+                f"research receipt field {field_name} is {actual!r}, expected "
+                f"{expected_value!r}"
+            )
+
+
+def build_research_finalization_marker(
+    *,
+    run: RunDefinition,
+    plan: ExecutionPlan,
+    runtime_reference: RunRuntimeReference,
+    result_set: ResultSetManifest,
+    audit: RunAuditReport,
+    validation: SourceAfisValidationReport,
+    completion: RunCompletion,
+    receipt: ResearchRunReceipt,
+    verifier_software: SoftwareProvenance,
+    created_utc: str | None = None,
+) -> ResearchFinalizationMarker:
+    """Build the last-written authority over an already verified chain."""
+    if not verifier_software.is_research_grade:
+        raise RunIntegrityError(
+            "research finalization requires a committed, clean verifier revision"
+        )
+    claims = {
+        "schema_version": RESEARCH_FINALIZATION_SCHEMA_VERSION,
+        "run_id": run.run_id,
+        "run_fingerprint": run.run_fingerprint,
+        "plan_id": plan.plan_id,
+        "plan_fingerprint": plan.definition.plan_fingerprint,
+        "environment_fingerprint": run.environment_fingerprint,
+        "runtime_reference_fingerprint": (
+            runtime_reference.runtime_reference_fingerprint
+        ),
+        "result_set_fingerprint": result_set.result_set_fingerprint,
+        "audit_fingerprint": audit.audit_fingerprint,
+        "sourceafis_validation_fingerprint": validation.validation_fingerprint,
+        "completion_fingerprint": completion.completion_fingerprint,
+        "receipt_fingerprint": research_receipt_fingerprint(receipt),
+        "receipt_content_hash": research_receipt_content_hash(receipt),
+        "verifier_source_commit": verifier_software.source_revision,
+        "verifier_source_tree_clean": verifier_software.source_tree_clean,
+    }
+    fingerprint = research_finalization_fingerprint(claims)
+    return ResearchFinalizationMarker(
+        **claims,
+        finalization_id=f"finalization_{fingerprint[:12]}",
+        finalization_fingerprint=fingerprint,
+        created_utc=created_utc or _dt.datetime.now(_dt.timezone.utc).isoformat(),
+    )
+
+
+def verify_research_finalization_marker(
+    *,
+    marker: ResearchFinalizationMarker,
+    run: RunDefinition,
+    plan: ExecutionPlan,
+    runtime_reference: RunRuntimeReference,
+    result_set: ResultSetManifest,
+    current_audit: RunAuditReport,
+    current_algorithm_validation: SourceAfisValidationReport,
+    completion: RunCompletion,
+    receipt: ResearchRunReceipt,
+) -> None:
+    """Confirm the final marker still names every current durable artefact."""
+    expected = {
+        "run_id": run.run_id,
+        "run_fingerprint": run.run_fingerprint,
+        "plan_id": plan.plan_id,
+        "plan_fingerprint": plan.definition.plan_fingerprint,
+        "environment_fingerprint": run.environment_fingerprint,
+        "runtime_reference_fingerprint": (
+            runtime_reference.runtime_reference_fingerprint
+        ),
+        "result_set_fingerprint": result_set.result_set_fingerprint,
+        "audit_fingerprint": current_audit.audit_fingerprint,
+        "sourceafis_validation_fingerprint": (
+            current_algorithm_validation.validation_fingerprint
+        ),
+        "completion_fingerprint": completion.completion_fingerprint,
+        "receipt_fingerprint": research_receipt_fingerprint(receipt),
+        "receipt_content_hash": research_receipt_content_hash(receipt),
+    }
+    for field_name, expected_value in expected.items():
+        actual = getattr(marker, field_name)
+        if actual != expected_value:
+            raise RunIntegrityError(
+                f"research finalization field {field_name} is {actual!r}, "
+                f"expected {expected_value!r}"
+            )
+
+
 def write_evidence_copy(
     receipt: ResearchRunReceipt,
     *,
@@ -157,8 +356,31 @@ def write_evidence_copy(
     runs, and the next research run will require the receipt to be committed
     before it can start (docs/adr/0017).
     """
+    import json
+
     path = Path(repository_root) / directory / f"{receipt.run_id}.json"
-    return write_json(path, receipt)
+    payload = (
+        json.dumps(to_plain(receipt), indent=2, ensure_ascii=False, sort_keys=False)
+        + "\n"
+    ).encode("utf-8")
+    if path.is_file():
+        if path.read_bytes() != payload:
+            raise ResultConflictError(
+                f"{path} already contains a different evidence receipt; refusing "
+                "to overwrite committed evidence"
+            )
+        return path
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with path.open("xb") as stream:
+            stream.write(payload)
+    except FileExistsError:
+        if path.read_bytes() != payload:
+            raise ResultConflictError(
+                f"{path} appeared with different content; refusing to overwrite it"
+            )
+    return path
 
 
 # ----------------------------------------------------------------- internals

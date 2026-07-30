@@ -370,7 +370,10 @@ def finalise_research_world(world: RunWorld, *, dataset_id: str = "sd300"):
     """
     from fpbench.execution.completion import build_run_completion
     from fpbench.execution.result_set import build_result_set
-    from fpbench.experiments.research_receipt import build_research_receipt
+    from fpbench.experiments.research_receipt import (
+        build_research_finalization_marker,
+        build_research_receipt,
+    )
 
     assert world.runtime_reference is not None and world.software is not None
 
@@ -402,7 +405,21 @@ def finalise_research_world(world: RunWorld, *, dataset_id: str = "sd300"):
         primary_asset_role=next(iter(world.runtime_reference.asset_sha256s)),
     )
     world.result_store.ensure_research_receipt(receipt)
-    return receipt
+    stored_receipt = world.result_store.read_research_receipt(world.run.run_id)
+    marker = build_research_finalization_marker(
+        run=world.run,
+        plan=world.plan,
+        runtime_reference=world.runtime_reference,
+        result_set=manifest,
+        audit=audit,
+        validation=validation,
+        completion=completion,
+        receipt=stored_receipt,
+        verifier_software=world.software,
+        created_utc="2026-07-30T00:00:00+00:00",
+    )
+    world.result_store.ensure_research_finalization(marker)
+    return stored_receipt
 
 
 # ------------------------------------------------------------------ builders

@@ -34,7 +34,10 @@ from fpbench.core.execution_models import (
     ExecutionProfile,
 )
 from fpbench.core.identifiers import CohortId, validate_id
-from fpbench.core.research_models import ResearchRunReceipt
+from fpbench.core.research_models import (
+    ResearchFinalizationMarker,
+    ResearchRunReceipt,
+)
 from fpbench.core.result_models import (
     RESULT_SCHEMA_VERSION,
     RawResultRecord,
@@ -52,6 +55,7 @@ _RUN_MANIFEST = "run.json"
 _COMPLETION_MANIFEST = "completion.json"
 _RUNTIME_REFERENCE = "runtime.json"
 _RESEARCH_RECEIPT = "research-receipt.json"
+_RESEARCH_FINALIZATION = "research-finalization.json"
 
 
 class ResultStore:
@@ -86,6 +90,9 @@ class ResultStore:
 
     def research_receipt_path(self, run_id: str) -> Path:
         return self.run_dir(run_id) / _RESEARCH_RECEIPT
+
+    def research_finalization_path(self, run_id: str) -> Path:
+        return self.run_dir(run_id) / _RESEARCH_FINALIZATION
 
     def derived_path(self, run_id: str, name: str) -> Path:
         """A regenerable artefact. Free to overwrite, free to delete."""
@@ -275,6 +282,40 @@ class ResultStore:
             return ResearchRunReceipt(**payload)
         except (KeyError, TypeError, ValueError) as exc:
             raise StorageError(f"{path}: unreadable research receipt ({exc})") from exc
+
+    # ------------------------------------------------ research finalization
+
+    def has_research_finalization(self, run_id: str) -> bool:
+        return self.research_finalization_path(run_id).is_file()
+
+    def ensure_research_finalization(
+        self, marker: ResearchFinalizationMarker
+    ) -> Path:
+        """Publish the immutable, last-written authority for finalization."""
+        path = self.research_finalization_path(marker.run_id)
+        if path.is_file():
+            stored = self.read_research_finalization(marker.run_id)
+            if stored.finalization_fingerprint != marker.finalization_fingerprint:
+                raise ResultConflictError(
+                    f"{path} already commits a different research finalization "
+                    f"for run {marker.run_id}"
+                )
+            return path
+        return write_json(path, marker)
+
+    def read_research_finalization(
+        self, run_id: str
+    ) -> ResearchFinalizationMarker:
+        path = self.research_finalization_path(run_id)
+        if not path.is_file():
+            raise StorageError(f"research finalization marker not found: {path}")
+        payload = read_json(path)
+        try:
+            return ResearchFinalizationMarker(**payload)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise StorageError(
+                f"{path}: unreadable research finalization marker ({exc})"
+            ) from exc
 
     # ------------------------------------------------------------ raw results
 

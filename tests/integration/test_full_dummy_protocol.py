@@ -332,9 +332,14 @@ def test_a_second_run_does_nothing_at_all(world):
 
 def test_external_finalisation_produces_the_whole_evidence_chain(world):
     """Six thousand result hashes, one completion, one sanitised receipt."""
-    from runworld import RunWorld, finalise_research_world
+    from runworld import (
+        RunWorld,
+        finalise_research_world,
+        structural_validation_report,
+    )
 
-    receipt = finalise_research_world(_as_run_world(world))
+    run_world = _as_run_world(world)
+    receipt = finalise_research_world(run_world)
 
     result_store = ResultStore(world["workspace"])
     completion = result_store.read_completion(world["run"].run_id)
@@ -361,7 +366,15 @@ def test_external_finalisation_produces_the_whole_evidence_chain(world):
     }
 
     state = inspect_research_run(
-        run=world["run"], plan=world["plan"], result_store=result_store
+        run=world["run"],
+        plan=world["plan"],
+        result_store=result_store,
+        pairs=run_world.pair_index,
+        algorithm_validation=structural_validation_report(run_world),
+        primary_asset_role=next(
+            iter(run_world.runtime_reference.asset_sha256s)
+        ),
+        verifier_software=run_world.software,
     )
     assert state.status is ResearchRunStatus.RESEARCH_READY
 

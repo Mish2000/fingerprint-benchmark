@@ -53,7 +53,10 @@ from fpbench.execution.result_set import build_result_set
 from fpbench.execution.run_definition import create_run_definition
 from fpbench.execution.runner import SingleJobRunner
 from fpbench.experiments.operational_summary import build_operational_summary
-from fpbench.experiments.research_receipt import build_research_receipt
+from fpbench.experiments.research_receipt import (
+    build_research_finalization_marker,
+    build_research_receipt,
+)
 from fpbench.experiments.sourceafis_validation import validate_sourceafis_result_set
 from fpbench.imaging.identity import IdentityImagePreparer
 from fpbench.storage.plan_store import PlanStore
@@ -408,7 +411,21 @@ def finalised(executed, validation, prepared):
         dataset_id="sd300",
     )
     result_store.ensure_research_receipt(receipt)
-    return {"receipt": receipt, "result_set": manifest, "summary": summary}
+    stored_receipt = result_store.read_research_receipt(prepared["run"].run_id)
+    marker = build_research_finalization_marker(
+        run=prepared["run"],
+        plan=prepared["plan"],
+        runtime_reference=prepared["runtime_reference"],
+        result_set=manifest,
+        audit=audit,
+        validation=validation,
+        completion=completion,
+        receipt=stored_receipt,
+        verifier_software=prepared["software"],
+        created_utc="2026-07-30T00:00:00+00:00",
+    )
+    result_store.ensure_research_finalization(marker)
+    return {"receipt": stored_receipt, "result_set": manifest, "summary": summary}
 
 
 def test_the_result_set_holds_one_entry_per_planned_job(finalised, prepared):
@@ -443,6 +460,17 @@ def test_the_run_reaches_research_ready(finalised, prepared):
         run=prepared["run"],
         plan=prepared["plan"],
         result_store=ResultStore(prepared["workspace"]),
+        pairs=prepared["pairs"],
+        algorithm_validation=validate_sourceafis_result_set(
+            run=prepared["run"],
+            plan=prepared["plan"],
+            pairs=prepared["pairs"],
+            images=prepared["images"],
+            result_store=ResultStore(prepared["workspace"]),
+            runtime_reference=prepared["runtime_reference"],
+        ),
+        primary_asset_role=BRIDGE_JAR_ROLE,
+        verifier_software=prepared["software"],
     )
     assert state.status is ResearchRunStatus.RESEARCH_READY, list(state.issues)
     assert state.core_state is RunState.VERIFIED

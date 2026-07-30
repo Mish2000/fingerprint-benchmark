@@ -11,18 +11,54 @@ that each state is reported only once its own link is actually in place
 from __future__ import annotations
 
 import stat
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from fpbench.core.enums import ResearchRunStatus, RunState
+from fpbench.core.errors import ResultConflictError
 from fpbench.execution.research import inspect_research_run
-from runworld import build_world, finalise_research_world
+from fpbench.experiments.research_receipt import (
+    build_research_finalization_marker,
+    write_evidence_copy,
+)
+from fpbench.core.result_set_models import (
+    ResultSetEntry,
+    ordered_results_hash,
+    result_set_fingerprint,
+    result_set_id,
+)
+from fpbench.core.serialization import read_json, write_json
+from runworld import (
+    build_world,
+    finalise_research_world,
+    research_provenance,
+    structural_validation_report,
+)
 
 
 def _state(world):
+    validation = None
+    if world.result_store.has_research_receipt(world.run.run_id):
+        try:
+            validation = structural_validation_report(world)
+        except Exception:
+            # Corruption tests deliberately make a full validation impossible;
+            # the inspector must report INVALID rather than the fixture failing.
+            validation = None
     return inspect_research_run(
-        run=world.run, plan=world.plan, result_store=world.result_store
+        run=world.run,
+        plan=world.plan,
+        result_store=world.result_store,
+        pairs=world.pair_index,
+        algorithm_validation=validation,
+        primary_asset_role=(
+            next(iter(world.runtime_reference.asset_sha256s))
+            if world.runtime_reference
+            else "test_runtime_asset"
+        ),
+        verifier_software=world.software,
     )
 
 
@@ -100,6 +136,8 @@ def test_the_full_chain_reaches_research_ready(tmp_path):
     assert state.runtime_bundle_valid
     assert state.result_set_valid
     assert state.receipt_valid
+    assert state.finalization_marker_present
+    assert state.finalization_marker_valid
     assert state.issues == ()
 
 
@@ -157,16 +195,149 @@ def test_a_receipt_for_another_run_is_rejected(tmp_path):
     finalise_research_world(other)
 
     # Point the first run's receipt file at the second run's fingerprints.
-    from dataclasses import replace
-
-    from fpbench.core.serialization import write_json
-
     forged = replace(receipt, run_fingerprint=other.run.run_fingerprint)
     write_json(world.result_store.research_receipt_path(world.run.run_id), forged)
 
     state = _state(world)
     assert state.status is ResearchRunStatus.INVALID
     assert not state.receipt_valid
+
+
+@pytest.mark.parametrize(
+    ("field_name", "forged_value"),
+    [
+        ("schema_version", "999"),
+        ("source_commit", "f" * 40),
+        ("source_tree_clean", False),
+        ("dataset_id", "other_dataset"),
+        ("cohort_id", "other_cohort"),
+        ("pair_manifest_hash", "f" * 64),
+        ("run_id", "run_other"),
+        ("run_fingerprint", "f" * 64),
+        ("plan_id", "plan_other"),
+        ("plan_fingerprint", "f" * 64),
+        ("environment_fingerprint", "f" * 64),
+        ("runtime_bundle_id", "runtime_other"),
+        ("runtime_bundle_fingerprint", "f" * 64),
+        ("bridge_jar_sha256", "f" * 64),
+        ("result_set_id", "resultset_other"),
+        ("result_set_fingerprint", "f" * 64),
+        ("audit_fingerprint", "f" * 64),
+        ("sourceafis_validation_fingerprint", "f" * 64),
+        ("completion_id", "completion_other"),
+        ("completion_fingerprint", "f" * 64),
+        ("planned_jobs", 999),
+        ("stored_results", 999),
+        ("success_count", 999),
+        ("algorithmic_failure_count", 1),
+        ("blocking_failure_count", 1),
+        ("failure_counts", {"timeout": 1}),
+        ("release_counts", {"SD300A": 1}),
+        ("stage_counts", {"plain_self": 1}),
+    ],
+)
+def test_every_load_bearing_receipt_claim_is_revalidated(
+    tmp_path, field_name, forged_value
+):
+    world = build_world(tmp_path, research=True)
+    world.executor().execute(finalize=False)
+    finalise_research_world(world)
+
+    path = world.result_store.research_receipt_path(world.run.run_id)
+    payload = read_json(path)
+    payload[field_name] = forged_value
+    write_json(path, payload)
+
+    state = _state(world)
+    assert state.status is ResearchRunStatus.INVALID
+    assert not state.receipt_valid
+
+
+def test_a_coherent_result_set_in_the_wrong_plan_order_is_invalid(tmp_path):
+    world = build_world(tmp_path, research=True)
+    world.executor().execute(finalize=False)
+    finalise_research_world(world)
+
+    store = world.result_set_store
+    manifest, entries = store.read_result_set(world.run.run_id)
+    shuffled = (
+        ResultSetEntry(0, entries[1].job_id, entries[1].result_hash),
+        ResultSetEntry(1, entries[0].job_id, entries[0].result_hash),
+        *entries[2:],
+    )
+    fingerprint = result_set_fingerprint(
+        run_fingerprint=manifest.run_fingerprint,
+        plan_fingerprint=manifest.plan_fingerprint,
+        runtime_bundle_fingerprint=manifest.runtime_bundle_fingerprint,
+        entries=shuffled,
+        success_count=manifest.success_count,
+        failure_count=manifest.failure_count,
+    )
+    forged = replace(
+        manifest,
+        result_set_id=result_set_id(fingerprint),
+        result_set_fingerprint=fingerprint,
+        ordered_results_hash=ordered_results_hash(shuffled),
+    )
+    store.entries_path(world.run.run_id).unlink()
+    store.manifest_path(world.run.run_id).unlink()
+    store.ensure_result_set(forged, shuffled)
+
+    state = _state(world)
+    assert state.status is ResearchRunStatus.INVALID
+    assert not state.result_set_valid
+    assert any("order does not match" in issue for issue in state.issues)
+
+
+def test_intermediate_finalization_without_marker_is_not_authoritative(tmp_path):
+    world = build_world(tmp_path, research=True)
+    world.executor().execute(finalize=False)
+    finalise_research_world(world)
+
+    world.result_store.research_finalization_path(world.run.run_id).unlink()
+    state = _state(world)
+    assert state.status is ResearchRunStatus.CORE_VERIFIED
+    assert state.receipt_valid
+    assert not state.finalization_marker_present
+
+
+def test_a_tampered_finalization_marker_is_invalid(tmp_path):
+    world = build_world(tmp_path, research=True)
+    world.executor().execute(finalize=False)
+    finalise_research_world(world)
+
+    path = world.result_store.research_finalization_path(world.run.run_id)
+    payload = read_json(path)
+    payload["receipt_content_hash"] = "f" * 64
+    write_json(path, payload)
+
+    state = _state(world)
+    assert state.status is ResearchRunStatus.INVALID
+    assert not state.finalization_marker_valid
+
+
+def test_a_published_finalization_marker_cannot_be_replaced(tmp_path):
+    world = build_world(tmp_path, research=True)
+    world.executor().execute(finalize=False)
+    receipt = finalise_research_world(world)
+    audit = world.completion_service.audit(run=world.run, plan=world.plan)
+    validation = structural_validation_report(world)
+    result_set = world.result_set_store.read_manifest(world.run.run_id)
+    completion = world.result_store.read_completion(world.run.run_id)
+
+    different = build_research_finalization_marker(
+        run=world.run,
+        plan=world.plan,
+        runtime_reference=world.runtime_reference,
+        result_set=result_set,
+        audit=audit,
+        validation=validation,
+        completion=completion,
+        receipt=receipt,
+        verifier_software=research_provenance(revision="f" * 40),
+    )
+    with pytest.raises(ResultConflictError, match="different research finalization"):
+        world.result_store.ensure_research_finalization(different)
 
 
 # ------------------------------------------------------------------ receipt
@@ -216,3 +387,20 @@ def test_a_receipt_cannot_be_built_for_a_dirty_tree(tmp_path):
 
     with pytest.raises(ValueError, match="uncommitted"):
         replace(receipt, source_tree_clean=False)
+
+
+def test_evidence_copy_is_idempotent_only_for_identical_bytes(tmp_path):
+    world = build_world(tmp_path / "world", research=True)
+    world.executor().execute(finalize=False)
+    receipt = finalise_research_world(world)
+    repository = tmp_path / "repository"
+
+    path = write_evidence_copy(receipt, repository_root=repository)
+    original = path.read_bytes()
+    assert write_evidence_copy(receipt, repository_root=repository) == path
+    assert path.read_bytes() == original
+
+    changed = replace(receipt, timing_summary={"adapter_ms.count": "999"})
+    with pytest.raises(ResultConflictError, match="refusing to overwrite"):
+        write_evidence_copy(changed, repository_root=repository)
+    assert path.read_bytes() == original

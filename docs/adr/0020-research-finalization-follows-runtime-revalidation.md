@@ -34,23 +34,25 @@ and not yet trustworthy, and those are visibly different states.
 Finalisation then runs, in this order, and stops at the first failure:
 
 1. verify the runtime bundle's full SHA-256;
-2. verify the source revision is the one the run was created from;
-3. verify the working tree is clean;
+2. recover the executor source revision from the immutable run environment;
+3. capture the finalizer's own committed, clean source revision;
 4. core `audit_run()` — one sound result per planned job;
 5. algorithm evidence validation — every result names the right pipeline, runtime,
    source revision and resolution;
-6. write the immutable result set ([ADR 0019](0019-result-sets-have-independent-immutable-identity.md));
-7. write the completion manifest;
-8. write the operational summary (derived, disposable);
-9. write the sanitised research receipt;
-10. read all of it back.
+6. build the result set, completion, summary and receipt in memory;
+7. write those idempotent intermediate artefacts;
+8. read them back and re-derive every load-bearing receipt field;
+9. write immutable `research-finalization.json` last as the commit marker;
+10. verify the complete chain from disk and export the stored receipt.
 
-The order is not arbitrary. Provenance first, because a failure there invalidates
-everything after it. The result set before the completion, because completion is the
-strongest claim and must not exist for a run whose evidence could not be indexed. The
-receipt last, because it cites all of the above by fingerprint. **Any failure leaves the
-completion, the result set and the receipt unwritten** — a run that cannot be finalised is
-not a run with a missing file, it is a run whose results cannot be attributed.
+The order is not arbitrary. Provenance and validation come first because a failure there
+invalidates everything after it. A crash during publication may leave a result set,
+completion, summary or receipt behind, but those are idempotent intermediate artefacts.
+They are deliberately non-authoritative: **only the last-written immutable marker makes
+the run research-ready**, and the marker fingerprints the runtime reference, result set,
+current audit, algorithm validation, completion and the receipt's full content. A retry
+reuses matching intermediates and publishes the marker only after reading and verifying
+them all again.
 
 This produces a state stronger than `VERIFIED`, reported by `inspect_research_run()`:
 
@@ -59,8 +61,10 @@ NOT_PREPARED → PREPARED → PARTIAL → RESULTS_COMPLETE → CORE_VERIFIED →
                                                     ↘ INVALID
 ```
 
-`RESEARCH_READY` requires the whole chain, re-tested from the files every time it is
-asked for. Like run progress, nothing is cached and no manifest is taken at its word
+`RESEARCH_READY` requires the whole chain and its finalization marker, re-tested from the
+files every time it is asked for. Receipt source, environment, runtime/JAR, cohort/pairs,
+audit, validation, counts, release/stage coverage and exact result order are all derived
+again. Like run progress, nothing is cached and no manifest is taken at its word
 ([ADR 0012](0012-run-progress-is-derived.md)).
 
 ## Alternatives

@@ -69,7 +69,9 @@ from fpbench.experiments.operational_summary import (
     write_operational_summary,
 )
 from fpbench.experiments.research_receipt import (
+    build_research_finalization_marker,
     build_research_receipt,
+    verify_research_receipt,
     write_evidence_copy,
 )
 from fpbench.experiments.sourceafis_validation import validate_sourceafis_result_set
@@ -215,6 +217,7 @@ class PreparedResearchRun:
 
     config: ExperimentConfig
     software: SoftwareProvenance
+    verifier_software: SoftwareProvenance
 
     dataset_root: Path
     workspace: Path
@@ -314,6 +317,7 @@ def prepare_sourceafis_native_run(
         workspace=workspace,
         dataset_root=dataset_root,
         config=config,
+        allow_creation=True,
     )
     _require_expected_shape(cohort=cohort, pairs=pairs, images=images)
 
@@ -361,6 +365,7 @@ def prepare_sourceafis_native_run(
     return PreparedResearchRun(
         config=config,
         software=software,
+        verifier_software=software,
         dataset_root=Path(_dataset_root(config, dataset_root)),
         workspace=workspace,
         protocol=protocol,
@@ -458,14 +463,31 @@ def inspect_sourceafis_native_run(
     run_id: str | None = None,
 ) -> ResearchRunState:
     """Report how far along the evidence chain the run is. Never writes."""
-    workspace = Path(workspace)
-    config = config or load_experiment_config(repository_root=repository_root)
-    resolved = run_id or _read_pointer(workspace, config.experiment_id)
-
-    result_store = ResultStore(workspace)
-    run = result_store.read_run(resolved)
-    plan = PlanStore(workspace).read_plan(resolved)
-    return inspect_research_run(run=run, plan=plan, result_store=result_store)
+    prepared = _load_prepared(
+        workspace=workspace,
+        dataset_root=dataset_root,
+        config=config,
+        repository_root=repository_root,
+        run_id=run_id,
+        require_source_match=False,
+    )
+    validation = validate_sourceafis_result_set(
+        run=prepared.run,
+        plan=prepared.plan,
+        pairs=prepared.pairs,
+        images=prepared.images,
+        result_store=prepared.result_store,
+        runtime_reference=prepared.runtime_reference,
+    )
+    return inspect_research_run(
+        run=prepared.run,
+        plan=prepared.plan,
+        result_store=prepared.result_store,
+        pairs=prepared.pairs,
+        algorithm_validation=validation,
+        primary_asset_role=BRIDGE_JAR_ROLE,
+        verifier_software=prepared.verifier_software,
+    )
 
 
 # --------------------------------------------------------------- finalize
@@ -479,17 +501,12 @@ def finalize_sourceafis_native_run(
     repository_root: Path = REPOSITORY_ROOT,
     run_id: str | None = None,
 ) -> ResearchRunReceipt:
-    """Revalidate everything, then write the completion, result set and receipt.
+    """Revalidate everything and publish one last immutable commit marker.
 
-    The order is the point (docs/adr/0020):
-
-        runtime bundle → source revision → clean tree → core audit →
-        SourceAFIS evidence → result set → completion → summary → receipt
-
-    Any failure leaves all three durable artefacts unwritten. A run that cannot
-    be finalised is not a run with a missing file; it is a run whose results
-    cannot be attributed, and giving it a completion manifest would say
-    otherwise.
+    A failure may leave idempotent intermediate artefacts, but never the marker.
+    Only a marker matching the freshly revalidated chain is authoritative, so
+    interruption at any earlier write is safely retryable and cannot produce
+    ``RESEARCH_READY`` (docs/adr/0020).
     """
     prepared = _load_prepared(
         workspace=workspace,
@@ -497,6 +514,7 @@ def finalize_sourceafis_native_run(
         config=config,
         repository_root=repository_root,
         run_id=run_id,
+        require_source_match=False,
     )
     result_store = prepared.result_store
 
@@ -528,22 +546,16 @@ def finalize_sourceafis_native_run(
             f"{[issue.code.value for issue in validation.errors][:5]}"
         )
 
-    # 6. The identity the decision stage will cite.
+    # 6. Build every durable claim before writing the first one.
     manifest, entries = build_result_set(
         run=prepared.run,
         plan=prepared.plan,
         result_store=result_store,
         runtime_reference=prepared.runtime_reference,
     )
-    prepared.result_set_store.ensure_result_set(manifest, entries)
-
-    # 7. Only now may the run be called verified.
     completion = build_run_completion(
         run=prepared.run, plan=prepared.plan, audit=audit
     )
-    result_store.ensure_completion(completion)
-
-    # 8. Cost and failures, derived and disposable.
     summary = build_operational_summary(
         run=prepared.run,
         plan=prepared.plan,
@@ -552,11 +564,6 @@ def finalize_sourceafis_native_run(
         result_set=manifest,
         runtime_bundle_id=prepared.runtime_reference.bundle_id,
     )
-    write_operational_summary(
-        result_store=result_store, run_id=prepared.run.run_id, summary=summary
-    )
-
-    # 9. The one artefact that leaves the workspace.
     receipt = build_research_receipt(
         run=prepared.run,
         plan=prepared.plan,
@@ -570,15 +577,57 @@ def finalize_sourceafis_native_run(
         dataset_id=prepared.protocol.dataset_id,
         timing_summary=_timing_summary(summary),
     )
+
+    # 7. Publish idempotent intermediates. None is authoritative until the
+    # marker below exists and names its exact fingerprints.
+    prepared.result_set_store.ensure_result_set(manifest, entries)
+    result_store.ensure_completion(completion)
+    write_operational_summary(
+        result_store=result_store, run_id=prepared.run.run_id, summary=summary
+    )
     result_store.ensure_research_receipt(receipt)
 
-    # 10. Read all of it back. A file that cannot be re-read is not evidence.
-    result_store.read_completion(prepared.run.run_id)
-    prepared.result_set_store.verify_result_set(prepared.run.run_id)
-    result_store.read_research_receipt(prepared.run.run_id)
+    # 8. Verify what is actually durable, including a receipt retained from an
+    # idempotent earlier attempt.
+    stored_completion = result_store.read_completion(prepared.run.run_id)
+    stored_result_set = prepared.result_set_store.verify_result_set(
+        prepared.run.run_id
+    )
+    stored_receipt = result_store.read_research_receipt(prepared.run.run_id)
+    verify_research_receipt(
+        run=prepared.run,
+        plan=prepared.plan,
+        pairs=prepared.pairs,
+        runtime_reference=prepared.runtime_reference,
+        result_set=stored_result_set,
+        current_audit=audit,
+        current_algorithm_validation=validation,
+        completion=stored_completion,
+        receipt=stored_receipt,
+    )
+
+    # 9. Commit point: deliberately the final authoritative workspace write.
+    marker = build_research_finalization_marker(
+        run=prepared.run,
+        plan=prepared.plan,
+        runtime_reference=prepared.runtime_reference,
+        result_set=stored_result_set,
+        audit=audit,
+        validation=validation,
+        completion=stored_completion,
+        receipt=stored_receipt,
+        verifier_software=prepared.verifier_software,
+    )
+    result_store.ensure_research_finalization(marker)
 
     state = inspect_research_run(
-        run=prepared.run, plan=prepared.plan, result_store=result_store
+        run=prepared.run,
+        plan=prepared.plan,
+        result_store=result_store,
+        pairs=prepared.pairs,
+        algorithm_validation=validation,
+        primary_asset_role=BRIDGE_JAR_ROLE,
+        verifier_software=prepared.verifier_software,
     )
     if not state.is_research_ready:
         raise ResearchPreflightError(
@@ -586,8 +635,8 @@ def finalize_sourceafis_native_run(
             f"RESEARCH_READY: {state.status.value} {list(state.issues)[:3]}"
         )
 
-    write_evidence_copy(receipt, repository_root=Path(repository_root))
-    return receipt
+    write_evidence_copy(stored_receipt, repository_root=Path(repository_root))
+    return stored_receipt
 
 
 # ----------------------------------------------------------------- helpers
@@ -644,6 +693,7 @@ def _prepare_dataset(
     workspace: Path,
     dataset_root: Path | None,
     config: ExperimentConfig,
+    allow_creation: bool = False,
 ) -> tuple[
     SD300Protocol,
     Cohort,
@@ -670,6 +720,10 @@ def _prepare_dataset(
 
     for release in protocol.releases:
         if not manifests.images_path(protocol.dataset_id, release).is_file():
+            if not allow_creation:
+                raise ResearchPreflightError(
+                    f"the prepared image manifest for {release} is missing"
+                )
             report = provider.validate(release)
             manifests.write_validation_report(
                 report, dataset_id=protocol.dataset_id, release=release
@@ -710,8 +764,16 @@ def _prepare_dataset(
     pairs = protocol.build_pairs(cohort, images)
 
     if not manifests.cohort_path(protocol.protocol_id, cohort.cohort_id).is_file():
+        if not allow_creation:
+            raise ResearchPreflightError(
+                f"the prepared cohort manifest {cohort.cohort_id} is missing"
+            )
         manifests.write_cohort(cohort)
     if not manifests.pairs_path(protocol.protocol_id, cohort.cohort_id).is_file():
+        if not allow_creation:
+            raise ResearchPreflightError(
+                f"the prepared pair manifest {cohort.cohort_id} is missing"
+            )
         manifests.write_pairs(pairs, cohort=cohort)
 
     stored_cohort = manifests.read_cohort(protocol.protocol_id, cohort.cohort_id)
@@ -835,29 +897,33 @@ def _load_prepared(
     config: ExperimentConfig | None,
     repository_root: Path,
     run_id: str | None,
+    require_source_match: bool = True,
 ) -> PreparedResearchRun:
     """Reconstruct a prepared run from what ``prepare`` already wrote.
 
-    Never re-materialises and never re-plans. It re-captures the source
-    provenance, though, and refuses to continue under a different commit: a run
-    resumed from other code is a different run, even when the difference is a
-    typo in a docstring (docs/adr/0017).
+    Never re-materialises and never re-plans. Execution requires the current
+    revision to match the executor revision recorded by the run. Status and
+    finalization instead preserve that recorded provenance while capturing the
+    clean verifier revision that is checking it; otherwise a verifier fix could
+    never be applied to an older completed run (docs/adr/0017).
     """
     workspace = Path(workspace)
     config = config or load_experiment_config(repository_root=repository_root)
-    software = capture_research_provenance(repository_root)
+    verifier_software = capture_research_provenance(repository_root)
 
     resolved = run_id or _read_pointer(workspace, config.experiment_id)
     result_store = ResultStore(workspace)
     run = result_store.read_run(resolved)
     plan = PlanStore(workspace).read_plan(resolved)
     reference = result_store.read_runtime_reference(resolved)
+    software = _software_recorded_by_run(run)
 
     recorded = run.environment.runtime.get("fpbench.source.revision")
-    if recorded != software.source_revision:
+    if require_source_match and recorded != verifier_software.source_revision:
         raise ResearchPreflightError(
             f"run {resolved} was created from commit {str(recorded)[:12]} but this "
-            f"invocation is running commit {software.source_revision[:12]}. A run "
+            f"invocation is running commit {verifier_software.source_revision[:12]}. "
+            "A run "
             "cannot be resumed under different code; check out the original "
             "commit, or prepare a new run (docs/adr/0017)"
         )
@@ -880,6 +946,7 @@ def _load_prepared(
     return PreparedResearchRun(
         config=config,
         software=software,
+        verifier_software=verifier_software,
         dataset_root=Path(_dataset_root(config, dataset_root)),
         workspace=workspace,
         protocol=protocol,
@@ -892,6 +959,30 @@ def _load_prepared(
         plan=plan,
         runtime_reference=reference,
     )
+
+
+def _software_recorded_by_run(run: RunDefinition) -> SoftwareProvenance:
+    """Reconstruct executor provenance from the immutable run environment."""
+    from fpbench.core.provenance_models import TRACKED_DEPENDENCIES
+
+    runtime = run.environment.runtime
+    dependencies = run.environment.dependencies
+    try:
+        return SoftwareProvenance(
+            provenance_kind=runtime["fpbench.source.kind"],
+            source_revision=runtime["fpbench.source.revision"],
+            source_tree_clean=runtime["fpbench.source.clean"] == "true",
+            package_version=dependencies["fpbench.package"],
+            python_version=runtime["python.version"],
+            python_implementation=runtime["python.implementation"],
+            dependency_versions={
+                name: dependencies[name] for name in TRACKED_DEPENDENCIES
+            },
+        )
+    except (KeyError, ValueError) as exc:
+        raise ResearchPreflightError(
+            f"run {run.run_id} does not carry complete executor provenance ({exc})"
+        ) from exc
 
 
 def _pointer_path(workspace: Path, experiment_id: str) -> Path:

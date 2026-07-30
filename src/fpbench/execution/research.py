@@ -24,10 +24,11 @@ was defined still surfaces as a mismatch rather than being papered over.
 from __future__ import annotations
 
 import datetime as _dt
+from typing import Any, Mapping
 
 from fpbench.adapters.base import FingerprintAlgorithmAdapter
 from fpbench.core.enums import EnvironmentStatus, ResearchRunStatus, RunState
-from fpbench.core.errors import StorageError
+from fpbench.core.errors import RunIntegrityError, StorageError
 from fpbench.core.execution_models import (
     AlgorithmDescriptor,
     ComparisonContext,
@@ -36,11 +37,14 @@ from fpbench.core.execution_models import (
     RawMatchResult,
 )
 from fpbench.core.execution_plan_models import ExecutionPlan
+from fpbench.core.identifiers import PairId
+from fpbench.core.models import ComparisonPair
 from fpbench.core.provenance_models import SoftwareProvenance
 from fpbench.core.research_models import ResearchRunState
 from fpbench.core.result_models import RunDefinition
 from fpbench.core.runtime_models import RuntimeBundleDefinition
 from fpbench.execution.progress import inspect_run_progress
+from fpbench.execution.completion import RunCompletionService
 from fpbench.provenance.environment import build_research_environment
 from fpbench.storage.plan_store import PlanStore
 from fpbench.storage.result_set_store import ResultSetStore
@@ -112,6 +116,10 @@ def inspect_research_run(
     plan_store: PlanStore | None = None,
     result_set_store: ResultSetStore | None = None,
     bundle_store: RuntimeBundleStore | None = None,
+    pairs: Mapping[PairId, ComparisonPair] | None = None,
+    algorithm_validation: Any | None = None,
+    primary_asset_role: str = "sourceafis_bridge_jar",
+    verifier_software: SoftwareProvenance | None = None,
 ) -> ResearchRunState:
     """Recompute how far along the evidence chain ``run`` is.
 
@@ -152,6 +160,14 @@ def inspect_research_run(
             issues=issues,
         )
 
+    current_audit = None
+    if result_store.has_research_receipt(run.run_id) or result_store.has_research_finalization(
+        run.run_id
+    ):
+        current_audit = RunCompletionService(result_store=result_store).audit(
+            run=run, plan=plan
+        )
+
     receipt_present = result_store.has_research_receipt(run.run_id)
     receipt_valid = False
     if receipt_present:
@@ -160,6 +176,23 @@ def inspect_research_run(
             plan=plan,
             result_store=result_store,
             result_set_store=result_set_store,
+            pairs=pairs,
+            current_audit=current_audit,
+            algorithm_validation=algorithm_validation,
+            primary_asset_role=primary_asset_role,
+            issues=issues,
+        )
+
+    finalization_present = result_store.has_research_finalization(run.run_id)
+    finalization_valid = False
+    if finalization_present:
+        finalization_valid = _check_finalization(
+            run=run,
+            plan=plan,
+            result_store=result_store,
+            result_set_store=result_set_store,
+            current_audit=current_audit,
+            algorithm_validation=algorithm_validation,
             issues=issues,
         )
 
@@ -171,6 +204,7 @@ def inspect_research_run(
         runtime_valid=runtime_valid,
         result_set_valid=result_set_valid,
         receipt_valid=receipt_valid,
+        finalization_valid=finalization_valid,
         issues=issues,
     )
 
@@ -188,6 +222,14 @@ def inspect_research_run(
         result_set_valid=result_set_valid,
         receipt_present=receipt_present,
         receipt_valid=receipt_valid,
+        finalization_marker_present=finalization_present,
+        finalization_marker_valid=finalization_valid,
+        verifier_source_revision=(
+            verifier_software.source_revision if verifier_software else ""
+        ),
+        verifier_source_tree_clean=(
+            verifier_software.source_tree_clean if verifier_software else False
+        ),
         issues=tuple(issues),
         inspected_utc=_dt.datetime.now(_dt.timezone.utc).isoformat(),
     )
@@ -205,6 +247,7 @@ def _status(
     runtime_valid: bool,
     result_set_valid: bool,
     receipt_valid: bool,
+    finalization_valid: bool,
     issues: list[str],
 ) -> ResearchRunStatus:
     if progress_state is RunState.INVALID or issues:
@@ -219,7 +262,7 @@ def _status(
         return ResearchRunStatus.PARTIAL
     if progress_state is not RunState.VERIFIED:
         return ResearchRunStatus.RESULTS_COMPLETE
-    if result_set_valid and receipt_valid:
+    if result_set_valid and receipt_valid and finalization_valid:
         return ResearchRunStatus.RESEARCH_READY
     return ResearchRunStatus.CORE_VERIFIED
 
@@ -233,7 +276,7 @@ def _check_runtime(
 ) -> bool:
     try:
         reference = result_store.read_runtime_reference(run.run_id)
-    except (StorageError, ValueError) as exc:
+    except (RunIntegrityError, StorageError, ValueError) as exc:
         issues.append(f"the runtime reference cannot be read ({type(exc).__name__})")
         return False
 
@@ -260,7 +303,7 @@ def _check_runtime(
 
     try:
         verification = bundle_store.verify_bundle(reference.bundle_id)
-    except (StorageError, ValueError) as exc:
+    except (RunIntegrityError, StorageError, ValueError) as exc:
         issues.append(f"the runtime bundle cannot be read ({type(exc).__name__})")
         return False
     if not verification.is_valid:
@@ -284,6 +327,7 @@ def _check_result_set(
 ) -> bool:
     try:
         manifest = result_set_store.verify_result_set(run.run_id)
+        _, entries = result_set_store.read_result_set(run.run_id)
     except (StorageError, ValueError) as exc:
         issues.append(f"the result set does not hold up ({exc})")
         return False
@@ -299,6 +343,13 @@ def _check_result_set(
             f"{plan.total_jobs} planned jobs"
         )
         return False
+    actual_order = [(entry.ordinal, entry.job_id) for entry in entries]
+    planned_order = [
+        (planned.ordinal, planned.job.job_id) for planned in plan.jobs
+    ]
+    if actual_order != planned_order:
+        issues.append("the result set order does not match the execution plan")
+        return False
     return True
 
 
@@ -308,6 +359,10 @@ def _check_receipt(
     plan: ExecutionPlan,
     result_store: ResultStore,
     result_set_store: ResultSetStore,
+    pairs: Mapping[PairId, ComparisonPair] | None,
+    current_audit: Any | None,
+    algorithm_validation: Any | None,
+    primary_asset_role: str,
     issues: list[str],
 ) -> bool:
     try:
@@ -316,28 +371,89 @@ def _check_receipt(
         issues.append(f"the research receipt cannot be read ({type(exc).__name__})")
         return False
 
-    if receipt.run_fingerprint != run.run_fingerprint:
-        issues.append("the research receipt describes a different run")
-        return False
-    if receipt.plan_fingerprint != plan.definition.plan_fingerprint:
-        issues.append("the research receipt describes a different plan")
-        return False
-
     try:
         manifest = result_set_store.read_manifest(run.run_id)
     except (StorageError, ValueError):
         issues.append("the research receipt cites a result set that is not stored")
         return False
-    if receipt.result_set_fingerprint != manifest.result_set_fingerprint:
-        issues.append("the research receipt cites a different result set")
-        return False
-
     try:
         completion = result_store.read_completion(run.run_id)
     except (StorageError, ValueError):
         issues.append("the research receipt cites a completion that is not stored")
         return False
-    if receipt.completion_fingerprint != completion.completion_fingerprint:
-        issues.append("the research receipt cites a different completion")
+    try:
+        runtime_reference = result_store.read_runtime_reference(run.run_id)
+    except (StorageError, ValueError):
+        issues.append("the research receipt cites a runtime that is not stored")
+        return False
+
+    if pairs is None or current_audit is None or algorithm_validation is None:
+        issues.append(
+            "the research receipt cannot be fully verified without pairs, a "
+            "current audit and current algorithm validation"
+        )
+        return False
+
+    try:
+        from fpbench.experiments.research_receipt import verify_research_receipt
+
+        verify_research_receipt(
+            run=run,
+            plan=plan,
+            pairs=pairs,
+            runtime_reference=runtime_reference,
+            result_set=manifest,
+            current_audit=current_audit,
+            current_algorithm_validation=algorithm_validation,
+            completion=completion,
+            receipt=receipt,
+            primary_asset_role=primary_asset_role,
+        )
+    except (RunIntegrityError, StorageError, ValueError) as exc:
+        issues.append(f"the research receipt does not hold up ({exc})")
+        return False
+    return True
+
+
+def _check_finalization(
+    *,
+    run: RunDefinition,
+    plan: ExecutionPlan,
+    result_store: ResultStore,
+    result_set_store: ResultSetStore,
+    current_audit: Any | None,
+    algorithm_validation: Any | None,
+    issues: list[str],
+) -> bool:
+    if current_audit is None or algorithm_validation is None:
+        issues.append(
+            "the research finalization cannot be verified without a current "
+            "audit and current algorithm validation"
+        )
+        return False
+    try:
+        marker = result_store.read_research_finalization(run.run_id)
+        runtime_reference = result_store.read_runtime_reference(run.run_id)
+        result_set = result_set_store.read_manifest(run.run_id)
+        completion = result_store.read_completion(run.run_id)
+        receipt = result_store.read_research_receipt(run.run_id)
+
+        from fpbench.experiments.research_receipt import (
+            verify_research_finalization_marker,
+        )
+
+        verify_research_finalization_marker(
+            marker=marker,
+            run=run,
+            plan=plan,
+            runtime_reference=runtime_reference,
+            result_set=result_set,
+            current_audit=current_audit,
+            current_algorithm_validation=algorithm_validation,
+            completion=completion,
+            receipt=receipt,
+        )
+    except (RunIntegrityError, StorageError, ValueError) as exc:
+        issues.append(f"the research finalization does not hold up ({exc})")
         return False
     return True

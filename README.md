@@ -387,6 +387,7 @@ results/<run_id>/result-set/manifest.json        the results' identity immutable
 results/<run_id>/result-set/results.parquet      one row per result    immutable
 results/<run_id>/completion.json                 written after a clean audit
 results/<run_id>/research-receipt.json           sanitised, committable
+results/<run_id>/research-finalization.json      last-written commit marker
 results/<run_id>/derived/                        progress, summaries   disposable
 runtime/bundles/<bundle_id>/                     pinned executables    immutable
 work/<run_id>/<job_id>/                          adapter scratch       disposable
@@ -612,10 +613,11 @@ on the way in and on the way out, and re-checks that the commit still matches.
 `completed` and **not** `verified`, and has no completion manifest. That is the point:
 something has to revalidate the runtime before anything says the run is sound.
 
-`finalize` does that, in a fixed order that stops at the first failure — runtime, source
-revision, clean tree, core audit, SourceAFIS evidence validation, result set, completion,
-operational summary, receipt, then re-reads all of it. Any failure leaves the completion,
-the result set and the receipt unwritten
+`finalize` does that, in a fixed order that stops at the first failure: runtime, executor
+source provenance, the finalizer's clean committed revision, core audit and SourceAFIS
+evidence validation. It then builds all claims, writes idempotent intermediate artefacts,
+reads and verifies them, and writes `research-finalization.json` last. An interrupted
+attempt can leave intermediates, but without that matching marker they are not authoritative
 ([ADR 0020](docs/adr/0020-research-finalization-follows-runtime-revalidation.md)).
 
 ### RESEARCH_READY
@@ -628,9 +630,12 @@ NOT_PREPARED → PREPARED → PARTIAL → RESULTS_COMPLETE → CORE_VERIFIED →
 ```
 
 `CORE_VERIFIED` is a real and common state: the audit passed and `completion.json` exists,
-but the results have no citable identity yet. `RESEARCH_READY` needs the whole chain —
-audit, runtime bundle, source revision, result set and receipt — and any broken link
-reports `INVALID` rather than degrading quietly.
+but the results have no citable identity yet. `RESEARCH_READY` needs the whole chain:
+current audit and algorithm validation, runtime bundle/JAR, executor source revision,
+cohort and pair manifest, the exact plan-ordered result set, completion, every receipt
+claim, and the finalization marker. Any broken link reports `INVALID` rather than
+degrading quietly. `status` also records the committed verifier revision that performed
+the inspection; it need not equal the older executor revision named by an existing run.
 
 ### The result set
 

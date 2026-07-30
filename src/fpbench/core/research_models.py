@@ -39,15 +39,20 @@ from fpbench.core.identifiers import validate_id
 from fpbench.core.serialization import stable_hash, to_plain
 
 __all__ = [
+    "ResearchFinalizationMarker",
     "ResearchRunState",
     "ResearchRunReceipt",
+    "research_finalization_fingerprint",
+    "research_receipt_content_hash",
     "require_sanitised",
     "research_receipt_fingerprint",
+    "RESEARCH_FINALIZATION_SCHEMA_VERSION",
     "RESEARCH_RECEIPT_SCHEMA_VERSION",
     "NO_CONCLUSION_STATEMENT",
 ]
 
 RESEARCH_RECEIPT_SCHEMA_VERSION = "1"
+RESEARCH_FINALIZATION_SCHEMA_VERSION = "1"
 
 #: Printed verbatim into every receipt. A reader who sees only this file must
 #: not be able to mistake it for a result.
@@ -117,6 +122,11 @@ class ResearchRunState:
     result_set_valid: bool
     receipt_present: bool
     receipt_valid: bool
+    finalization_marker_present: bool
+    finalization_marker_valid: bool
+
+    verifier_source_revision: str = ""
+    verifier_source_tree_clean: bool = False
 
     issues: tuple[str, ...] = ()
     inspected_utc: str = ""
@@ -128,6 +138,13 @@ class ResearchRunState:
                 self, name, _require_non_negative(getattr(self, name), name)
             )
         object.__setattr__(self, "issues", tuple(str(item) for item in self.issues))
+
+        revision = str(self.verifier_source_revision).strip().lower()
+        if revision and (len(revision) != 40 or not set(revision) <= _HEX):
+            raise ValueError(
+                "verifier_source_revision must be a full 40-character commit SHA"
+            )
+        object.__setattr__(self, "verifier_source_revision", revision)
 
     @property
     def is_research_ready(self) -> bool:
@@ -343,4 +360,117 @@ def research_receipt_fingerprint(receipt: ResearchRunReceipt) -> str:
     return stable_hash(
         {"schema": f"research_receipt_v{RESEARCH_RECEIPT_SCHEMA_VERSION}", "receipt": plain},
         length=64,
+    )
+
+
+def research_receipt_content_hash(receipt: ResearchRunReceipt) -> str:
+    """Digest every byte-significant receipt field, including time and timings.
+
+    The semantic receipt fingerprint deliberately excludes regenerable timing
+    data and the creation timestamp.  Finalization needs the stronger identity:
+    once the marker is published, even those non-biometric fields are frozen.
+    """
+    return stable_hash(
+        {
+            "schema": "research_receipt_content_v1",
+            "receipt": to_plain(receipt),
+        },
+        length=64,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class ResearchFinalizationMarker:
+    """The immutable, last-written commit record for research finalization.
+
+    Result-set, completion and receipt files may be written idempotently while
+    a finalizer is working.  None of them is authoritative until this marker
+    names the exact verified chain.  A crash before this file therefore leaves
+    retryable intermediate artefacts, never a research-ready run.
+    """
+
+    schema_version: str
+    finalization_id: str
+    finalization_fingerprint: str
+
+    run_id: str
+    run_fingerprint: str
+    plan_id: str
+    plan_fingerprint: str
+    environment_fingerprint: str
+
+    runtime_reference_fingerprint: str
+    result_set_fingerprint: str
+    audit_fingerprint: str
+    sourceafis_validation_fingerprint: str
+    completion_fingerprint: str
+    receipt_fingerprint: str
+    receipt_content_hash: str
+
+    verifier_source_commit: str
+    verifier_source_tree_clean: bool
+    created_utc: str
+
+    def __post_init__(self) -> None:
+        for name in ("finalization_id", "run_id", "plan_id"):
+            validate_id(str(getattr(self, name)))
+        for name in (
+            "finalization_fingerprint",
+            "run_fingerprint",
+            "plan_fingerprint",
+            "environment_fingerprint",
+            "runtime_reference_fingerprint",
+            "result_set_fingerprint",
+            "audit_fingerprint",
+            "sourceafis_validation_fingerprint",
+            "completion_fingerprint",
+            "receipt_fingerprint",
+            "receipt_content_hash",
+        ):
+            object.__setattr__(self, name, _require_digest(getattr(self, name), name))
+
+        commit = str(self.verifier_source_commit).strip().lower()
+        if len(commit) != 40 or not set(commit) <= _HEX:
+            raise ValueError(
+                "verifier_source_commit must be a full 40-character commit SHA"
+            )
+        object.__setattr__(self, "verifier_source_commit", commit)
+        if not self.verifier_source_tree_clean:
+            raise ValueError("research finalization requires a clean verifier tree")
+
+        version = str(self.schema_version).strip()
+        if version != RESEARCH_FINALIZATION_SCHEMA_VERSION:
+            raise ValueError(
+                "unsupported research finalization schema version "
+                f"{version!r}"
+            )
+        object.__setattr__(self, "schema_version", version)
+        created = str(self.created_utc).strip()
+        if not created:
+            raise ValueError("created_utc must not be empty")
+        object.__setattr__(self, "created_utc", created)
+
+        expected = research_finalization_fingerprint(self)
+        if self.finalization_fingerprint != expected:
+            raise ValueError(
+                "finalization_fingerprint does not cover the marker's claims"
+            )
+        expected_id = f"finalization_{expected[:12]}"
+        if self.finalization_id != expected_id:
+            raise ValueError(
+                f"finalization_id must be {expected_id!r}, got "
+                f"{self.finalization_id!r}"
+            )
+
+
+def research_finalization_fingerprint(
+    marker: ResearchFinalizationMarker | Mapping[str, Any],
+) -> str:
+    """Derive the identity of a finalization marker without its own identity."""
+    plain = dict(to_plain(marker))
+    plain.pop("finalization_id", None)
+    plain.pop("finalization_fingerprint", None)
+    plain.pop("created_utc", None)
+    return stable_hash(
+        {"schema": "research_finalization_v1", "marker": plain}, length=64
     )

@@ -26,6 +26,13 @@ __all__ = [
     "ResearchRunStatus",
     "IntegritySeverity",
     "IntegrityIssueCode",
+    "ThresholdOrigin",
+    "ThresholdComparator",
+    "DecisionApplicationStatus",
+    "DecisionValue",
+    "SelfEligibilityStatus",
+    "SelfEligibilityReason",
+    "DecisionDerivationStatus",
 ]
 
 
@@ -292,3 +299,112 @@ class IntegrityIssueCode(str, Enum):
     DUPLICATE_JOB_ID = "duplicate_job_id"
     DUPLICATE_JOB_FINGERPRINT = "duplicate_job_fingerprint"
     PLAN_CONFLICT = "plan_conflict"
+
+
+# ------------------------------------------------------------------ decisions
+#
+# The vocabulary of the layer that turns a stored score into a claim about two
+# fingerprints. It is kept rigorously apart from the execution vocabulary above:
+# `ExecutionStatus` answers "did the comparison happen?", and nothing here
+# answers that question (docs/adr/0003, docs/adr/0021).
+
+
+class ThresholdOrigin(str, Enum):
+    """Where a threshold came from, which is not the same as whether it is good.
+
+    The distinction exists to make one specific mistake impossible to commit
+    quietly: presenting a number an upstream project documented as though this
+    project had measured it. SourceAFIS documents 40; that is
+    ``DOCUMENTED_NATIVE`` and stays so no matter how many comparisons are run
+    under it.
+    """
+
+    #: Published by the algorithm's own authors, for their own reasons.
+    DOCUMENTED_NATIVE = "documented_native"
+    #: Chosen by this project on a development cohort. Requires a calibration
+    #: manifest, and may never be derived from a TEST cohort.
+    CALIBRATED_DEVELOPMENT = "calibrated_development"
+    #: Fixed by an external requirement — a standard, a procurement spec.
+    EXTERNAL_FIXED = "external_fixed"
+
+
+class ThresholdComparator(str, Enum):
+    """Which side of the threshold counts as a match.
+
+    Paired with the algorithm's score direction and checked against it, because
+    a comparator that disagrees with the direction silently inverts every
+    decision in a run.
+    """
+
+    GREATER_THAN_OR_EQUAL = "greater_than_or_equal"
+    LESS_THAN_OR_EQUAL = "less_than_or_equal"
+
+
+class DecisionApplicationStatus(str, Enum):
+    """Whether a threshold could be applied to a stored result at all.
+
+    ``UNDECIDABLE`` is not a third biometric outcome. It records that there was
+    no score to compare — the comparison failed — and it exists precisely so
+    that such a result never has to be squeezed into MATCH or NON_MATCH
+    (docs/adr/0006).
+    """
+
+    DECIDED = "decided"
+    UNDECIDABLE = "undecidable"
+
+
+class DecisionValue(str, Enum):
+    """What a threshold said about a score.
+
+    There are deliberately only two members, and no member means "failed". A
+    comparison that produced no score has no ``DecisionValue`` at all.
+    """
+
+    MATCH = "match"
+    NON_MATCH = "non_match"
+
+
+class SelfEligibilityStatus(str, Enum):
+    """Whether one finger, in one release, is usable for conditional reporting.
+
+    Three-valued on purpose. Collapsing ``UNDETERMINED`` into ``INELIGIBLE``
+    would silently treat "we could not tell" as "it failed", which is the same
+    error as counting a crashed comparison as a non-match.
+    """
+
+    ELIGIBLE = "eligible"
+    INELIGIBLE = "ineligible"
+    UNDETERMINED = "undetermined"
+
+
+class SelfEligibilityReason(str, Enum):
+    """Why a unit reached the status it did.
+
+    More than one may apply — both SELF stages can fail independently — so
+    these are recorded as a set rather than a single cause.
+    """
+
+    BOTH_SELF_MATCH = "both_self_match"
+
+    PLAIN_SELF_NON_MATCH = "plain_self_non_match"
+    ROLL_SELF_NON_MATCH = "roll_self_non_match"
+
+    PLAIN_SELF_UNDECIDABLE = "plain_self_undecidable"
+    ROLL_SELF_UNDECIDABLE = "roll_self_undecidable"
+
+
+class DecisionDerivationStatus(str, Enum):
+    """How much of a derivation's evidence chain is in place.
+
+    The same shape as :class:`ResearchRunStatus`, one layer up, and for the same
+    reason: intermediates are retryable, and only the last-written marker makes
+    any of it authoritative (docs/adr/0020).
+    """
+
+    NOT_PREPARED = "not_prepared"
+    PROFILE_READY = "profile_ready"
+    DECISIONS_READY = "decisions_ready"
+    ELIGIBILITY_READY = "eligibility_ready"
+    VIEWS_READY = "views_ready"
+    DECISION_READY = "decision_ready"
+    INVALID = "invalid"

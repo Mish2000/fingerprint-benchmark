@@ -484,3 +484,236 @@ def test_no_stored_result_carries_a_decision(world):
     record = next(iter(result_store.iter_raw_results(world["run"].run_id)))
     fields = set(type(record).__dataclass_fields__)
     assert {"threshold", "decision", "ground_truth", "protocol_stage"} & fields == set()
+
+
+# ------------------------------------------------------ decisions at scale
+
+
+def _decision_profile(world):
+    from fpbench.core.decision_models import ThresholdComparator, ThresholdOrigin
+    from fpbench.decisions import build_decision_profile
+
+    run = world["run"]
+    return build_decision_profile(
+        profile_id="dummy_structural_profile_v1",
+        display_name="Structural profile for the dummy matcher",
+        profile_version="1",
+        origin=ThresholdOrigin.DOCUMENTED_NATIVE,
+        algorithm_id=run.algorithm.algorithm_id,
+        implementation_version=run.algorithm.implementation_version,
+        algorithm_fingerprint=run.algorithm_fingerprint,
+        score_direction=run.algorithm.score_direction,
+        comparator=ThresholdComparator.GREATER_THAN_OR_EQUAL,
+        threshold="40",
+        source_kind="upstream_documentation",
+        source_reference="structural_scale_test",
+        source_version="1",
+        allowed_execution_profiles=(run.execution_profile.profile_id,),
+        calibration_performed=False,
+        calibration_manifest_fingerprint=None,
+        metadata={},
+    )
+
+
+@pytest.fixture(scope="module")
+def derivation(world):
+    """The whole 5A chain over 6,000 results. Depends on the run above.
+
+    The dummy matcher scores image digests, so which comparisons match is
+    arbitrary ג€” and that is the point being avoided rather than tested. What is
+    under test here is *shape*: 6,000 decisions, 1,500 eligibility units, 1,500
+    rows in each of three views, one identity for each. No biometric claim is
+    made or possible.
+    """
+    from fpbench.core.evaluation_view_models import (
+        MATED_CONDITIONAL_VIEW,
+        MATED_UNCONDITIONAL_VIEW,
+        NON_MATED_SANITY_VIEW,
+    )
+    from fpbench.decisions import apply_decision_profile
+    from fpbench.derivations import build_derivation_receipt
+    from fpbench.eligibility import build_self_eligibility_units, derive_self_eligibility
+    from fpbench.evaluation import (
+        build_mated_conditional_view,
+        build_mated_unconditional_view,
+        build_non_mated_sanity_view,
+    )
+    from fpbench.storage.result_set_store import ResultSetStore
+    from runworld import research_provenance
+
+    workspace = world["workspace"]
+    run = world["run"]
+    plan = world["plan"]
+    pairs = {pair.pair_id: pair for pair in world["pairs"]}
+    software = research_provenance()
+
+    result_set, entries = ResultSetStore(workspace).read_result_set(run.run_id)
+    profile = _decision_profile(world)
+
+    decision_set = apply_decision_profile(
+        profile=profile,
+        run=run,
+        plan=plan,
+        result_set=result_set,
+        result_set_entries=entries,
+        result_store=ResultStore(workspace),
+        derivation_software=software,
+    )
+
+    jobs_by_pair = {
+        str(planned.job.pair_id): planned.job.job_id for planned in plan.jobs
+    }
+    units = build_self_eligibility_units(
+        pairs=world["pairs"],
+        images=world["images"],
+        jobs_by_pair=jobs_by_pair,
+        protocol_id=run.protocol_id,
+        cohort_id=str(run.cohort_id),
+    )
+    eligibility = derive_self_eligibility(
+        run=run,
+        units=units,
+        decisions=decision_set.by_job(),
+        decision_set=decision_set.manifest,
+        pair_manifest_hash=run.pair_manifest_hash,
+    )
+
+    common = {
+        "run": run,
+        "plan": plan,
+        "pairs": pairs,
+        "decisions": decision_set.by_job(),
+        "decision_set": decision_set.manifest,
+        "pair_manifest_hash": run.pair_manifest_hash,
+    }
+    views = {
+        MATED_UNCONDITIONAL_VIEW: build_mated_unconditional_view(**common),
+        MATED_CONDITIONAL_VIEW: build_mated_conditional_view(
+            **common,
+            eligibility=eligibility.manifest,
+            eligibility_records=eligibility.records,
+        ),
+        NON_MATED_SANITY_VIEW: build_non_mated_sanity_view(**common, finger_shift=1),
+    }
+    receipt = build_derivation_receipt(
+        run=run,
+        result_set=result_set,
+        decision_set=decision_set.manifest,
+        eligibility=eligibility.manifest,
+        unconditional_view=views[MATED_UNCONDITIONAL_VIEW].manifest,
+        conditional_view=views[MATED_CONDITIONAL_VIEW].manifest,
+        non_mated_view=views[NON_MATED_SANITY_VIEW].manifest,
+        derivation_software=software,
+        pair_manifest_hash=run.pair_manifest_hash,
+    )
+    return {
+        "units": units,
+        "decision_set": decision_set,
+        "eligibility": eligibility,
+        "views": views,
+        "receipt": receipt,
+        "result_set": result_set,
+        "result_set_entries": entries,
+        "profile": profile,
+    }
+
+
+def test_six_thousand_decisions_one_per_planned_job(derivation, world):
+    manifest = derivation["decision_set"].manifest
+    assert manifest.total_decisions == EXPECTED_JOBS
+    assert manifest.decided_count == EXPECTED_JOBS
+    assert manifest.undecidable_count == 0
+    assert [record.job_id for record in derivation["decision_set"].records] == list(
+        world["plan"].job_ids()
+    )
+
+
+def test_fifteen_hundred_eligibility_units_five_hundred_per_release(derivation):
+    from collections import Counter
+
+    records = derivation["eligibility"].records
+    assert len(records) == 1_500
+    per_release = Counter(record.release for record in records)
+    assert per_release == {release: 500 for release in RELEASES}
+
+
+def test_every_unit_covers_one_finger_in_one_release(derivation):
+    units = derivation["units"]
+    keys = {(unit.release, unit.subject_id, unit.canonical_finger) for unit in units}
+    assert len(keys) == 1_500
+    assert {unit.release for unit in units} == set(RELEASES)
+
+
+def test_each_view_holds_fifteen_hundred_rows(derivation):
+    for view in derivation["views"].values():
+        assert view.manifest.total_rows == 1_500
+
+
+def test_the_conditional_view_keeps_its_excluded_rows(derivation):
+    from fpbench.core.evaluation_view_models import (
+        MATED_CONDITIONAL_VIEW,
+        MATED_UNCONDITIONAL_VIEW,
+    )
+
+    conditional = derivation["views"][MATED_CONDITIONAL_VIEW]
+    unconditional = derivation["views"][MATED_UNCONDITIONAL_VIEW]
+    assert conditional.manifest.total_rows == unconditional.manifest.total_rows
+    assert conditional.included_count <= conditional.manifest.total_rows
+    excluded = [entry for entry in conditional.entries if not entry.included]
+    assert all(entry.exclusion_reason for entry in excluded)
+
+
+def test_the_whole_chain_verifies_at_scale(derivation, world):
+    from fpbench.core.evaluation_view_models import MATED_CONDITIONAL_VIEW
+    from fpbench.decisions import verify_decision_set
+    from fpbench.eligibility import verify_eligibility_set
+    from fpbench.evaluation import verify_evaluation_view
+
+    run = world["run"]
+    plan = world["plan"]
+    pairs = {pair.pair_id: pair for pair in world["pairs"]}
+    decision_set = derivation["decision_set"]
+    eligibility = derivation["eligibility"]
+
+    verify_decision_set(
+        profile=derivation["profile"],
+        manifest=decision_set.manifest,
+        records=decision_set.records,
+        run=run,
+        plan=plan,
+        result_set=derivation["result_set"],
+        result_set_entries=derivation["result_set_entries"],
+        result_store=ResultStore(world["workspace"]),
+    )
+    verify_eligibility_set(
+        manifest=eligibility.manifest,
+        records=eligibility.records,
+        units=derivation["units"],
+        decisions=decision_set.by_job(),
+        decision_set=decision_set.manifest,
+        pair_manifest_hash=run.pair_manifest_hash,
+    )
+    for kind, view in derivation["views"].items():
+        verify_evaluation_view(
+            manifest=view.manifest,
+            entries=view.entries,
+            pairs=pairs,
+            decisions=decision_set.by_job(),
+            decision_set=decision_set.manifest,
+            eligibility=(
+                eligibility.manifest if kind == MATED_CONDITIONAL_VIEW else None
+            ),
+            eligibility_records=eligibility.records,
+            pair_manifest_hash=run.pair_manifest_hash,
+        )
+
+
+def test_the_derivation_receipt_reports_structure_and_no_outcome(derivation):
+    receipt = derivation["receipt"]
+    assert receipt.total_decisions == EXPECTED_JOBS
+    assert receipt.total_eligibility_units == 1_500
+    assert set(receipt.view_total_rows.values()) == {1_500}
+
+    fields = set(type(receipt).__dataclass_fields__)
+    forbidden = {"match_count", "eligible_count", "included_count", "fmr", "fnmr"}
+    assert forbidden & fields == set()

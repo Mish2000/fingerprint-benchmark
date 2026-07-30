@@ -41,7 +41,22 @@ __all__ = [
     "runtime_bundles_root",
     "runtime_bundle_directory",
     "runtime_bundle_assets_directory",
+    "decisions_root",
+    "decision_set_directory",
+    "eligibility_directory",
+    "evaluation_views_directory",
+    "evaluation_view_directory",
+    "VIEW_DIRECTORY_NAMES",
 ]
+
+#: Where each view lives inside a decision set. Fixed names rather than the
+#: view id, because the id changes whenever its contents do and a reader looking
+#: for "the conditional view" should not have to know this run's digest.
+VIEW_DIRECTORY_NAMES = {
+    "plain_roll_mated_unconditional_v1": "plain-roll-mated-unconditional",
+    "plain_roll_mated_both_self_match_v1": "plain-roll-mated-both-self-match",
+    "plain_roll_non_mated_same_subject_cyclic_v1": "plain-roll-non-mated-sanity",
+}
 
 
 def results_root(root: Path) -> Path:
@@ -78,3 +93,39 @@ def runtime_bundle_assets_directory(root: Path, bundle_id: str) -> Path:
     from fpbench.core.runtime_models import ASSETS_DIRECTORY
 
     return runtime_bundle_directory(root, bundle_id) / ASSETS_DIRECTORY
+
+
+def decisions_root(root: Path, run_id: str) -> Path:
+    """Every derivation over one run's results lives under here."""
+    return run_directory(root, run_id) / "decisions"
+
+
+def decision_set_directory(root: Path, run_id: str, decision_set_id: str) -> Path:
+    return decisions_root(root, run_id) / validate_id(decision_set_id)
+
+
+def eligibility_directory(root: Path, run_id: str, decision_set_id: str) -> Path:
+    """SELF eligibility is scoped to the decision set, never to the run.
+
+    The same finger can be eligible under one threshold and not under another,
+    so an eligibility table that sat beside the run rather than beside the
+    decisions would be answering a question it had not been asked
+    (docs/adr/0023).
+    """
+    return decision_set_directory(root, run_id, decision_set_id) / "self-eligibility"
+
+
+def evaluation_views_directory(
+    root: Path, run_id: str, decision_set_id: str
+) -> Path:
+    return decision_set_directory(root, run_id, decision_set_id) / "evaluation-views"
+
+
+def evaluation_view_directory(
+    root: Path, run_id: str, decision_set_id: str, view_kind: str
+) -> Path:
+    try:
+        name = VIEW_DIRECTORY_NAMES[view_kind]
+    except KeyError:
+        raise ValueError(f"unknown evaluation view kind {view_kind!r}") from None
+    return evaluation_views_directory(root, run_id, decision_set_id) / name

@@ -19,7 +19,12 @@ from typing import Mapping, Sequence
 import pyarrow.parquet as pq
 
 from fpbench.adapters.dummy.adapter import DummyShaAdapter
-from fpbench.core.enums import GroundTruth, Impression, ProtocolStage
+from fpbench.core.enums import (
+    FingerprintPosition,
+    GroundTruth,
+    Impression,
+    ProtocolStage,
+)
 from fpbench.core.execution_plan_models import ExecutionPlan
 from fpbench.core.identifiers import CohortId, ImageId, PairId
 from fpbench.core.models import ComparisonPair, ImageRecord
@@ -468,6 +473,9 @@ def _build_images(
                         subject_id=subject,
                         release=release,
                         impression=impression,
+                        # Anatomical, so that anything grouping records into
+                        # release/subject/finger units has something to group by.
+                        position=FingerprintPosition(finger),
                     )
                     records[ImageId(image_id)] = record
     return records

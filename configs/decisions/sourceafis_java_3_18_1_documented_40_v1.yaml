@@ -1,0 +1,67 @@
+# SourceAFIS's own documented threshold, applied to this project's scores.
+#
+# The single most important line in this file is `origin: documented_native`.
+# It records that 40 is a number *SourceAFIS's authors published*, not a number
+# this project measured, chose, or validated on SD300. Nothing downstream may
+# present it as a calibrated threshold, and nothing may present the upstream
+# claim beneath it as an SD300 result (docs/adr/0021).
+#
+# 40 is also not "the right threshold". It is a defensible starting point with a
+# traceable origin, which is exactly what is needed to produce a first set of
+# decisions that can be argued with. A calibrated profile will come later, from
+# a *development* cohort — never from the 50 test subjects these decisions are
+# reported over.
+
+profile:
+  profile_id: sourceafis_java_3_18_1_documented_40_v1
+  display_name: SourceAFIS Java 3.18.1 documented threshold 40
+
+  origin: documented_native
+  profile_version: "1"
+
+algorithm:
+  algorithm_id: sourceafis_java
+  implementation_version: "3.18.1"
+  score_direction: higher_is_better
+
+  # The exact build is bound when the profile is loaded, from the run being
+  # decided. Pin it here as well to make a mismatch a config error rather than a
+  # runtime surprise:
+  # fingerprint: <64 hex>
+
+rule:
+  # score >= 40 is a MATCH; score < 40 is a NON_MATCH. A score of exactly 40 is
+  # a MATCH, and there is no epsilon, no rounding and no clipping anywhere near
+  # this comparison.
+  comparator: greater_than_or_equal
+
+  # A canonical decimal string, never a float. "40.0" and "4e1" normalise to
+  # this; "NaN" and "Infinity" are refused.
+  threshold: "40"
+
+scope:
+  # A threshold is chosen for images prepared a particular way. This one covers
+  # native-resolution identity preparation and nothing else; a resampled profile
+  # will need its own entry, added deliberately.
+  execution_profiles:
+    - native_identity_60s_v1
+
+provenance:
+  source_kind: upstream_documentation
+  source_reference: sourceafis_fingerprint_matcher_javadoc_3_18_1
+  source_version: "3.18.1"
+
+  # What upstream says about their own number, recorded as provenance and never
+  # as a finding. It describes SourceAFIS's own evaluation on their own data;
+  # it is not a measurement of anything in this study, and this project has not
+  # verified it.
+  upstream_claim: approximate_fmr_0_0001
+  upstream_claim_is_not_benchmark_result: true
+
+calibration:
+  performed: false
+
+  # The cohort these decisions are reported over is a TEST cohort. Choosing a
+  # threshold from it would be leakage, and the loader refuses this file outright
+  # if this is ever set to true.
+  test_cohort_used: false

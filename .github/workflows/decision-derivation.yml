@@ -1,0 +1,99 @@
+name: decision derivation
+
+# Threshold application, SELF eligibility and the three evaluation views.
+#
+# None of it needs a JVM, a built jar or the NIST delivery: decisions are derived
+# from stored scores, and the tests script those scores so that every expected
+# answer is known in advance. The suite therefore runs on an ordinary runner in
+# seconds, which is the point of keeping the decision engine algorithm-agnostic
+# (docs/adr/0021).
+#
+# The real derivation over the 6,000-comparison SD300 run is marked `dataset`
+# and excluded here; its sanitised receipt is committed under evidence/ instead.
+
+on:
+  push:
+    paths:
+      - "src/fpbench/core/decision_models.py"
+      - "src/fpbench/core/eligibility_models.py"
+      - "src/fpbench/core/evaluation_view_models.py"
+      - "src/fpbench/core/derivation_models.py"
+      - "src/fpbench/decisions/**"
+      - "src/fpbench/eligibility/**"
+      - "src/fpbench/evaluation/**"
+      - "src/fpbench/derivations/**"
+      - "src/fpbench/storage/decision_set_store.py"
+      - "src/fpbench/storage/eligibility_set_store.py"
+      - "src/fpbench/storage/evaluation_view_store.py"
+      - "src/fpbench/storage/derivation_schemas.py"
+      - "src/fpbench/experiments/sourceafis_native_decisions.py"
+      - "configs/decisions/**"
+      - "tests/decisionworld.py"
+      - "tests/**decision**"
+      - "tests/**eligibility**"
+      - "tests/**evaluation**"
+      - "tests/**self_mapping**"
+      - ".github/workflows/decision-derivation.yml"
+  pull_request:
+    paths:
+      - "src/fpbench/core/decision_models.py"
+      - "src/fpbench/core/eligibility_models.py"
+      - "src/fpbench/core/evaluation_view_models.py"
+      - "src/fpbench/core/derivation_models.py"
+      - "src/fpbench/decisions/**"
+      - "src/fpbench/eligibility/**"
+      - "src/fpbench/evaluation/**"
+      - "src/fpbench/derivations/**"
+      - "src/fpbench/storage/decision_set_store.py"
+      - "src/fpbench/storage/eligibility_set_store.py"
+      - "src/fpbench/storage/evaluation_view_store.py"
+      - "src/fpbench/storage/derivation_schemas.py"
+      - "src/fpbench/experiments/sourceafis_native_decisions.py"
+      - "configs/decisions/**"
+      - "tests/decisionworld.py"
+      - "tests/**decision**"
+      - "tests/**eligibility**"
+      - "tests/**evaluation**"
+      - "tests/**self_mapping**"
+      - ".github/workflows/decision-derivation.yml"
+
+jobs:
+  decisions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project
+        run: pip install -e ".[dev]"
+
+      # Profile parsing and provenance, the pure decision function and its
+      # boundary, decision records and sets, SELF mapping, eligibility
+      # semantics, the three views, the tampering suite and the end-to-end
+      # derivation with scripted scores.
+      - name: Run the decision-derivation tests
+        run: pytest -m "decisions and not dataset" -q
+
+      # The committed profile must stay loadable and stay documented rather than
+      # calibrated. Cheap, and it is the one file a well-meaning edit could turn
+      # into a research claim.
+      - name: Confirm the documented profile is still documented
+        run: >-
+          python -c "
+          from pathlib import Path;
+          from fpbench.decisions import load_decision_profile;
+          p = load_decision_profile(
+              Path('configs/decisions/sourceafis_java_3_18_1_documented_40_v1.yaml'),
+              algorithm_fingerprint='0'*64);
+          assert p.threshold == '40', p.threshold;
+          assert p.origin.value == 'documented_native', p.origin;
+          assert not p.calibration_performed;
+          assert p.metadata['calibration_test_cohort_used'] == 'false';
+          print('documented profile ok:', p.profile_id)
+          "

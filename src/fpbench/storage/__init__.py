@@ -9,6 +9,14 @@ first adapter that produces artefacts. The raw-result schema already reserves
 the ``artifacts`` column so those references have somewhere to land.
 """
 
+from fpbench.storage.decision_set_store import DecisionSetStore
+from fpbench.storage.derivation_schemas import (
+    DECISION_RECORD_SCHEMA,
+    ELIGIBILITY_RECORD_SCHEMA,
+    EVALUATION_VIEW_ENTRY_SCHEMA,
+)
+from fpbench.storage.eligibility_set_store import EligibilitySetStore
+from fpbench.storage.evaluation_view_store import EvaluationViewStore
 from fpbench.storage.manifest_store import ManifestStore
 from fpbench.storage.plan_schemas import PLANNED_JOB_SCHEMA
 from fpbench.storage.plan_store import PlanStore
@@ -25,6 +33,12 @@ from fpbench.storage.schemas import (
 )
 
 __all__ = [
+    "DECISION_RECORD_SCHEMA",
+    "DecisionSetStore",
+    "ELIGIBILITY_RECORD_SCHEMA",
+    "EVALUATION_VIEW_ENTRY_SCHEMA",
+    "EligibilitySetStore",
+    "EvaluationViewStore",
     "IMAGE_SCHEMA",
     "ManifestStore",
     "PAIR_SCHEMA",

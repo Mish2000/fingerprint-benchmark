@@ -29,6 +29,16 @@ __all__ = [
     "RunIntegrityError",
     "IncompleteRunError",
     "RuntimeDriftError",
+    "DerivationError",
+    "DecisionProfileError",
+    "DecisionProfileApplicabilityError",
+    "DecisionDerivationError",
+    "DecisionSetConflictError",
+    "DecisionSetIntegrityError",
+    "SelfMappingError",
+    "EligibilityIntegrityError",
+    "EvaluationViewIntegrityError",
+    "DecisionFinalizationError",
 ]
 
 
@@ -171,3 +181,86 @@ class RunIntegrityError(ExecutionError):
 
 class IncompleteRunError(ExecutionError):
     """An operation needed every planned job to have a result, and some do not."""
+
+
+# ------------------------------------------------------------------ derivation
+#
+# Everything below belongs to the layer that turns stored raw scores into
+# decisions, eligibility and evaluation views. None of it is a biometric
+# vocabulary either: a comparison that scored below a threshold is a perfectly
+# ordinary NON_MATCH, not an error. These are the conditions under which a
+# *derivation* cannot honestly be produced (docs/adr/0021).
+
+
+class DerivationError(FpbenchError):
+    """A derivation over stored results cannot be carried out as defined."""
+
+
+class DecisionProfileError(DerivationError):
+    """A decision profile is missing, malformed or internally inconsistent.
+
+    A threshold that is not a finite canonical decimal, a comparator that
+    contradicts the algorithm's score direction, or a profile claiming to be
+    calibrated with no calibration manifest behind it.
+    """
+
+
+class DecisionProfileApplicabilityError(DerivationError):
+    """This profile may not be applied to this run.
+
+    A different algorithm, a different build of the same algorithm, or an
+    execution profile the decision profile does not cover. There is deliberately
+    no warn-and-continue path: applying a threshold across builds would produce
+    decisions nobody could attribute (docs/adr/0022).
+    """
+
+
+class DecisionDerivationError(DerivationError):
+    """Decisions could not be derived from the results they cite.
+
+    The source run is not research-ready, a stored result no longer hashes to
+    what the result set records, or a planned job has no result to decide.
+    """
+
+
+class DecisionSetConflictError(StorageError):
+    """A different decision set is already stored under this identity.
+
+    Decisions are a pure function of scores, profile and derivation code, so
+    this means one of those changed while the identity did not — never something
+    to resolve by overwriting.
+    """
+
+
+class DecisionSetIntegrityError(DerivationError):
+    """A stored decision set does not survive re-derivation.
+
+    A decision set is not evidence of itself: verification recomputes every
+    decision from the raw score it cites and compares (docs/adr/0022).
+    """
+
+
+class SelfMappingError(DerivationError):
+    """The SELF comparisons of a release/subject/finger unit do not line up.
+
+    A missing PLAIN SELF, a duplicate ROLL SELF, a pair linking two releases or
+    two fingers. The mapping is derived from the frozen pair manifest, so any of
+    these means the manifest and the protocol disagree (docs/adr/0023).
+    """
+
+
+class EligibilityIntegrityError(DerivationError):
+    """A stored eligibility set does not survive re-derivation."""
+
+
+class EvaluationViewIntegrityError(DerivationError):
+    """A stored evaluation view does not survive re-derivation."""
+
+
+class DecisionFinalizationError(DerivationError):
+    """A derivation could not be finalised, or its marker no longer holds.
+
+    Until the marker is written the intermediates are retryable and not
+    authoritative; once it is written, it must keep naming exactly the chain it
+    was issued over (docs/adr/0020, applied to derivations).
+    """

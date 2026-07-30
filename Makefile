@@ -8,7 +8,9 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
 .PHONY: help test test-all full-run \
         sourceafis-build sourceafis-java-test sourceafis-python-test \
         sourceafis-test sourceafis-sd300-smoke \
-        research-prepare research-execute research-status research-finalize
+        research-prepare research-execute research-status research-finalize \
+        decisions-test decisions-prepare decisions-derive decisions-status \
+        decisions-finalize
 
 help:
 	@echo "test                    unit + integration, no dataset, no Java, no full run"
@@ -24,6 +26,12 @@ help:
 	@echo "research-execute        execute it, resumably (JOBS=n for a slice)"
 	@echo "research-status         how far along the evidence chain the run is"
 	@echo "research-finalize       revalidate, then write completion, result set, receipt"
+	@echo ""
+	@echo "decisions-test          threshold, eligibility and view tests (no JVM, no data)"
+	@echo "decisions-prepare       pin the source run, the profile and the derivation code"
+	@echo "decisions-derive        6,000 decisions, 1,500 eligibility units, 3 views"
+	@echo "decisions-status        re-derive the whole chain and report where it stands"
+	@echo "decisions-finalize      re-verify, then write the derivation receipt and marker"
 
 # What CI runs on every push.
 test:
@@ -77,3 +85,24 @@ research-status:
 
 research-finalize:
 	$(RESEARCH) finalize
+
+# ----------------------------------------------------------------- decisions
+
+# Applying a documented threshold to a finished run. No Java and no dataset:
+# decisions are derived from stored scores (docs/adr/0021).
+DECISIONS := python -m fpbench.experiments.sourceafis_native_decisions
+
+decisions-test:
+	pytest -m "decisions and not dataset"
+
+decisions-prepare:
+	$(DECISIONS) prepare
+
+decisions-derive:
+	$(DECISIONS) derive
+
+decisions-status:
+	$(DECISIONS) status
+
+decisions-finalize:
+	$(DECISIONS) finalize

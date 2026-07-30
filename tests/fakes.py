@@ -19,6 +19,7 @@ from fpbench.core.enums import (
     EnvironmentStatus,
     FailureCode,
     FailureStage,
+    FingerprintPosition,
     GroundTruth,
     Impression,
     ProtocolStage,
@@ -77,14 +78,21 @@ def image_record(
     effective_ppi: int = 500,
     checksum_status: ChecksumStatus = ChecksumStatus.NOT_VERIFIED,
     blocking_issues: tuple[str, ...] = (),
+    position: FingerprintPosition | None = None,
 ) -> ImageRecord:
+    """A minimal image record.
+
+    ``position`` defaults to ``None`` because most tests do not care which
+    finger a record depicts. Anything that groups records into anatomical units
+    — SELF eligibility, for one — does care, and has to say so.
+    """
     return ImageRecord(
         image_id=ImageId(image_id),
         dataset_id="sd300",
         release=release,
         subject_id=SubjectId(subject_id),
         impression=impression,
-        position=None,
+        position=position,
         is_multi_finger=False,
         relative_path=relative_path,
         effective_ppi=effective_ppi,

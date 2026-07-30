@@ -1,0 +1,75 @@
+name: sourceafis adapter
+
+# Builds the Java bridge from source and runs everything that needs a real JVM and a
+# real SourceAFIS 3.18.1 on the classpath: the Java unit tests, the Python adapter
+# tests, the generic adapter contract suite, and the pinned regression score.
+#
+# The SD300 smoke test is excluded. It needs the NIST delivery, which is
+# redistribution-restricted and is not present on a public runner.
+
+on:
+  push:
+    paths:
+      - "integrations/sourceafis-java/**"
+      - "src/fpbench/adapters/sourceafis_java/**"
+      - "src/fpbench/adapters/registry.py"
+      - "tests/**sourceafis**"
+      - "tests/synthetic_ridges.py"
+      - "tests/contract/**"
+      - "configs/algorithms/sourceafis*"
+      - ".github/workflows/sourceafis-adapter.yml"
+  pull_request:
+    paths:
+      - "integrations/sourceafis-java/**"
+      - "src/fpbench/adapters/sourceafis_java/**"
+      - "src/fpbench/adapters/registry.py"
+      - "tests/**sourceafis**"
+      - "tests/synthetic_ridges.py"
+      - "tests/contract/**"
+      - "configs/algorithms/sourceafis*"
+      - ".github/workflows/sourceafis-adapter.yml"
+
+jobs:
+  sourceafis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      # Turns "the bridge is unavailable" from a skip into a failure. Without this a
+      # broken build would produce a green run full of skipped tests.
+      FPBENCH_REQUIRE_SOURCEAFIS: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project
+        run: pip install -e ".[dev]"
+
+      # 17 is the project's reference JVM: the exact version reaches the environment
+      # fingerprint, and the pinned regression score is only asserted here.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Build the Java bridge
+        run: >-
+          ./integrations/sourceafis-java/mvnw
+          --batch-mode
+          --file integrations/sourceafis-java/pom.xml
+          clean test package
+
+      - name: Confirm the bridge reports SourceAFIS 3.18.1
+        run: |
+          java -jar integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar version
+
+      # Includes the generic adapter contract suite, which is parametrised over the
+      # registry and so covers SourceAFIS automatically.
+      - name: Run the SourceAFIS Python tests
+        run: pytest -m "sourceafis and not dataset"

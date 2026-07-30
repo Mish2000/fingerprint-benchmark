@@ -11,6 +11,8 @@ this suite by being registered — there is nothing to remember to add here.
 
 from __future__ import annotations
 
+import hashlib
+import os
 from pathlib import Path
 
 import pytest
@@ -31,13 +33,49 @@ from fpbench.core.execution_models import (
 )
 from fpbench.core.identifiers import validate_id
 from fakes import StrayWriteAdapter, sha256_of
+from synthetic_ridges import whorl_png
 
 ADAPTER_IDS = registered_adapters()
 
+#: Adapters that need external tooling carry their own marker, so the ordinary CI
+#: run can exclude them while they still take part in exactly this suite. An adapter
+#: joins the suite by being registered; it opts into a marker by appearing here.
+_EXTERNAL_TOOLING_MARKERS = {
+    "sourceafis_java_subprocess": pytest.mark.sourceafis,
+}
 
-@pytest.fixture(params=ADAPTER_IDS)
+ADAPTER_PARAMS = [
+    pytest.param(
+        adapter_id,
+        id=adapter_id,
+        marks=[_EXTERNAL_TOOLING_MARKERS[adapter_id]]
+        if adapter_id in _EXTERNAL_TOOLING_MARKERS
+        else [],
+    )
+    for adapter_id in ADAPTER_IDS
+]
+
+
+@pytest.fixture(params=ADAPTER_PARAMS)
 def adapter(request) -> FingerprintAlgorithmAdapter:
-    return create_adapter(request.param)
+    """A registered adapter whose environment is usable.
+
+    An adapter that reports UNAVAILABLE is skipped rather than failed — a machine
+    without a JDK should still be able to run the suite — unless
+    ``FPBENCH_REQUIRE_SOURCEAFIS=1`` is set, which CI does so that a broken build
+    turns the run red instead of quietly green.
+    """
+    instance = create_adapter(request.param)
+    if request.param in _EXTERNAL_TOOLING_MARKERS:
+        from sourceafis_support import REQUIRE_ENV_VAR
+
+        report = instance.validate_environment()
+        if report.status is not EnvironmentStatus.READY:
+            reason = f"{request.param} is unavailable: {report.message}"
+            if os.environ.get(REQUIRE_ENV_VAR) == "1":
+                pytest.fail(reason)
+            pytest.skip(reason)
+    return instance
 
 
 @pytest.fixture
@@ -49,16 +87,28 @@ def workspace(tmp_path: Path) -> tuple[Path, Path]:
     return working, artifacts
 
 
+#: Stable seeds so the two sides are different images rather than the same one.
+_SEEDS = {"left": 1, "right": 6}
+
+
 def prepared(name: str, tmp_path: Path) -> PreparedImage:
+    """A prepared image over a real, decodable PNG.
+
+    A placeholder byte string would be enough for an adapter that ignores its input,
+    but it would reduce every image-reading adapter to its decode-failure path — so
+    the whole suite would pass while never once exercising a successful comparison.
+    The synthetic ridges are not fingerprints; see tests/fixtures/sourceafis/README.md.
+    """
     path = tmp_path / "dataset" / f"{name}.png"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(name.encode())
+    payload = whorl_png(500, _SEEDS.get(name, 1))
+    path.write_bytes(payload)
     return PreparedImage(
         image_id=f"sd300a_00001000_plain_{name}",
         local_path=path.resolve(),
         effective_ppi=500,
         media_type="image/png",
-        expected_sha256=sha256_of(name),
+        expected_sha256=hashlib.sha256(payload).hexdigest(),
         checksum_status=ChecksumStatus.NOT_VERIFIED,
         preparation_profile_id="identity_png_v1",
         preparation_hash=sha256_of(f"prep-{name}"),

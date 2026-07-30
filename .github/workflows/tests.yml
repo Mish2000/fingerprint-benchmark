@@ -19,12 +19,14 @@ jobs:
       - name: Install
         run: pip install -e ".[dev]"
 
-      # Two exclusions:
-      #   dataset  needs a local copy of NIST SD300, which is
-      #            redistribution-restricted and cannot be uploaded here.
-      #   full_run executes all 6,000 comparisons and takes minutes; it has its
-      #            own manually triggered workflow (full-dummy-run.yml).
+      # Three exclusions:
+      #   dataset     needs a local copy of NIST SD300, which is
+      #               redistribution-restricted and cannot be uploaded here.
+      #   sourceafis  needs a JVM and a built Java bridge; it has its own workflow
+      #               (sourceafis-adapter.yml) which sets both up.
+      #   full_run    executes all 6,000 comparisons and takes minutes; it has its
+      #               own manually triggered workflow (full-dummy-run.yml).
       # Everything else runs against synthetic SD300-shaped fixtures built in a
       # temp directory, so this still covers the whole pipeline end to end.
       - name: Test
-        run: pytest -m "not dataset and not full_run"
+        run: pytest -m "not dataset and not sourceafis and not full_run"

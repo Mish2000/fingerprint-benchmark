@@ -25,5 +25,6 @@ testpaths = ["tests"]
 pythonpath = ["src", "tests"]
 markers = [
     "dataset: requires a local copy of NIST SD300 (set FPBENCH_SD300_ROOT)",
+    "sourceafis: requires a built SourceAFIS Java bridge and a Java 17+ runtime",
     "full_run: executes the complete 6,000-job dummy protocol (minutes, own CI workflow)",
 ]

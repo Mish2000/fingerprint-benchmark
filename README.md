@@ -893,7 +893,7 @@ population-wide false-match performance.**
 
 ### The first result
 
-Metric set `metricset_09f2460277b4`, over the 6,000 SourceAFIS decisions at native
+Metric set `metricset_f6ffa71f3880`, over the 6,000 SourceAFIS decisions at native
 resolution under documented threshold 40. All 6,000 comparisons produced a score, so every
 decided rate equals its attempt-level counterpart — and they are still reported as two
 metrics, because the day one comparison fails they stop being equal.

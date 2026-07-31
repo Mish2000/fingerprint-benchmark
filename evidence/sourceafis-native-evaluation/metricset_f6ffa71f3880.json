@@ -7,9 +7,9 @@
   "eligibility_set_id": "eligibilityset_77dbf75cdc76",
   "metric_policy_id": "plain_roll_biometric_metrics_v1",
   "metric_policy_fingerprint": "177c59880368cde201d6c95d1aa8686fed11c20ba51fd82cd933ed9fe868d6bf",
-  "metric_set_id": "metricset_09f2460277b4",
-  "metric_set_fingerprint": "09f2460277b455e165a220c46f4ce93a9945a710b5ed923f7f325901e4a61d3b",
-  "metric_source_commit": "647f02b3ab9b074c8ebed9a66816da4ba6910a7c",
+  "metric_set_id": "metricset_f6ffa71f3880",
+  "metric_set_fingerprint": "f6ffa71f3880c9e0aa4574c15ff73f5549343ae9a6369f4f6d30460233b65331",
+  "metric_source_commit": "05192c369b6e91d81c0c95b1e8afe5c5730ecfa2",
   "metric_source_tree_clean": true,
   "releases": [
     "SD300A",
@@ -278,5 +278,5 @@
     }
   },
   "statement": "These are observed counts under one documented threshold, over one closed cohort. The threshold was not calibrated. No confidence interval, significance test or population-level false-match rate is claimed, and the same-subject different-finger set is a negative sanity check rather than an impostor experiment.",
-  "created_utc": "2026-07-31T09:24:22.418301+00:00"
+  "created_utc": "2026-07-31T13:57:48.478491+00:00"
 }

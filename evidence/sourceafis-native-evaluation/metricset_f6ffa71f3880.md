@@ -1,6 +1,6 @@
 # Observed biometric results under decision profile `sourceafis_java_3_18_1_documented_40_v1`
 
-Metric set `metricset_09f2460277b4`.
+Metric set `metricset_f6ffa71f3880`.
 
 Every rate below is published as its exact numerator and denominator. The percentage beside a fraction is a rendering of those two integers, rounded to 4 decimal places for reading; the integers are the result.
 
@@ -20,10 +20,10 @@ Every rate below is published as its exact numerator and denominator. The percen
 | Result set | `resultset_2bf3cacfd806` |
 | Decision set | `decisionset_0122544e71b1` |
 | Eligibility set | `eligibilityset_77dbf75cdc76` |
-| Metric set | `metricset_09f2460277b4` |
+| Metric set | `metricset_f6ffa71f3880` |
 | Run source commit | `36ea36c7ee25b2f3babb0f623b269bd9a4edd7ce` |
 | Decision derivation commit | `716ca20929b821cce8796c11d35e979afcad1a6f` |
-| Metric derivation commit | `647f02b3ab9b074c8ebed9a66816da4ba6910a7c` |
+| Metric derivation commit | `05192c369b6e91d81c0c95b1e8afe5c5730ecfa2` |
 
 ## 2. Protocol and threshold
 

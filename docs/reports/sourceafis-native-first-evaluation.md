@@ -1,10 +1,10 @@
 # The first SourceAFIS evaluation, and how to read it
 
-Metric set `metricset_09f2460277b4`, over decision set `decisionset_0122544e71b1`,
+Metric set `metricset_f6ffa71f3880`, over decision set `decisionset_0122544e71b1`,
 over run `run_7ac1cecc0bb3`.
 
-Report: [`evidence/sourceafis-native-evaluation/metricset_09f2460277b4.md`](../../evidence/sourceafis-native-evaluation/metricset_09f2460277b4.md)
-Receipt: [`evidence/sourceafis-native-evaluation/metricset_09f2460277b4.json`](../../evidence/sourceafis-native-evaluation/metricset_09f2460277b4.json)
+Report: [`evidence/sourceafis-native-evaluation/metricset_f6ffa71f3880.md`](../../evidence/sourceafis-native-evaluation/metricset_f6ffa71f3880.md)
+Receipt: [`evidence/sourceafis-native-evaluation/metricset_f6ffa71f3880.json`](../../evidence/sourceafis-native-evaluation/metricset_f6ffa71f3880.json)
 
 This document is about how to read that report. The report itself carries the numbers
 and their caveats; what follows is the reasoning a reader needs and the mistakes the
@@ -123,7 +123,13 @@ python -m fpbench.experiments.sourceafis_native_evaluation status
 4. every numerator and denominator, re-resolved from its enum against the stored counts;
 5. every fraction, from the two integers;
 6. every pooled value, against the sum of its releases;
-7. all 56 observation hashes, the two ordered hashes, and the metric-set fingerprint.
+7. all 56 observation hashes, the two ordered hashes, and the metric-set fingerprint;
+8. every definition and manifest identity against the actual run, decision, eligibility
+   and evaluation-view source objects;
+9. the summary rebuilt from the actual run and decision profile, and the report rendered
+   canonically from that rebuilt summary and its source chain;
+10. the finalization marker against those canonical artifacts rather than merely against
+    the stored files.
 
 A metric set is not evidence of itself. Any broken link reports `INVALID` rather than
 degrading quietly.

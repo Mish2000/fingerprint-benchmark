@@ -1,5 +1,5 @@
 {
-  "schema_version": "1",
+  "schema_version": "2",
   "source_commit": "733f68468d26d630cb7986bc8d37c90403d1ea12",
   "source_tree_clean": true,
   "dataset_id": "sd300",
@@ -24,6 +24,11 @@
   "success_count": 6000,
   "algorithmic_failure_count": 0,
   "blocking_failure_count": 0,
+  "preparation_set_id": "prepset_be560e047991",
+  "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+  "transform_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+  "transform_profile_fingerprint": "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373",
+  "transform_runtime_fingerprint": "31a0a4346a3dd07843513cc1de5b167d8f2795b230a82bac709913032b74579c",
   "failure_counts": {},
   "release_counts": {
     "SD300A": 2000,
@@ -46,5 +51,5 @@
     "wall_clock_span_seconds": "4680.617"
   },
   "statement": "This receipt proves execution completeness and provenance. It contains no biometric performance conclusion.",
-  "created_utc": "2026-07-31T17:56:49.441620+00:00"
+  "created_utc": "2026-07-31T20:36:21.949696+00:00"
 }

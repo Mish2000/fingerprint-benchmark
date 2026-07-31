@@ -10,7 +10,9 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
         sourceafis-test sourceafis-sd300-smoke \
         research-prepare research-execute research-status research-finalize \
         decisions-test decisions-prepare decisions-derive decisions-status \
-        decisions-finalize
+        decisions-finalize \
+        metrics-test metrics-prepare metrics-derive metrics-status \
+        metrics-finalize metrics-show
 
 help:
 	@echo "test                    unit + integration, no dataset, no Java, no full run"
@@ -32,6 +34,13 @@ help:
 	@echo "decisions-derive        6,000 decisions, 1,500 eligibility units, 3 views"
 	@echo "decisions-status        re-derive the whole chain and report where it stands"
 	@echo "decisions-finalize      re-verify, then write the derivation receipt and marker"
+	@echo ""
+	@echo "metrics-test            count invariants, denominators, pooling, reports"
+	@echo "metrics-prepare         pin the decision set, the metric policy and the metric code"
+	@echo "metrics-derive          six count families and fourteen metrics, per release and pooled"
+	@echo "metrics-status          re-derive every count and rate and report where it stands"
+	@echo "metrics-finalize        re-verify, then write summary, report, receipt and marker"
+	@echo "metrics-show            print the verified report (refuses anything unverified)"
 
 # What CI runs on every push.
 test:
@@ -106,3 +115,28 @@ decisions-status:
 
 decisions-finalize:
 	$(DECISIONS) finalize
+
+# ------------------------------------------------------------------- metrics
+
+# Counting a finished derivation under an immutable metric policy. No Java, no
+# dataset, and no threshold: this stage reads decisions, it does not make them
+# (docs/adr/0026).
+METRICS := python -m fpbench.experiments.sourceafis_native_evaluation
+
+metrics-test:
+	pytest -m "metrics and not dataset"
+
+metrics-prepare:
+	$(METRICS) prepare
+
+metrics-derive:
+	$(METRICS) derive
+
+metrics-status:
+	$(METRICS) status
+
+metrics-finalize:
+	$(METRICS) finalize
+
+metrics-show:
+	$(METRICS) show

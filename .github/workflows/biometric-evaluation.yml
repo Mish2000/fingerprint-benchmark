@@ -1,0 +1,132 @@
+name: biometric evaluation
+
+# Counting decisions into rates with named denominators.
+#
+# None of it needs a JVM, a built jar or the NIST delivery: metrics are computed
+# from stored decisions, and the tests script those decisions so that every
+# expected fraction is known in advance. The suite therefore runs on an ordinary
+# runner in seconds — including the 6,000-decision structural test, which builds
+# the real run's shape without the real run (docs/adr/0026).
+#
+# The evaluation of the actual SD300 run is marked `dataset` and excluded here;
+# its sanitised receipt and its report are committed under evidence/ instead.
+
+on:
+  push:
+    paths:
+      - "src/fpbench/core/metric_models.py"
+      - "src/fpbench/core/evaluation_models.py"
+      - "src/fpbench/core/enums.py"
+      - "src/fpbench/metrics/**"
+      - "src/fpbench/storage/metric_set_store.py"
+      - "src/fpbench/storage/metric_schemas.py"
+      - "src/fpbench/storage/definition_store.py"
+      - "src/fpbench/experiments/sourceafis_native_evaluation.py"
+      - "configs/metrics/**"
+      - "configs/evaluations/**"
+      - "tests/metricworld.py"
+      - "tests/**metric**"
+      - "tests/**evaluation**"
+      - "tests/**sanity**"
+      - ".github/workflows/biometric-evaluation.yml"
+  pull_request:
+    paths:
+      - "src/fpbench/core/metric_models.py"
+      - "src/fpbench/core/evaluation_models.py"
+      - "src/fpbench/core/enums.py"
+      - "src/fpbench/metrics/**"
+      - "src/fpbench/storage/metric_set_store.py"
+      - "src/fpbench/storage/metric_schemas.py"
+      - "src/fpbench/storage/definition_store.py"
+      - "src/fpbench/experiments/sourceafis_native_evaluation.py"
+      - "configs/metrics/**"
+      - "configs/evaluations/**"
+      - "tests/metricworld.py"
+      - "tests/**metric**"
+      - "tests/**evaluation**"
+      - "tests/**sanity**"
+      - ".github/workflows/biometric-evaluation.yml"
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project
+        run: pip install -e ".[dev]"
+
+      # Count invariants, denominator policies, pooled aggregation, zero
+      # denominators, observation hashes, the negative-sanity naming rules,
+      # report rendering, metric storage, the tampering suite, the
+      # failure-injection suite, the exact-value example and the 6,000-decision
+      # structural test.
+      - name: Run the metric tests
+        run: pytest -m "metrics and not dataset" -q
+
+      # The committed policy must stay loadable and stay honest. Cheap, and it
+      # is the one file a well-meaning edit could turn into a claim nobody can
+      # support (docs/adr/0028, docs/adr/0030).
+      - name: Confirm the committed metric policy is still honest
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.metrics import load_metric_policy
+          from fpbench.metrics.policy import METRIC_CATALOGUE_ORDER
+
+          policy = load_metric_policy(
+              Path("configs/metrics/plain_roll_biometric_metrics_v1.yaml")
+          )
+          assert policy.unit_of_analysis == "comparison", policy.unit_of_analysis
+          assert policy.pooled_aggregation == "sum_counts_then_divide"
+          assert policy.metric_ids == METRIC_CATALOGUE_ORDER
+          assert policy.metadata["negative_sanity_label_as_fmr"] == "false"
+          assert policy.metadata["conditional_retains_exclusion_reasons"] == "true"
+
+          for definition in policy.metric_definitions:
+              for token in ("general_fmr", "population_fmr", "impostor_fmr"):
+                  assert token not in definition.metric_id, definition.metric_id
+
+          sanity = [m for m in policy.metric_ids if "non_mated" in m]
+          assert len(sanity) == 2, sanity
+          for metric_id in sanity:
+              labels = policy.definition(metric_id).prohibited_labels
+              assert "general_fmr" in labels, metric_id
+
+          # What the negative set is, stored by the policy and fingerprinted.
+          assert policy.metadata["negative_sanity_closed_set"] == "true"
+          assert policy.metadata["negative_sanity_primary_fmr_estimate"] == "false"
+          assert policy.metadata["negative_sanity_purpose"] == "negative_sanity_check"
+
+          print("metric policy ok:", policy.policy_id, policy.policy_fingerprint[:12])
+          PY
+
+      # The evaluation config must keep declaring what it does not claim.
+      - name: Confirm the evaluation config claims nothing extra
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          import yaml
+
+          document = yaml.safe_load(
+              Path("configs/evaluations/sourceafis_native_threshold40_v1.yaml")
+              .read_text(encoding="utf-8")
+          )
+          limitations = document["limitations"]
+          for name in (
+              "confidence_intervals",
+              "threshold_calibration",
+              "general_fmr_claim",
+          ):
+              assert limitations[name] is False, name
+          print("evaluation config ok:", document["experiment"]["experiment_id"])
+          PY

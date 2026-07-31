@@ -1,0 +1,50 @@
+# The first biometric evaluation: counting the 6,000 SourceAFIS decisions.
+#
+# This file names one exact source. Not "the latest decision set for this run" —
+# one run id and one decision-set id, both of which were fixed by stage 5A and
+# are cited in committed evidence. If either changes, this is a different
+# evaluation and needs its own config (docs/adr/0022, applied one layer up).
+#
+# It computes no threshold, tries no alternative, and produces no estimate. The
+# `limitations` block is not documentation of an omission: it is the scope of the
+# stage, written down where a reader looking for a confidence interval will find
+# the reason there is none.
+
+experiment:
+  experiment_id: sourceafis_native_threshold40_evaluation_v1
+
+source:
+  # Stage 4B's 6,000-comparison research run, and the decisions stage 5A derived
+  # from it under SourceAFIS's own documented threshold of 40.
+  run_id: run_7ac1cecc0bb3
+  decision_set_id: decisionset_0122544e71b1
+
+metric_policy:
+  ref: configs/metrics/plain_roll_biometric_metrics_v1.yaml
+
+report_profile:
+  # English, so that a reader who has the repository and not the author can
+  # still check the numbers.
+  profile_id: biometric_evaluation_markdown_en_v1
+
+expected_shape:
+  # Asserted before anything is counted. These are properties of *this*
+  # protocol, not of evaluations, which is why they live in the experiment
+  # config rather than in the metric engine.
+  decisions: 6000
+  eligibility_units: 1500
+  rows_per_view: 1500
+  rows_per_release_per_view: 500
+
+  releases:
+    - SD300A
+    - SD300B
+    - SD300C
+
+limitations:
+  # Each of these is a claim this evaluation may not make. They are checked,
+  # not merely recorded: the loader refuses the file if any is switched on,
+  # because none of the machinery behind them exists.
+  confidence_intervals: false
+  threshold_calibration: false
+  general_fmr_claim: false

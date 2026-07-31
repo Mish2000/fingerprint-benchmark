@@ -51,6 +51,7 @@ from fpbench.core.errors import (
     DecisionProfileError,
     DerivationError,
     ResearchPreflightError,
+    StorageError,
 )
 from fpbench.core.evaluation_view_models import (
     MATED_CONDITIONAL_VIEW,
@@ -98,6 +99,7 @@ from fpbench.experiments.sourceafis_native_full import (
 )
 from fpbench.experiments.sourceafis_validation import validate_sourceafis_result_set
 from fpbench.storage.decision_set_store import DecisionSetStore
+from fpbench.storage.definition_store import DefinitionStore
 from fpbench.storage.eligibility_set_store import EligibilitySetStore
 from fpbench.storage.evaluation_view_store import EvaluationViewStore
 from fpbench.storage.manifest_store import ManifestStore
@@ -109,6 +111,7 @@ __all__ = [
     "DecisionExperimentConfig",
     "PreparedDerivation",
     "load_decision_experiment_config",
+    "load_decision_source",
     "prepare_decision_derivation",
     "derive_decisions",
     "inspect_sourceafis_native_decisions",
@@ -136,7 +139,6 @@ EXPECTED_UNITS_PER_RELEASE = 500
 EXPECTED_VIEW_ROWS = 1_500
 
 _EXPERIMENT_ID = "sourceafis_native_decisions_v1"
-_DEFINITION_NAME = "definition.json"
 _POINTER_NAME = "current-decision-set.json"
 
 
@@ -263,17 +265,14 @@ def prepare_decision_derivation(
         raise ResearchPreflightError(
             "a clean derivation definition could not be constructed"
         )
-    path = _definition_path(workspace, config.experiment_id, prepared.run.run_id)
-    if path.is_file():
-        stored = _read_definition(path)
-        if stored.definition_fingerprint != definition.definition_fingerprint:
-            raise ResearchPreflightError(
-                f"{path.name} already pins a different derivation "
-                f"({stored.definition_id}); a different source, profile or commit "
-                f"is a different derivation and needs its own"
-            )
-    else:
-        write_json(path, definition)
+    store = _definition_store(workspace, config.experiment_id)
+    try:
+        store.write(prepared.run.run_id, definition)
+    except StorageError as exc:
+        raise ResearchPreflightError(
+            f"{exc}; a different source, profile or commit is a different "
+            "derivation and needs its own definition"
+        ) from exc
     return prepared
 
 
@@ -442,12 +441,8 @@ def inspect_sourceafis_native_decisions(
     resolved_set = decision_set_id or _read_pointer(
         workspace, config.experiment_id, prepared.run.run_id
     )
-    definition_path = _definition_path(
-        workspace, config.experiment_id, prepared.run.run_id
-    )
-    definition = (
-        _read_definition(definition_path) if definition_path.is_file() else None
-    )
+    store = _definition_store(workspace, config.experiment_id)
+    definition = store.read_active(prepared.run.run_id)
 
     return inspect_decision_derivation(
         run=prepared.run,
@@ -616,6 +611,34 @@ def finalize_decision_derivation(
 # ----------------------------------------------------------------- helpers
 
 
+def load_decision_source(
+    *,
+    workspace: Path,
+    repository_root: Path,
+    run_id: str | None,
+    config: DecisionExperimentConfig,
+    software: SoftwareProvenance,
+    require_expected_shape: bool = True,
+    require_definition: bool = True,
+) -> PreparedDerivation:
+    """Load and revalidate the finished research run and everything it implies.
+
+    Public because stage 5B needs exactly this and nothing else: the same run,
+    the same pair manifest, the same profile, revalidated the same way. A second
+    implementation of "read the source chain" would be a second place for the two
+    stages to disagree about what they are counting.
+    """
+    return _load_source(
+        workspace=workspace,
+        repository_root=repository_root,
+        run_id=run_id,
+        config=config,
+        software=software,
+        require_expected_shape=require_expected_shape,
+        require_definition=require_definition,
+    )
+
+
 def _load_source(
     *,
     workspace: Path,
@@ -741,16 +764,17 @@ def _load_source(
             raise ResearchPreflightError(
                 "a derivation requires committed, clean software provenance"
             )
-        path = _definition_path(workspace, config.experiment_id, run.run_id)
-        if not path.is_file():
+        store = _definition_store(workspace, config.experiment_id)
+        stored_definition = store.read_active(run.run_id)
+        if stored_definition is None:
             raise ResearchPreflightError(
-                f"{path.name} is missing; run 'prepare' before deriving or finalising"
+                "no derivation definition is pinned for this run; run 'prepare' "
+                "before deriving or finalising"
             )
-        stored_definition = _read_definition(path)
         if stored_definition.definition_fingerprint != definition.definition_fingerprint:
             raise ResearchPreflightError(
-                f"{path.name} pins {stored_definition.definition_id}, but the "
-                f"current source and environment compute {definition.definition_id}"
+                f"this run pins {stored_definition.definition_id}, but the current "
+                f"source and environment compute {definition.definition_id}"
             )
         definition = stored_definition
 
@@ -859,14 +883,21 @@ def _capture_permissive(repository_root: Path) -> SoftwareProvenance:
     )
 
 
-def _definition_path(workspace: Path, experiment_id: str, run_id: str) -> Path:
-    return (
-        Path(workspace) / "derivations" / experiment_id / run_id / _DEFINITION_NAME
+def _definition_store(workspace: Path, experiment_id: str) -> DefinitionStore:
+    """The namespaced definition store, still reading stage 5A's flat file.
+
+    The derivation this project has already finalised was pinned by a
+    ``definition.json`` sitting directly beside the pointer. That file is cited
+    by a committed receipt and a finalization marker; moving it would invalidate
+    a verified chain to achieve nothing, so the store reads it where it is and
+    writes any *new* definition under its own id (spec section 35).
+    """
+    return DefinitionStore(
+        Path(workspace),
+        experiment_id=experiment_id,
+        loader=lambda payload: DerivationDefinition(**payload),
+        pointer_name=_POINTER_NAME,
     )
-
-
-def _read_definition(path: Path) -> DerivationDefinition:
-    return DerivationDefinition(**read_json(path))
 
 
 def _pointer_path(workspace: Path, experiment_id: str, run_id: str) -> Path:

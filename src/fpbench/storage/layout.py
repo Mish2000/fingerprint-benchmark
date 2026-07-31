@@ -24,6 +24,13 @@ identity is its contents rather than the run that first materialised it::
     <workspace>/runtime/bundles/<bundle_id>/
     ├── bundle.json
     └── assets/<filename>
+
+What an experiment pinned is filed by experiment, run and definition id, so that
+two policies over the same decisions can coexist::
+
+    <workspace>/derivations/<experiment_id>/<run_id>/
+    ├── definitions/<definition_id>/definition.json
+    └── current-<kind>.json      a pointer to the active one
 """
 
 from __future__ import annotations
@@ -46,6 +53,12 @@ __all__ = [
     "eligibility_directory",
     "evaluation_views_directory",
     "evaluation_view_directory",
+    "evaluations_root",
+    "metric_set_directory",
+    "derivations_root",
+    "derivation_experiment_directory",
+    "definitions_directory",
+    "definition_directory",
     "VIEW_DIRECTORY_NAMES",
 ]
 
@@ -129,3 +142,49 @@ def evaluation_view_directory(
     except KeyError:
         raise ValueError(f"unknown evaluation view kind {view_kind!r}") from None
     return evaluation_views_directory(root, run_id, decision_set_id) / name
+
+
+def evaluations_root(root: Path, run_id: str) -> Path:
+    """Every metric set over one run's decisions lives under here.
+
+    A sibling of ``decisions/`` rather than a child of it. An evaluation names
+    exactly one decision set in its manifest, but it also names a metric policy
+    and a metric-engine commit, and filing it *inside* the decision set would
+    suggest that the decisions are the only thing it depends on.
+    """
+    return run_directory(root, run_id) / "evaluations"
+
+
+def metric_set_directory(root: Path, run_id: str, metric_set_id: str) -> Path:
+    return evaluations_root(root, run_id) / validate_id(metric_set_id)
+
+
+def derivations_root(root: Path) -> Path:
+    """Where a workspace records what each experiment pinned, per run."""
+    return Path(root) / "derivations"
+
+
+def derivation_experiment_directory(
+    root: Path, experiment_id: str, run_id: str
+) -> Path:
+    return derivations_root(root) / validate_id(experiment_id) / validate_id(run_id)
+
+
+def definitions_directory(root: Path, experiment_id: str, run_id: str) -> Path:
+    """Namespaced definitions: one directory per definition id.
+
+    Stage 5A wrote a single ``definition.json`` per experiment and run, which was
+    fine while an experiment could only pin one thing. It cannot: a second metric
+    policy over the same decisions is a second definition, equally valid and
+    equally permanent, and a flat filename would force one to overwrite the other
+    (spec section 35).
+    """
+    return derivation_experiment_directory(root, experiment_id, run_id) / "definitions"
+
+
+def definition_directory(
+    root: Path, experiment_id: str, run_id: str, definition_id: str
+) -> Path:
+    return definitions_directory(root, experiment_id, run_id) / validate_id(
+        definition_id
+    )

@@ -1,0 +1,86 @@
+# Which metrics this project computes, and out of what.
+#
+# The most important thing about this file is what it cannot do. It selects
+# metrics from a fixed catalogue defined in `fpbench.metrics.policy`; it cannot
+# define one. A denominator is not a setting — `plain_roll_mated_conditional_fnmr_decided`
+# means "included mated non-matches over included mated decided attempts" and
+# means nothing else, in this repository, ever. A config file that could re-point
+# it at "all included attempts" would be a config file that could change a
+# published result without changing its name (docs/adr/0026).
+#
+# The second most important thing is that `label_as_fmr` is present and false.
+# The cyclic same-subject impostor set is structurally shaped like a false-match
+# rate calculation, which is exactly why the refusal to call it one is a
+# machine-checked flag rather than a sentence in a document (docs/adr/0030).
+
+policy:
+  policy_id: plain_roll_biometric_metrics_v1
+  policy_version: "1"
+
+unit_of_analysis:
+  # One comparison, one unit. Not one subject, not one finger. Averaging per
+  # subject is a defensible and *different* metric: it weights a subject with ten
+  # usable fingers the same as one with two. If this project ever wants that
+  # number it needs its own policy and its own ADR, not a flag here.
+  kind: comparison
+  subject_weighting: none
+
+  # Pooled = sum the release numerators, sum the release denominators, divide
+  # once. Never (rate_A + rate_B + rate_C) / 3 — which agrees only while the
+  # releases are the same size, and stops agreeing silently (docs/adr/0028).
+  pooled_aggregation: sum_counts_then_divide
+
+grouping:
+  releases: from_protocol
+  include_pooled: true
+
+self:
+  # Two rates per stage, always both. When nothing fails they are numerically
+  # identical, and that is precisely the argument for keeping them apart: a
+  # single blended number would start moving the day something does fail, for
+  # reasons nobody could name from the number (docs/adr/0027).
+  plain:
+    match_rate_decided: true
+    match_rate_attempt: true
+
+  roll:
+    match_rate_decided: true
+    match_rate_attempt: true
+
+eligibility:
+  eligible_rate: true
+
+  # An eligibility rate published without its two exclusion categories invites
+  # the reader to assume the remainder failed. Some of it merely could not be
+  # measured, and that is a different fact (docs/adr/0023).
+  retain_ineligible: true
+  retain_undetermined: true
+
+mated_unconditional:
+  decision_fnmr: true
+  attempt_non_success_rate: true
+
+mated_conditional:
+  # Published together or not at all: a conditional rate whose selection
+  # fraction is missing cannot be read (docs/adr/0029).
+  selection_rate: true
+  decision_fnmr: true
+  attempt_non_success_rate: true
+  retain_exclusion_reasons: true
+
+negative_sanity:
+  decision_match_rate: true
+  attempt_match_rate: true
+
+  # Closed set, same subject on both sides, one fixed cyclic pairing. The loader
+  # refuses this file outright if this is ever set to true.
+  label_as_fmr: false
+
+display:
+  # Display only. Rounding differently changes how the report reads and changes
+  # nothing about what was measured, so these fields reach the report profile's
+  # fingerprint and deliberately not the metric policy's: republishing at five
+  # decimal places must not look like a new result (spec section 23).
+  percentage_decimal_places: 4
+  always_show_fraction: true
+  zero_format: observed_zero

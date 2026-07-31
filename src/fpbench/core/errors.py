@@ -39,6 +39,13 @@ __all__ = [
     "EligibilityIntegrityError",
     "EvaluationViewIntegrityError",
     "DecisionFinalizationError",
+    "MetricError",
+    "MetricPolicyError",
+    "MetricDerivationError",
+    "MetricSetConflictError",
+    "MetricSetIntegrityError",
+    "EvaluationReportError",
+    "EvaluationFinalizationError",
 ]
 
 
@@ -263,4 +270,71 @@ class DecisionFinalizationError(DerivationError):
     Until the marker is written the intermediates are retryable and not
     authoritative; once it is written, it must keep naming exactly the chain it
     was issued over (docs/adr/0020, applied to derivations).
+    """
+
+
+# --------------------------------------------------------------------- metrics
+#
+# The layer that counts decisions. Still not a biometric vocabulary: a metric
+# that comes out low is a finding, not an error. These are the conditions under
+# which a *count* cannot honestly be turned into a rate, or a rate into a
+# published report (docs/adr/0026).
+
+
+class MetricError(FpbenchError):
+    """Metrics could not be computed or published as defined."""
+
+
+class MetricPolicyError(MetricError):
+    """A metric policy is missing, malformed or internally inconsistent.
+
+    A denominator that names no known population, a metric id claiming a
+    general false-match rate, a pooling rule that averages percentages, a unit
+    of analysis nobody argued for (docs/adr/0028, docs/adr/0030).
+    """
+
+
+class MetricDerivationError(MetricError):
+    """Counts could not be derived from the artefacts they cite.
+
+    The source derivation is not decision-ready, a view holds a release the
+    experiment does not expect, a SELF decision is missing for an eligibility
+    unit, or a pooled total disagrees with the release totals it should be the
+    sum of.
+    """
+
+
+class MetricSetConflictError(StorageError):
+    """A different metric set is already stored under this identity.
+
+    Metrics are a pure function of the decisions, the policy and the metric
+    code, so this means one of those changed while the identity did not — never
+    something to resolve by overwriting.
+    """
+
+
+class MetricSetIntegrityError(MetricError):
+    """A stored metric set does not survive re-derivation.
+
+    A metric set is not evidence of itself: verification recomputes every count,
+    every numerator, every denominator and every pooled sum from the decisions
+    and views they cite, and compares (spec section 46).
+    """
+
+
+class EvaluationReportError(MetricError):
+    """A report could not be rendered from verified numbers.
+
+    Never raised because a result was disappointing. Raised when a report would
+    have to invent something: a percentage with no denominator behind it, a
+    metric the policy does not define, a release the profile does not order.
+    """
+
+
+class EvaluationFinalizationError(MetricError):
+    """An evaluation could not be finalised, or its marker no longer holds.
+
+    The same contract as a derivation one layer down: everything before the
+    marker is retryable, and once the marker exists it must keep naming exactly
+    the metric set, summary, report and receipt it was issued over.
     """

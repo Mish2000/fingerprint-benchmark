@@ -33,6 +33,11 @@ __all__ = [
     "SelfEligibilityStatus",
     "SelfEligibilityReason",
     "DecisionDerivationStatus",
+    "MetricNumerator",
+    "MetricDenominator",
+    "MetricScopeKind",
+    "MetricObservationStatus",
+    "EvaluationStatus",
 ]
 
 
@@ -407,4 +412,104 @@ class DecisionDerivationStatus(str, Enum):
     ELIGIBILITY_READY = "eligibility_ready"
     VIEWS_READY = "views_ready"
     DECISION_READY = "decision_ready"
+    INVALID = "invalid"
+
+
+# -------------------------------------------------------------------- metrics
+#
+# The vocabulary of the layer that counts decisions. It names *what is counted*
+# and *what it is counted out of*, separately and explicitly, because a rate
+# whose denominator is implied is a rate nobody can check (docs/adr/0026).
+
+
+class MetricNumerator(str, Enum):
+    """What a metric counts on top of the line.
+
+    Each member names an outcome that already exists one layer down — a decision
+    value, an eligibility status, a conditional inclusion state — rather than
+    inventing a new one. ``NON_SUCCESS`` is the single exception and is defined
+    below as exactly ``NON_MATCH + UNDECIDABLE`` over genuine attempts; it exists
+    because that sum is the honest attempt-level answer and computing it inline
+    would let two call sites disagree about whether failures are in it.
+    """
+
+    MATCH = "match"
+    NON_MATCH = "non_match"
+    UNDECIDABLE = "undecidable"
+
+    ELIGIBLE = "eligible"
+    INELIGIBLE = "ineligible"
+    UNDETERMINED = "undetermined"
+
+    INCLUDED = "included"
+    EXCLUDED_INELIGIBLE = "excluded_ineligible"
+    EXCLUDED_UNDETERMINED = "excluded_undetermined"
+
+    #: ``NON_MATCH + UNDECIDABLE``, and only over genuine attempts. Never used
+    #: as an impostor numerator: a failed impostor comparison is not a "success"
+    #: whose absence means anything.
+    NON_SUCCESS = "non_success"
+
+
+class MetricDenominator(str, Enum):
+    """What a metric divides by, named rather than implied.
+
+    The distinction between ``ALL_ATTEMPTS`` and ``DECIDED_ATTEMPTS`` is the
+    whole of docs/adr/0027: the first includes comparisons that produced no
+    score, the second does not, and reporting one under the other's name silently
+    changes what the number means.
+    """
+
+    #: Every comparison in the population, decided or not.
+    ALL_ATTEMPTS = "all_attempts"
+    #: Only the comparisons a threshold could actually be applied to.
+    DECIDED_ATTEMPTS = "decided_attempts"
+    #: Every SELF eligibility unit, whatever its status.
+    ALL_ELIGIBILITY_UNITS = "all_eligibility_units"
+    #: Conditional rows the selection rule kept, decided or not.
+    INCLUDED_CONDITIONAL_ATTEMPTS = "included_conditional_attempts"
+    #: Conditional rows the selection rule kept *and* that could be decided.
+    DECIDED_CONDITIONAL_ATTEMPTS = "decided_conditional_attempts"
+
+
+class MetricScopeKind(str, Enum):
+    """Whether an observation covers one release or all of them.
+
+    ``POOLED`` is not a fourth release. It is the sum of the release counts,
+    divided once (docs/adr/0028).
+    """
+
+    RELEASE = "release"
+    POOLED = "pooled"
+
+
+class MetricObservationStatus(str, Enum):
+    """Whether a metric had anything to divide by.
+
+    ``UNDEFINED_ZERO_DENOMINATOR`` is not zero. A conditional FNMR over an empty
+    included set is not "0% of comparisons failed"; it is "no comparison was
+    covered", and rendering it as ``0.0000%`` would state a result nobody
+    measured.
+    """
+
+    DEFINED = "defined"
+    UNDEFINED_ZERO_DENOMINATOR = "undefined_zero_denominator"
+
+
+class EvaluationStatus(str, Enum):
+    """How much of an evaluation's evidence chain is in place.
+
+    The same shape as :class:`DecisionDerivationStatus` one layer down, for the
+    same reason: everything before the finalization marker is retryable work,
+    and ``EVALUATION_READY`` means the defined metrics are reproducible — never
+    that the threshold was calibrated or the benchmark estimates population-wide
+    performance.
+    """
+
+    NOT_PREPARED = "not_prepared"
+    POLICY_READY = "policy_ready"
+    COUNTS_READY = "counts_ready"
+    METRICS_READY = "metrics_ready"
+    REPORT_READY = "report_ready"
+    EVALUATION_READY = "evaluation_ready"
     INVALID = "invalid"

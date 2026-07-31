@@ -32,6 +32,11 @@ can be held to.
 | [0023](0023-self-eligibility-is-profile-specific.md) | SELF eligibility is per release, per finger, per decision profile | Accepted, implemented |
 | [0024](0024-conditional-mated-evaluation-requires-both-self-matches.md) | The conditional mated view needs both SELF decisions to match | Accepted, implemented |
 | [0025](0025-same-subject-different-finger-is-a-sanity-check.md) | The cyclic impostor set is a sanity check, not an FMR experiment | Accepted, implemented |
+| [0026](0026-metrics-name-their-denominators.md) | Every rate stores and names its exact numerator and denominator | Accepted, implemented |
+| [0027](0027-attempt-and-decided-rates-are-separate.md) | Decision-conditional and attempt-level rates are separate metrics | Accepted, implemented |
+| [0028](0028-pooled-metrics-sum-counts.md) | Pooled metrics sum counts across releases and divide once | Accepted, implemented |
+| [0029](0029-conditional-results-must-report-selection.md) | A conditional result is published only with its selection fraction | Accepted, implemented |
+| [0030](0030-negative-sanity-is-not-general-fmr.md) | The cyclic negative fraction is observed, never a false-match rate | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

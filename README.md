@@ -799,11 +799,11 @@ what it is not: `primary_fmr_estimate: false`. A view or policy name containing 
 Nothing about accuracy. Not FMR, not FNMR, not EER, not a best threshold, not a count of
 matches or false matches, not which resolution "won".
 
-The reason is no longer that scores are missing, or even that decisions are. It is that
-the remaining definitions do not exist: how a failed comparison is counted, whether an
-`UNDETERMINED` unit is excluded or imputed, what the denominator of a conditional report
-is, and whether 40 is a defensible threshold for *this* data rather than for SourceAFIS's
-own. Those are the next stage ([ADR 0003](docs/adr/0003-decision-outside-adapter.md)).
+The reason is not that scores are missing, or even that decisions are. It is that the
+definitions that would make such a number honest did not exist yet: how a failed
+comparison is counted, whether an `UNDETERMINED` unit is excluded or imputed, and what the
+denominator of a conditional report is. Stage 5B supplies exactly those, and no more
+([ADR 0003](docs/adr/0003-decision-outside-adapter.md)).
 
 The derivation receipt says the same thing in its own text, and carries no outcome count
 of any kind — not how many matched, not how many fingers were eligible, not how many rows
@@ -811,6 +811,95 @@ the conditional view included:
 
 > This receipt proves deterministic decision and eligibility derivation. It contains no
 > biometric performance metric or conclusion.
+
+## Evaluation
+
+Stage 5B counts those decisions. It changes nothing about them: `decisions/` is read and
+verified, and everything the stage produces lands in a new `evaluations/` subtree beside
+it. **It applies no threshold and tries no alternative** — 40 was fixed in 5A, and there
+is no code path here that could change it.
+
+### One refusal, four rules
+
+No rate is published without the two integers it was computed from, and no denominator is
+passed between functions. A metric names one member of a closed enum
+(`ALL_ATTEMPTS`, `DECIDED_ATTEMPTS`, `ALL_ELIGIBILITY_UNITS`,
+`INCLUDED_CONDITIONAL_ATTEMPTS`, `DECIDED_CONDITIONAL_ATTEMPTS`), and both the deriver and
+the verifier resolve it against the stored counts. A stored `3/487` is checked by
+re-resolving `DECIDED_ATTEMPTS`, not by confirming that 3 ≤ 487
+([ADR 0026](docs/adr/0026-metrics-name-their-denominators.md)).
+
+| Rule | ADR |
+|---|---|
+| Every rate stores and names its numerator and denominator | [0026](docs/adr/0026-metrics-name-their-denominators.md) |
+| Decision-conditional and attempt-level rates stay separate metrics | [0027](docs/adr/0027-attempt-and-decided-rates-are-separate.md) |
+| Pooled values sum counts and divide once | [0028](docs/adr/0028-pooled-metrics-sum-counts.md) |
+| A conditional result is published only with its selection fraction | [0029](docs/adr/0029-conditional-results-must-report-selection.md) |
+| The cyclic negative fraction is observed, never a false-match rate | [0030](docs/adr/0030-negative-sanity-is-not-general-fmr.md) |
+
+The metric policy lives in
+[`configs/metrics/plain_roll_biometric_metrics_v1.yaml`](configs/metrics/plain_roll_biometric_metrics_v1.yaml)
+and **selects** metrics from a catalogue fixed in code. It cannot define one, and an
+unrecognised switch is an error rather than a shrug. Four settings are refusals rather
+than options: labelling the sanity set as an FMR, dropping the conditional exclusion
+counts, averaging release percentages, and weighting by subject.
+
+### prepare / derive / status / finalize / show
+
+```bash
+python -m fpbench.experiments.sourceafis_native_evaluation prepare
+python -m fpbench.experiments.sourceafis_native_evaluation derive
+python -m fpbench.experiments.sourceafis_native_evaluation status
+python -m fpbench.experiments.sourceafis_native_evaluation finalize
+python -m fpbench.experiments.sourceafis_native_evaluation show
+```
+
+`show` prints the verified report and refuses anything that is not `EVALUATION_READY`.
+There is no partial view: a report over an unverified chain is a table of numbers with
+nothing behind it.
+
+The full status chain, from raw scores to publishable result:
+
+```
+RESEARCH_READY
+    ↓
+DECISION_READY
+    ↓
+POLICY_READY → COUNTS_READY → METRICS_READY → REPORT_READY → EVALUATION_READY
+                                                           ↘ INVALID
+```
+
+`EVALUATION_READY` means the defined metrics are reproducible: every count re-derived from
+the decisions and the views, every denominator re-resolved from its enum, every pooled
+value checked against the sum of its releases, and the report on disk still the report the
+finalization marker was issued over. **It does not mean the threshold was calibrated or
+that the benchmark estimates population-wide false-match performance.**
+
+### The first result
+
+Metric set `metricset_3a10972a121d`, over the 6,000 SourceAFIS decisions at native
+resolution under documented threshold 40. All 6,000 comparisons produced a score, so every
+decided rate equals its attempt-level counterpart — and they are still reported as two
+metrics, because the day one comparison fails they stop being equal.
+
+| Population | Pooled |
+|---|---|
+| PLAIN SELF match rate | 1468/1500 (97.8667%) |
+| ROLL SELF match rate | 1500/1500 (100.0000%) |
+| SELF eligibility | 1468/1500 (97.8667%), 32 ineligible, 0 undetermined |
+| Mated decision FNMR, unconditional | 492/1500 (32.8000%) |
+| Mated decision FNMR, SELF-conditional | 460/1468 (31.3351%), selection 1468/1500 |
+| Same-subject different-finger sanity | 2/1500 observed matches |
+
+Read [docs/reports/sourceafis-native-first-evaluation.md](docs/reports/sourceafis-native-first-evaluation.md)
+before quoting any of these. In particular: the mated non-match fraction is a result about
+threshold 40 rather than about SourceAFIS, the conditional figure covers a different
+population rather than an improved one, and the sanity fraction is not a false-match rate.
+
+The evaluation receipt is the first artefact in this project permitted to carry outcomes,
+and it carries them as integer pairs — never percentages — per release and pooled. It
+still carries no score, no subject, no finger, no image, no pair, no job, no path, and no
+breakdown finer than a release.
 
 ## Architecture note: where the models live
 

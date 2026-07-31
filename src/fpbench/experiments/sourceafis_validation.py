@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Iterable, Mapping
 
 from fpbench.adapters.sourceafis_java.adapter import (
@@ -57,6 +57,7 @@ from fpbench.core.enums import (
 from fpbench.core.errors import ConfigurationError, StorageError
 from fpbench.core.execution_plan_models import ExecutionPlan
 from fpbench.core.identifiers import ImageId, PairId
+from fpbench.core.imaging_models import PreparedImageEntry
 from fpbench.core.models import ComparisonPair, ImageRecord
 from fpbench.core.result_models import RawResultRecord, RunDefinition
 from fpbench.core.run_state_models import IntegrityIssue
@@ -67,6 +68,7 @@ from fpbench.storage.result_store import ResultStore
 
 __all__ = [
     "SourceAfisValidationReport",
+    "CanonicalPreparationExpectations",
     "validate_sourceafis_result_set",
     "ALGORITHMIC_FAILURE_CODES",
     "BLOCKING_FAILURE_CODES",
@@ -130,6 +132,57 @@ _EXPECTED_EXTRACTION_COUNT = "2"
 
 
 @dataclass(frozen=True, slots=True)
+class CanonicalPreparationExpectations:
+    """What every result of a run over a materialised input set must claim.
+
+    Present for a canonical run and ``None`` for the native one. That asymmetry
+    is deliberate rather than a gap: the identity preparer materialises nothing,
+    so there is no set for its results to be checked against, and inventing one
+    would make 6,000 already-stored native results fail a check they were never
+    subject to (spec section 61).
+
+    Holding the entry index here is what turns "the result says it used
+    canonical pixels" into "the result names an artefact that exists in this
+    exact set, with this width, this height, this file digest and this raster
+    digest" (spec section 75).
+    """
+
+    execution_profile_id: str
+    preparer_id: str
+    preparer_version: str
+    runner_metadata_schema: str
+
+    preparation_set_id: str
+    preparation_set_fingerprint: str
+
+    transform_profile_id: str
+    transform_profile_fingerprint: str
+    transform_runtime_fingerprint: str
+
+    target_ppi: int
+
+    entries: Mapping[ImageId, PreparedImageEntry]
+
+    #: Which source resolution each release is entitled to have been scaled
+    #: from. Empty disables the release-aware check, which is what a synthetic
+    #: world with invented release names wants.
+    expected_source_ppi: Mapping[str, int] = field(default_factory=dict)
+
+    def run_level_metadata(self) -> Mapping[str, str]:
+        """The runner-metadata keys that are the same for every comparison."""
+        return {
+            "preparer_id": self.preparer_id,
+            "preparer_version": self.preparer_version,
+            "runner_metadata_schema": self.runner_metadata_schema,
+            "preparation_set_id": self.preparation_set_id,
+            "preparation_set_fingerprint": self.preparation_set_fingerprint,
+            "transform_profile_id": self.transform_profile_id,
+            "transform_profile_fingerprint": self.transform_profile_fingerprint,
+            "transform_runtime_fingerprint": self.transform_runtime_fingerprint,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class SourceAfisValidationReport:
     """What a SourceAFIS-specific pass over a run's results found.
 
@@ -190,8 +243,15 @@ def validate_sourceafis_result_set(
     images: Mapping[ImageId, ImageRecord],
     result_store: ResultStore,
     runtime_reference: RunRuntimeReference,
+    preparation: CanonicalPreparationExpectations | None = None,
 ) -> SourceAfisValidationReport:
-    """Inspect every stored result of a SourceAFIS run against its contract."""
+    """Inspect every stored result of a SourceAFIS run against its contract.
+
+    Args:
+        preparation: What the results must claim about the input set they were
+            produced from. ``None`` for a run whose images were passed through
+            untouched; supplying it turns on the whole of spec section 75.
+    """
     issues: list[IntegrityIssue] = []
     failure_counts: dict[str, int] = {}
 
@@ -235,6 +295,32 @@ def validate_sourceafis_result_set(
                 "(docs/adr/0017)",
             )
         )
+    if preparation is not None:
+        if run.execution_profile.profile_id != preparation.execution_profile_id:
+            issues.append(
+                _issue(
+                    IntegrityIssueCode.EXECUTION_PROFILE_HASH_MISMATCH,
+                    f"run {run.run_id} used execution profile "
+                    f"{run.execution_profile.profile_id!r}, not "
+                    f"{preparation.execution_profile_id!r}",
+                )
+            )
+        if not preparation.entries:
+            issues.append(
+                _issue(
+                    IntegrityIssueCode.RESULT_METADATA_MISSING,
+                    "the prepared-image set holds no entries, so no result can be "
+                    "checked against the artefacts it claims to have used",
+                )
+            )
+        elif preparation.expected_source_ppi:
+            issues.extend(
+                _check_release_source_resolutions(
+                    pairs=pairs,
+                    preparation=preparation,
+                    expected_source_ppi=preparation.expected_source_ppi,
+                )
+            )
 
     for planned in plan.jobs:
         job_id = planned.job.job_id
@@ -260,7 +346,9 @@ def validate_sourceafis_result_set(
                 runtime_reference=runtime_reference,
             )
         )
-        issues.extend(_check_resolution(record, pair, images))
+        issues.extend(_check_resolution(record, pair, images, preparation))
+        if preparation is not None:
+            issues.extend(_check_preparation(record, preparation))
 
         if record.status is ExecutionStatus.SUCCESS:
             successes += 1
@@ -456,13 +544,23 @@ def _check_resolution(
     record: RawResultRecord,
     pair: ComparisonPair | None,
     images: Mapping[ImageId, ImageRecord],
+    preparation: CanonicalPreparationExpectations | None = None,
 ) -> Iterable[IntegrityIssue]:
-    """Was each side compared at the resolution its release is entitled to?
+    """Was each side compared at the resolution it was entitled to?
 
-    SD300C is the reason this is checked rather than assumed: 10,115 of its
-    files declare 5080 ppi in a header that is simply wrong, and a run that
-    quietly believed them would produce results nobody could compare against
-    SD300A or SD300B (docs/adr/0004, docs/adr/0016).
+    Which resolution that is depends on what prepared the images, and the answer
+    is completely different for the two runs. Natively, SD300C is the reason this
+    is checked rather than assumed: 10,115 of its files declare 5080 ppi in a
+    header that is simply wrong, and a run that quietly believed them would
+    produce results nobody could compare against SD300A or SD300B
+    (docs/adr/0004, docs/adr/0016).
+
+    Canonically, every side is 500 ppi regardless of release, because that is
+    what canonicalisation *did*. Checking the release's native value here would
+    fail every canonical result, and inferring the source resolution from adapter
+    metadata is impossible — by the time the adapter saw the file it was already
+    500 (spec section 76). The source side is checked against the preparation
+    entries instead, in :func:`_check_preparation`.
     """
     job_id = record.job_id
     if pair is None:
@@ -474,15 +572,18 @@ def _check_resolution(
         )
         return
 
-    try:
-        expected = ppi_policy.effective_ppi(pair.release)
-    except ConfigurationError:
-        # Not an SD300 release. Fall back to what the manifest says each image
-        # is, which is the value the preparer would have used.
-        left_record = images.get(record.left_image_id)
-        expected = left_record.effective_ppi if left_record else None
-        if expected is None:
-            return
+    if preparation is not None:
+        expected: int | None = preparation.target_ppi
+    else:
+        try:
+            expected = ppi_policy.effective_ppi(pair.release)
+        except ConfigurationError:
+            # Not an SD300 release. Fall back to what the manifest says each
+            # image is, which is the value the preparer would have used.
+            left_record = images.get(record.left_image_id)
+            expected = left_record.effective_ppi if left_record else None
+            if expected is None:
+                return
 
     for side, key in (("left", "left_dpi"), ("right", "right_dpi")):
         actual = record.adapter_metadata.get(key)
@@ -500,6 +601,128 @@ def _check_resolution(
                 f"{pair.release} is used at {expected}",
                 job_id=job_id,
             )
+
+
+def _check_preparation(
+    record: RawResultRecord, preparation: CanonicalPreparationExpectations
+) -> Iterable[IntegrityIssue]:
+    """Does this result name an artefact that actually exists in the set?
+
+    Every check here is against the *entries*, not against another copy of the
+    same claim. A result that recorded a preparation-set fingerprint and nothing
+    else would prove only that somebody typed the fingerprint; a result whose
+    recorded entry hash, file digest, raster digest and dimensions all match the
+    entry for its own image id could not have been produced from anything else
+    (spec section 75).
+    """
+    job_id = record.job_id
+    metadata = record.runner_metadata
+
+    for key, expected in preparation.run_level_metadata().items():
+        actual = metadata.get(key)
+        if actual is None:
+            yield _issue(
+                IntegrityIssueCode.RESULT_METADATA_MISSING,
+                f"result {job_id} does not record {key}; it cannot be attributed "
+                "to the input set that produced it",
+                job_id=job_id,
+            )
+        elif actual != expected:
+            yield _issue(
+                IntegrityIssueCode.RESULT_PIPELINE_MISMATCH,
+                f"result {job_id} records {key}={str(actual)[:16]}..., expected "
+                f"{str(expected)[:16]}...",
+                job_id=job_id,
+            )
+
+    for side, image_id in (
+        ("left", record.left_image_id),
+        ("right", record.right_image_id),
+    ):
+        entry = preparation.entries.get(image_id)
+        if entry is None:
+            yield _issue(
+                IntegrityIssueCode.RESULT_PIPELINE_MISMATCH,
+                f"result {job_id}'s {side} image has no entry in prepared-image set "
+                f"{preparation.preparation_set_id}",
+                job_id=job_id,
+            )
+            continue
+
+        for suffix, expected in (
+            ("preparation_entry_hash", entry.entry_hash),
+            ("prepared_sha256", entry.output_encoded_sha256),
+            ("pixel_sha256", entry.output_pixel_sha256),
+            ("source_ppi", str(entry.source_effective_ppi)),
+            ("output_ppi", str(entry.output_effective_ppi)),
+            ("output_width", str(entry.output_width)),
+            ("output_height", str(entry.output_height)),
+        ):
+            key = f"{side}_{suffix}"
+            actual = metadata.get(key)
+            if actual is None:
+                yield _issue(
+                    IntegrityIssueCode.RESULT_METADATA_MISSING,
+                    f"result {job_id} does not record {key}",
+                    job_id=job_id,
+                )
+            elif actual != str(expected):
+                yield _issue(
+                    IntegrityIssueCode.RESULT_PIPELINE_MISMATCH,
+                    f"result {job_id} records {key}={str(actual)[:16]}..., but the "
+                    f"prepared-image set says {str(expected)[:16]}...",
+                    job_id=job_id,
+                )
+
+        if entry.output_effective_ppi != preparation.target_ppi:
+            yield _issue(
+                IntegrityIssueCode.RESULT_RESOLUTION_MISMATCH,
+                f"result {job_id}'s {side} artefact is "
+                f"{entry.output_effective_ppi} ppi; this profile targets "
+                f"{preparation.target_ppi}",
+                job_id=job_id,
+            )
+        if entry.source_effective_ppi < entry.output_effective_ppi:
+            yield _issue(  # pragma: no cover - the entry model forbids it
+                IntegrityIssueCode.RESULT_RESOLUTION_MISMATCH,
+                f"result {job_id}'s {side} artefact was upsampled",
+                job_id=job_id,
+            )
+
+def _check_release_source_resolutions(
+    *,
+    pairs: Mapping[PairId, ComparisonPair],
+    preparation: CanonicalPreparationExpectations,
+    expected_source_ppi: Mapping[str, int],
+) -> Iterable[IntegrityIssue]:
+    """Every SD300A entry came from 500 ppi, every B from 1000, every C from 2000.
+
+    Joined back through the pair manifest rather than read off adapter metadata,
+    which by construction says 500 for all three after canonicalisation
+    (spec section 76).
+    """
+    for pair in pairs.values():
+        expected = expected_source_ppi.get(pair.release)
+        if expected is None:
+            continue
+        for side, image_id in (
+            ("left", pair.left_image_id),
+            ("right", pair.right_image_id),
+        ):
+            entry = preparation.entries.get(image_id)
+            if entry is None:
+                yield _issue(
+                    IntegrityIssueCode.RESULT_PIPELINE_MISMATCH,
+                    f"pair {pair.pair_id}'s {side} image has no prepared entry",
+                )
+                continue
+            if entry.source_effective_ppi != expected:
+                yield _issue(
+                    IntegrityIssueCode.RESULT_RESOLUTION_MISMATCH,
+                    f"pair {pair.pair_id}'s {side} artefact was scaled from "
+                    f"{entry.source_effective_ppi} ppi; {pair.release} is used at "
+                    f"{expected}",
+                )
 
 
 def _check_success(record: RawResultRecord) -> Iterable[IntegrityIssue]:

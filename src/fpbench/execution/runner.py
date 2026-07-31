@@ -175,6 +175,12 @@ class SingleJobRunner:
                 f"got {self._preparer.preparer_id!r}"
             )
 
+        # The preparer gets to refuse the run too. A preparer backed by an
+        # immutable input set verifies it here, so a missing artefact is one
+        # fault of the run rather than six thousand identical per-pair failures
+        # (spec section 56).
+        self._preparer.preflight()
+
         self._result_store.ensure_run(self._run)
 
     # ----------------------------------------------------------------- execute
@@ -245,6 +251,13 @@ class SingleJobRunner:
                 # in.
                 left = self._prepare(left_record)
                 right = self._prepare(right_record)
+            except RuntimeDriftError:
+                # A prepared artefact changed underneath the run. Same rule as a
+                # replaced executable and for the same reason: recording it as
+                # PREPARATION_FAILED would imply the run is otherwise sound,
+                # when in fact nothing after this point can be attributed. No
+                # result is written for this job (docs/adr/0018, docs/adr/0033).
+                raise
             except ImagePreparationError as exc:
                 failure = self._failure(
                     FailureCode.PREPARATION_FAILED,
@@ -350,6 +363,7 @@ class SingleJobRunner:
                 total_ms=total_ns / _NS_PER_MS,
                 adapter_components_ms=match_result.timing_components_ms,
             ),
+            runner_metadata=self._runner_metadata(left, right),
         )
         self._result_store.write_raw_result(record)
         return JobExecutionOutcome(JobDisposition.EXECUTED, record)
@@ -460,6 +474,40 @@ class SingleJobRunner:
                 "a failed result must carry a failure and no score"
             )
 
+    def _runner_metadata(
+        self, left: PreparedImage | None, right: PreparedImage | None
+    ) -> Mapping[str, str]:
+        """What the runner records about how the inputs were produced.
+
+        Assembled from what the *preparer* declares, never from what the runner
+        knows about any particular preparer. That is what lets a canonical
+        result carry a preparation-set fingerprint, two entry hashes and two
+        pixel digests while the runner stays free of ``if resolution_mode ==
+        ...`` (docs/adr/0007, spec section 62).
+
+        Per-side keys are prefixed ``left_`` and ``right_``. A comparison that
+        never got as far as preparing an image carries only the run-level keys,
+        because there is nothing truthful to say about the two sides.
+        """
+        preparer = self._preparer
+        metadata: dict[str, str] = {
+            "runner": "single_job_runner",
+            "preparer_id": preparer.preparer_id,
+            "preparer_version": preparer.preparer_version,
+            "runner_metadata_schema": preparer.runner_metadata_schema,
+        }
+        metadata.update(
+            {str(key): str(value) for key, value in preparer.run_metadata().items()}
+        )
+        for side, prepared in (("left", left), ("right", right)):
+            if prepared is None:
+                continue
+            for key, value in preparer.side_metadata(prepared).items():
+                metadata[f"{side}_{key}"] = str(value)
+        # No path, ever. A stored result that embedded one machine's directory
+        # layout would stop being portable evidence.
+        return metadata
+
     def _build_record(
         self,
         *,
@@ -468,6 +516,7 @@ class SingleJobRunner:
         started_utc: str,
         finished_utc: str,
         timings: TimingBreakdown,
+        runner_metadata: Mapping[str, str],
     ) -> RawResultRecord:
         run = self._run
         return RawResultRecord(
@@ -495,10 +544,7 @@ class SingleJobRunner:
             timings=timings,
             artifacts=result.artifacts,
             adapter_metadata=result.metadata,
-            runner_metadata={
-                "runner": "single_job_runner",
-                "preparer_id": self._preparer.preparer_id,
-            },
+            runner_metadata=runner_metadata,
         )
 
     def _failure(

@@ -50,9 +50,30 @@ immutable metric policy, fourteen metrics that each name their own denominator, 
 per release and pooled by summing, and a report that publishes every rate as the two
 integers it was computed from.
 
+Phase 6A added the **shared canonical input pipeline**: a real resampling of every
+participating image to 500 ppi, performed once in `fpbench.imaging` rather than inside
+any adapter, producing an immutable content-addressed set that every algorithm evaluated
+under the profile receives unchanged — and then the same 6,000 SourceAFIS comparisons
+over it, with the algorithm's identity untouched.
+
+```
+VERIFIED SOURCE IMAGES
+        ↓
+PREPARATION_READY canonical image set
+        ↓
+RESEARCH_READY canonical raw run
+        ↓
+Stage 6B decisions and paired evaluation
+```
+
+`canonical_500` is a shared **input profile**, not an algorithm feature. Stage 6A applies
+no threshold, computes no metric, reads no native score and produces no
+native-versus-canonical conclusion. It proves that SD300A's pixels came through
+untouched; whether identical pixels produced identical scores is stage 6B's observation.
+
 Still no EER, no ROC, no calibrated threshold, no confidence interval, and no general
 FMR — the closed-set same-subject negative fraction is published as a sanity check and is
-not one.
+not one. And still no claim that any resolution is better than any other.
 
 | Package | Status | Responsibility |
 |---|---|---|
@@ -60,7 +81,7 @@ not one.
 | `fpbench.datasets` | built | what images exist on disk, and do they match their own declarations |
 | `fpbench.protocols` | built | which subjects take part, and which comparisons that implies |
 | `fpbench.storage` | built | immutable manifests, plans, results, runtime bundles, result sets, decisions |
-| `fpbench.imaging` | built (identity only) | the image preparation contract; resampling still to come |
+| `fpbench.imaging` | built | the preparation contract, the identity preparer, and the shared canonical 500 ppi transform |
 | `fpbench.adapters` | built | the contract, the registry, `dummy_sha256` and `sourceafis_java` |
 | `fpbench.provenance` | built | which build of the harness, and which executable, produced a result |
 | `fpbench.execution` | built (sequential) | plan, run, resume, progress, audit, completion, result set, research state |
@@ -69,7 +90,7 @@ not one.
 | `fpbench.evaluation` | built (views) | which comparisons an evaluation covers |
 | `fpbench.derivations` | built | derivation receipts, finalization markers, derivation status |
 | `fpbench.metrics` | built | metric policy, named denominators, counts, report, evaluation status |
-| `fpbench.experiments` | built (three) | the SourceAFIS full run, its decisions, and the counts over them |
+| `fpbench.experiments` | built (five) | the SourceAFIS full run, its decisions, the counts over them, the canonical image set, and the canonical run |
 | `fpbench.cli` | not yet | command-line entry points |
 
 Deliberate omissions, so they read as decisions rather than oversights:
@@ -917,6 +938,99 @@ and it carries them as integer pairs — never percentages — per release and p
 still carries no score, no subject, no finger, no image, no pair, no job, no path, and no
 breakdown finer than a release.
 
+## The shared canonical 500 ppi input set
+
+SD300 arrives at three resolutions. The next question is what happens when every
+algorithm sees the same one — and answering it honestly means deciding, in writing,
+*whose* downsampler produces the pixels.
+
+The answer is: nobody's, in particular. Canonical resampling is an experiment-wide
+imaging operation in `fpbench.imaging`, performed once before any run, producing an
+immutable set every algorithm receives unchanged
+([ADR 0031](docs/adr/0031-canonical-resampling-is-shared-before-adapters.md)). An
+adapter may not resample, pick a filter, change dimensions, sharpen afterwards or reach
+back to the higher-resolution original.
+
+| Release | Effective ppi | Scale | Action |
+| --- | --- | --- | --- |
+| SD300A | 500 | 1/1 | `identity_pixels_reencode` |
+| SD300B | 1000 | 1/2 | `downsample_2x_lanczos3` |
+| SD300C | 2000 | 1/4 | `downsample_4x_lanczos3` |
+
+Four things about that table are load-bearing.
+
+**SD300C uses 2000, not the 5080 its header declares.** Scaling by 500/5080 would shrink
+half of one release by a further factor of 2.54. The scale comes from
+`ImageRecord.effective_ppi` and nowhere else
+([ADR 0032](docs/adr/0032-effective-ppi-controls-canonical-geometry.md)).
+
+**SD300C goes 2000 → 500 in one resampling.** Not 2000 → 1000 → 500: two Lanczos passes
+are a different filter from one, and the golden fixtures prove they disagree.
+
+**SD300A is decoded and re-encoded but never resized,** and its raster is preserved byte
+for byte. Copying the delivered file would be faster and would leave one release carrying
+NIST's PNG encoding while the others carried ours.
+
+**Rounding is half-up, in integers.** Python's `round()` breaks ties to even, so a
+1001-pixel axis at 1000 ppi would come out 500 instead of 501.
+
+Each artefact keeps two identities — the raster's and the file's — because "same pixels"
+and "same file" are different questions
+([ADR 0034](docs/adr/0034-pixel-and-encoded-identities-are-separate.md)). The resampler
+itself is pinned by the bytes of the installed distribution, not by its version string,
+and that pin is part of the set's identity.
+
+### PREPARATION_READY
+
+```
+python -m fpbench.experiments.sd300_canonical500_images prepare
+python -m fpbench.experiments.sd300_canonical500_images materialize --max-new-images 500
+python -m fpbench.experiments.sd300_canonical500_images status
+python -m fpbench.experiments.sd300_canonical500_images finalize
+```
+
+```
+NOT_PREPARED → PROFILE_READY → PARTIAL → IMAGES_COMPLETE → VERIFIED → PREPARATION_READY
+```
+
+`INVALID` is off that ladder rather than at the bottom of it: it means two artefacts
+contradict each other, and materialising more images never fixes it. A materialisation
+resumes only under the same definition, the same transform runtime and the same source
+commit; a Pillow upgrade half way through voids the set rather than being absorbed by it
+([ADR 0033](docs/adr/0033-prepared-image-sets-are-immutable-reusable-evidence.md)).
+
+Details: [docs/imaging/canonical-500-profile.md](docs/imaging/canonical-500-profile.md)
+and [docs/imaging/prepared-image-sets.md](docs/imaging/prepared-image-sets.md).
+
+### The canonical run
+
+```
+python -m fpbench.experiments.sourceafis_canonical500_full prepare
+python -m fpbench.experiments.sourceafis_canonical500_full execute --max-new-jobs 500
+python -m fpbench.experiments.sourceafis_canonical500_full status
+python -m fpbench.experiments.sourceafis_canonical500_full finalize
+```
+
+Same cohort, same 6,000 pairs in the same order, same SourceAFIS 3.18.1, same unchanged
+adapter and bridge, same timeout, sequential, no retries — and the same orchestration
+code, shared with the native run so that the difference between them cannot be anything
+except the preparer. The algorithm's identity does not move; the execution profile, the
+preparation set and therefore the run fingerprint do.
+
+Every stored result names the input set, both entry hashes, both file digests, both
+raster digests and both output dimensions, and the validator checks each against the
+set's actual entries rather than against another copy of the same claim.
+
+A SELF comparison reuses one immutable artefact on both sides and still performs two
+independent template extractions: independence is a property of extraction, not of
+resampling
+([ADR 0035](docs/adr/0035-self-reuses-prepared-pixels-but-not-template-extraction.md)).
+
+**No threshold, no decision, no metric, no native score read, no conclusion about
+resolution.** Reaching `RESEARCH_READY` here means 6,000 scores exist and can be
+attributed to inputs whose identity is provable. Details:
+[docs/experiments/sourceafis-canonical500-full.md](docs/experiments/sourceafis-canonical500-full.md).
+
 ## Architecture note: where the models live
 
 Several containers sit in `core` rather than in the package that derives them:
@@ -943,9 +1057,9 @@ one experiment, and it needs somewhere to live that is not the planner.
    becomes possible without touching the 50 test subjects
    ([ADR 0021](docs/adr/0021-decision-profiles-are-immutable-and-external.md));
 3. failure analysis over the algorithmic failure codes the run recorded;
-4. resampling as a second image preparer — 2000 ppi and 1000 ppi down to 500 — with its
-   own `preparer_id`, so results produced under each stay distinguishable, and its own
-   decision-profile scope;
+4. stage 6B: decisions and a *paired* evaluation over the canonical run, joined to the
+   native one by `pair_id` — including whether SD300A's provably identical pixels
+   produced identical scores, which stage 6A deliberately did not ask;
 5. NBIS as the second algorithm — `nbis_mindtct_bozorth3`, both halves named — which is
    the real test of whether the adapter contract holds, and the second consumer of the
    runtime-bundle mechanism;

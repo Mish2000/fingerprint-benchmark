@@ -1,0 +1,17 @@
+# The resampler, pinned exactly.
+#
+# `canonical_gray8_500ppi_lanczos3_v1` names Lanczos3 as a mathematical kernel.
+# This file names the code that evaluates it. The two are separate because they
+# fail separately: a Pillow release that changes one coefficient in the last bit
+# produces different canonical pixels from an unchanged profile.
+#
+# This file's SHA-256 is part of `TransformRuntimeManifest.runtime_fingerprint`
+# and therefore part of every prepared-image set's identity. Editing the pin —
+# even to a version that is already installed — produces a different runtime,
+# and a materialisation begun under the old one may not be finished under the
+# new one (spec section 52).
+#
+# Install with:
+#     pip install -r requirements-imaging.lock
+
+Pillow==12.3.0

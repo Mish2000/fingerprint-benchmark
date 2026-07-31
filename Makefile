@@ -12,7 +12,11 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
         decisions-test decisions-prepare decisions-derive decisions-status \
         decisions-finalize \
         metrics-test metrics-prepare metrics-derive metrics-status \
-        metrics-finalize metrics-show
+        metrics-finalize metrics-show \
+        imaging-test imaging-fixtures canonical-prepare canonical-materialize \
+        canonical-status canonical-finalize \
+        canonical-run-prepare canonical-run-execute canonical-run-status \
+        canonical-run-finalize
 
 help:
 	@echo "test                    unit + integration, no dataset, no Java, no full run"
@@ -41,6 +45,18 @@ help:
 	@echo "metrics-status          re-derive every count and rate and report where it stands"
 	@echo "metrics-finalize        re-verify, then write summary, report, receipt and marker"
 	@echo "metrics-show            print the verified report (refuses anything unverified)"
+	@echo ""
+	@echo "imaging-test            canonical geometry, pixels, PNG, prepared sets (no JVM, no data)"
+	@echo "imaging-fixtures        regenerate the golden imaging fixtures (deliberate act)"
+	@echo "canonical-prepare       pin the transform, check 3,000 sources, write the definition"
+	@echo "canonical-materialize   produce canonical 500 ppi artefacts (IMAGES=n for a slice)"
+	@echo "canonical-status        re-verify the prepared-image set and report where it stands"
+	@echo "canonical-finalize      re-verify, then write manifest, receipt and marker"
+	@echo ""
+	@echo "canonical-run-prepare   plan the 6,000-comparison run over the canonical set"
+	@echo "canonical-run-execute   execute it, resumably (JOBS=n for a slice)"
+	@echo "canonical-run-status    how far along the evidence chain the canonical run is"
+	@echo "canonical-run-finalize  revalidate, then write completion, result set, receipt"
 
 # What CI runs on every push.
 test:
@@ -140,3 +156,49 @@ metrics-finalize:
 
 metrics-show:
 	$(METRICS) show
+
+# ------------------------------------------------------------------- imaging
+
+# The shared canonical 500 ppi input pipeline. No JVM and no algorithm: this
+# stage produces images every matcher is handed, not results (docs/adr/0031).
+CANONICAL_IMAGES := python -m fpbench.experiments.sd300_canonical500_images
+
+imaging-test:
+	pytest -m "imaging and not dataset and not sourceafis"
+
+# Regenerating the golden fixtures is a deliberate act with a reviewed diff. CI
+# runs this and fails on any change.
+imaging-fixtures:
+	python tests/fixtures/imaging/generate.py
+
+canonical-prepare:
+	$(CANONICAL_IMAGES) prepare
+
+# IMAGES=500 materialises a slice; omit it to finish the set.
+canonical-materialize:
+	$(CANONICAL_IMAGES) materialize $(if $(IMAGES),--max-new-images $(IMAGES),)
+
+canonical-status:
+	$(CANONICAL_IMAGES) status
+
+canonical-finalize:
+	$(CANONICAL_IMAGES) finalize
+
+# ------------------------------------------------------- canonical 500 run
+
+# The same 6,000 comparisons as the native run, over the canonical input set.
+# Needs a PREPARATION_READY set and its exact id written into
+# configs/execution/canonical_500_lanczos3_60s_v1.yaml.
+CANONICAL_RUN := python -m fpbench.experiments.sourceafis_canonical500_full
+
+canonical-run-prepare:
+	$(CANONICAL_RUN) prepare
+
+canonical-run-execute:
+	$(CANONICAL_RUN) execute $(if $(JOBS),--max-new-jobs $(JOBS),)
+
+canonical-run-status:
+	$(CANONICAL_RUN) status
+
+canonical-run-finalize:
+	$(CANONICAL_RUN) finalize

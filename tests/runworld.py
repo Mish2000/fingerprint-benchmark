@@ -226,6 +226,9 @@ def build_world(
     research: bool = False,
     software: SoftwareProvenance | None = None,
     asset_role: str = FAKE_ASSET_ROLE,
+    execution_profile=None,
+    image_index: Mapping[ImageId, ImageRecord] | None = None,
+    pairs: Sequence[ComparisonPair] | None = None,
 ) -> RunWorld:
     """Assemble a self-consistent run, plan and workspace.
 
@@ -251,8 +254,11 @@ def build_world(
     dataset_root = tmp_path / "nist"
     workspace = tmp_path / "workspace"
 
-    images = _build_images(dataset_root, subjects, fingers, releases)
-    pairs = _build_pairs(subjects, fingers, releases)
+    # A caller with its own world — a canonical prepared-image set, say — brings
+    # its own images and pairs rather than having a second builder invented for
+    # it. Everything downstream of here stays identical, which is the point.
+    images = _build_images(dataset_root, subjects, fingers, releases) if image_index is None else dict(image_index)
+    pairs = list(_build_pairs(subjects, fingers, releases) if pairs is None else pairs)
     manifest_hash = pair_manifest_hash_for(pairs)
 
     bundle = None
@@ -273,7 +279,7 @@ def build_world(
         pair_manifest_hash=manifest_hash,
         algorithm=adapter.descriptor,
         environment=adapter.validate_environment(),
-        execution_profile=DEFAULT_EXECUTION_PROFILE,
+        execution_profile=execution_profile or DEFAULT_EXECUTION_PROFILE,
         replicate_index=replicate_index,
     )
     metadata = {

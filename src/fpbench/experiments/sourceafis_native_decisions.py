@@ -650,10 +650,10 @@ def _load_source(
     require_definition: bool = True,
 ) -> PreparedDerivation:
     """Read the finished research run and everything derived from its manifests."""
-    from fpbench.experiments.sourceafis_native_full import (
-        _read_pointer as _read_run_pointer,
-    )
     from fpbench.experiments.sourceafis_native_full import load_experiment_config
+    from fpbench.experiments.sourceafis_research import (
+        read_run_pointer as _read_run_pointer,
+    )
 
     source_config = load_experiment_config(repository_root=repository_root)
     resolved_run = run_id or _read_run_pointer(workspace, source_config.experiment_id)

@@ -1,0 +1,84 @@
+# The shared canonical 500 ppi input profile.
+#
+# This file describes a transformation, not an algorithm. Every matcher evaluated
+# under `canonical_500` is handed the *same* artefacts produced by exactly these
+# rules, and no adapter is permitted to reimplement any of them behind this
+# profile id (docs/adr/0031).
+#
+# Nothing here improves an image. The profile changes resolution and re-encodes;
+# it does not crop, pad, rotate, mirror, invert, binarise, sharpen, denoise,
+# equalise, gamma-correct or normalise contrast. All eleven are listed below
+# rather than left unmentioned, because an operation nobody forbade is an
+# operation an implementation is free to perform.
+#
+# The parser has no defaults. A missing field is an error, not a value.
+
+profile:
+  profile_id: canonical_gray8_500ppi_lanczos3_v1
+  profile_version: "1"
+
+input:
+  media_type: image/png
+  frame_count: 1
+  colour_model: grayscale
+  bit_depth: 8
+  # An alpha channel or a palette changes what a sample means. Neither is
+  # converted away quietly: the image is refused and the profile is the thing
+  # that has to be changed (spec section 14).
+  alpha: forbidden
+  palette: forbidden
+
+resolution:
+  # The manifest's effective ppi, never the file's pHYs. SD300C declares 5080 in
+  # 10,115 files and is genuinely 2000; a scale computed from the header would be
+  # wrong by a factor of 2.54 for half of one release (docs/adr/0004, 0032).
+  source_ppi_field: effective_ppi
+  target_ppi: 500
+  upsampling: forbidden
+  dimension_rounding: nearest_half_up
+  preserve_physical_extent: true
+
+pixel_transform:
+  identity_when_source_ppi_equals_target: true
+  resize_when_source_ppi_above_target: true
+  # 2000 -> 500 in one resampling. Not 2000 -> 1000 -> 500: two Lanczos passes
+  # are a different filter from one, and SD300C would then have been through a
+  # different transformation than SD300B (spec section 21).
+  resize_path: direct_source_to_target
+  resampler_engine: pillow
+  resampler_filter: lanczos
+  lanczos_radius: 3
+  # Pillow's reducing_gap inserts a box pre-reduction before the real filter.
+  # It is faster and it is a second resampling nobody asked for.
+  reducing_gap: null
+
+forbidden_operations:
+  crop: true
+  pad: true
+  rotate: true
+  mirror: true
+  invert: true
+  binarize: true
+  contrast_normalize: true
+  histogram_equalize: true
+  sharpen: true
+  denoise: true
+  gamma_transform: true
+
+output:
+  media_type: image/png
+  colour_type: grayscale
+  bit_depth: 8
+  interlace: false
+  compression_level: 9
+  # Pillow's optimiser searches filter strategies; its choice is not pinned by
+  # anything in this file, so byte-identical output would stop being guaranteed.
+  optimize: false
+  ppi: 500
+  # int(500 / 0.0254 + 0.5). The canonical PNG declares its own resolution, so a
+  # reader that never sees this file still learns it.
+  png_pixels_per_meter_x: 19685
+  png_pixels_per_meter_y: 19685
+  strip_text_chunks: true
+  strip_colour_management_chunks: true
+  timestamps: forbidden

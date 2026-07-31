@@ -1,0 +1,49 @@
+# Materialising the shared canonical 500 ppi input set for SD300.
+#
+# This experiment produces images, not results. It compares nothing, applies no
+# threshold, and makes no claim about resolution. Its entire output is 3,000
+# immutable artefacts plus enough provenance that a second algorithm can be given
+# exactly the same ones (docs/adr/0031, docs/adr/0033).
+#
+# The numbers under `expected_shape` are asserted here rather than inside
+# `fpbench.imaging`, which has to stay true for any dataset at any resolution.
+# "1,000 images per release, 500 plain and 500 rolled" is true of this experiment
+# and of nothing else (spec section 6).
+
+experiment:
+  id: sd300_canonical500_images_v1
+  kind: shared_input_materialisation
+
+dataset:
+  ref: configs/datasets/sd300.yaml
+
+  # Every participating image must carry VERIFIED checksum evidence before it can
+  # be resampled. A canonical artefact derived from unchecked bytes would be
+  # provenance-shaped and provenance-free.
+  require_verified_checksums: true
+
+protocol:
+  ref: configs/protocols/sd300_50_subjects.yaml
+
+transform:
+  ref: configs/imaging/canonical_gray8_500ppi_lanczos3_v1.yaml
+
+expected_shape:
+  releases: [SD300A, SD300B, SD300C]
+
+  # 50 subjects x 10 fingers x (plain + roll).
+  images_per_release: 1000
+  participating_images: 3000
+
+  # The same 6,000 pairs the native run used. The images are derived from the
+  # pair manifest, never from a directory listing, so this number is what ties
+  # the set to that exact experiment (spec section 5).
+  comparisons: 6000
+
+  # Effective ppi per release, from the manifest and never from the file header.
+  # SD300C declares 5080 in 10,115 of its PNGs and is genuinely 2000; using the
+  # header would scale half of one release by a factor of 2.54 (docs/adr/0004).
+  source_ppi:
+    SD300A: 500
+    SD300B: 1000
+    SD300C: 2000

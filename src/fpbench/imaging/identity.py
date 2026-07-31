@@ -38,11 +38,24 @@ _MEDIA_TYPES = {".png": "image/png"}
 
 
 class IdentityImagePreparer(ImagePreparer):
-    """Passes the dataset's own file through, unmodified."""
+    """Passes the dataset's own file through, unmodified.
+
+    Its semantics are frozen. Stage 6A extended :class:`PreparedImage` with
+    fields describing an immutable preparation set; for this preparer every one
+    of them is absent, ``prepared_sha256`` is the source digest and
+    ``source_effective_ppi`` equals ``effective_ppi``. The identity preparer's
+    id, its version, the ``native_identity_60s_v1`` execution profile and the
+    6,000 results already stored under it are unchanged, and no historical
+    artefact is rewritten (spec section 61).
+    """
 
     @property
     def preparer_id(self) -> str:
         return PREPARER_ID
+
+    @property
+    def preparer_version(self) -> str:
+        return PREPARER_VERSION
 
     def prepare(
         self,

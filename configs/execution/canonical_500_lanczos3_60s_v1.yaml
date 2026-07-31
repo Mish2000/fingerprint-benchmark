@@ -1,0 +1,36 @@
+# The execution profile for a run over canonical 500 ppi inputs.
+#
+# An execution profile says how images are prepared and how long an adapter may
+# take. It carries no threshold and no decision profile, exactly as the native
+# one does (docs/adr/0003).
+#
+# Every value under `parameters` is a string, because that is what
+# `ExecutionProfile` holds and the profile hash is taken over exactly those
+# strings. A number written as an integer in YAML and as a string in the next
+# edit would otherwise be a different execution profile for no reason at all.
+#
+# `preparation_set_id` and `preparation_set_fingerprint` cannot be filled in
+# before the images exist: a set's id is derived from its entry hashes, and there
+# are no entry hashes until the last image has been transformed. They are written
+# here after the materialisation finishes, and a run refuses to start while the
+# placeholder is still present rather than inventing a set.
+
+profile:
+  profile_id: canonical_500_lanczos3_60s_v1
+  preparer_id: canonical_500_png
+  timeout_seconds: 60
+  deterministic_seed: 0
+
+parameters:
+  resolution_mode: canonical_500
+  target_ppi: "500"
+
+  transform_profile_id: canonical_gray8_500ppi_lanczos3_v1
+  transform_profile_fingerprint: "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373"
+
+  preparation_set_id: "TO_BE_FILLED_AFTER_MATERIALISATION"
+  preparation_set_fingerprint: "TO_BE_FILLED_AFTER_MATERIALISATION"
+
+  output_media_type: image/png
+  output_pixel_format: gray8
+  output_ppi_metadata_policy: fixed_500

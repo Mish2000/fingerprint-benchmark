@@ -8,6 +8,12 @@ name: sourceafis adapter
 #
 # The SD300 smoke test and the 6,000-comparison run are excluded. Both need the NIST
 # delivery, which is redistribution-restricted and is not present on a public runner.
+#
+# Since stage 6A it also runs the canonical-image integration: a real prepared-image
+# set, a real Canonical500ImagePreparer, the real Java bridge, and a stored result
+# carrying the whole preparation provenance. That seam exists in the 6,000-comparison
+# run and needs no restricted data to exercise, so there is no reason to run 6,000
+# comparisons in public CI to test it (spec section 104).
 
 on:
   push:
@@ -32,8 +38,13 @@ on:
       - "tests/**provenance**"
       - "tests/synthetic_ridges.py"
       - "tests/runworld.py"
+      - "tests/canonicalworld.py"
       - "tests/contract/**"
+      - "src/fpbench/imaging/**"
+      - "src/fpbench/core/imaging_models.py"
+      - "src/fpbench/storage/prepared_image_set_store.py"
       - "configs/algorithms/sourceafis*"
+      - "configs/execution/**"
       - "configs/experiments/**"
       - ".github/workflows/sourceafis-adapter.yml"
   pull_request:
@@ -58,8 +69,13 @@ on:
       - "tests/**provenance**"
       - "tests/synthetic_ridges.py"
       - "tests/runworld.py"
+      - "tests/canonicalworld.py"
       - "tests/contract/**"
+      - "src/fpbench/imaging/**"
+      - "src/fpbench/core/imaging_models.py"
+      - "src/fpbench/storage/prepared_image_set_store.py"
       - "configs/algorithms/sourceafis*"
+      - "configs/execution/**"
       - "configs/experiments/**"
       - ".github/workflows/sourceafis-adapter.yml"
 
@@ -81,8 +97,10 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install the project
-        run: pip install -e ".[dev]"
+      - name: Install the project and the pinned resampler
+        run: |
+          pip install -r requirements-imaging.lock
+          pip install -e ".[dev]"
 
       # 17 is the project's reference JVM: the exact version reaches the environment
       # fingerprint, and the pinned regression score is only asserted here.
@@ -124,3 +142,10 @@ jobs:
       # adapter tests and the synthetic end-to-end research run.
       - name: Run the SourceAFIS Python tests
         run: pytest -m "sourceafis and not dataset"
+
+      # A canonical artefact, through the real bridge, into a real result. The
+      # seam this covers — preparer to adapter to stored preparation provenance —
+      # is the one thing the 6,000-comparison run adds that the synthetic
+      # structural test cannot reach on its own.
+      - name: Run the canonical-image integration
+        run: pytest -m "sourceafis and canonical500 and not dataset" -q

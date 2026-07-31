@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "run_id": "run_7ac1cecc0bb3",
+  "run_fingerprint": "7ac1cecc0bb39fd8eb91ccbea11daa36d8472f38ed1807fd4bcb3d0521ed66e1",
+  "result_set_id": "resultset_2bf3cacfd806",
+  "result_set_fingerprint": "2bf3cacfd80696565c6795baed291e0006ccc8e71c6a74093a76bc88a74d5ef0",
+  "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "decision_profile_id": "sourceafis_java_3_18_1_documented_40_v1",
+  "decision_profile_fingerprint": "02be9e07d28522b657f4fed3ee930b4c117573403926ad919b745274d6b6de4c",
+  "decision_set_id": "decisionset_0122544e71b1",
+  "decision_set_fingerprint": "0122544e71b1b0489f0cf652a9216ce0f3ec3691db2d972e7ed8750cb9023451",
+  "eligibility_set_id": "eligibilityset_77dbf75cdc76",
+  "eligibility_set_fingerprint": "77dbf75cdc766f097521fe24e9479e52abb5e958d6e02f2e05f4c92750c93ab6",
+  "unconditional_view_id": "view_plain_roll_mated_unconditional_v1_d841c66eb313",
+  "unconditional_view_fingerprint": "d841c66eb313a4c6c2b9d505e83d0c5ac9381275f090bb94537e00b11fa7d734",
+  "conditional_view_id": "view_plain_roll_mated_both_self_match_v1_5dd4c68e607d",
+  "conditional_view_fingerprint": "5dd4c68e607d588d3f3a9c0197eeeb4cc73f8cf24e85a2cd4de69a27fa4536da",
+  "non_mated_view_id": "view_plain_roll_non_mated_same_subject_cyclic_v1_6577e8c145e8",
+  "non_mated_view_fingerprint": "6577e8c145e8ea3f41d81da9206bbda4d8935d62a501ae934832eca57d1867bb",
+  "derivation_source_commit": "716ca20929b821cce8796c11d35e979afcad1a6f",
+  "derivation_source_tree_clean": true,
+  "total_decisions": 6000,
+  "decided_count": 6000,
+  "undecidable_count": 0,
+  "total_eligibility_units": 1500,
+  "view_total_rows": {
+    "plain_roll_mated_both_self_match_v1": 1500,
+    "plain_roll_mated_unconditional_v1": 1500,
+    "plain_roll_non_mated_same_subject_cyclic_v1": 1500
+  },
+  "statement": "This receipt proves deterministic decision and eligibility derivation. It contains no biometric performance metric or conclusion.",
+  "created_utc": "2026-07-31T07:39:01.409685+00:00"
+}

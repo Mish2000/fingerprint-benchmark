@@ -316,6 +316,14 @@ def _parser() -> argparse.ArgumentParser:
         "and skipped without counting against the budget.",
     )
     parser.add_argument("--run-id", default=None)
+    parser.add_argument(
+        "--build-jar",
+        type=Path,
+        default=None,
+        help="Materialise the runtime bundle from this jar instead of the build "
+        "output. A Maven shaded jar is not byte-reproducible, so this is how a "
+        "later run pins the exact executable an earlier one used.",
+    )
     return parser
 
 
@@ -330,7 +338,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     try:
         if arguments.command == "prepare":
-            prepared = prepare_sourceafis_native_run(**shared)
+            prepared = prepare_sourceafis_native_run(
+                **shared, build_jar=arguments.build_jar
+            )
             print(f"run          {prepared.run.run_id}")
             print(f"plan         {prepared.plan.plan_id} "
                   f"({prepared.plan.total_jobs} jobs)")

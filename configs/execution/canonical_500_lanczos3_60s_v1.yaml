@@ -28,8 +28,8 @@ parameters:
   transform_profile_id: canonical_gray8_500ppi_lanczos3_v1
   transform_profile_fingerprint: "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373"
 
-  preparation_set_id: "TO_BE_FILLED_AFTER_MATERIALISATION"
-  preparation_set_fingerprint: "TO_BE_FILLED_AFTER_MATERIALISATION"
+  preparation_set_id: "prepset_be560e047991"
+  preparation_set_fingerprint: "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f"
 
   output_media_type: image/png
   output_pixel_format: gray8

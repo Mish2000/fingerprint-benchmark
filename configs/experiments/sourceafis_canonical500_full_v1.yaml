@@ -1,0 +1,82 @@
+# The stage 6A canonical run: the same 6,000 SD300 comparisons, over the shared
+# canonical 500 ppi input set.
+#
+# Everything here is the native run — same protocol, same cohort, same pair
+# manifest, same SourceAFIS 3.18.1, same adapter, same bridge, same timeout,
+# sequential, no retries. The orchestration is the same code. The single
+# difference is which file the adapter opens (docs/adr/0031).
+#
+# `comparison_anchor` records which native run stage 6B will join against. It is
+# read by nothing in this stage: no native score is opened here, and no
+# native-versus-canonical statement is produced.
+
+experiment:
+  id: sourceafis_canonical500_full_v1
+  kind: full_raw_score_run
+  replicate_index: 0
+
+dataset:
+  ref: configs/datasets/sd300.yaml
+  require_verified_checksums: true
+
+protocol:
+  ref: configs/protocols/sd300_50_subjects.yaml
+
+source:
+  # The same protocol, cohort and pair manifest the native run used. Verified
+  # structurally at prepare time rather than trusted from this file.
+  protocol_id: sd300_50_subjects
+  cohort_id: sd300_50_subjects_test_22f8d52a7478
+  pair_manifest_hash: ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b
+
+  # Filled in after the materialisation, for the reason given in
+  # configs/execution/canonical_500_lanczos3_60s_v1.yaml.
+  preparation_set_id: "TO_BE_FILLED_AFTER_MATERIALISATION"
+  preparation_set_fingerprint: "TO_BE_FILLED_AFTER_MATERIALISATION"
+
+algorithm:
+  ref: configs/algorithms/sourceafis_java_3_18_1.yaml
+
+  # Unchanged, and that is the point. No adapter version bump, no bridge version
+  # bump, no descriptor change: native and canonical differ in the execution
+  # profile, the preparation set and therefore the run fingerprint, and nowhere
+  # else (spec section 66).
+  algorithm_id: sourceafis_java
+  implementation_version: "3.18.1"
+  adapter_id: sourceafis_java_subprocess
+
+execution:
+  execution_profile_id: canonical_500_lanczos3_60s_v1
+  resolution_mode: canonical_500
+  sequential: true
+  retries: 0
+
+runtime:
+  materialization_policy: content_addressed_copy_v1
+  research_mode: true
+
+expected_shape:
+  comparisons: 6000
+  per_release: 2000
+  per_stage: 1500
+  participating_images: 3000
+
+  # Which resolution each release's artefacts must have been scaled *from*.
+  # Checked through the preparation entries, because by the time the adapter saw
+  # a file it was already 500 and the source resolution is no longer inferable
+  # from anything the adapter recorded (spec section 76).
+  source_ppi:
+    SD300A: 500
+    SD300B: 1000
+    SD300C: 2000
+
+comparison_anchor:
+  native_run_id: run_7ac1cecc0bb3
+  native_result_set_id: resultset_2bf3cacfd806
+  paired_analysis_in_this_stage: false
+
+decisions: []          # no threshold is applied in stage 6A
+
+reporting:
+  biometric_metrics: false   # no FMR, no FNMR, no EER, no accuracy claim
+  operational_summary: true  # timings, counts and failure codes only

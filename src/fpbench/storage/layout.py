@@ -59,6 +59,11 @@ __all__ = [
     "derivation_experiment_directory",
     "definitions_directory",
     "definition_directory",
+    "prepared_images_root",
+    "prepared_image_blobs_root",
+    "prepared_image_blob_path",
+    "prepared_image_pending_directory",
+    "prepared_image_set_directory",
     "VIEW_DIRECTORY_NAMES",
 ]
 
@@ -188,3 +193,80 @@ def definition_directory(
     return definitions_directory(root, experiment_id, run_id) / validate_id(
         definition_id
     )
+
+
+# -------------------------------------------------------------- prepared images
+#
+# A prepared-image set is not run-scoped. That is the entire point: one set is
+# materialised once and handed unchanged to SourceAFIS, to NBIS and to whatever
+# comes after them (docs/adr/0033). So it lives beside ``runtime/`` rather than
+# under ``results/<run_id>/``::
+#
+#     <workspace>/prepared-images/
+#     ├── images/<first-two-sha-chars>/<encoded_sha256>.png
+#     ├── pending/<preparation_definition_id>/
+#     │   ├── transform-profile.json
+#     │   ├── transform-runtime.json
+#     │   ├── preparation-definition.json
+#     │   └── entries/<image_id>.json
+#     └── <preparation_set_id>/
+#         ├── transform-profile.json
+#         ├── transform-runtime.json
+#         ├── preparation-definition.json
+#         ├── manifest.json
+#         ├── entries.parquet
+#         ├── preparation-summary.json
+#         ├── preparation-receipt.json
+#         └── preparation-finalization.json
+#
+# Two deliberate departures from the shape the stage 6A specification sketches,
+# both of which strengthen what it asks for rather than relax it.
+#
+# **The canonical PNGs sit at the workspace level, not inside the set.** A set's
+# id is derived from its entry hashes and therefore cannot be known until the
+# last image has been produced, so images cannot be written into their final
+# set directory as they are made. Making them workspace-level and
+# content-addressed solves that without a rename and without a copy — and it is
+# what content addressing is *for*: two sets that share an image share the
+# bytes, which is exactly the reuse section 40 permits. ``relative_path`` stays
+# workspace-relative, so nothing downstream notices.
+#
+# **Work in progress lives under ``pending/``.** An unfinished materialisation
+# has a definition id but no set id, and giving it a directory of its own keeps
+# a half-built set from ever looking like a finished one.
+
+
+def prepared_images_root(root: Path) -> Path:
+    return Path(root) / "prepared-images"
+
+
+def prepared_image_blobs_root(root: Path) -> Path:
+    """Where canonical PNGs live, addressed by the digest of their own bytes."""
+    return prepared_images_root(root) / "images"
+
+
+def prepared_image_blob_path(root: Path, encoded_sha256: str) -> Path:
+    """``images/<first two hex chars>/<full digest>.png``.
+
+    Fanned out by the first byte so that 3,000 files — or 300,000 — never land
+    in one directory. The filename is the digest and nothing else: an image id
+    or a subject id in a path would put a dataset inventory into a directory
+    listing (spec section 37).
+    """
+    digest = str(encoded_sha256).strip().lower()
+    if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+        raise ValueError(
+            f"a content-addressed image is named by a 64-character digest, got "
+            f"{encoded_sha256!r}"
+        )
+    return prepared_image_blobs_root(root) / digest[:2] / f"{digest}.png"
+
+
+def prepared_image_pending_directory(root: Path, definition_id: str) -> Path:
+    """Where an unfinished materialisation keeps its per-image entries."""
+    return prepared_images_root(root) / "pending" / validate_id(definition_id)
+
+
+def prepared_image_set_directory(root: Path, preparation_set_id: str) -> Path:
+    """The immutable, finished set."""
+    return prepared_images_root(root) / validate_id(preparation_set_id)

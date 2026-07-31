@@ -1,0 +1,362 @@
+{
+  "schema": "imaging_golden_fixtures_v1",
+  "generated_under": {
+    "transform_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+    "transform_profile_fingerprint": "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373",
+    "pillow_version": "12.3.0",
+    "pillow_distribution_fingerprint": "fd08f74b665cbcdbf01d64edadec895d20cc330166c224e082b4bbbb98be964f",
+    "zlib_runtime_version": "1.3.1.zlib-ng"
+  },
+  "fixtures": {
+    "gray8_even_500ppi": {
+      "source": {
+        "width": 64,
+        "height": 48,
+        "effective_ppi": 500,
+        "pixel_sha256": "a8da0b57f021906f28bf806f3e9d001fbeaacd4aefb4881d72d840901d67f621",
+        "encoded_sha256": "f74913231534d58b41363b5970b1ac85485b6d8721e51a3b935c10069e1a9981",
+        "size_bytes": 120
+      },
+      "output": {
+        "width": 64,
+        "height": 48,
+        "effective_ppi": 500,
+        "transform_action": "identity_pixels_reencode",
+        "scale": "500/500",
+        "pixel_sha256": "a8da0b57f021906f28bf806f3e9d001fbeaacd4aefb4881d72d840901d67f621",
+        "encoded_sha256": "f74913231534d58b41363b5970b1ac85485b6d8721e51a3b935c10069e1a9981",
+        "size_bytes": 120,
+        "chunk_types": [
+          "IHDR",
+          "pHYs",
+          "IDAT",
+          "IEND"
+        ],
+        "phys": {
+          "x": 19685,
+          "y": 19685,
+          "unit": 1
+        },
+        "extent_error_ppm": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    "gray8_odd_1000ppi": {
+      "source": {
+        "width": 41,
+        "height": 27,
+        "effective_ppi": 1000,
+        "pixel_sha256": "ce3421dedda93051c54eb06fa9488b9c24578030b085d7392eaa4a13fa5bb2fe",
+        "encoded_sha256": "7044777ebcabe1082e8da4a992a587ba95b137c85b989a3d362f4e8e277ed5c9",
+        "size_bytes": 105
+      },
+      "output": {
+        "width": 21,
+        "height": 14,
+        "effective_ppi": 500,
+        "transform_action": "downsample_2x_lanczos3",
+        "scale": "500/1000",
+        "pixel_sha256": "915d4fbfef808e9164cb23d3cc9ccbf89a6ca091f33422d29a079cef0e4ed59c",
+        "encoded_sha256": "22422e8ba46e579d1507d38f07a4ba22bdea2e9d18dceed65fb9a57dd60caea7",
+        "size_bytes": 393,
+        "chunk_types": [
+          "IHDR",
+          "pHYs",
+          "IDAT",
+          "IEND"
+        ],
+        "phys": {
+          "x": 19685,
+          "y": 19685,
+          "unit": 1
+        },
+        "extent_error_ppm": {
+          "x": 24390,
+          "y": 37037
+        }
+      }
+    },
+    "gray8_quarter_remainder_2000ppi": {
+      "source": {
+        "width": 1006,
+        "height": 1002,
+        "effective_ppi": 2000,
+        "pixel_sha256": "cf0d843762bb3cca5907a0ba1876d80e05a99cff817b55541790d3bacccc9073",
+        "encoded_sha256": "7f0de292c36e5de2d96da17831c362eed089b392fd3121a8e98f4068b2bfb64a",
+        "size_bytes": 2218
+      },
+      "output": {
+        "width": 252,
+        "height": 251,
+        "effective_ppi": 500,
+        "transform_action": "downsample_4x_lanczos3",
+        "scale": "500/2000",
+        "pixel_sha256": "793599b6466eede8a8b81ce6be3baedd3d13fef02c15033d4c611973070f488c",
+        "encoded_sha256": "64f5f13ad7446e764cee70d499962d9fadccf4b01e9ba0b87fec5e5193d76530",
+        "size_bytes": 53321,
+        "chunk_types": [
+          "IHDR",
+          "pHYs",
+          "IDAT",
+          "IEND"
+        ],
+        "phys": {
+          "x": 19685,
+          "y": 19685,
+          "unit": 1
+        },
+        "extent_error_ppm": {
+          "x": 1988,
+          "y": 1996
+        }
+      }
+    },
+    "checkerboard_2000ppi": {
+      "source": {
+        "width": 64,
+        "height": 64,
+        "effective_ppi": 2000,
+        "pixel_sha256": "ebc0ca43b017222799029f09cd141497cdbec2dbfff0d1e405d99719bb601656",
+        "encoded_sha256": "1b0b95b6796d356c2bdec4da1db0e1643c5660d256710a894b1fe6ceb58d63fb",
+        "size_bytes": 121
+      },
+      "output": {
+        "width": 16,
+        "height": 16,
+        "effective_ppi": 500,
+        "transform_action": "downsample_4x_lanczos3",
+        "scale": "500/2000",
+        "pixel_sha256": "ae178889e14145b7c56dfdf9a268ae43f1f2bbbff978bf563c6c71bab2d8a230",
+        "encoded_sha256": "b1f2f6631b883269034f17f5fffde31f57e424914d604d3393f450131a88fb83",
+        "size_bytes": 128,
+        "chunk_types": [
+          "IHDR",
+          "pHYs",
+          "IDAT",
+          "IEND"
+        ],
+        "phys": {
+          "x": 19685,
+          "y": 19685,
+          "unit": 1
+        },
+        "extent_error_ppm": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    "horizontal_ridges_1000ppi": {
+      "source": {
+        "width": 64,
+        "height": 64,
+        "effective_ppi": 1000,
+        "pixel_sha256": "46690fd73039d305d03a17c75912a9128afe2d906a6f1acd5ac1bf84440c36c2",
+        "encoded_sha256": "c2a910e27dcad8973e34e13cec483bf69672c36ffd52d2f31ba5ca91d089c726",
+        "size_bytes": 125
+      },
+      "output": {
+        "width": 32,
+        "height": 32,
+        "effective_ppi": 500,
+        "transform_action": "downsample_2x_lanczos3",
+        "scale": "500/1000",
+        "pixel_sha256": "5c4ee416e625a6b9861f57d61562f65f7f6d06776be1bf86cbe525b180c81062",
+        "encoded_sha256": "1528438cdb14ccb2d3c748bac670607e5225cda8e30e8ad97b7645600f53e8fe",
+        "size_bytes": 120,
+        "chunk_types": [
+          "IHDR",
+          "pHYs",
+          "IDAT",
+          "IEND"
+        ],
+        "phys": {
+          "x": 19685,
+          "y": 19685,
+          "unit": 1
+        },
+        "extent_error_ppm": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    "vertical_ridges_1000ppi": {
+      "source": {
+        "width": 64,
+        "height": 64,
+        "effective_ppi": 1000,
+        "pixel_sha256": "8c15d9e76e88b4fb45f1eabbc74ca4df41b37fe8761641707d13049452e91570",
+        "encoded_sha256": "626e03ba50958cdc9de3270238fe46a32b26b7437a82186b5c19fd2e80e5dc8b",
+        "size_bytes": 126
+      },
+      "output": {
+        "width": 32,
+        "height": 32,
+        "effective_ppi": 500,
+        "transform_action": "downsample_2x_lanczos3",
+        "scale": "500/1000",
+        "pixel_sha256": "9f73e034876eee5cbc1901649b08fbbb1fb10176a578f058c06934bef95f7439",
+        "encoded_sha256": "41eb3f50eaec41dedafe0b4bd2cab9d394b1938912bd7a7563ae0e371f100a65",
+        "size_bytes": 110,
+        "chunk_types": [
+          "IHDR",
+          "pHYs",
+          "IDAT",
+          "IEND"
+        ],
+        "phys": {
+          "x": 19685,
+          "y": 19685,
+          "unit": 1
+        },
+        "extent_error_ppm": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    "impulse_2000ppi": {
+      "source": {
+        "width": 65,
+        "height": 65,
+        "effective_ppi": 2000,
+        "pixel_sha256": "796b1cd43bb8e558a6340385a04664ee321c7b959d0b26c1c86333631444d992",
+        "encoded_sha256": "cd66c3a337b995e048e70f6d6514bd0dbcaddbd98bd7c33e4e409214e36530a7",
+        "size_bytes": 109
+      },
+      "output": {
+        "width": 16,
+        "height": 16,
+        "effective_ppi": 500,
+        "transform_action": "downsample_4x_lanczos3",
+        "scale": "500/2000",
+        "pixel_sha256": "274c97ad3888e88a1d574c120212b12a3b160555d7e938b628aae17f3efacef7",
+        "encoded_sha256": "c00a6da31dab1cec4d1e05c71f00a5170cea1080ffb858921d286565f19f3cca",
+        "size_bytes": 98,
+        "chunk_types": [
+          "IHDR",
+          "pHYs",
+          "IDAT",
+          "IEND"
+        ],
+        "phys": {
+          "x": 19685,
+          "y": 19685,
+          "unit": 1
+        },
+        "extent_error_ppm": {
+          "x": 15385,
+          "y": 15385
+        }
+      }
+    },
+    "constant_black_1000ppi": {
+      "source": {
+        "width": 32,
+        "height": 32,
+        "effective_ppi": 1000,
+        "pixel_sha256": "79f2aa8b57aeeec45256b51ba60c39e29b57bc00d25cb339cc4ee9c85a129e62",
+        "encoded_sha256": "9a4f13f9a5c244b202492447d8e5ac6daaa3942f4ea1229e6bfe01d6d349e86c",
+        "size_bytes": 96
+      },
+      "output": {
+        "width": 16,
+        "height": 16,
+        "effective_ppi": 500,
+        "transform_action": "downsample_2x_lanczos3",
+        "scale": "500/1000",
+        "pixel_sha256": "1a20c8eae42ed0bf1fd053a26e430088f60588c05a195e17fc35ee609ffe753b",
+        "encoded_sha256": "8ed2a412d406d05076e646168999a1c05fce7e78dd6da9516063e653b4056f60",
+        "size_bytes": 91,
+        "chunk_types": [
+          "IHDR",
+          "pHYs",
+          "IDAT",
+          "IEND"
+        ],
+        "phys": {
+          "x": 19685,
+          "y": 19685,
+          "unit": 1
+        },
+        "extent_error_ppm": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    "constant_white_1000ppi": {
+      "source": {
+        "width": 32,
+        "height": 32,
+        "effective_ppi": 1000,
+        "pixel_sha256": "55d1b074b187f5664376c7d8e2b892020b6aa1f7386ab31e27abc29315a212f1",
+        "encoded_sha256": "1823d5f51bbc4ad69586462857f3ced5cbee6fae673b2bc8c771fd277503f2a3",
+        "size_bytes": 102
+      },
+      "output": {
+        "width": 16,
+        "height": 16,
+        "effective_ppi": 500,
+        "transform_action": "downsample_2x_lanczos3",
+        "scale": "500/1000",
+        "pixel_sha256": "1a598b03f3d08be08ad9d814bf097d4f47c7a98c6b92d13434980ca8b1eddf9c",
+        "encoded_sha256": "045a958c9220d82fbb547e4f74ddea92ae744a86086648292921f306a4d4636a",
+        "size_bytes": 95,
+        "chunk_types": [
+          "IHDR",
+          "pHYs",
+          "IDAT",
+          "IEND"
+        ],
+        "phys": {
+          "x": 19685,
+          "y": 19685,
+          "unit": 1
+        },
+        "extent_error_ppm": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    "gradient_1000ppi": {
+      "source": {
+        "width": 64,
+        "height": 32,
+        "effective_ppi": 1000,
+        "pixel_sha256": "813879f9cea039260025780c14fd06521608a69e029b7940d1c93c88cc25d33b",
+        "encoded_sha256": "52bc85e94fbeb84a2357332f84b73da7dec8183f8cf3aa4bdb3c8ac739a3ba8e",
+        "size_bytes": 116
+      },
+      "output": {
+        "width": 32,
+        "height": 16,
+        "effective_ppi": 500,
+        "transform_action": "downsample_2x_lanczos3",
+        "scale": "500/1000",
+        "pixel_sha256": "252cb86d9bacba20d47a2c331cfaf592e4d7b1fe9468023ab3a6009aabf9efaf",
+        "encoded_sha256": "5b8374e651366720c72af55ff73023702bf8d011c6e913b4da4d70c883e05db9",
+        "size_bytes": 103,
+        "chunk_types": [
+          "IHDR",
+          "pHYs",
+          "IDAT",
+          "IEND"
+        ],
+        "phys": {
+          "x": 19685,
+          "y": 19685,
+          "unit": 1
+        },
+        "extent_error_ppm": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    }
+  }
+}

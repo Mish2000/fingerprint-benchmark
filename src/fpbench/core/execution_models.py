@@ -140,6 +140,20 @@ class PreparedImage:
     ``local_path`` is absolute and valid only for the lifetime of the run. It is
     deliberately never written into a stored result: a result that embeds one
     machine's paths is not portable evidence.
+
+    **Two digests, and they are not the same digest.** ``expected_sha256`` is
+    the *publisher's* checksum of the file NIST delivered — it keeps its name
+    for compatibility with every result already stored, and
+    :attr:`source_expected_sha256` is the honest alias. ``prepared_sha256`` is
+    the file the adapter will actually open. Under the identity preparer they
+    coincide; under a canonical preparer they must not, and overloading one
+    field to mean both would make a resampled run indistinguishable from a
+    native one (spec section 60).
+
+    Everything from ``preparation_set_id`` down is ``None`` for a preparer that
+    materialises nothing. That is not a placeholder for later — it is the
+    difference between "this file is the dataset's" and "this file is an
+    artefact of a set with an identity".
     """
 
     image_id: ImageId
@@ -150,6 +164,25 @@ class PreparedImage:
     checksum_status: ChecksumStatus
     preparation_profile_id: str
     preparation_hash: str
+
+    #: The resolution of the file this one was derived from. Equal to
+    #: ``effective_ppi`` when nothing was resampled.
+    source_effective_ppi: int | None = None
+
+    #: The bytes the adapter opens, and their size. Defaults to the source
+    #: digest so an identity preparer needs no ceremony.
+    prepared_sha256: str | None = None
+    prepared_size_bytes: int | None = None
+
+    #: Which immutable set this artefact belongs to, and which entry of it.
+    preparation_set_id: str | None = None
+    preparation_set_fingerprint: str | None = None
+    preparation_entry_hash: str | None = None
+
+    #: The raster's identity, independent of PNG compression (docs/adr/0034).
+    pixel_sha256: str | None = None
+    pixel_width: int | None = None
+    pixel_height: int | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -172,6 +205,77 @@ class PreparedImage:
             _require_sha256(self.preparation_hash, "preparation_hash"),
         )
         validate_id(self.preparation_profile_id)
+
+        if self.source_effective_ppi is None:
+            object.__setattr__(self, "source_effective_ppi", self.effective_ppi)
+        elif int(self.source_effective_ppi) <= 0:
+            raise ValueError("source_effective_ppi must be positive")
+        else:
+            object.__setattr__(
+                self, "source_effective_ppi", int(self.source_effective_ppi)
+            )
+
+        if self.prepared_sha256 is None:
+            object.__setattr__(self, "prepared_sha256", self.expected_sha256)
+        else:
+            object.__setattr__(
+                self,
+                "prepared_sha256",
+                _require_sha256(self.prepared_sha256, "prepared_sha256"),
+            )
+        if self.prepared_size_bytes is not None:
+            if int(self.prepared_size_bytes) <= 0:
+                raise ValueError("prepared_size_bytes must be positive")
+            object.__setattr__(
+                self, "prepared_size_bytes", int(self.prepared_size_bytes)
+            )
+
+        for name in ("preparation_set_id", "preparation_set_fingerprint",
+                     "preparation_entry_hash", "pixel_sha256"):
+            value = getattr(self, name)
+            if value is None:
+                continue
+            if name == "preparation_set_id":
+                validate_id(value)
+            else:
+                object.__setattr__(self, name, _require_sha256(value, name))
+        for name in ("pixel_width", "pixel_height"):
+            value = getattr(self, name)
+            if value is None:
+                continue
+            if int(value) <= 0:
+                raise ValueError(f"{name} must be positive")
+            object.__setattr__(self, name, int(value))
+
+        # A set id without a fingerprint, or an entry hash without a set, would
+        # let a result claim membership of something it could not be checked
+        # against.
+        bound = (
+            self.preparation_set_id,
+            self.preparation_set_fingerprint,
+            self.preparation_entry_hash,
+        )
+        if any(item is not None for item in bound) and not all(
+            item is not None for item in bound
+        ):
+            raise ValueError(
+                "a prepared image belonging to a preparation set must name the set, "
+                "its fingerprint and its entry hash, or none of the three"
+            )
+
+    @property
+    def source_expected_sha256(self) -> str:
+        """The publisher's digest of the file this was derived from.
+
+        The honest name for ``expected_sha256``, which keeps its own name only
+        so that results and adapters written before canonical preparation still
+        read the same field.
+        """
+        return self.expected_sha256
+
+    @property
+    def belongs_to_preparation_set(self) -> bool:
+        return self.preparation_set_id is not None
 
 
 # ------------------------------------------------------------------ artifacts

@@ -46,6 +46,14 @@ __all__ = [
     "MetricSetIntegrityError",
     "EvaluationReportError",
     "EvaluationFinalizationError",
+    "ImagingError",
+    "TransformProfileError",
+    "SourceImageContractError",
+    "PreparedImageSetConflictError",
+    "PreparationDerivationError",
+    "PreparationIntegrityError",
+    "PreparationFinalizationError",
+    "PreparedImageDriftError",
 ]
 
 
@@ -337,4 +345,77 @@ class EvaluationFinalizationError(MetricError):
     The same contract as a derivation one layer down: everything before the
     marker is retryable, and once the marker exists it must keep naming exactly
     the metric set, summary, report and receipt it was issued over.
+    """
+
+
+# --------------------------------------------------------------------- imaging
+#
+# The layer that turns delivered source images into one shared canonical input
+# set. None of this is a biometric vocabulary either: an image that resamples
+# cleanly to 500 ppi has not been judged, and one that cannot be resampled has
+# not failed a comparison. These are the conditions under which a *prepared
+# artefact* cannot honestly be produced or believed (docs/adr/0031).
+
+
+class ImagingError(FpbenchError):
+    """A shared image transformation could not be carried out as defined."""
+
+
+class TransformProfileError(ImagingError):
+    """A transform profile is missing, malformed or internally inconsistent.
+
+    A resampler nobody named, a target resolution above the source, a forbidden
+    operation left undeclared, an output pixel format the profile does not pin.
+    There is deliberately no default: an unstated resampling rule is a rule
+    every algorithm would be free to read differently (docs/adr/0031).
+    """
+
+
+class SourceImageContractError(ImagingError):
+    """A source image is not the single-frame 8-bit grayscale PNG it must be.
+
+    Raised rather than silently converted. An RGB image flattened quietly, or a
+    16-bit image truncated quietly, would change what the experiment measured
+    without changing anything the experiment records (spec section 14).
+    """
+
+
+class PreparedImageSetConflictError(StorageError):
+    """A different prepared artefact is already stored under this identity.
+
+    A canonical image is a pure function of the source bytes, the transform
+    profile and the pinned resampler, so this means one of those changed while
+    the identity did not — never something to resolve by overwriting.
+    """
+
+
+class PreparationDerivationError(ImagingError):
+    """A prepared-image set could not be derived from the inputs it cites.
+
+    A participating image absent from the manifest, a source checksum that was
+    never verified, a runtime that changed half way through materialisation.
+    """
+
+
+class PreparationIntegrityError(ImagingError):
+    """A stored prepared-image set does not survive re-verification.
+
+    A prepared-image set is not evidence of itself: verification re-reads every
+    source record, re-hashes every output raster and re-derives every entry hash
+    from the bytes on disk (docs/adr/0033).
+    """
+
+
+class PreparationFinalizationError(ImagingError):
+    """A preparation could not be finalised, or its marker no longer holds."""
+
+
+class PreparedImageDriftError(RuntimeDriftError):
+    """A prepared artefact changed while a run was comparing against it.
+
+    Deliberately a :class:`RuntimeDriftError`, so the runner's existing rule
+    applies unchanged: it is re-raised unrecorded and is fatal to the whole
+    invocation. A result written after the canonical PNG underneath it changed
+    would claim an input it did not have, and no later run can salvage it — the
+    fix is a new preparation set and a new run (docs/adr/0033).
     """

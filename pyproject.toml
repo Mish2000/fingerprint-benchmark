@@ -10,6 +10,10 @@ requires-python = ">=3.11"
 dependencies = [
     "pyarrow>=15",
     "PyYAML>=6",
+    # The canonical-500 resampler. Pinned exactly, and pinned again in
+    # requirements-imaging.lock, whose digest is part of every prepared-image
+    # set's runtime identity (docs/adr/0031).
+    "Pillow==12.3.0",
 ]
 
 [project.optional-dependencies]
@@ -29,4 +33,6 @@ markers = [
     "full_run: executes the complete 6,000-job dummy protocol (minutes, own CI workflow)",
     "decisions: threshold application, SELF eligibility and evaluation views (no JVM, no dataset)",
     "metrics: counting decisions into rates with named denominators (no JVM, no dataset)",
+    "imaging: the shared canonical image pipeline — geometry, pixels, PNG, prepared sets (no JVM, no dataset)",
+    "canonical500: exercises the canonical_500 profile end to end (may also need dataset or sourceafis)",
 ]

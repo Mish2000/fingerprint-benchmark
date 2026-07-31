@@ -38,6 +38,7 @@ __all__ = [
     "MetricScopeKind",
     "MetricObservationStatus",
     "EvaluationStatus",
+    "PreparationStatus",
 ]
 
 
@@ -512,4 +513,40 @@ class EvaluationStatus(str, Enum):
     METRICS_READY = "metrics_ready"
     REPORT_READY = "report_ready"
     EVALUATION_READY = "evaluation_ready"
+    INVALID = "invalid"
+
+
+# --------------------------------------------------------------------- imaging
+#
+# The vocabulary of the layer that materialises a shared, algorithm-agnostic
+# input set. It sits *below* execution rather than beside it: a prepared-image
+# set is an input every algorithm is handed, not a result any algorithm produced
+# (docs/adr/0031, docs/adr/0033).
+
+
+class PreparationStatus(str, Enum):
+    """How much of a prepared-image set's evidence chain is in place.
+
+    The same shape as :class:`ResearchRunStatus` one layer up, and for the same
+    reason: everything before the finalization marker is retryable work, and
+    ``PREPARATION_READY`` means the artefacts are reproducible — never that the
+    resampling improved anything.
+    """
+
+    #: No transform profile, no runtime, no definition.
+    NOT_PREPARED = "not_prepared"
+    #: Profile, runtime and definition are written; no image has been produced.
+    PROFILE_READY = "profile_ready"
+    #: Some expected images have entries, some do not.
+    PARTIAL = "partial"
+    #: Every expected image has an entry and an output file; nothing has
+    #: verified them as a whole.
+    IMAGES_COMPLETE = "images_complete"
+    #: The manifest is on disk and the set re-verifies, but the receipt or the
+    #: finalization marker is missing.
+    VERIFIED = "verified"
+    #: Every link is present and revalidated: sources, profile, runtime,
+    #: entries, outputs, manifest, receipt and marker.
+    PREPARATION_READY = "preparation_ready"
+    #: Something in the chain contradicts something else.
     INVALID = "invalid"

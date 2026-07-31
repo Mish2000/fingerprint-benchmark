@@ -30,9 +30,11 @@ source:
   pair_manifest_hash: ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b
 
   # Filled in after the materialisation, for the reason given in
-  # configs/execution/canonical_500_lanczos3_60s_v1.yaml.
-  preparation_set_id: "TO_BE_FILLED_AFTER_MATERIALISATION"
-  preparation_set_fingerprint: "TO_BE_FILLED_AFTER_MATERIALISATION"
+  # configs/execution/canonical_500_lanczos3_60s_v1.yaml. 3,000 images, 1,000 per
+  # release, materialised under transform runtime imgruntime_31a0a4346a3d
+  # (Pillow 12.3.0) from source commit 114aea2.
+  preparation_set_id: "prepset_be560e047991"
+  preparation_set_fingerprint: "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f"
 
 algorithm:
   ref: configs/algorithms/sourceafis_java_3_18_1.yaml

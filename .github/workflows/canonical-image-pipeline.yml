@@ -65,10 +65,10 @@ jobs:
       - name: Golden fixtures are committed and unchanged
         # Regenerating must be a deliberate act with a reviewed diff. A fixture
         # that changed because somebody touched the profile is the single most
-        # useful signal this project has that canonical pixels moved.
-        run: |
-          python tests/fixtures/imaging/generate.py
-          git diff --exit-code -- tests/fixtures/imaging/
+        # useful signal this project has that canonical pixels moved. The check
+        # generates into a temporary directory because the wheel fingerprint
+        # and zlib build recorded as provenance are platform-specific.
+        run: python tests/fixtures/imaging/generate.py --check
 
       - name: The synthetic structural chain, end to end
         run: pytest tests/integration/test_canonical_structural.py -q

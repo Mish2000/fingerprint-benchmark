@@ -19,8 +19,12 @@ ppi the manifest assigns it.
 
 from __future__ import annotations
 
+import argparse
+import copy
+import difflib
 import json
 import sys
+import tempfile
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -107,7 +111,7 @@ FIXTURES: dict[str, tuple[int, int, int, object]] = {
 }
 
 
-def build() -> dict[str, object]:
+def build(*, fixture_directory: Path = FIXTURE_DIRECTORY) -> dict[str, object]:
     profile = load_transform_profile()
     pillow_version, distribution_fingerprint, _ = pillow_distribution_fingerprint()
 
@@ -122,7 +126,7 @@ def build() -> dict[str, object]:
         source_bytes = encode_canonical_png(
             width=width, height=height, raster=raster, profile=profile
         )
-        path = FIXTURE_DIRECTORY / f"{name}.png"
+        path = fixture_directory / f"{name}.png"
         path.write_bytes(source_bytes)
 
         source = read_source_raster(path, profile=profile, image_label=name)
@@ -177,7 +181,79 @@ def build() -> dict[str, object]:
     }
 
 
-def main() -> int:
+def _normalise_for_check(
+    payload: dict[str, object], *, compare_encoded_bytes: bool
+) -> dict[str, object]:
+    """Remove only provenance terms that necessarily differ across platforms."""
+
+    normalised = copy.deepcopy(payload)
+    generated_under = normalised["generated_under"]
+    assert isinstance(generated_under, dict)
+    generated_under.pop("pillow_distribution_fingerprint")
+    if not compare_encoded_bytes:
+        generated_under.pop("zlib_runtime_version")
+        fixtures = normalised["fixtures"]
+        assert isinstance(fixtures, dict)
+        for fixture in fixtures.values():
+            assert isinstance(fixture, dict)
+            for side_name in ("source", "output"):
+                side = fixture[side_name]
+                assert isinstance(side, dict)
+                side.pop("encoded_sha256")
+                side.pop("size_bytes")
+    return normalised
+
+
+def check() -> int:
+    committed = json.loads(EXPECTED.read_text(encoding="utf-8"))
+    with tempfile.TemporaryDirectory(prefix="fpbench-imaging-fixtures-") as directory:
+        generated = build(fixture_directory=Path(directory))
+
+    committed_runtime = committed["generated_under"]
+    generated_runtime = generated["generated_under"]
+    compare_encoded_bytes = (
+        committed_runtime["zlib_runtime_version"]
+        == generated_runtime["zlib_runtime_version"]
+    )
+    expected = _normalise_for_check(
+        committed, compare_encoded_bytes=compare_encoded_bytes
+    )
+    actual = _normalise_for_check(
+        generated, compare_encoded_bytes=compare_encoded_bytes
+    )
+    if actual != expected:
+        expected_lines = json.dumps(expected, indent=2, ensure_ascii=False).splitlines(
+            keepends=True
+        )
+        actual_lines = json.dumps(actual, indent=2, ensure_ascii=False).splitlines(
+            keepends=True
+        )
+        sys.stdout.writelines(
+            difflib.unified_diff(
+                expected_lines,
+                actual_lines,
+                fromfile="committed expected.json",
+                tofile="generated expected.json",
+            )
+        )
+        return 1
+
+    encoded_note = "including encoded bytes" if compare_encoded_bytes else "pixels only"
+    print(f"verified {len(actual['fixtures'])} fixtures ({encoded_note})")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="compare against committed golden values without rewriting fixtures",
+    )
+    arguments = parser.parse_args(argv)
+    if arguments.check:
+        return check()
+
     payload = build()
     EXPECTED.write_text(
         json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"

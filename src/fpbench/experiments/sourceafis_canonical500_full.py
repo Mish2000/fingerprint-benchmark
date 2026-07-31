@@ -472,6 +472,16 @@ def _parser() -> argparse.ArgumentParser:
         "and skipped without counting against the budget.",
     )
     parser.add_argument("--run-id", default=None)
+    parser.add_argument(
+        "--build-jar",
+        type=Path,
+        default=None,
+        help="Materialise the runtime bundle from this jar instead of the build "
+        "output. A Maven shaded jar is not byte-reproducible — rebuilding from "
+        "identical source yields different bytes — so pointing this at the jar an "
+        "earlier run pinned makes the two runs share one executable, and removes "
+        "a variable from any later paired comparison.",
+    )
     return parser
 
 
@@ -491,7 +501,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     try:
         if arguments.command == "prepare":
-            prepared = prepare_sourceafis_canonical500_run(**shared)
+            prepared = prepare_sourceafis_canonical500_run(
+                **shared, build_jar=arguments.build_jar
+            )
             print(f"run          {prepared.run.run_id}")
             print(f"plan         {prepared.plan.plan_id} "
                   f"({prepared.plan.total_jobs} jobs)")

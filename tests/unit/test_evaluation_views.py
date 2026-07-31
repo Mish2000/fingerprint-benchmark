@@ -20,7 +20,7 @@ from fpbench.core.enums import (
     ProtocolStage,
     SelfEligibilityStatus,
 )
-from fpbench.core.errors import EvaluationViewIntegrityError
+from fpbench.core.errors import EvaluationViewIntegrityError, StorageError
 from fpbench.core.evaluation_view_models import (
     MATED_CONDITIONAL_VIEW,
     MATED_UNCONDITIONAL_VIEW,
@@ -331,10 +331,13 @@ def test_the_three_views_verify(world):
     decision_set, eligibility = _chain(world)
     unconditional, conditional, non_mated = _views(world, decision_set, eligibility)
     common = {
+        "run": world.run,
+        "plan": world.plan,
         "pairs": world.pairs,
         "decisions": decision_set.by_job(),
         "decision_set": decision_set.manifest,
         "pair_manifest_hash": world.pair_manifest_hash,
+        "non_mated_finger_shift": 1,
     }
     verify_evaluation_view(
         manifest=unconditional.manifest,
@@ -384,12 +387,15 @@ def test_a_flipped_inclusion_flag_is_caught(tmp_path):
         verify_evaluation_view(
             manifest=conditional.manifest,
             entries=tuple(entries),
+            run=world.run,
+            plan=world.plan,
             pairs=world.pairs,
             decisions=decision_set.by_job(),
             decision_set=decision_set.manifest,
             eligibility=eligibility.manifest,
             eligibility_records=eligibility.records,
             pair_manifest_hash=world.pair_manifest_hash,
+            non_mated_finger_shift=1,
         )
 
 
@@ -406,9 +412,153 @@ def test_an_unconditional_view_that_cites_eligibility_is_caught(world):
         verify_evaluation_view(
             manifest=forged,
             entries=unconditional.entries,
+            run=world.run,
+            plan=world.plan,
             pairs=world.pairs,
             decisions=decision_set.by_job(),
             decision_set=decision_set.manifest,
             eligibility=None,
             pair_manifest_hash=world.pair_manifest_hash,
+            non_mated_finger_shift=1,
+        )
+
+
+def _manifest_for_entries(manifest, entries):
+    from dataclasses import replace
+
+    from fpbench.core.evaluation_view_models import (
+        evaluation_view_fingerprint,
+        evaluation_view_id,
+        ordered_entries_hash,
+    )
+
+    fingerprint = evaluation_view_fingerprint(
+        view_kind=manifest.view_kind,
+        policy_id=manifest.policy_id,
+        policy_version=manifest.policy_version,
+        run_fingerprint=manifest.run_fingerprint,
+        result_set_fingerprint=manifest.result_set_fingerprint,
+        decision_set_fingerprint=manifest.decision_set_fingerprint,
+        eligibility_set_fingerprint=manifest.eligibility_set_fingerprint,
+        pair_manifest_hash=manifest.pair_manifest_hash,
+        policy_metadata=manifest.policy_metadata,
+        entries=entries,
+    )
+    return replace(
+        manifest,
+        view_id=evaluation_view_id(manifest.view_kind, fingerprint),
+        view_fingerprint=fingerprint,
+        total_rows=len(entries),
+        ordered_entries_hash=ordered_entries_hash(entries),
+    )
+
+
+def test_a_self_consistently_rehashed_truncated_view_is_caught(world):
+    decision_set, eligibility = _chain(world)
+    unconditional, _, _ = _views(world, decision_set, eligibility)
+    entries = unconditional.entries[:-1]
+    forged = _manifest_for_entries(unconditional.manifest, entries)
+
+    with pytest.raises(EvaluationViewIntegrityError, match="exactly the jobs"):
+        verify_evaluation_view(
+            manifest=forged,
+            entries=entries,
+            run=world.run,
+            plan=world.plan,
+            pairs=world.pairs,
+            decisions=decision_set.by_job(),
+            decision_set=decision_set.manifest,
+            eligibility=None,
+            pair_manifest_hash=world.pair_manifest_hash,
+            non_mated_finger_shift=1,
+        )
+
+
+def test_view_policy_id_and_metadata_are_exact(world):
+    from dataclasses import replace
+
+    decision_set, eligibility = _chain(world)
+    unconditional, _, _ = _views(world, decision_set, eligibility)
+    common = {
+        "entries": unconditional.entries,
+        "run": world.run,
+        "plan": world.plan,
+        "pairs": world.pairs,
+        "decisions": decision_set.by_job(),
+        "decision_set": decision_set.manifest,
+        "eligibility": None,
+        "pair_manifest_hash": world.pair_manifest_hash,
+        "non_mated_finger_shift": 1,
+    }
+    with pytest.raises(EvaluationViewIntegrityError, match="policy id"):
+        verify_evaluation_view(
+            manifest=replace(unconditional.manifest, policy_id="forged_policy"),
+            **common,
+        )
+    with pytest.raises(EvaluationViewIntegrityError, match="policy metadata"):
+        verify_evaluation_view(
+            manifest=replace(
+                unconditional.manifest,
+                policy_metadata={**unconditional.manifest.policy_metadata, "extra": "1"},
+            ),
+            **common,
+        )
+
+
+def test_non_mated_finger_shift_is_verified_against_protocol_config(world):
+    decision_set, eligibility = _chain(world)
+    _, _, non_mated = _views(world, decision_set, eligibility)
+    with pytest.raises(EvaluationViewIntegrityError, match="policy metadata"):
+        verify_evaluation_view(
+            manifest=non_mated.manifest,
+            entries=non_mated.entries,
+            run=world.run,
+            plan=world.plan,
+            pairs=world.pairs,
+            decisions=decision_set.by_job(),
+            decision_set=decision_set.manifest,
+            eligibility=None,
+            pair_manifest_hash=world.pair_manifest_hash,
+            non_mated_finger_shift=2,
+        )
+
+
+def test_view_run_fingerprint_is_load_bearing(world):
+    from dataclasses import replace
+
+    decision_set, eligibility = _chain(world)
+    unconditional, _, _ = _views(world, decision_set, eligibility)
+    with pytest.raises(EvaluationViewIntegrityError, match="run fingerprint"):
+        verify_evaluation_view(
+            manifest=replace(unconditional.manifest, run_fingerprint="f" * 64),
+            entries=unconditional.entries,
+            run=world.run,
+            plan=world.plan,
+            pairs=world.pairs,
+            decisions=decision_set.by_job(),
+            decision_set=decision_set.manifest,
+            eligibility=None,
+            pair_manifest_hash=world.pair_manifest_hash,
+            non_mated_finger_shift=1,
+        )
+
+
+def test_store_rejects_a_manifest_in_another_view_kinds_directory(world):
+    from fpbench.core.serialization import write_json
+    from fpbench.storage.evaluation_view_store import EvaluationViewStore
+
+    decision_set, eligibility = _chain(world)
+    unconditional, _, non_mated = _views(world, decision_set, eligibility)
+    store = EvaluationViewStore(world.workspace)
+    path = store.manifest_path(
+        world.run.run_id,
+        decision_set.manifest.decision_set_id,
+        unconditional.manifest.view_kind,
+    )
+    write_json(path, non_mated.manifest)
+    with pytest.raises(StorageError, match="does not match its"):
+        store.read_manifest(
+            world.run.run_id,
+            decision_set.manifest.decision_set_id,
+            unconditional.manifest.view_kind,
         )

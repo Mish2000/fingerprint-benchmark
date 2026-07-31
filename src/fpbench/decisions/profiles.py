@@ -56,7 +56,7 @@ __all__ = [
 #: format nor the development cohort exists yet. Accepting one now would mean
 #: accepting a claim with nothing behind it.
 ALLOWED_ORIGINS: frozenset[ThresholdOrigin] = frozenset(
-    {ThresholdOrigin.DOCUMENTED_NATIVE, ThresholdOrigin.EXTERNAL_FIXED}
+    {ThresholdOrigin.DOCUMENTED_NATIVE}
 )
 
 

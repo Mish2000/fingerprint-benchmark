@@ -38,10 +38,7 @@ def state():
         inspect_sourceafis_native_decisions,
     )
 
-    try:
-        return inspect_sourceafis_native_decisions(workspace=WORKSPACE)
-    except Exception as exc:  # noqa: BLE001 - absence is a skip, not a failure
-        pytest.skip(f"the local workspace holds no derivable run: {exc}")
+    return inspect_sourceafis_native_decisions(workspace=WORKSPACE)
 
 
 def test_the_derivation_is_decision_ready(state):

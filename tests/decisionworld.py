@@ -57,6 +57,7 @@ __all__ = [
     "ScriptedAdapter",
     "DecisionWorld",
     "build_decision_world",
+    "derivation_definition_for",
     "documented_profile_for",
     "SELF_INDEPENDENCE_METADATA",
     "DEFAULT_SCORES",
@@ -424,18 +425,44 @@ def derive_full_chain(
     return chain
 
 
+def derivation_definition_for(world: DecisionWorld, *, software=None):
+    """Build the immutable definition the scripted derivation would prepare."""
+    from fpbench.core.derivation_models import (
+        DerivationDefinition,
+        derivation_definition_fingerprint,
+    )
+    from fpbench.core.provenance_models import software_provenance_fingerprint
+    from runworld import research_provenance
+
+    software = software or research_provenance()
+    claims = {
+        "run_id": world.run.run_id,
+        "run_fingerprint": world.run.run_fingerprint,
+        "result_set_id": world.result_set.result_set_id,
+        "result_set_fingerprint": world.result_set.result_set_fingerprint,
+        "decision_profile_id": world.profile.profile_id,
+        "decision_profile_fingerprint": world.profile.profile_fingerprint,
+        "derivation_software": software,
+        "derivation_software_fingerprint": software_provenance_fingerprint(software),
+        "derivation_source_commit": software.source_revision,
+    }
+    fingerprint = derivation_definition_fingerprint(claims)
+    return DerivationDefinition(
+        **claims,
+        definition_id=f"derivation_{fingerprint[:12]}",
+        definition_fingerprint=fingerprint,
+        created_utc="2025-01-01T00:00:00+00:00",
+    )
+
+
 def inspect_chain(world: DecisionWorld, decision_set_id: str | None):
     """Run the real status inspector over a scripted world."""
     from fpbench.core.enums import ResearchRunStatus
     from fpbench.derivations import inspect_decision_derivation
 
-    definition = None
-    if decision_set_id is not None:
-        from types import SimpleNamespace
-
-        definition = SimpleNamespace(
-            decision_profile_fingerprint=world.profile.profile_fingerprint
-        )
+    definition = (
+        derivation_definition_for(world) if decision_set_id is not None else None
+    )
 
     return inspect_decision_derivation(
         run=world.run,
@@ -446,9 +473,11 @@ def inspect_chain(world: DecisionWorld, decision_set_id: str | None):
         result_set_entries=world.result_set_entries,
         result_store=world.result_store,
         research_status=ResearchRunStatus.RESEARCH_READY,
+        decision_profile=world.profile,
         definition=definition,
         decision_set_id=decision_set_id,
         pair_manifest_hash=world.pair_manifest_hash,
+        non_mated_finger_shift=1,
         workspace=world.workspace,
     )
 

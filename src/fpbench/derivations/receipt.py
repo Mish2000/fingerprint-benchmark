@@ -27,6 +27,7 @@ from fpbench.core.derivation_models import (
     NO_METRIC_STATEMENT,
     DecisionDerivationFinalizationMarker,
     DecisionDerivationReceipt,
+    DerivationDefinition,
     derivation_finalization_fingerprint,
     derivation_receipt_content_hash,
     derivation_receipt_fingerprint,
@@ -34,7 +35,10 @@ from fpbench.core.derivation_models import (
 from fpbench.core.eligibility_models import SelfEligibilityManifest
 from fpbench.core.errors import DecisionFinalizationError, ResultConflictError
 from fpbench.core.evaluation_view_models import EvaluationViewManifest
-from fpbench.core.provenance_models import SoftwareProvenance
+from fpbench.core.provenance_models import (
+    SoftwareProvenance,
+    software_provenance_fingerprint,
+)
 from fpbench.core.result_models import RunDefinition
 from fpbench.core.result_set_models import ResultSetManifest
 from fpbench.core.serialization import to_plain
@@ -84,6 +88,10 @@ def build_derivation_receipt(
             "a derivation receipt needs a committed, clean source revision "
             "(docs/adr/0017)"
         )
+    _require_software_matches_decision_set(
+        derivation_software=derivation_software,
+        decision_set=decision_set,
+    )
 
     return DecisionDerivationReceipt(
         schema_version=DERIVATION_RECEIPT_SCHEMA_VERSION,
@@ -131,6 +139,7 @@ def verify_derivation_receipt(
     conditional_view: EvaluationViewManifest,
     non_mated_view: EvaluationViewManifest,
     pair_manifest_hash: str,
+    definition: DerivationDefinition,
 ) -> None:
     """Re-derive every load-bearing receipt claim from the current artefacts.
 
@@ -139,6 +148,7 @@ def verify_derivation_receipt(
     is not the one on disk.
     """
     expected: Mapping[str, object] = {
+        "schema_version": DERIVATION_RECEIPT_SCHEMA_VERSION,
         "run_id": run.run_id,
         "run_fingerprint": run.run_fingerprint,
         "result_set_id": result_set.result_set_id,
@@ -160,6 +170,8 @@ def verify_derivation_receipt(
         "decided_count": decision_set.decided_count,
         "undecidable_count": decision_set.undecidable_count,
         "total_eligibility_units": eligibility.total_units,
+        "derivation_source_commit": definition.derivation_source_commit,
+        "derivation_source_tree_clean": True,
     }
     for name, value in expected.items():
         actual = getattr(receipt, name)
@@ -167,6 +179,10 @@ def verify_derivation_receipt(
             raise DecisionFinalizationError(
                 f"derivation receipt field {name} is {actual!r}, expected {value!r}"
             )
+
+    _require_definition_matches_decision_set(
+        definition=definition, decision_set=decision_set
+    )
 
     rows = {
         unconditional_view.view_kind: unconditional_view.total_rows,
@@ -201,6 +217,14 @@ def build_derivation_finalization_marker(
     if not derivation_software.is_research_grade:
         raise DecisionFinalizationError(
             "derivation finalization requires a committed, clean source revision"
+        )
+    _require_software_matches_decision_set(
+        derivation_software=derivation_software,
+        decision_set=decision_set,
+    )
+    if receipt.derivation_source_commit != decision_set.derivation_source_revision:
+        raise DecisionFinalizationError(
+            "the receipt and decision set name different derivation commits"
         )
     claims = {
         "schema_version": DERIVATION_FINALIZATION_SCHEMA_VERSION,
@@ -237,6 +261,7 @@ def verify_derivation_finalization_marker(
     conditional_view: EvaluationViewManifest,
     non_mated_view: EvaluationViewManifest,
     receipt: DecisionDerivationReceipt,
+    definition: DerivationDefinition,
 ) -> None:
     """Confirm the marker still names every current durable artefact."""
     expected = {
@@ -250,6 +275,8 @@ def verify_derivation_finalization_marker(
         "non_mated_view_fingerprint": non_mated_view.view_fingerprint,
         "derivation_receipt_fingerprint": derivation_receipt_fingerprint(receipt),
         "derivation_receipt_content_hash": derivation_receipt_content_hash(receipt),
+        "derivation_source_commit": definition.derivation_source_commit,
+        "derivation_source_tree_clean": True,
     }
     for name, value in expected.items():
         actual = getattr(marker, name)
@@ -258,6 +285,13 @@ def verify_derivation_finalization_marker(
                 f"derivation finalization field {name} is {actual!r}, expected "
                 f"{value!r}"
             )
+    _require_definition_matches_decision_set(
+        definition=definition, decision_set=decision_set
+    )
+    if receipt.derivation_source_commit != definition.derivation_source_commit:
+        raise DecisionFinalizationError(
+            "the receipt and definition name different derivation commits"
+        )
 
 
 def write_derivation_evidence_copy(
@@ -286,9 +320,15 @@ def write_derivation_evidence_copy(
             )
         return path
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_bytes(payload)
-    tmp.replace(path)
+    try:
+        with path.open("xb") as stream:
+            stream.write(payload)
+    except FileExistsError:
+        if path.read_bytes() != payload:
+            raise ResultConflictError(
+                f"{path} appeared with different derivation evidence; refusing "
+                "to overwrite it"
+            )
     return path
 
 
@@ -342,6 +382,41 @@ def _require_chain(
                 f"a derivation receipt cannot be built: {label} is {actual!r}, "
                 f"expected {expected!r}"
             )
+
+
+def _require_software_matches_decision_set(
+    *,
+    derivation_software: SoftwareProvenance,
+    decision_set: DecisionSetManifest,
+) -> None:
+    if derivation_software.source_revision != decision_set.derivation_source_revision:
+        raise DecisionFinalizationError(
+            "the derivation software and decision set name different source revisions"
+        )
+    fingerprint = software_provenance_fingerprint(derivation_software)
+    if fingerprint != decision_set.derivation_software_fingerprint:
+        raise DecisionFinalizationError(
+            "the derivation software does not fingerprint to the decision-set "
+            "software identity"
+        )
+
+
+def _require_definition_matches_decision_set(
+    *, definition: DerivationDefinition, decision_set: DecisionSetManifest
+) -> None:
+    if definition.derivation_source_commit != decision_set.derivation_source_revision:
+        raise DecisionFinalizationError(
+            "the derivation definition and decision set name different source revisions"
+        )
+    fingerprint = software_provenance_fingerprint(definition.derivation_software)
+    if fingerprint != definition.derivation_software_fingerprint:
+        raise DecisionFinalizationError(
+            "the derivation definition's software fingerprint is invalid"
+        )
+    if fingerprint != decision_set.derivation_software_fingerprint:
+        raise DecisionFinalizationError(
+            "the derivation definition and decision set name different software"
+        )
 
 
 def _utc_now() -> str:

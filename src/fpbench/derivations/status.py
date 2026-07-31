@@ -18,7 +18,7 @@ import datetime as _dt
 from pathlib import Path
 from typing import Mapping, Sequence
 
-from fpbench.core.decision_models import DecisionRecord
+from fpbench.core.decision_models import DecisionProfile, DecisionRecord
 from fpbench.core.derivation_models import DecisionDerivationState, DerivationDefinition
 from fpbench.core.eligibility_models import SelfEligibilityUnit
 from fpbench.core.enums import DecisionDerivationStatus, ResearchRunStatus
@@ -31,6 +31,7 @@ from fpbench.core.evaluation_view_models import (
 from fpbench.core.execution_plan_models import ExecutionPlan
 from fpbench.core.identifiers import PairId
 from fpbench.core.models import ComparisonPair
+from fpbench.core.provenance_models import software_provenance_fingerprint
 from fpbench.core.result_models import RunDefinition
 from fpbench.core.result_set_models import ResultSetEntry, ResultSetManifest
 from fpbench.decisions.verify import verify_decision_set
@@ -64,9 +65,11 @@ def inspect_decision_derivation(
     result_set_entries: tuple[ResultSetEntry, ...],
     result_store: ResultStore,
     research_status: ResearchRunStatus,
+    decision_profile: DecisionProfile,
     definition: DerivationDefinition | None,
     decision_set_id: str | None,
     pair_manifest_hash: str,
+    non_mated_finger_shift: int,
     workspace: Path | None = None,
 ) -> DecisionDerivationState:
     """Recompute the whole chain and report where it stands.
@@ -108,6 +111,43 @@ def inspect_decision_derivation(
     eligibility_records: tuple = ()
     view_manifests: dict[str, object] = {}
 
+    if definition is not None:
+        for label, actual, expected in (
+            ("run id", definition.run_id, run.run_id),
+            ("run fingerprint", definition.run_fingerprint, run.run_fingerprint),
+            ("result-set id", definition.result_set_id, result_set.result_set_id),
+            (
+                "result-set fingerprint",
+                definition.result_set_fingerprint,
+                result_set.result_set_fingerprint,
+            ),
+            (
+                "decision-profile id",
+                definition.decision_profile_id,
+                decision_profile.profile_id,
+            ),
+            (
+                "decision-profile fingerprint",
+                definition.decision_profile_fingerprint,
+                decision_profile.profile_fingerprint,
+            ),
+            (
+                "software fingerprint",
+                definition.derivation_software_fingerprint,
+                software_provenance_fingerprint(definition.derivation_software),
+            ),
+            (
+                "source commit",
+                definition.derivation_source_commit,
+                definition.derivation_software.source_revision,
+            ),
+        ):
+            if actual != expected:
+                issues.append(
+                    f"derivation definition {label} is {actual!r}, expected "
+                    f"{expected!r}"
+                )
+
     if decision_set_id and decisions_store.has_decision_set(run.run_id, decision_set_id):
         decision_set_present = True
         profile_present = decisions_store.profile_path(
@@ -118,9 +158,17 @@ def inspect_decision_derivation(
                 run.run_id, decision_set_id
             )
             profile_valid = (
-                definition is None
-                or profile.profile_fingerprint
-                == definition.decision_profile_fingerprint
+                profile.profile_id == decision_profile.profile_id
+                and profile.profile_fingerprint
+                == decision_profile.profile_fingerprint
+                and (
+                    definition is None
+                    or (
+                        profile.profile_id == definition.decision_profile_id
+                        and profile.profile_fingerprint
+                        == definition.decision_profile_fingerprint
+                    )
+                )
             )
             if not profile_valid:
                 issues.append(
@@ -137,6 +185,24 @@ def inspect_decision_derivation(
                 result_set_entries=result_set_entries,
                 result_store=result_store,
             )
+            if definition is not None:
+                for label, actual, expected in (
+                    (
+                        "source commit",
+                        decision_manifest.derivation_source_revision,
+                        definition.derivation_source_commit,
+                    ),
+                    (
+                        "software fingerprint",
+                        decision_manifest.derivation_software_fingerprint,
+                        definition.derivation_software_fingerprint,
+                    ),
+                ):
+                    if actual != expected:
+                        raise FpbenchError(
+                            f"decision-set {label} is {actual!r}, expected "
+                            f"definition value {expected!r}"
+                        )
             decision_set_valid = True
             decisions_by_job = {record.job_id: record for record in records}
             totals["decisions"] = decision_manifest.total_decisions
@@ -178,6 +244,8 @@ def inspect_decision_derivation(
                 verify_evaluation_view(
                     manifest=manifest,
                     entries=entries,
+                    run=run,
+                    plan=plan,
                     pairs=pairs,
                     decisions=decisions_by_job,
                     decision_set=decision_manifest,
@@ -188,6 +256,7 @@ def inspect_decision_derivation(
                     ),
                     eligibility_records=eligibility_records,
                     pair_manifest_hash=pair_manifest_hash,
+                    non_mated_finger_shift=non_mated_finger_shift,
                 )
                 view_manifests[kind] = manifest
                 views_valid += 1
@@ -198,7 +267,7 @@ def inspect_decision_derivation(
 
     if decision_set_id and decisions_store.has_receipt(run.run_id, decision_set_id):
         receipt_present = True
-        if complete_views and eligibility_valid:
+        if complete_views and eligibility_valid and definition is not None:
             try:
                 receipt = decisions_store.read_receipt(run.run_id, decision_set_id)
                 verify_derivation_receipt(
@@ -211,13 +280,15 @@ def inspect_decision_derivation(
                     conditional_view=view_manifests[MATED_CONDITIONAL_VIEW],
                     non_mated_view=view_manifests[NON_MATED_SANITY_VIEW],
                     pair_manifest_hash=pair_manifest_hash,
+                    definition=definition,
                 )
                 receipt_valid = True
             except FpbenchError as exc:
                 issues.append(f"derivation receipt: {exc}")
         else:
             issues.append(
-                "a derivation receipt is stored over an incomplete or invalid chain"
+                "a derivation receipt is stored over an incomplete, invalid or "
+                "undefined chain"
             )
 
     if decision_set_id and decisions_store.has_finalization(
@@ -239,6 +310,7 @@ def inspect_decision_derivation(
                     conditional_view=view_manifests[MATED_CONDITIONAL_VIEW],
                     non_mated_view=view_manifests[NON_MATED_SANITY_VIEW],
                     receipt=decisions_store.read_receipt(run.run_id, decision_set_id),
+                    definition=definition,
                 )
                 finalization_valid = True
             except FpbenchError as exc:

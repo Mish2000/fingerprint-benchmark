@@ -743,9 +743,12 @@ python -m fpbench.experiments.sourceafis_native_decisions finalize
 ```
 
 `prepare` refuses a dirty tree, a source run that is not `RESEARCH_READY`, or a profile
-that does not describe this exact algorithm build. `derive` produces the decisions, the
-eligibility set and the three views, and can be repeated. `finalize` re-verifies the
-whole chain from the raw scores upward and only then writes the receipt and the marker.
+that does not describe this exact algorithm build. Its immutable definition records the
+complete software provenance (commit, Python, package, PyArrow and PyYAML versions), not
+only a commit label. `derive` produces the decisions, the eligibility set and the three
+views, and can be repeated. `finalize` requires that stored definition to match the
+current clean environment, then re-verifies the whole chain from the raw scores upward
+and only then writes the receipt and the marker.
 
 The status chain mirrors the run's:
 
@@ -758,7 +761,9 @@ NOT_PREPARED → PROFILE_READY → DECISIONS_READY → ELIGIBILITY_READY → VIE
 
 `DECISION_READY` is recomputed from the files every time it is asked for: every decision
 re-derived from its raw score, every verdict from its two SELF decisions, every inclusion
-flag from its verdict. **`DECISION_READY` ≠ performance evaluated.**
+flag from its verdict, and every view row matched exactly to the execution plan in order.
+The definition, decision set, receipt and finalization marker must all name the same
+source commit. **`DECISION_READY` ≠ performance evaluated.**
 
 ### SELF eligibility
 

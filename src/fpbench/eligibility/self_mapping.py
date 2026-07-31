@@ -28,6 +28,7 @@ from fpbench.core.errors import SelfMappingError
 from fpbench.core.identifiers import ImageId, PairId
 from fpbench.core.models import ComparisonPair, ImageRecord
 from fpbench.core.result_models import RawResultRecord
+from fpbench.core.serialization import freeze_str_mapping
 
 __all__ = [
     "SelfIndependenceRequirement",
@@ -71,7 +72,7 @@ class SelfIndependenceRequirement:
         object.__setattr__(
             self,
             "required_metadata",
-            {str(k): str(v) for k, v in dict(self.required_metadata).items()},
+            freeze_str_mapping(self.required_metadata),
         )
 
 

@@ -145,6 +145,11 @@ def test_a_calibrated_origin_without_a_manifest_is_refused():
         )
 
 
+def test_an_external_fixed_profile_is_refused_until_a_later_stage():
+    with pytest.raises(DecisionProfileError, match="cannot be executed yet"):
+        build_decision_profile(**_fields(origin=ThresholdOrigin.EXTERNAL_FIXED))
+
+
 def test_claiming_calibration_without_a_manifest_is_refused():
     with pytest.raises(DecisionProfileError, match="must name the calibration"):
         build_decision_profile(**_fields(calibration_performed=True))

@@ -63,6 +63,8 @@ __all__ = [
     "MATED_CONDITIONAL_POLICY",
     "NON_MATED_SANITY_POLICY",
     "POLICY_VERSION",
+    "POLICY_FOR_VIEW",
+    "expected_policy_metadata",
 ]
 
 MATED_UNCONDITIONAL_POLICY = "mated_unconditional"
@@ -70,6 +72,45 @@ MATED_CONDITIONAL_POLICY = "mated_both_self_match"
 NON_MATED_SANITY_POLICY = "non_mated_same_subject_cyclic"
 
 POLICY_VERSION = "1"
+
+POLICY_FOR_VIEW: Mapping[str, str] = {
+    MATED_UNCONDITIONAL_VIEW: MATED_UNCONDITIONAL_POLICY,
+    MATED_CONDITIONAL_VIEW: MATED_CONDITIONAL_POLICY,
+    NON_MATED_SANITY_VIEW: NON_MATED_SANITY_POLICY,
+}
+
+
+def expected_policy_metadata(
+    view_kind: str, *, finger_shift: int
+) -> Mapping[str, str]:
+    """Return the complete, mandatory policy metadata for one view kind."""
+    if view_kind == MATED_UNCONDITIONAL_VIEW:
+        return {
+            "inclusion": "every_mated_pair",
+            "self_conditioned": "false",
+            "failed_comparisons_retained": "true",
+            "purpose": "unconditional_genuine_view",
+        }
+    if view_kind == MATED_CONDITIONAL_VIEW:
+        return {
+            "inclusion": "plain_self_match_and_roll_self_match",
+            "self_conditioned": "true",
+            "excluded_rows_retained": "true",
+            "purpose": "conditional_genuine_view",
+        }
+    if view_kind == NON_MATED_SANITY_VIEW:
+        return {
+            "negative_kind": "same_subject_different_finger",
+            "pairing_strategy": "cyclic_finger_shift",
+            "finger_shift": str(int(finger_shift)),
+            "closed_set": "true",
+            "primary_fmr_estimate": "false",
+            "purpose": "negative_sanity_check",
+            "self_conditioned": "false",
+        }
+    raise EvaluationViewIntegrityError(
+        f"view kind {view_kind!r} is not one this project defines"
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,12 +161,9 @@ def build_mated_unconditional_view(
         decision_set=decision_set,
         eligibility=None,
         pair_manifest_hash=pair_manifest_hash,
-        policy_metadata={
-            "inclusion": "every_mated_pair",
-            "self_conditioned": "false",
-            "failed_comparisons_retained": "true",
-            "purpose": "unconditional_genuine_view",
-        },
+        policy_metadata=expected_policy_metadata(
+            MATED_UNCONDITIONAL_VIEW, finger_shift=0
+        ),
         entries=entries,
         created_utc=created_utc,
     )
@@ -162,12 +200,9 @@ def build_mated_conditional_view(
         decision_set=decision_set,
         eligibility=eligibility,
         pair_manifest_hash=pair_manifest_hash,
-        policy_metadata={
-            "inclusion": "plain_self_match_and_roll_self_match",
-            "self_conditioned": "true",
-            "excluded_rows_retained": "true",
-            "purpose": "conditional_genuine_view",
-        },
+        policy_metadata=expected_policy_metadata(
+            MATED_CONDITIONAL_VIEW, finger_shift=0
+        ),
         entries=entries,
         created_utc=created_utc,
     )
@@ -206,15 +241,9 @@ def build_non_mated_sanity_view(
         decision_set=decision_set,
         eligibility=None,
         pair_manifest_hash=pair_manifest_hash,
-        policy_metadata={
-            "negative_kind": "same_subject_different_finger",
-            "pairing_strategy": "cyclic_finger_shift",
-            "finger_shift": str(int(finger_shift)),
-            "closed_set": "true",
-            "primary_fmr_estimate": "false",
-            "purpose": "negative_sanity_check",
-            "self_conditioned": "false",
-        },
+        policy_metadata=expected_policy_metadata(
+            NON_MATED_SANITY_VIEW, finger_shift=finger_shift
+        ),
         entries=entries,
         created_utc=created_utc,
     )

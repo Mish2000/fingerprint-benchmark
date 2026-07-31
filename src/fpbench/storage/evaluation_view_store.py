@@ -105,11 +105,17 @@ class EvaluationViewStore:
             raise StorageError(f"evaluation view manifest not found: {path}")
         payload = read_json(path)
         try:
-            return EvaluationViewManifest(**payload)
+            manifest = EvaluationViewManifest(**payload)
         except (KeyError, TypeError, ValueError) as exc:
             raise StorageError(
                 f"{path}: unreadable evaluation view manifest ({exc})"
             ) from exc
+        if manifest.view_kind != view_kind:
+            raise StorageError(
+                f"{path}: manifest kind {manifest.view_kind!r} does not match its "
+                f"{view_kind!r} directory"
+            )
+        return manifest
 
     def read_entries(
         self, run_id: str, decision_set_id: str, view_kind: str

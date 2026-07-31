@@ -33,9 +33,11 @@ fingerprint, and it is applied to unchanged stored results.**
 Concretely:
 
 * **Origin is a required, closed vocabulary.** `documented_native`,
-  `calibrated_development`, `external_fixed`. Stage 5A executes only the first and third;
-  a calibrated profile is refused until a calibration manifest drawn from a *development*
-  cohort exists. A profile whose config says `test_cohort_used: true` is refused outright
+  `calibrated_development`, `external_fixed`. Stage 5A executes only
+  `documented_native`; calibrated and externally fixed profiles are refused until their
+  later-stage provenance contracts exist. A calibrated profile will require a manifest
+  drawn from a *development* cohort. A profile whose config says
+  `test_cohort_used: true` is refused outright
   — choosing a threshold on the 50 subjects it is then reported over is the one form of
   leakage that would invalidate everything.
 * **The threshold is a canonical decimal string.** One canonicaliser, in one place:
@@ -85,3 +87,5 @@ having been validated.
 * The first calibrated profile will need a calibration manifest format and a development
   cohort. Both are deliberately out of scope here, and the loader refuses in the
   meantime rather than accepting a placeholder.
+* The first externally fixed profile likewise needs an approved provenance contract;
+  merely naming a fixed external value is not sufficient in Stage 5A.

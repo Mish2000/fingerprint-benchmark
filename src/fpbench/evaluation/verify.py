@@ -30,9 +30,15 @@ from fpbench.core.evaluation_view_models import (
     evaluation_view_id,
     ordered_entries_hash,
 )
+from fpbench.core.execution_plan_models import ExecutionPlan
 from fpbench.core.identifiers import PairId
 from fpbench.core.models import ComparisonPair
-from fpbench.evaluation.views import POLICY_VERSION
+from fpbench.core.result_models import RunDefinition
+from fpbench.evaluation.views import (
+    POLICY_FOR_VIEW,
+    POLICY_VERSION,
+    expected_policy_metadata,
+)
 
 __all__ = ["verify_evaluation_view", "STAGE_FOR_VIEW"]
 
@@ -49,12 +55,15 @@ def verify_evaluation_view(
     *,
     manifest: EvaluationViewManifest,
     entries: Sequence[EvaluationViewEntry],
+    run: RunDefinition,
+    plan: ExecutionPlan,
     pairs: Mapping[PairId, ComparisonPair],
     decisions: Mapping[str, DecisionRecord],
     decision_set: DecisionSetManifest,
     eligibility: SelfEligibilityManifest | None,
     eligibility_records: Sequence[SelfEligibilityDecisionRecord] = (),
     pair_manifest_hash: str,
+    non_mated_finger_shift: int,
 ) -> None:
     """Prove a stored view still follows from the decisions and verdicts it cites.
 
@@ -80,6 +89,7 @@ def verify_evaluation_view(
         )
 
     for label, actual, expected in (
+        ("run fingerprint", manifest.run_fingerprint, run.run_fingerprint),
         (
             "decision-set fingerprint",
             manifest.decision_set_fingerprint,
@@ -92,11 +102,21 @@ def verify_evaluation_view(
         ),
         ("pair-manifest hash", manifest.pair_manifest_hash, pair_manifest_hash),
         ("policy version", manifest.policy_version, POLICY_VERSION),
+        ("policy id", manifest.policy_id, POLICY_FOR_VIEW[manifest.view_kind]),
     ):
         if actual != expected:
             raise EvaluationViewIntegrityError(
                 f"view {label} is {actual!r}, expected {expected!r}"
             )
+
+    expected_metadata = expected_policy_metadata(
+        manifest.view_kind, finger_shift=non_mated_finger_shift
+    )
+    if dict(manifest.policy_metadata) != dict(expected_metadata):
+        raise EvaluationViewIntegrityError(
+            f"view policy metadata is {dict(manifest.policy_metadata)!r}, expected "
+            f"{dict(expected_metadata)!r}"
+        )
     if conditional and eligibility is not None:
         if manifest.eligibility_set_fingerprint != eligibility.eligibility_set_fingerprint:
             raise EvaluationViewIntegrityError(
@@ -116,6 +136,24 @@ def verify_evaluation_view(
     pair_ids = [entry.pair_id for entry in entries]
     if len(set(pair_ids)) != len(pair_ids):
         raise EvaluationViewIntegrityError("a pair may appear at most once in a view")
+    job_ids = [entry.job_id for entry in entries]
+    if len(set(job_ids)) != len(job_ids):
+        raise EvaluationViewIntegrityError("a job may appear at most once in a view")
+
+    expected_rows: list[tuple[str, str]] = []
+    for planned in plan.jobs:
+        pair = pairs.get(planned.job.pair_id)
+        if pair is None:
+            raise EvaluationViewIntegrityError(
+                f"planned pair {planned.job.pair_id} is not in the pair manifest"
+            )
+        if pair.protocol_stage is expected_stage:
+            expected_rows.append((str(pair.pair_id), planned.job.job_id))
+    actual_rows = [(entry.pair_id, entry.job_id) for entry in entries]
+    if actual_rows != expected_rows:
+        raise EvaluationViewIntegrityError(
+            "view rows are not exactly the jobs for its protocol stage in plan order"
+        )
 
     by_mated_pair = {
         record.mated_pair_id: record for record in eligibility_records
@@ -141,6 +179,11 @@ def verify_evaluation_view(
         if entry.decision_record_hash != decision.decision_record_hash:
             raise EvaluationViewIntegrityError(
                 f"view row {entry.job_id} cites a decision that is not the stored one"
+            )
+        if entry.pair_id != decision.pair_id:
+            raise EvaluationViewIntegrityError(
+                f"view row {entry.job_id} names pair {entry.pair_id}, but its "
+                f"decision names {decision.pair_id}"
             )
         if entry.source_result_hash != decision.source_result_hash:
             raise EvaluationViewIntegrityError(

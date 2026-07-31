@@ -697,6 +697,8 @@ def test_the_whole_chain_verifies_at_scale(derivation, world):
         verify_evaluation_view(
             manifest=view.manifest,
             entries=view.entries,
+            run=run,
+            plan=plan,
             pairs=pairs,
             decisions=decision_set.by_job(),
             decision_set=decision_set.manifest,
@@ -705,6 +707,7 @@ def test_the_whole_chain_verifies_at_scale(derivation, world):
             ),
             eligibility_records=eligibility.records,
             pair_manifest_hash=run.pair_manifest_hash,
+            non_mated_finger_shift=1,
         )
 
 

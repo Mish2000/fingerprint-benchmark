@@ -50,9 +50,12 @@ re-hashes it, re-applies the threshold, and compares — record hash, ordering, 
 the set fingerprint included. A decision set is not evidence of itself; a manifest is a
 file, and a file can be edited.
 
-The derivation commit is covered both inside the software fingerprint and as its own
-field in the digest, because a verifier reading only a stored manifest has no
-`SoftwareProvenance` to re-hash and would otherwise leave that one field unchecked.
+The derivation definition stores the complete immutable `SoftwareProvenance` — source
+revision and tree state, package and Python versions, and the tracked PyArrow/PyYAML
+versions — beside its fingerprint. Verification re-hashes that record and requires its
+revision to agree with the decision set, receipt and finalization marker. The derivation
+commit is also covered as its own field in the decision-set digest so the two claims
+cannot drift independently.
 
 ## Alternatives
 

@@ -59,7 +59,10 @@ from fpbench.core.evaluation_view_models import (
 )
 from fpbench.core.identifiers import PairId
 from fpbench.core.models import ComparisonPair, ImageRecord
-from fpbench.core.provenance_models import SoftwareProvenance
+from fpbench.core.provenance_models import (
+    SoftwareProvenance,
+    software_provenance_fingerprint,
+)
 from fpbench.core.serialization import read_json, write_json
 from fpbench.decisions import (
     DecisionProfile,
@@ -200,7 +203,7 @@ class PreparedDerivation:
     result_set_entries: tuple
 
     profile: DecisionProfile
-    definition: DerivationDefinition
+    definition: DerivationDefinition | None
     units: tuple
     research_status: ResearchRunStatus
 
@@ -252,9 +255,14 @@ def prepare_decision_derivation(
         config=config,
         software=software,
         require_expected_shape=require_expected_shape,
+        require_definition=False,
     )
 
     definition = prepared.definition
+    if definition is None:  # capture_research_provenance guarantees this is clean
+        raise ResearchPreflightError(
+            "a clean derivation definition could not be constructed"
+        )
     path = _definition_path(workspace, config.experiment_id, prepared.run.run_id)
     if path.is_file():
         stored = _read_definition(path)
@@ -368,6 +376,8 @@ def derive_decisions(
         verify_evaluation_view(
             manifest=view.manifest,
             entries=view.entries,
+            run=prepared.run,
+            plan=prepared.plan,
             pairs=prepared.pairs,
             decisions=decisions_by_job,
             decision_set=decision_set.manifest,
@@ -378,6 +388,7 @@ def derive_decisions(
             ),
             eligibility_records=eligibility.records,
             pair_manifest_hash=prepared.pair_manifest_hash,
+            non_mated_finger_shift=prepared.config.non_mated_finger_shift,
         )
         if require_expected_shape and view.manifest.total_rows != EXPECTED_VIEW_ROWS:
             raise DecisionDerivationError(
@@ -447,9 +458,11 @@ def inspect_sourceafis_native_decisions(
         result_set_entries=prepared.result_set_entries,
         result_store=prepared.result_store,
         research_status=prepared.research_status,
+        decision_profile=prepared.profile,
         definition=definition,
         decision_set_id=resolved_set,
         pair_manifest_hash=prepared.pair_manifest_hash,
+        non_mated_finger_shift=prepared.config.non_mated_finger_shift,
         workspace=workspace,
     )
 
@@ -529,6 +542,8 @@ def finalize_decision_derivation(
         verify_evaluation_view(
             manifest=manifest,
             entries=entries,
+            run=prepared.run,
+            plan=prepared.plan,
             pairs=prepared.pairs,
             decisions=decisions_by_job,
             decision_set=decision_manifest,
@@ -537,6 +552,7 @@ def finalize_decision_derivation(
             ),
             eligibility_records=eligibility_records,
             pair_manifest_hash=prepared.pair_manifest_hash,
+            non_mated_finger_shift=prepared.config.non_mated_finger_shift,
         )
         view_manifests[kind] = manifest
 
@@ -578,9 +594,11 @@ def finalize_decision_derivation(
         result_set_entries=prepared.result_set_entries,
         result_store=prepared.result_store,
         research_status=prepared.research_status,
+        decision_profile=prepared.profile,
         definition=prepared.definition,
         decision_set_id=set_id,
         pair_manifest_hash=prepared.pair_manifest_hash,
+        non_mated_finger_shift=prepared.config.non_mated_finger_shift,
         workspace=workspace,
     )
     if not state.is_decision_ready:
@@ -695,22 +713,46 @@ def _load_source(
     if require_expected_shape:
         _require_unit_shape(units)
 
-    claims = {
-        "run_id": run.run_id,
-        "run_fingerprint": run.run_fingerprint,
-        "result_set_id": result_set.result_set_id,
-        "result_set_fingerprint": result_set.result_set_fingerprint,
-        "decision_profile_id": profile.profile_id,
-        "decision_profile_fingerprint": profile.profile_fingerprint,
-        "derivation_source_commit": software.source_revision,
-    }
-    fingerprint = derivation_definition_fingerprint(claims)
-    definition = DerivationDefinition(
-        **claims,
-        definition_id=f"derivation_{fingerprint[:12]}",
-        definition_fingerprint=fingerprint,
-        created_utc=_utc_now(),
-    )
+    definition = None
+    if software.is_research_grade:
+        claims = {
+            "run_id": run.run_id,
+            "run_fingerprint": run.run_fingerprint,
+            "result_set_id": result_set.result_set_id,
+            "result_set_fingerprint": result_set.result_set_fingerprint,
+            "decision_profile_id": profile.profile_id,
+            "decision_profile_fingerprint": profile.profile_fingerprint,
+            "derivation_software": software,
+            "derivation_software_fingerprint": software_provenance_fingerprint(
+                software
+            ),
+            "derivation_source_commit": software.source_revision,
+        }
+        fingerprint = derivation_definition_fingerprint(claims)
+        definition = DerivationDefinition(
+            **claims,
+            definition_id=f"derivation_{fingerprint[:12]}",
+            definition_fingerprint=fingerprint,
+            created_utc=_utc_now(),
+        )
+
+    if require_definition:
+        if definition is None:
+            raise ResearchPreflightError(
+                "a derivation requires committed, clean software provenance"
+            )
+        path = _definition_path(workspace, config.experiment_id, run.run_id)
+        if not path.is_file():
+            raise ResearchPreflightError(
+                f"{path.name} is missing; run 'prepare' before deriving or finalising"
+            )
+        stored_definition = _read_definition(path)
+        if stored_definition.definition_fingerprint != definition.definition_fingerprint:
+            raise ResearchPreflightError(
+                f"{path.name} pins {stored_definition.definition_id}, but the "
+                f"current source and environment compute {definition.definition_id}"
+            )
+        definition = stored_definition
 
     return PreparedDerivation(
         config=config,

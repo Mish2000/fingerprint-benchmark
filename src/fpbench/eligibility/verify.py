@@ -44,6 +44,7 @@ def verify_eligibility_set(
         EligibilityIntegrityError: anything disagrees with anything.
     """
     for label, actual, expected in (
+        ("run id", manifest.run_id, decision_set.run_id),
         (
             "decision-set fingerprint",
             manifest.decision_set_fingerprint,

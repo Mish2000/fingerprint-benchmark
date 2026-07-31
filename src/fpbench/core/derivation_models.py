@@ -30,6 +30,10 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 from fpbench.core.identifiers import validate_id
+from fpbench.core.provenance_models import (
+    SoftwareProvenance,
+    software_provenance_fingerprint,
+)
 from fpbench.core.serialization import stable_hash, to_plain
 
 __all__ = [
@@ -257,8 +261,10 @@ class DecisionDerivationReceipt:
             )
 
         version = str(self.schema_version).strip()
-        if not version:
-            raise ValueError("schema_version must not be empty")
+        if version != DERIVATION_RECEIPT_SCHEMA_VERSION:
+            raise ValueError(
+                f"unsupported derivation receipt schema version {version!r}"
+            )
         object.__setattr__(self, "schema_version", version)
 
         if str(self.statement).strip() != NO_METRIC_STATEMENT:
@@ -423,6 +429,8 @@ class DerivationDefinition:
     decision_profile_id: str
     decision_profile_fingerprint: str
 
+    derivation_software: SoftwareProvenance
+    derivation_software_fingerprint: str
     derivation_source_commit: str
     created_utc: str
 
@@ -439,13 +447,33 @@ class DerivationDefinition:
             "run_fingerprint",
             "result_set_fingerprint",
             "decision_profile_fingerprint",
+            "derivation_software_fingerprint",
         ):
             object.__setattr__(self, name, _require_digest(getattr(self, name), name))
+        software = self.derivation_software
+        if isinstance(software, Mapping):
+            software = SoftwareProvenance(**software)
+            object.__setattr__(self, "derivation_software", software)
+        if not isinstance(software, SoftwareProvenance):
+            raise ValueError("derivation_software must be SoftwareProvenance")
+        if not software.is_research_grade:
+            raise ValueError(
+                "a derivation definition requires committed, clean software provenance"
+            )
+        software_fingerprint = software_provenance_fingerprint(software)
+        if self.derivation_software_fingerprint != software_fingerprint:
+            raise ValueError(
+                "derivation_software_fingerprint does not cover derivation_software"
+            )
         object.__setattr__(
             self,
             "derivation_source_commit",
             _require_commit(self.derivation_source_commit, "derivation_source_commit"),
         )
+        if self.derivation_source_commit != software.source_revision:
+            raise ValueError(
+                "derivation_source_commit must equal the software source revision"
+            )
         created = str(self.created_utc).strip()
         if not created:
             raise ValueError("created_utc must not be empty")

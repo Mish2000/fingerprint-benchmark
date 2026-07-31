@@ -59,11 +59,11 @@ def _apply(world, *, profile=None, software=None):
     )
 
 
-def _verify(world, decision_set, *, profile=None):
+def _verify(world, decision_set, *, profile=None, manifest=None, records=None):
     verify_decision_set(
         profile=profile or decision_set.profile,
-        manifest=decision_set.manifest,
-        records=decision_set.records,
+        manifest=manifest or decision_set.manifest,
+        records=records or decision_set.records,
         run=world.run,
         plan=world.plan,
         result_set=world.result_set,
@@ -296,6 +296,47 @@ def test_a_truncated_set_is_caught(world):
             profile=decision_set.profile,
             manifest=decision_set.manifest,
             records=decision_set.records[:-1],
+            run=world.run,
+            plan=world.plan,
+            result_set=world.result_set,
+            result_set_entries=world.result_set_entries,
+            result_store=world.result_store,
+        )
+
+
+@pytest.mark.parametrize(
+    "field,value,error",
+    [
+        ("run_id", "run_forged", "run id"),
+        ("plan_id", "plan_forged", "plan id"),
+    ],
+)
+def test_manifest_identity_claims_are_load_bearing(world, field, value, error):
+    from dataclasses import replace
+
+    decision_set = _apply(world)
+    forged = replace(decision_set.manifest, **{field: value})
+    with pytest.raises(DecisionSetIntegrityError, match=error):
+        _verify(world, decision_set, manifest=forged)
+
+
+@pytest.mark.parametrize(
+    "field,value,error",
+    [
+        ("result_set_id", "resultset_forged", "different result set"),
+        ("result_set_fingerprint", "f" * 64, "result-set fingerprint"),
+        ("decision_profile_id", "profile_forged", "decision profile"),
+    ],
+)
+def test_record_identity_claims_are_load_bearing(world, field, value, error):
+    decision_set = _apply(world)
+    records = list(decision_set.records)
+    records[0] = _forge(records[0], **{field: value})
+    with pytest.raises(DecisionSetIntegrityError, match=error):
+        verify_decision_set(
+            profile=decision_set.profile,
+            manifest=decision_set.manifest,
+            records=tuple(records),
             run=world.run,
             plan=world.plan,
             result_set=world.result_set,

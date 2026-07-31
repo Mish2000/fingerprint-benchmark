@@ -24,7 +24,11 @@ from fpbench.core.enums import (
 )
 from fpbench.core.errors import EligibilityIntegrityError
 from fpbench.decisions import apply_decision_profile
-from fpbench.eligibility import derive_self_eligibility, verify_eligibility_set
+from fpbench.eligibility import (
+    SelfIndependenceRequirement,
+    derive_self_eligibility,
+    verify_eligibility_set,
+)
 from decisionworld import build_decision_world, extraction_failure
 from runworld import research_provenance
 
@@ -33,6 +37,12 @@ pytestmark = pytest.mark.decisions
 MATCH = DecisionValue.MATCH
 NON_MATCH = DecisionValue.NON_MATCH
 UNDECIDABLE = None
+
+
+def test_self_independence_metadata_is_deeply_immutable():
+    requirement = SelfIndependenceRequirement(required_metadata={"count": "2"})
+    with pytest.raises(TypeError):
+        requirement.required_metadata["count"] = "1"  # type: ignore[index]
 
 
 # ------------------------------------------------------------ the truth table
@@ -358,4 +368,21 @@ def test_a_set_citing_another_pair_manifest_is_caught(tmp_path):
             decisions=decision_set.by_job(),
             decision_set=decision_set.manifest,
             pair_manifest_hash="a" * 64,
+        )
+
+
+def test_a_set_citing_another_run_is_caught(tmp_path):
+    from dataclasses import replace
+
+    world = build_decision_world(tmp_path)
+    decision_set, eligibility = _derive(world)
+    forged = replace(eligibility.manifest, run_id="run_forged")
+    with pytest.raises(EligibilityIntegrityError, match="run id"):
+        verify_eligibility_set(
+            manifest=forged,
+            records=eligibility.records,
+            units=world.units,
+            decisions=decision_set.by_job(),
+            decision_set=decision_set.manifest,
+            pair_manifest_hash=world.pair_manifest_hash,
         )

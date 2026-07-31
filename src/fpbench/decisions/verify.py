@@ -72,7 +72,9 @@ def verify_decision_set(
         )
 
     for label, actual, expected in (
+        ("run id", manifest.run_id, run.run_id),
         ("run fingerprint", manifest.run_fingerprint, run.run_fingerprint),
+        ("plan id", manifest.plan_id, plan.definition.plan_id),
         (
             "plan fingerprint",
             manifest.plan_fingerprint,
@@ -140,6 +142,18 @@ def verify_decision_set(
         if record.decision_profile_fingerprint != profile.profile_fingerprint:
             raise DecisionSetIntegrityError(
                 f"decision {record.job_id} was made under a different profile"
+            )
+        if record.decision_profile_id != profile.profile_id:
+            raise DecisionSetIntegrityError(
+                f"decision {record.job_id} names a different decision profile"
+            )
+        if record.result_set_id != result_set.result_set_id:
+            raise DecisionSetIntegrityError(
+                f"decision {record.job_id} names a different result set"
+            )
+        if record.result_set_fingerprint != result_set.result_set_fingerprint:
+            raise DecisionSetIntegrityError(
+                f"decision {record.job_id} cites a different result-set fingerprint"
             )
 
         entry = entries_by_job.get(record.job_id)

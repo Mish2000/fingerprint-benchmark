@@ -111,9 +111,12 @@ ordered entries **including their inclusion state and exclusion reasons**.
 Two views over the same pairs that include different subsets are different views — which
 is the entire distinction between the first two.
 
-Verification recomputes the `included` flag from the eligibility verdict rather than
-trusting the stored value. It is one boolean per row, everything conditional rests on it,
-and it is the easiest thing in the chain to change without anyone noticing.
+Verification rebuilds the exact ordered `(pair_id, job_id)` list from the execution plan
+for the required protocol stage. It refuses a missing, duplicated, reordered or
+substituted row, requires each row's pair to agree with its decision, and checks the
+run fingerprint. Policy id and metadata are exact rather than extensible; in particular,
+the recorded `finger_shift` must equal the protocol configuration. It also recomputes the
+`included` flag from the eligibility verdict rather than trusting the stored value.
 
 ## What comes next, and does not exist yet
 

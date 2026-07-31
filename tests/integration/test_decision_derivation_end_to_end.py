@@ -25,6 +25,7 @@ from fpbench.core.enums import (
     DecisionDerivationStatus,
     DecisionValue,
     ProtocolStage,
+    ResearchRunStatus,
     SelfEligibilityStatus,
 )
 from fpbench.core.evaluation_view_models import (
@@ -37,6 +38,7 @@ from fpbench.storage.decision_set_store import DecisionSetStore
 from decisionworld import (
     DEFAULT_SCORES,
     build_decision_world,
+    derivation_definition_for,
     derive_full_chain,
     extraction_failure,
     inspect_chain,
@@ -247,6 +249,28 @@ def _store(chain) -> DecisionSetStore:
     return DecisionSetStore(chain.world.workspace)
 
 
+def _inspect_with_definition(chain, definition):
+    from fpbench.derivations import inspect_decision_derivation
+
+    world = chain.world
+    return inspect_decision_derivation(
+        run=world.run,
+        plan=world.plan,
+        pairs=world.pairs,
+        units=world.units,
+        result_set=world.result_set,
+        result_set_entries=world.result_set_entries,
+        result_store=world.result_store,
+        research_status=ResearchRunStatus.RESEARCH_READY,
+        decision_profile=world.profile,
+        definition=definition,
+        decision_set_id=chain.decision_set_id,
+        pair_manifest_hash=world.pair_manifest_hash,
+        non_mated_finger_shift=1,
+        workspace=world.workspace,
+    )
+
+
 def test_editing_a_decision_invalidates_the_chain(tamperable):
     import pyarrow.parquet as pq
 
@@ -368,6 +392,98 @@ def test_editing_the_finalization_marker_invalidates_the_chain(tamperable):
 
     state = inspect_chain(tamperable.world, tamperable.decision_set_id)
     assert state.status is DecisionDerivationStatus.INVALID
+
+
+def test_a_self_consistent_definition_for_another_commit_is_rejected(tamperable):
+    from dataclasses import replace
+
+    from runworld import research_provenance
+
+    software = replace(research_provenance(), source_revision="b" * 40)
+    definition = derivation_definition_for(tamperable.world, software=software)
+    state = _inspect_with_definition(tamperable, definition)
+    assert state.status is DecisionDerivationStatus.INVALID
+    assert any("source commit" in issue for issue in state.issues)
+
+
+@pytest.mark.parametrize(
+    "field,value,issue",
+    [
+        ("run_id", "run_forged", "run id"),
+        ("run_fingerprint", "b" * 64, "run fingerprint"),
+        ("result_set_id", "resultset_forged", "result-set id"),
+        ("result_set_fingerprint", "c" * 64, "result-set fingerprint"),
+        ("decision_profile_id", "profile_forged", "decision-profile id"),
+        (
+            "decision_profile_fingerprint",
+            "d" * 64,
+            "decision-profile fingerprint",
+        ),
+    ],
+)
+def test_every_definition_source_claim_is_load_bearing(
+    tamperable, field, value, issue
+):
+    from fpbench.core.derivation_models import (
+        DerivationDefinition,
+        derivation_definition_fingerprint,
+    )
+    from fpbench.core.serialization import to_plain
+
+    payload = dict(to_plain(derivation_definition_for(tamperable.world)))
+    payload[field] = value
+    fingerprint = derivation_definition_fingerprint(payload)
+    payload["definition_fingerprint"] = fingerprint
+    payload["definition_id"] = f"derivation_{fingerprint[:12]}"
+    definition = DerivationDefinition(**payload)
+
+    state = _inspect_with_definition(tamperable, definition)
+    assert state.status is DecisionDerivationStatus.INVALID
+    assert any(issue in item for item in state.issues)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("schema_version", "999"),
+        ("derivation_source_commit", "b" * 40),
+        ("derivation_source_tree_clean", False),
+    ],
+)
+def test_receipt_schema_and_source_claims_are_revalidated(
+    tamperable, field, value
+):
+    store = _store(tamperable)
+    path = store.receipt_path(
+        tamperable.world.run.run_id, tamperable.decision_set_id
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload[field] = value
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    state = inspect_chain(tamperable.world, tamperable.decision_set_id)
+    assert state.status is DecisionDerivationStatus.INVALID
+    assert not state.receipt_valid
+
+
+def test_a_rehashed_marker_for_another_commit_is_rejected(tamperable):
+    from fpbench.core.derivation_models import derivation_finalization_fingerprint
+
+    store = _store(tamperable)
+    path = store.finalization_path(
+        tamperable.world.run.run_id, tamperable.decision_set_id
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["derivation_source_commit"] = "b" * 40
+    fingerprint = derivation_finalization_fingerprint(payload)
+    payload["finalization_fingerprint"] = fingerprint
+    payload["finalization_id"] = f"derivationfinal_{fingerprint[:12]}"
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    state = inspect_chain(tamperable.world, tamperable.decision_set_id)
+    assert state.status is DecisionDerivationStatus.INVALID
+    assert state.receipt_valid
+    assert not state.finalization_valid
 
 
 def test_changing_a_raw_score_invalidates_the_chain(tamperable):

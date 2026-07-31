@@ -47,7 +47,11 @@ from typing import Any, Mapping, Sequence
 
 import yaml
 
-from fpbench.core.errors import ConfigurationError, ResearchPreflightError
+from fpbench.core.errors import (
+    ConfigurationError,
+    PreflightError,
+    ResearchPreflightError,
+)
 from fpbench.core.execution_models import ExecutionProfile
 from fpbench.core.research_models import ResearchRunReceipt, ResearchRunState
 from fpbench.execution.batch_runner import RunExecutionSummary
@@ -559,7 +563,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print(receipt.statement)
         return 0
-    except (ResearchPreflightError, ConfigurationError) as exc:
+    except (PreflightError, ConfigurationError) as exc:
+        # ``PreflightError`` rather than only ``ResearchPreflightError``, which
+        # is its subclass: a prepared-image set that will not verify is refused
+        # by the *preparer*, and that raises the plain kind. Catching only the
+        # subclass would turn the most likely operational failure of this
+        # command into a traceback.
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

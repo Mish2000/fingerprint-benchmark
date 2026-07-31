@@ -18,7 +18,8 @@ Two depths, named rather than implied:
     fingerprint, the receipt's claims, the marker's claims, and every canonical
     PNG's bytes, container and decoded raster. This is what a *run* checks before
     and after each batch, because a run has the workspace and does not need to
-    re-hash 10 GB of NIST delivery to find out that a PNG moved.
+    re-read the 4.9 GB of NIST delivery behind the SD300 set to find out that a
+    PNG moved. (The canonical artefacts it does re-read come to 662 MB.)
 
 ``verify_prepared_image_set``
     All of the above, plus every source file: its digest against the manifest,

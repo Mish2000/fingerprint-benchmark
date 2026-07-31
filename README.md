@@ -45,7 +45,14 @@ Phase 5A added the **decision layer**: a documented threshold with a traceable o
 eligibility verdicts, and the three evaluation views the protocol asks for — each with
 an immutable identity, and none of them a metric.
 
-Still no FMR, no FNMR, no EER, and no accuracy claim.
+Phase 5B added the **metric layer**, and with it the project's first biometric result: an
+immutable metric policy, fourteen metrics that each name their own denominator, counts
+per release and pooled by summing, and a report that publishes every rate as the two
+integers it was computed from.
+
+Still no EER, no ROC, no calibrated threshold, no confidence interval, and no general
+FMR — the closed-set same-subject negative fraction is published as a sanity check and is
+not one.
 
 | Package | Status | Responsibility |
 |---|---|---|
@@ -59,9 +66,10 @@ Still no FMR, no FNMR, no EER, and no accuracy claim.
 | `fpbench.execution` | built (sequential) | plan, run, resume, progress, audit, completion, result set, research state |
 | `fpbench.decisions` | built | threshold profiles, the decision function, decision sets |
 | `fpbench.eligibility` | built | SELF units, the both-must-match rule, eligibility sets |
-| `fpbench.evaluation` | built (views only) | which comparisons an evaluation covers; **no metrics yet** |
+| `fpbench.evaluation` | built (views) | which comparisons an evaluation covers |
 | `fpbench.derivations` | built | derivation receipts, finalization markers, derivation status |
-| `fpbench.experiments` | built (two) | the SourceAFIS full run, and the decisions derived from it |
+| `fpbench.metrics` | built | metric policy, named denominators, counts, report, evaluation status |
+| `fpbench.experiments` | built (three) | the SourceAFIS full run, its decisions, and the counts over them |
 | `fpbench.cli` | not yet | command-line entry points |
 
 Deliberate omissions, so they read as decisions rather than oversights:
@@ -71,9 +79,12 @@ Deliberate omissions, so they read as decisions rather than oversights:
   project measured. A calibrated profile needs a development cohort, and drawing one from
   the 50 test subjects is refused outright
   ([ADR 0021](docs/adr/0021-decision-profiles-are-immutable-and-external.md)).
-* **No accuracy claim, even now that 6,000 scores have been decided.** Not because
-  anything is missing from the data, but because the denominators are not defined. See
-  [What the decisions do not entitle us to say](#what-the-decisions-do-not-entitle-us-to-say).
+* **No accuracy figure, even now that the 6,000 decisions have been counted.** The
+  denominators are defined and the counts are published, which is a much narrower claim
+  than "accuracy": every rate is an observation about this closed cohort under one
+  documented threshold. See
+  [The first result](#the-first-result) and
+  [what these results do not establish](docs/reports/sourceafis-native-first-evaluation.md).
 * **Sequential only.** One job at a time, no retries, no worker pool, no hard timeout
   termination. The storage layout is already the one that makes parallelism safe — one
   immutable file per job, no shared table, no locks — so adding workers later changes
@@ -122,9 +133,11 @@ way in:
 | `sourceafis` | a JVM and the built bridge | `make sourceafis-test`; its own [workflow](.github/workflows/sourceafis-adapter.yml) |
 | `full_run` | a couple of minutes | `make full-run`; its own [workflow](.github/workflows/full-dummy-run.yml) |
 
-The `decisions` marker is *not* excluded — the decision layer needs no JVM and no data,
-so it runs in the ordinary suite. `make decisions-test` runs it alone, and it has its own
-[workflow](.github/workflows/decision-derivation.yml).
+The `decisions` and `metrics` markers are *not* excluded — neither layer needs a JVM or
+the data, so both run in the ordinary suite. `make decisions-test` and `make metrics-test`
+run them alone, and each has its own workflow
+([decisions](.github/workflows/decision-derivation.yml),
+[metrics](.github/workflows/biometric-evaluation.yml)).
 
 `make test-all` runs everything available on the machine.
 
@@ -877,7 +890,7 @@ that the benchmark estimates population-wide false-match performance.**
 
 ### The first result
 
-Metric set `metricset_3a10972a121d`, over the 6,000 SourceAFIS decisions at native
+Metric set `metricset_09f2460277b4`, over the 6,000 SourceAFIS decisions at native
 resolution under documented threshold 40. All 6,000 comparisons produced a score, so every
 decided rate equals its attempt-level counterpart — and they are still reported as two
 metrics, because the day one comparison fails they stop being equal.

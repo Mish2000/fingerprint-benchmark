@@ -1,5 +1,5 @@
 {
-  "schema_version": "1",
+  "schema_version": "2",
   "preparation_set_id": "prepset_be560e047991",
   "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
   "transform_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
@@ -14,6 +14,7 @@
   "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
   "source_commit": "114aea2bee5442162cd215eaaa3e49b3a05026b9",
   "source_tree_clean": true,
+  "transform_audit_fingerprint": "de8b540da4d218390751211925b5d005434fbaac25b7c4ea68885c126ba7ae37",
   "total_images": 3000,
   "counts_by_release": {
     "SD300A": 1000,
@@ -33,5 +34,5 @@
   "total_source_bytes": 4917573578,
   "total_output_bytes": 662101359,
   "statement": "This receipt proves that one shared canonical input set was materialised and verified. It contains no comparison, no threshold, no metric and no claim about resolution.",
-  "created_utc": "2026-07-31T16:28:25.914136+00:00"
+  "created_utc": "2026-07-31T20:32:33.026541+00:00"
 }

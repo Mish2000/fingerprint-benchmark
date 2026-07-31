@@ -1,0 +1,50 @@
+{
+  "schema_version": "1",
+  "source_commit": "733f68468d26d630cb7986bc8d37c90403d1ea12",
+  "source_tree_clean": true,
+  "dataset_id": "sd300",
+  "cohort_id": "sd300_50_subjects_test_22f8d52a7478",
+  "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "run_id": "run_4c59fa02a6ab",
+  "run_fingerprint": "4c59fa02a6ab0471bdd46e134c61d74a7b6463276bf7c1bb6bd2e217622ceb5a",
+  "plan_id": "plan_b4ae66e91923",
+  "plan_fingerprint": "b4ae66e919238f4e4bdbb6c7c340713df89193c9fbeddd0389745f3581b15157",
+  "environment_fingerprint": "0277c09842ee67e2d2524ab43a9d7bb88006f90742562afac10cebb6c80855d1",
+  "runtime_bundle_id": "runtime_c68dcd3cd871",
+  "runtime_bundle_fingerprint": "c68dcd3cd87153537f603530d154c5e35a6b57615b8fc3c4e4ffc09347061623",
+  "bridge_jar_sha256": "2435b0737792756722a7db19f842dd1438f8a5b5313a5f83cfa9ecae741e32a8",
+  "result_set_id": "resultset_087b084fb8a8",
+  "result_set_fingerprint": "087b084fb8a8001eb92e20d4900dfc759dc5abbc9d5346144c83f5298f61e38b",
+  "audit_fingerprint": "780d7fb91b79191b672f399372141f7cf13cc57398716cdedbfc4b17a3aad98e",
+  "sourceafis_validation_fingerprint": "8ae90626ab597569990652ea94054e5b5e52a0e844b219d3cc505f1032cd59ae",
+  "completion_id": "completion_2ab7e3de16f8",
+  "completion_fingerprint": "2ab7e3de16f8b3e5b590313ed9a205c4900733673e9e5c2abf4c0da5924e419c",
+  "planned_jobs": 6000,
+  "stored_results": 6000,
+  "success_count": 6000,
+  "algorithmic_failure_count": 0,
+  "blocking_failure_count": 0,
+  "failure_counts": {},
+  "release_counts": {
+    "SD300A": 2000,
+    "SD300B": 2000,
+    "SD300C": 2000
+  },
+  "stage_counts": {
+    "plain_roll_mated": 1500,
+    "plain_roll_non_mated": 1500,
+    "plain_self": 1500,
+    "roll_self": 1500
+  },
+  "timing_summary": {
+    "adapter_ms.count": "6000",
+    "adapter_ms.min": "458.295",
+    "adapter_ms.median": "747.726",
+    "adapter_ms.p95": "995.821",
+    "adapter_ms.p99": "1059.809",
+    "adapter_ms.max": "1211.178",
+    "wall_clock_span_seconds": "4680.617"
+  },
+  "statement": "This receipt proves execution completeness and provenance. It contains no biometric performance conclusion.",
+  "created_utc": "2026-07-31T17:56:49.441620+00:00"
+}

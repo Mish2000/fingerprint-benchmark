@@ -109,6 +109,27 @@ def test_a_lookup_returns_the_exact_prepared_entry(world):
     assert prepared.preparation_set_fingerprint == world.preparation_set_fingerprint
 
 
+def test_preflight_source_bundle_must_match_every_external_identity(world):
+    preparer = _preparer(world)
+    preparer.preflight()
+    preparer.require_source_bundle(world.source_bundle)
+
+    forged = dataclasses.replace(world.source_bundle, pair_manifest_hash="f" * 64)
+    with pytest.raises(PreflightError, match="source manifests"):
+        preparer.require_source_bundle(forged)
+
+
+def test_preflight_source_bundle_requires_the_exact_participating_image_order(world):
+    preparer = _preparer(world)
+    preparer.preflight()
+    forged = dataclasses.replace(
+        world.source_bundle,
+        ordered_image_ids=world.source_bundle.ordered_image_ids[:-1],
+    )
+    with pytest.raises(PreflightError, match="source manifests"):
+        preparer.require_source_bundle(forged)
+
+
 def test_the_effective_resolution_is_always_the_target(world):
     preparer = _preparer(world)
     preparer.preflight()

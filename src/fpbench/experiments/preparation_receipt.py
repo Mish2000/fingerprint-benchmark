@@ -38,12 +38,14 @@ from fpbench.core.imaging_models import (
     ImageTransformProfile,
     PreparationFinalizationMarker,
     PreparationReceipt,
+    PreparationTransformAudit,
     PreparedImageEntry,
     PreparedImageSetManifest,
     TransformRuntimeManifest,
     preparation_finalization_fingerprint,
     preparation_receipt_content_hash,
     preparation_receipt_fingerprint,
+    preparation_transform_audit_content_hash,
 )
 from fpbench.core.models import ImageRecord
 from fpbench.core.serialization import to_plain
@@ -100,6 +102,7 @@ def build_preparation_receipt(
     entries: Iterable[PreparedImageEntry],
     profile: ImageTransformProfile,
     runtime: TransformRuntimeManifest,
+    audit: PreparationTransformAudit,
     images: Mapping[ImageId, ImageRecord] | None = None,
     created_utc: str | None = None,
 ) -> PreparationReceipt:
@@ -114,6 +117,14 @@ def build_preparation_receipt(
     ordered = tuple(entries)
     if not ordered:
         raise ImagingError("a preparation receipt cannot be built over no entries")
+    if not audit.is_clean:
+        raise ImagingError("a preparation receipt requires a clean transform audit")
+    if (
+        audit.preparation_set_id != manifest.preparation_set_id
+        or audit.preparation_set_fingerprint
+        != manifest.preparation_set_fingerprint
+    ):
+        raise ImagingError("the transform audit describes a different prepared set")
 
     counts_by_release: dict[str, int] = {}
     counts_by_source_ppi: dict[str, int] = {}
@@ -149,6 +160,7 @@ def build_preparation_receipt(
         pair_manifest_hash=manifest.pair_manifest_hash,
         source_commit=runtime.source_revision,
         source_tree_clean=runtime.source_tree_clean,
+        transform_audit_fingerprint=audit.audit_fingerprint,
         total_images=manifest.total_images,
         counts_by_release=counts_by_release,
         counts_by_source_ppi=counts_by_source_ppi,
@@ -201,6 +213,7 @@ def verify_preparation_receipt(
     entries: Iterable[PreparedImageEntry],
     profile: ImageTransformProfile,
     runtime: TransformRuntimeManifest,
+    audit: PreparationTransformAudit,
     images: Mapping[ImageId, ImageRecord] | None = None,
 ) -> None:
     """Re-derive every load-bearing claim from current evidence.
@@ -218,6 +231,7 @@ def verify_preparation_receipt(
         entries=entries,
         profile=profile,
         runtime=runtime,
+        audit=audit,
         images=images,
         created_utc=receipt.created_utc,
     )
@@ -243,6 +257,7 @@ def build_preparation_finalization_marker(
     profile: ImageTransformProfile,
     runtime: TransformRuntimeManifest,
     receipt: PreparationReceipt,
+    audit: PreparationTransformAudit,
     entries_table_content_hash: str,
     summary_content_hash: str,
     created_utc: str | None = None,
@@ -254,6 +269,14 @@ def build_preparation_finalization_marker(
             "code that was never committed cannot be recovered from a receipt "
             "written later (docs/adr/0017)"
         )
+    if not audit.is_clean:
+        raise PreparationFinalizationError(
+            "finalising a preparation requires a clean full transform audit"
+        )
+    if receipt.transform_audit_fingerprint != audit.audit_fingerprint:
+        raise PreparationFinalizationError(
+            "the preparation receipt does not cite the transform audit being finalised"
+        )
     claims = {
         "schema_version": PREPARATION_FINALIZATION_SCHEMA_VERSION,
         "preparation_set_id": manifest.preparation_set_id,
@@ -264,6 +287,10 @@ def build_preparation_finalization_marker(
         "summary_content_hash": summary_content_hash,
         "receipt_fingerprint": preparation_receipt_fingerprint(receipt),
         "receipt_content_hash": preparation_receipt_content_hash(receipt),
+        "transform_audit_fingerprint": audit.audit_fingerprint,
+        "transform_audit_content_hash": preparation_transform_audit_content_hash(
+            audit
+        ),
         "source_commit": runtime.source_revision,
         "source_tree_clean": runtime.source_tree_clean,
     }
@@ -300,6 +327,25 @@ def write_preparation_evidence_copy(
     payload = rendered.replace("\n", os.linesep).encode("utf-8")
     if path.is_file():
         if path.read_bytes() != payload:
+            try:
+                existing = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                existing = {}
+            current = dict(to_plain(receipt))
+            shared_claims_match = all(
+                key in current and value == current[key]
+                for key, value in existing.items()
+                if key not in {"schema_version", "created_utc"}
+            )
+            if (
+                str(existing.get("schema_version")) == "1"
+                and receipt.schema_version == "2"
+                and shared_claims_match
+            ):
+                tmp = path.with_suffix(path.suffix + ".tmp")
+                tmp.write_bytes(payload)
+                tmp.replace(path)
+                return path
             raise ResultConflictError(
                 f"{path} already contains a different evidence receipt; refusing to "
                 "overwrite committed evidence"

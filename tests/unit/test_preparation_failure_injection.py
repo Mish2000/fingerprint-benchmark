@@ -47,6 +47,7 @@ def _status(world):
         definition=world.definition,
         images=world.images,
         dataset_root=world.dataset_root,
+        source_bundle=world.source_bundle,
     )
 
 

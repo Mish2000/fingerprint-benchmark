@@ -22,7 +22,9 @@ from typing import Any, Mapping
 from fpbench.core.enums import ChecksumStatus, ProtocolStage
 from fpbench.core.errors import ResearchPreflightError
 from fpbench.core.identifiers import ImageId, PairId
+from fpbench.core.imaging_models import PreparationSourceBundle
 from fpbench.core.models import Cohort, ComparisonPair, ImageRecord
+from fpbench.core.serialization import stable_hash
 from fpbench.datasets import create_provider, load_dataset_spec, summarise_subjects
 from fpbench.datasets.sd300 import ppi_policy
 from fpbench.protocols.sd300_protocol import SD300Protocol
@@ -32,6 +34,7 @@ __all__ = [
     "SD300Inputs",
     "load_sd300_inputs",
     "participating_image_ids",
+    "preparation_source_bundle",
     "require_expected_shape",
     "EXPECTED_SUBJECTS",
     "EXPECTED_FINGERS",
@@ -203,6 +206,55 @@ def participating_image_ids(
         participating.add(pair.left_image_id)
         participating.add(pair.right_image_id)
     return tuple(sorted(participating))
+
+
+def preparation_source_bundle(inputs: SD300Inputs) -> PreparationSourceBundle:
+    """Derive the external identities a prepared set is required to match.
+
+    This is built from the authoritative dataset/protocol/cohort/pair inputs,
+    never from a prepared-set manifest.  It therefore remains an independent
+    anchor even if every prepared-set artefact is rehashed self-consistently.
+    """
+    cohort = inputs.cohort
+    combined_manifest_hash = stable_hash(
+        {
+            "schema": "combined_image_manifest_hash_v1",
+            "hashes": dict(sorted(inputs.image_manifest_hashes.items())),
+        },
+        length=64,
+    )
+    cohort_fingerprint = stable_hash(
+        {
+            "schema": "cohort_fingerprint_v1",
+            "cohort_id": str(cohort.cohort_id),
+            "protocol_id": cohort.protocol_id,
+            "dataset_id": cohort.dataset_id,
+            "role": cohort.role.value,
+            "releases": list(cohort.releases),
+            "subject_ids": [str(item) for item in cohort.subject_ids],
+            "selection": {
+                "seed": cohort.selection.seed,
+                "size": cohort.selection.size,
+                "candidate_ids": [
+                    str(item) for item in cohort.selection.candidate_ids
+                ],
+                "criteria": dict(cohort.selection.criteria),
+                "image_manifest_hashes": dict(
+                    cohort.selection.image_manifest_hashes
+                ),
+            },
+        },
+        length=64,
+    )
+    return PreparationSourceBundle(
+        dataset_id=inputs.protocol.dataset_id,
+        image_manifest_hash=combined_manifest_hash,
+        protocol_id=inputs.protocol.protocol_id,
+        cohort_id=str(cohort.cohort_id),
+        cohort_fingerprint=cohort_fingerprint,
+        pair_manifest_hash=inputs.pair_manifest_hash,
+        ordered_image_ids=participating_image_ids(inputs.pairs),
+    )
 
 
 def require_expected_shape(

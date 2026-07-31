@@ -51,8 +51,8 @@ __all__ = [
     "NO_CONCLUSION_STATEMENT",
 ]
 
-RESEARCH_RECEIPT_SCHEMA_VERSION = "1"
-RESEARCH_FINALIZATION_SCHEMA_VERSION = "1"
+RESEARCH_RECEIPT_SCHEMA_VERSION = "2"
+RESEARCH_FINALIZATION_SCHEMA_VERSION = "2"
 
 #: Printed verbatim into every receipt. A reader who sees only this file must
 #: not be able to mistake it for a result.
@@ -202,6 +202,12 @@ class ResearchRunReceipt:
     algorithmic_failure_count: int
     blocking_failure_count: int
 
+    preparation_set_id: str | None = None
+    preparation_set_fingerprint: str | None = None
+    transform_profile_id: str | None = None
+    transform_profile_fingerprint: str | None = None
+    transform_runtime_fingerprint: str | None = None
+
     failure_counts: Mapping[str, int] = field(default_factory=dict)
     release_counts: Mapping[str, int] = field(default_factory=dict)
     stage_counts: Mapping[str, int] = field(default_factory=dict)
@@ -255,6 +261,30 @@ class ResearchRunReceipt:
             object.__setattr__(
                 self, name, _require_non_negative(getattr(self, name), name)
             )
+
+        preparation = (
+            self.preparation_set_id,
+            self.preparation_set_fingerprint,
+            self.transform_profile_id,
+            self.transform_profile_fingerprint,
+            self.transform_runtime_fingerprint,
+        )
+        if any(value is not None for value in preparation):
+            if not all(value is not None for value in preparation):
+                raise ValueError(
+                    "canonical preparation receipt fields must all be present or "
+                    "all be absent"
+                )
+            validate_id(str(self.preparation_set_id))
+            validate_id(str(self.transform_profile_id))
+            for name in (
+                "preparation_set_fingerprint",
+                "transform_profile_fingerprint",
+                "transform_runtime_fingerprint",
+            ):
+                object.__setattr__(
+                    self, name, _require_digest(str(getattr(self, name)), name)
+                )
         if self.blocking_failure_count:
             raise ValueError(
                 "a research receipt cannot be issued for a run with infrastructure "
@@ -354,11 +384,11 @@ def _walk_sanitised(value: Any, forbidden_keys: set[str], *, path: str) -> None:
 
 def research_receipt_fingerprint(receipt: ResearchRunReceipt) -> str:
     """A digest of the receipt's durable content, excluding when it was written."""
-    plain = dict(to_plain(receipt))
+    plain = _research_receipt_plain(receipt)
     plain.pop("created_utc", None)
     plain.pop("timing_summary", None)
     return stable_hash(
-        {"schema": f"research_receipt_v{RESEARCH_RECEIPT_SCHEMA_VERSION}", "receipt": plain},
+        {"schema": f"research_receipt_v{receipt.schema_version}", "receipt": plain},
         length=64,
     )
 
@@ -373,10 +403,25 @@ def research_receipt_content_hash(receipt: ResearchRunReceipt) -> str:
     return stable_hash(
         {
             "schema": "research_receipt_content_v1",
-            "receipt": to_plain(receipt),
+            "receipt": _research_receipt_plain(receipt),
         },
         length=64,
     )
+
+
+def _research_receipt_plain(receipt: ResearchRunReceipt) -> dict[str, Any]:
+    """Render a receipt without retroactively changing schema-v1 identities."""
+    plain = dict(to_plain(receipt))
+    if receipt.schema_version == "1":
+        for name in (
+            "preparation_set_id",
+            "preparation_set_fingerprint",
+            "transform_profile_id",
+            "transform_profile_fingerprint",
+            "transform_runtime_fingerprint",
+        ):
+            plain.pop(name, None)
+    return plain
 
 
 @dataclass(frozen=True, slots=True)
@@ -439,7 +484,7 @@ class ResearchFinalizationMarker:
             raise ValueError("research finalization requires a clean verifier tree")
 
         version = str(self.schema_version).strip()
-        if version != RESEARCH_FINALIZATION_SCHEMA_VERSION:
+        if version not in {"1", RESEARCH_FINALIZATION_SCHEMA_VERSION}:
             raise ValueError(
                 "unsupported research finalization schema version "
                 f"{version!r}"
@@ -471,6 +516,8 @@ def research_finalization_fingerprint(
     plain.pop("finalization_id", None)
     plain.pop("finalization_fingerprint", None)
     plain.pop("created_utc", None)
+    version = str(plain.get("schema_version") or "")
     return stable_hash(
-        {"schema": "research_finalization_v1", "marker": plain}, length=64
+        {"schema": f"research_finalization_v{version}", "marker": plain},
+        length=64,
     )

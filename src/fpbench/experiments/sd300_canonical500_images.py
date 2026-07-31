@@ -64,7 +64,7 @@ from fpbench.core.imaging_models import (
 )
 from fpbench.core.models import ImageRecord
 from fpbench.core.provenance_models import SoftwareProvenance
-from fpbench.core.serialization import read_json, stable_hash, write_json
+from fpbench.core.serialization import read_json, require_exact_int, write_json
 from fpbench.experiments.preparation_receipt import (
     build_preparation_finalization_marker,
     build_preparation_receipt,
@@ -79,6 +79,7 @@ from fpbench.experiments.sd300_inputs import (
     SD300Inputs,
     load_sd300_inputs,
     participating_image_ids,
+    preparation_source_bundle,
     require_expected_shape,
 )
 from fpbench.imaging.canonical import canonicalise, read_source_raster
@@ -164,12 +165,17 @@ def load_preparation_config(
         require_verified_checksums=bool(
             dataset.get("require_verified_checksums", True)
         ),
-        expected_total_images=int(shape["participating_images"]),
-        expected_images_per_release=int(shape["images_per_release"]),
+        expected_total_images=require_exact_int(
+            shape["participating_images"], "participating_images"
+        ),
+        expected_images_per_release=require_exact_int(
+            shape["images_per_release"], "images_per_release"
+        ),
         expected_releases=tuple(str(item) for item in shape["releases"]),
-        expected_pairs=int(shape["comparisons"]),
+        expected_pairs=require_exact_int(shape["comparisons"], "comparisons"),
         expected_source_ppi={
-            str(key): int(value) for key, value in dict(shape["source_ppi"]).items()
+            str(key): require_exact_int(value, f"source_ppi[{key}]")
+            for key, value in dict(shape["source_ppi"]).items()
         },
     )
 
@@ -538,7 +544,7 @@ def inspect_canonical500_images(
     repository_root: Path = REPOSITORY_ROOT,
     definition_id: str | None = None,
     with_sources: bool = True,
-    recompute_pixels: bool = False,
+    recompute_pixels: bool = True,
 ) -> PreparationState:
     """Report how far along the evidence chain the preparation is. Never writes."""
     prepared = _load_prepared(
@@ -555,6 +561,9 @@ def inspect_canonical500_images(
         definition=prepared.definition,
         images=prepared.inputs.images if with_sources else None,
         dataset_root=prepared.inputs.dataset_root if with_sources else None,
+        source_bundle=(
+            preparation_source_bundle(prepared.inputs) if with_sources else None
+        ),
         recompute_pixels=recompute_pixels,
     )
 
@@ -645,7 +654,36 @@ def finalize_canonical500_images(
             "the entries read back from the set are not the entries written to it"
         )
 
-    # 10-13. Summary, then the sanitised receipt, then both re-read.
+    # 10. Re-read every source and re-run every transform. This independent
+    # audit is the load-bearing proof that each stored B/C output is the direct
+    # Lanczos result of the authoritative source, not merely a self-consistent
+    # PNG with freshly recomputed hashes.
+    verification = verify_prepared_image_set(
+        store=store,
+        preparation_set_id_value=manifest.preparation_set_id,
+        images=prepared.inputs.images,
+        dataset_root=prepared.inputs.dataset_root,
+        source_bundle=preparation_source_bundle(prepared.inputs),
+        recompute_pixels=True,
+        require_receipt=False,
+        require_finalization=False,
+        # A v1 receipt/marker may be present. They are upgraded only after the
+        # new independent audit succeeds; the final status pass below verifies
+        # the complete v2 publication from disk.
+        check_existing_publication=False,
+    )
+    audit = verification.transform_audit
+    if not verification.is_valid or audit is None or not audit.is_clean:
+        raise PreparationFinalizationError(
+            f"preparation set {manifest.preparation_set_id} failed its full "
+            f"transform audit: {list(verification.issues)[:3]}"
+        )
+    store.ensure_transform_audit(
+        preparation_set_id=manifest.preparation_set_id, audit=audit
+    )
+    stored_audit = store.read_transform_audit(manifest.preparation_set_id)
+
+    # 11-14. Summary, then the sanitised receipt, then both re-read.
     summary = _build_summary(
         manifest=stored_manifest,
         entries=stored_entries,
@@ -661,6 +699,7 @@ def finalize_canonical500_images(
         entries=stored_entries,
         profile=prepared.profile,
         runtime=prepared.runtime,
+        audit=stored_audit,
         images=prepared.inputs.images,
     )
     store.ensure_receipt(
@@ -674,10 +713,11 @@ def finalize_canonical500_images(
         entries=stored_entries,
         profile=prepared.profile,
         runtime=prepared.runtime,
+        audit=stored_audit,
         images=prepared.inputs.images,
     )
 
-    # 14. Commit point: deliberately the final authoritative workspace write.
+    # 15. Commit point: deliberately the final authoritative workspace write.
     from fpbench.storage.prepared_image_set_store import (
         preparation_summary_content_hash,
     )
@@ -687,6 +727,7 @@ def finalize_canonical500_images(
         profile=prepared.profile,
         runtime=prepared.runtime,
         receipt=stored_receipt,
+        audit=stored_audit,
         entries_table_content_hash=store.entries_table_content_hash(
             manifest.preparation_set_id
         ),
@@ -696,13 +737,15 @@ def finalize_canonical500_images(
         preparation_set_id=manifest.preparation_set_id, marker=marker
     )
 
-    # 15-16. Status, derived from the files that now exist.
+    # 16-17. Status, derived from the files that now exist.
     state = inspect_preparation(
         store=store,
         definition=definition,
         preparation_set_id_value=manifest.preparation_set_id,
         images=prepared.inputs.images,
         dataset_root=prepared.inputs.dataset_root,
+        source_bundle=preparation_source_bundle(prepared.inputs),
+        recompute_pixels=True,
     )
     if not state.is_preparation_ready:
         raise PreparationFinalizationError(
@@ -710,7 +753,7 @@ def finalize_canonical500_images(
             f"reach PREPARATION_READY: {state.status.value} {list(state.issues)[:3]}"
         )
 
-    # 17. Evidence, last, because writing it makes the tree dirty.
+    # 18. Evidence, last, because writing it makes the tree dirty.
     write_preparation_evidence_copy(
         stored_receipt, repository_root=Path(repository_root)
     )
@@ -884,38 +927,11 @@ def _combined_image_manifest_hash(inputs: SD300Inputs) -> str:
     materialised. Naming them separately in the set fingerprint would be
     equivalent; folding them into one keeps the manifest a fixed shape.
     """
-    return stable_hash(
-        {
-            "schema": "combined_image_manifest_hash_v1",
-            "hashes": dict(sorted(inputs.image_manifest_hashes.items())),
-        },
-        length=64,
-    )
+    return preparation_source_bundle(inputs).image_manifest_hash
 
 
 def _cohort_fingerprint(inputs: SD300Inputs) -> str:
-    cohort = inputs.cohort
-    return stable_hash(
-        {
-            "schema": "cohort_fingerprint_v1",
-            "cohort_id": str(cohort.cohort_id),
-            "protocol_id": cohort.protocol_id,
-            "dataset_id": cohort.dataset_id,
-            "role": cohort.role.value,
-            "releases": list(cohort.releases),
-            "subject_ids": [str(item) for item in cohort.subject_ids],
-            "selection": {
-                "seed": cohort.selection.seed,
-                "size": cohort.selection.size,
-                "candidate_ids": [str(item) for item in cohort.selection.candidate_ids],
-                "criteria": dict(cohort.selection.criteria),
-                "image_manifest_hashes": dict(
-                    cohort.selection.image_manifest_hashes
-                ),
-            },
-        },
-        length=64,
-    )
+    return preparation_source_bundle(inputs).cohort_fingerprint
 
 
 def _collect_entries(
@@ -1113,9 +1129,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--definition-id", default=None)
     parser.add_argument(
         "--recompute-pixels",
-        action="store_true",
-        help="During status, re-run the transform on every source and compare. "
-        "Correct and slow; off by default.",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="During status, re-run every transform (default: enabled).",
     )
     parser.add_argument(
         "--no-sources",

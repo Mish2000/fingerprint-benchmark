@@ -240,6 +240,7 @@ def test_a_dirty_tree_is_recorded_and_refused_at_finalisation():
             profile=None,
             runtime=runtime,
             receipt=None,
+            audit=None,
             entries_table_content_hash="0" * 64,
             summary_content_hash="0" * 64,
         )

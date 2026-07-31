@@ -188,6 +188,7 @@ def test_the_prepared_set_is_preparation_ready(chain):
         definition=canonical.definition,
         images=canonical.images,
         dataset_root=canonical.dataset_root,
+        source_bundle=canonical.source_bundle,
     )
     assert state.status is PreparationStatus.PREPARATION_READY
     assert state.missing_images == 0
@@ -316,8 +317,24 @@ def test_a_result_claiming_the_wrong_set_is_caught(chain):
 
 def test_the_run_reaches_research_ready(chain):
     canonical, world = chain
-    receipt = finalise_research_world(world)
+    receipt = finalise_research_world(
+        world, preparation_manifest=canonical.manifest
+    )
     assert receipt.stored_results == world.plan.total_jobs
+    assert receipt.preparation_set_id == canonical.preparation_set_id
+    assert (
+        receipt.preparation_set_fingerprint
+        == canonical.preparation_set_fingerprint
+    )
+    assert receipt.transform_profile_id == canonical.profile.profile_id
+    assert (
+        receipt.transform_profile_fingerprint
+        == canonical.profile.profile_fingerprint
+    )
+    assert (
+        receipt.transform_runtime_fingerprint
+        == canonical.runtime.runtime_fingerprint
+    )
 
     state = inspect_research_run(
         run=world.run,
@@ -327,6 +344,7 @@ def test_the_run_reaches_research_ready(chain):
         algorithm_validation=structural_validation_report(world),
         primary_asset_role=next(iter(world.runtime_reference.asset_sha256s)),
         verifier_software=world.software,
+        preparation_manifest=canonical.manifest,
     )
     assert state.status is ResearchRunStatus.RESEARCH_READY
 
@@ -339,5 +357,6 @@ def test_the_prepared_set_is_still_valid_after_the_run(chain):
         definition=canonical.definition,
         images=canonical.images,
         dataset_root=canonical.dataset_root,
+        source_bundle=canonical.source_bundle,
     )
     assert state.status is PreparationStatus.PREPARATION_READY

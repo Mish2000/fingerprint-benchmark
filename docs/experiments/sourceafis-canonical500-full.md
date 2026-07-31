@@ -43,6 +43,12 @@ materialised, which is why both configs are committed with a placeholder and
 filled in afterwards. A run refuses to start while the placeholder is present
 rather than inventing a set.
 
+Preflight does not merely ask whether the set contains every requested image.
+It binds the verified preparation definition and manifest to the authoritative
+SD300 dataset id, image-manifest hash, protocol, cohort, pair manifest and exact
+ordered image-id list. A rehashed but substituted source identity is a hard
+preflight failure.
+
 ```bash
 python -m fpbench.experiments.sourceafis_canonical500_full prepare
 ```
@@ -101,6 +107,12 @@ Reaching `RESEARCH_READY` means 6,000 scores exist and can be attributed. It
 does not mean they are better, worse, or the same. Whether identical SD300A
 pixels produced identical scores is a stage 6B observation; stage 6A only proves
 the pixels were identical.
+
+The canonical research receipt names the preparation set id and fingerprint,
+transform profile id and fingerprint, and transform-runtime fingerprint. Those
+claims are re-derived from the run execution profile and the verified prepared
+manifest during finalization and status inspection. Native receipts leave all
+five fields null.
 
 Algorithmic failures — template extraction, matching — are permitted and
 counted. Infrastructure failures are not: a timeout, a crashed JVM, a decode

@@ -43,6 +43,7 @@ from fpbench.core.imaging_models import (
     PreparationDefinition,
     PreparationFinalizationMarker,
     PreparationReceipt,
+    PreparationTransformAudit,
     PreparedImageEntry,
     PreparedImageSetManifest,
     TransformRuntimeManifest,
@@ -62,6 +63,7 @@ _MANIFEST = "manifest.json"
 _ENTRIES = "entries.parquet"
 _SUMMARY = "preparation-summary.json"
 _RECEIPT = "preparation-receipt.json"
+_TRANSFORM_AUDIT = "preparation-transform-audit.json"
 _FINALIZATION = "preparation-finalization.json"
 _ENTRIES_DIRECTORY = "entries"
 
@@ -131,6 +133,9 @@ class PreparedImageSetStore:
     def receipt_path(self, preparation_set_id: str) -> Path:
         return self.set_dir(preparation_set_id) / _RECEIPT
 
+    def transform_audit_path(self, preparation_set_id: str) -> Path:
+        return self.set_dir(preparation_set_id) / _TRANSFORM_AUDIT
+
     def finalization_path(self, preparation_set_id: str) -> Path:
         return self.set_dir(preparation_set_id) / _FINALIZATION
 
@@ -144,6 +149,9 @@ class PreparedImageSetStore:
 
     def has_receipt(self, preparation_set_id: str) -> bool:
         return self.receipt_path(preparation_set_id).is_file()
+
+    def has_transform_audit(self, preparation_set_id: str) -> bool:
+        return self.transform_audit_path(preparation_set_id).is_file()
 
     def has_summary(self, preparation_set_id: str) -> bool:
         return self.summary_path(preparation_set_id).is_file()
@@ -464,7 +472,14 @@ class PreparedImageSetStore:
     ) -> Path:
         path = self.receipt_path(preparation_set_id)
         if path.is_file():
-            stored = self.read_receipt(preparation_set_id)
+            try:
+                stored = self.read_receipt(preparation_set_id)
+            except StorageError:
+                payload = read_json(path)
+                if _is_preparation_receipt_schema_upgrade(payload, receipt):
+                    _archive_preparation_publication(path)
+                    return write_json(path, receipt)
+                raise
             if preparation_receipt_fingerprint(
                 stored
             ) != preparation_receipt_fingerprint(receipt):
@@ -474,13 +489,34 @@ class PreparedImageSetStore:
             return path
         return write_json(path, receipt)
 
+    def ensure_transform_audit(
+        self, *, preparation_set_id: str, audit: PreparationTransformAudit
+    ) -> Path:
+        """Write the full transform audit once, or confirm it is equivalent."""
+        path = self.transform_audit_path(preparation_set_id)
+        if path.is_file():
+            stored = self.read_transform_audit(preparation_set_id)
+            if stored.audit_fingerprint != audit.audit_fingerprint:
+                raise PreparedImageSetConflictError(
+                    f"{path} already carries a different transform audit"
+                )
+            return path
+        return write_json(path, audit)
+
     def ensure_finalization(
         self, *, preparation_set_id: str, marker: PreparationFinalizationMarker
     ) -> Path:
         """Write the last file, the one that makes the rest authoritative."""
         path = self.finalization_path(preparation_set_id)
         if path.is_file():
-            stored = self.read_finalization(preparation_set_id)
+            try:
+                stored = self.read_finalization(preparation_set_id)
+            except StorageError:
+                payload = read_json(path)
+                if _is_preparation_finalization_schema_upgrade(payload, marker):
+                    _archive_preparation_publication(path)
+                    return write_json(path, marker)
+                raise
             if stored.finalization_fingerprint != marker.finalization_fingerprint:
                 raise PreparedImageSetConflictError(
                     f"{path} already finalises a different preparation"
@@ -566,6 +602,20 @@ class PreparedImageSetStore:
             return PreparationReceipt(**payload)
         except (KeyError, TypeError, ValueError) as exc:
             raise StorageError(f"{path}: unreadable preparation receipt ({exc})") from exc
+
+    def read_transform_audit(
+        self, preparation_set_id: str
+    ) -> PreparationTransformAudit:
+        path = self.transform_audit_path(preparation_set_id)
+        payload = self._read_json(path, "preparation transform audit")
+        try:
+            return PreparationTransformAudit(
+                **{**payload, "issues": tuple(payload.get("issues") or ())}
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise StorageError(
+                f"{path}: unreadable preparation transform audit ({exc})"
+            ) from exc
 
     def read_finalization(
         self, preparation_set_id: str
@@ -846,6 +896,56 @@ def preparation_summary_content_hash(summary: Mapping[str, object]) -> str:
         {"schema": "preparation_summary_content_hash_v1", "summary": to_plain(payload)},
         length=64,
     )
+
+
+def _is_preparation_receipt_schema_upgrade(
+    stored: Mapping[str, object], new: PreparationReceipt
+) -> bool:
+    if str(stored.get("schema_version")) != "1" or new.schema_version != "2":
+        return False
+    current = dict(to_plain(new))
+    ignored = {"schema_version", "created_utc"}
+    return all(
+        key in current and value == current[key]
+        for key, value in stored.items()
+        if key not in ignored
+    )
+
+
+def _is_preparation_finalization_schema_upgrade(
+    stored: Mapping[str, object], new: PreparationFinalizationMarker
+) -> bool:
+    if str(stored.get("schema_version")) != "1" or new.schema_version != "2":
+        return False
+    invariant = (
+        "preparation_set_id",
+        "preparation_set_fingerprint",
+        "transform_profile_fingerprint",
+        "transform_runtime_fingerprint",
+        "entries_table_content_hash",
+        "summary_content_hash",
+        "source_commit",
+        "source_tree_clean",
+    )
+    return all(stored.get(key) == getattr(new, key) for key in invariant)
+
+
+def _archive_preparation_publication(path: Path) -> Path:
+    payload = read_json(path)
+    version = str(payload.get("schema_version") or "unknown")
+    fingerprint = stable_hash(payload, length=64)[:12]
+    archive = (
+        path.parent
+        / "publication-history"
+        / f"{path.stem}-v{version}-{fingerprint}.json"
+    )
+    if archive.is_file():
+        if read_json(archive) != payload:
+            raise PreparedImageSetConflictError(
+                f"{archive} already holds different publication history"
+            )
+        return archive
+    return write_json(archive, payload)
 
 
 # ------------------------------------------------------------------ file helpers

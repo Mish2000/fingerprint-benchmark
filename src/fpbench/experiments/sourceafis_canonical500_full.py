@@ -54,6 +54,7 @@ from fpbench.core.errors import (
 )
 from fpbench.core.execution_models import ExecutionProfile
 from fpbench.core.research_models import ResearchRunReceipt, ResearchRunState
+from fpbench.core.serialization import require_exact_int
 from fpbench.execution.batch_runner import RunExecutionSummary
 from fpbench.experiments.sd300_inputs import (
     EXPECTED_JOBS,
@@ -201,7 +202,9 @@ def load_canonical_execution_profile(
         profile_id=str(profile["profile_id"]),
         preparer_id=str(profile["preparer_id"]),
         timeout_seconds=float(profile["timeout_seconds"]),
-        deterministic_seed=int(profile.get("deterministic_seed", 0)),
+        deterministic_seed=require_exact_int(
+            profile.get("deterministic_seed", 0), "deterministic_seed"
+        ),
         parameters=parameters,
     )
 
@@ -250,7 +253,7 @@ def load_canonical_experiment_config(
         )
     if not execution.get("sequential", True):
         raise ConfigurationError(f"{path}: this run is sequential")
-    if int(execution.get("retries", 0)) != 0:
+    if require_exact_int(execution.get("retries", 0), "retries") != 0:
         raise ConfigurationError(f"{path}: this run performs no retries")
 
     profile = load_canonical_execution_profile(
@@ -275,7 +278,9 @@ def load_canonical_experiment_config(
     return CanonicalExperimentConfig(
         experiment_id=str(experiment["id"]),
         kind=str(experiment.get("kind", "full_raw_score_run")),
-        replicate_index=int(experiment.get("replicate_index", 0)),
+        replicate_index=require_exact_int(
+            experiment.get("replicate_index", 0), "replicate_index"
+        ),
         dataset_config=(root / str(dataset["ref"])).resolve(),
         protocol_config=(root / str(protocol["ref"])).resolve(),
         algorithm_config=(root / str(algorithm["ref"])).resolve(),
@@ -293,14 +298,21 @@ def load_canonical_experiment_config(
         transform_profile_fingerprint=str(
             profile.parameters["transform_profile_fingerprint"]
         ),
-        expected_jobs=int(shape.get("comparisons", EXPECTED_JOBS)),
-        expected_per_release=int(shape.get("per_release", EXPECTED_PER_RELEASE)),
-        expected_per_stage=int(shape.get("per_stage", EXPECTED_PER_STAGE)),
-        expected_participating_images=int(
-            shape.get("participating_images", EXPECTED_PARTICIPATING_IMAGES)
+        expected_jobs=require_exact_int(
+            shape.get("comparisons", EXPECTED_JOBS), "comparisons"
+        ),
+        expected_per_release=require_exact_int(
+            shape.get("per_release", EXPECTED_PER_RELEASE), "per_release"
+        ),
+        expected_per_stage=require_exact_int(
+            shape.get("per_stage", EXPECTED_PER_STAGE), "per_stage"
+        ),
+        expected_participating_images=require_exact_int(
+            shape.get("participating_images", EXPECTED_PARTICIPATING_IMAGES),
+            "participating_images",
         ),
         expected_source_ppi={
-            str(key): int(value)
+            str(key): require_exact_int(value, f"source_ppi[{key}]")
             for key, value in dict(shape.get("source_ppi") or {}).items()
         },
         native_run_id=str(anchor["native_run_id"]),

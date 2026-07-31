@@ -46,7 +46,7 @@ from fpbench.core.result_models import (
 )
 from fpbench.core.run_state_models import RunCompletion
 from fpbench.core.runtime_models import RunRuntimeReference
-from fpbench.core.serialization import read_json, write_json
+from fpbench.core.serialization import read_json, stable_hash, to_plain, write_json
 from fpbench.storage import layout, result_schemas
 
 __all__ = ["ResultStore"]
@@ -56,6 +56,16 @@ _COMPLETION_MANIFEST = "completion.json"
 _RUNTIME_REFERENCE = "runtime.json"
 _RESEARCH_RECEIPT = "research-receipt.json"
 _RESEARCH_FINALIZATION = "research-finalization.json"
+
+_PREPARATION_RECEIPT_FIELDS = frozenset(
+    {
+        "preparation_set_id",
+        "preparation_set_fingerprint",
+        "transform_profile_id",
+        "transform_profile_fingerprint",
+        "transform_runtime_fingerprint",
+    }
+)
 
 
 class ResultStore:
@@ -266,6 +276,9 @@ class ResultStore:
             if research_receipt_fingerprint(stored) != research_receipt_fingerprint(
                 receipt
             ):
+                if _is_research_receipt_schema_upgrade(stored, receipt):
+                    _archive_publication(path)
+                    return write_json(path, receipt)
                 raise ResultConflictError(
                     f"{path} already carries a different research receipt for run "
                     f"{receipt.run_id}"
@@ -296,6 +309,9 @@ class ResultStore:
         if path.is_file():
             stored = self.read_research_finalization(marker.run_id)
             if stored.finalization_fingerprint != marker.finalization_fingerprint:
+                if _is_research_finalization_schema_upgrade(stored, marker):
+                    _archive_publication(path)
+                    return write_json(path, marker)
                 raise ResultConflictError(
                     f"{path} already commits a different research finalization "
                     f"for run {marker.run_id}"
@@ -436,6 +452,55 @@ class ResultStore:
                 return reader.read()
         except (pa.ArrowInvalid, OSError) as exc:
             raise StorageError(f"{path}: unreadable parquet ({exc})") from exc
+
+
+def _is_research_receipt_schema_upgrade(
+    stored: ResearchRunReceipt, new: ResearchRunReceipt
+) -> bool:
+    if stored.schema_version != "1" or new.schema_version != "2":
+        return False
+    old = dict(to_plain(stored))
+    current = dict(to_plain(new))
+    ignored = {"schema_version", "created_utc", *_PREPARATION_RECEIPT_FIELDS}
+    return all(old[key] == current[key] for key in old if key not in ignored)
+
+
+def _is_research_finalization_schema_upgrade(
+    stored: ResearchFinalizationMarker, new: ResearchFinalizationMarker
+) -> bool:
+    if stored.schema_version != "1" or new.schema_version != "2":
+        return False
+    invariant = (
+        "run_id",
+        "run_fingerprint",
+        "plan_id",
+        "plan_fingerprint",
+        "environment_fingerprint",
+        "runtime_reference_fingerprint",
+        "result_set_fingerprint",
+        "audit_fingerprint",
+        "sourceafis_validation_fingerprint",
+        "completion_fingerprint",
+    )
+    return all(getattr(stored, key) == getattr(new, key) for key in invariant)
+
+
+def _archive_publication(path: Path) -> Path:
+    payload = read_json(path)
+    version = str(payload.get("schema_version") or "unknown")
+    fingerprint = stable_hash(payload, length=64)[:12]
+    archive = (
+        path.parent
+        / "publication-history"
+        / f"{path.stem}-v{version}-{fingerprint}.json"
+    )
+    if archive.is_file():
+        if read_json(archive) != payload:
+            raise ResultConflictError(
+                f"{archive} already holds different publication history"
+            )
+        return archive
+    return write_json(archive, payload)
 
 
 def _run_from_payload(payload: Mapping[str, object]) -> RunDefinition:

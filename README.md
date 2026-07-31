@@ -999,6 +999,12 @@ resumes only under the same definition, the same transform runtime and the same 
 commit; a Pillow upgrade half way through voids the set rather than being absorbed by it
 ([ADR 0033](docs/adr/0033-prepared-image-sets-are-immutable-reusable-evidence.md)).
 
+`status` and `finalize` re-run the pinned transform for all 3,000 sources by default.
+Finalization persists a fingerprinted transform audit and binds it into the receipt and
+marker. The check also binds the definition and manifest to the authoritative dataset,
+protocol, cohort, pair manifest and exact ordered source list, so a self-consistent
+rewrite of prepared artefacts cannot pass by merely recomputing their hashes.
+
 Details: [docs/imaging/canonical-500-profile.md](docs/imaging/canonical-500-profile.md)
 and [docs/imaging/prepared-image-sets.md](docs/imaging/prepared-image-sets.md).
 
@@ -1020,6 +1026,11 @@ preparation set and therefore the run fingerprint do.
 Every stored result names the input set, both entry hashes, both file digests, both
 raster digests and both output dimensions, and the validator checks each against the
 set's actual entries rather than against another copy of the same claim.
+
+The canonical research receipt also names the preparation set, transform profile and
+transform runtime. Status re-derives those identities from the execution profile and
+the verified prepared manifest; a broken preparation preflight is reported as
+`INVALID`, not as a command crash.
 
 A SELF comparison reuses one immutable artefact on both sides and still performs two
 independent template extractions: independence is a property of extraction, not of

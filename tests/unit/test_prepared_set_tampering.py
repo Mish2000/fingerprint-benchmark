@@ -16,10 +16,22 @@ import dataclasses
 import json
 import stat
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from fpbench.core.enums import PreparationStatus
+from fpbench.core.imaging_models import (
+    PREPARATION_TRANSFORM_AUDIT_SCHEMA_VERSION,
+    PreparationTransformAudit,
+    PreparedImageEntry,
+    PreparedImageSetManifest,
+    ordered_prepared_entries_hash,
+    preparation_set_fingerprint,
+    preparation_set_id,
+    preparation_transform_audit_fingerprint,
+    prepared_image_entry_hash,
+)
 from fpbench.core.serialization import write_json
 from fpbench.imaging.status import inspect_preparation
 from fpbench.imaging.verify import verify_prepared_image_set
@@ -41,6 +53,7 @@ def _verify(world):
         preparation_set_id_value=world.preparation_set_id,
         images=world.images,
         dataset_root=world.dataset_root,
+        source_bundle=world.source_bundle,
     )
 
 
@@ -50,6 +63,7 @@ def _status(world):
         definition=world.definition,
         images=world.images,
         dataset_root=world.dataset_root,
+        source_bundle=world.source_bundle,
     )
 
 
@@ -91,6 +105,26 @@ def _edit_entries_parquet(world, index: int, **changes):
     )
 
 
+def _replace_output(
+    victim: PreparedImageEntry, replacement: PreparedImageEntry
+) -> PreparedImageEntry:
+    fields = {
+        field.name: getattr(victim, field.name)
+        for field in dataclasses.fields(victim)
+        if field.name != "entry_hash"
+    }
+    fields.update(
+        output_pixel_sha256=replacement.output_pixel_sha256,
+        output_encoded_sha256=replacement.output_encoded_sha256,
+        output_size_bytes=replacement.output_size_bytes,
+        relative_path=replacement.relative_path,
+    )
+    return PreparedImageEntry(
+        **fields,
+        entry_hash=prepared_image_entry_hash(SimpleNamespace(**fields)),
+    )
+
+
 def _assert_invalid(world):
     verification = _verify(world)
     assert not verification.is_valid, "the tampered set still verified"
@@ -98,8 +132,139 @@ def _assert_invalid(world):
 
 
 def test_a_baseline_set_verifies(world):
-    assert _verify(world).is_valid
+    verification = _verify(world)
+    assert verification.is_valid
+    assert verification.transform_audit is not None
+    audit = verification.transform_audit
+    assert audit.is_clean
+    assert audit.planned_images == audit.verified_sources
+    assert audit.planned_images == audit.recomputed_transforms
+    assert audit.planned_images == audit.matching_pixel_hashes
+    assert audit.planned_images == audit.matching_encoded_hashes
     assert _status(world).status is PreparationStatus.PREPARATION_READY
+
+
+def test_self_consistent_valid_png_substitution_fails_fresh_transform_audit(world):
+    """Rehashing every stored claim cannot turn the wrong B/C raster into Lanczos."""
+    victim = next(entry for entry in world.entries if not entry.is_identity)
+    replacement = next(
+        entry
+        for entry in world.entries
+        if entry.image_id != victim.image_id
+        and entry.source_effective_ppi == victim.source_effective_ppi
+    )
+    changed = _replace_output(victim, replacement)
+    entries = tuple(
+        changed if item.image_id == victim.image_id else item
+        for item in world.entries
+    )
+    fingerprint = preparation_set_fingerprint(
+        dataset_id=world.manifest.dataset_id,
+        image_manifest_hash=world.manifest.image_manifest_hash,
+        protocol_id=world.manifest.protocol_id,
+        cohort_id=world.manifest.cohort_id,
+        cohort_fingerprint=world.manifest.cohort_fingerprint,
+        pair_manifest_hash=world.manifest.pair_manifest_hash,
+        transform_profile_fingerprint=world.profile.profile_fingerprint,
+        transform_runtime_fingerprint=world.runtime.runtime_fingerprint,
+        entries=entries,
+    )
+    manifest = PreparedImageSetManifest(
+        **{
+            **{
+                field.name: getattr(world.manifest, field.name)
+                for field in dataclasses.fields(world.manifest)
+            },
+            "preparation_set_id": preparation_set_id(fingerprint),
+            "preparation_set_fingerprint": fingerprint,
+            "ordered_entries_hash": ordered_prepared_entries_hash(entries),
+        }
+    )
+    store = world.store
+    store.ensure_manifest(
+        manifest=manifest,
+        entries=entries,
+        profile=world.profile,
+        runtime=world.runtime,
+        definition=world.definition,
+    )
+
+    claims = {
+        "schema_version": PREPARATION_TRANSFORM_AUDIT_SCHEMA_VERSION,
+        "preparation_set_id": manifest.preparation_set_id,
+        "preparation_set_fingerprint": manifest.preparation_set_fingerprint,
+        "planned_images": len(entries),
+        "verified_sources": len(entries),
+        "recomputed_transforms": len(entries),
+        "matching_output_dimensions": len(entries),
+        "matching_transform_actions": len(entries),
+        "matching_pixel_hashes": len(entries),
+        "matching_encoded_hashes": len(entries),
+        "issues": (),
+    }
+    audit = PreparationTransformAudit(
+        **claims,
+        audit_fingerprint=preparation_transform_audit_fingerprint(claims),
+        created_utc=world.manifest.created_utc,
+    )
+    store.ensure_transform_audit(
+        preparation_set_id=manifest.preparation_set_id, audit=audit
+    )
+
+    from fpbench.experiments.preparation_receipt import (
+        build_preparation_finalization_marker,
+        build_preparation_receipt,
+    )
+    from fpbench.storage.prepared_image_set_store import (
+        preparation_summary_content_hash,
+    )
+
+    summary = {
+        "preparation_set_id": manifest.preparation_set_id,
+        "total_images": len(entries),
+        "generated_utc": world.manifest.created_utc,
+    }
+    store.ensure_summary(
+        preparation_set_id=manifest.preparation_set_id, summary=summary
+    )
+    receipt = build_preparation_receipt(
+        manifest=manifest,
+        entries=entries,
+        profile=world.profile,
+        runtime=world.runtime,
+        audit=audit,
+        images=world.images,
+    )
+    store.ensure_receipt(
+        preparation_set_id=manifest.preparation_set_id, receipt=receipt
+    )
+    marker = build_preparation_finalization_marker(
+        manifest=manifest,
+        profile=world.profile,
+        runtime=world.runtime,
+        receipt=receipt,
+        audit=audit,
+        entries_table_content_hash=store.entries_table_content_hash(
+            manifest.preparation_set_id
+        ),
+        summary_content_hash=preparation_summary_content_hash(summary),
+    )
+    store.ensure_finalization(
+        preparation_set_id=manifest.preparation_set_id, marker=marker
+    )
+
+    verification = verify_prepared_image_set(
+        store=store,
+        preparation_set_id_value=manifest.preparation_set_id,
+        images=world.images,
+        dataset_root=world.dataset_root,
+        source_bundle=world.source_bundle,
+    )
+    assert not verification.is_valid
+    assert any(
+        "re-running the transform produces raster" in issue
+        for issue in verification.issues
+    )
 
 
 def test_tampering_with_a_source_file(world):

@@ -18,6 +18,7 @@ fingerprint over the row catches that (docs/adr/0032).
 
 from __future__ import annotations
 
+import stat
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from fpbench.core.errors import ImagingError
@@ -41,15 +42,38 @@ def resolve_source_path(record: ImageRecord, dataset_root: Path) -> Path:
         )
 
     root = Path(dataset_root).resolve()
-    candidate = (root / relative).resolve()
+    parts = tuple(
+        part
+        for part in PurePosixPath(relative.replace("\\", "/")).parts
+        if part not in ("", ".")
+    )
+    unresolved = root.joinpath(*parts)
+
+    # Inspect the names before resolving them. Once ``resolve()`` has followed a
+    # link, ``is_symlink()`` sees only the target and an in-root link becomes
+    # indistinguishable from the delivery's own directory or file.
+    current = root
+    for part in parts:
+        current = current / part
+        try:
+            mode = current.lstat().st_mode
+        except FileNotFoundError:
+            break
+        except OSError as exc:
+            raise ImagingError(
+                f"{record.image_id}: cannot inspect source path component "
+                f"{part!r} ({type(exc).__name__})"
+            ) from exc
+        if stat.S_ISLNK(mode):
+            raise ImagingError(
+                f"{record.image_id}: source path component {part!r} is a symlink; "
+                "a canonical artefact must be derived from the delivery's own bytes"
+            )
+
+    candidate = unresolved.resolve()
     if not candidate.is_relative_to(root):
         raise ImagingError(
             f"{record.image_id}: {relative!r} resolves outside the dataset root"
-        )
-    if candidate.is_symlink():
-        raise ImagingError(
-            f"{record.image_id}: the source is a symlink; a canonical artefact must "
-            "be derived from the delivery's own bytes"
         )
     if not candidate.exists():
         raise ImagingError(f"{record.image_id}: source file not found: {relative}")

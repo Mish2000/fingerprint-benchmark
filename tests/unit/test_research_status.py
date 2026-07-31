@@ -13,6 +13,7 @@ from __future__ import annotations
 import stat
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -29,7 +30,7 @@ from fpbench.core.result_set_models import (
     result_set_fingerprint,
     result_set_id,
 )
-from fpbench.core.serialization import read_json, write_json
+from fpbench.core.serialization import read_json, to_plain, write_json
 from runworld import (
     build_world,
     finalise_research_world,
@@ -172,6 +173,42 @@ def test_a_missing_runtime_asset_invalidates_the_run(tmp_path):
     assert _state(world).status is ResearchRunStatus.INVALID
 
 
+def test_broken_prepared_input_set_is_reported_as_invalid_not_raised(
+    tmp_path, monkeypatch
+):
+    from fpbench.experiments import sourceafis_research
+
+    world = build_world(tmp_path, research=True)
+    world.result_store.ensure_run(world.run)
+    world.plan_store.ensure_plan(world.plan)
+    prepared = SimpleNamespace(
+        preparation_preflight_issue=(
+            "preparation-set preflight failed: prepared-image set is broken"
+        ),
+        run=world.run,
+        plan=world.plan,
+        result_store=world.result_store,
+        pairs=world.pair_index,
+        verifier_software=world.software,
+    )
+    monkeypatch.setattr(sourceafis_research, "_load_prepared", lambda **_: prepared)
+
+    def must_not_validate(**_):  # pragma: no cover - the assertion is no call
+        raise AssertionError("broken preparation must not request prepared entries")
+
+    monkeypatch.setattr(
+        sourceafis_research, "validate_sourceafis_result_set", must_not_validate
+    )
+    state = sourceafis_research.inspect_research_experiment(
+        spec=None,
+        preparer_factory=None,
+        workspace=tmp_path,
+        repository_root=tmp_path,
+    )
+    assert state.status is ResearchRunStatus.INVALID
+    assert any("preparation-set preflight failed" in issue for issue in state.issues)
+
+
 def test_a_deleted_result_invalidates_a_finalised_run(tmp_path):
     world = build_world(tmp_path, research=True)
     world.executor().execute(finalize=False)
@@ -231,6 +268,11 @@ def test_a_receipt_for_another_run_is_rejected(tmp_path):
         ("success_count", 999),
         ("algorithmic_failure_count", 1),
         ("blocking_failure_count", 1),
+        ("preparation_set_id", "prepset_000000000000"),
+        ("preparation_set_fingerprint", "a" * 64),
+        ("transform_profile_id", "canonical_profile"),
+        ("transform_profile_fingerprint", "b" * 64),
+        ("transform_runtime_fingerprint", "c" * 64),
         ("failure_counts", {"timeout": 1}),
         ("release_counts", {"SD300A": 1}),
         ("stage_counts", {"plain_self": 1}),
@@ -355,6 +397,11 @@ def test_the_receipt_names_every_link_in_the_chain(tmp_path):
     assert receipt.planned_jobs == world.plan.total_jobs
     assert receipt.stored_results == world.plan.total_jobs
     assert receipt.blocking_failure_count == 0
+    assert receipt.preparation_set_id is None
+    assert receipt.preparation_set_fingerprint is None
+    assert receipt.transform_profile_id is None
+    assert receipt.transform_profile_fingerprint is None
+    assert receipt.transform_runtime_fingerprint is None
 
 
 def test_the_receipt_carries_no_path_and_no_score(tmp_path):
@@ -415,3 +462,35 @@ def test_evidence_copy_is_idempotent_only_for_identical_bytes(tmp_path):
     with pytest.raises(ResultConflictError, match="refusing to overwrite"):
         write_evidence_copy(changed, repository_root=repository)
     assert path.read_bytes() == original
+
+
+def test_evidence_copy_allows_only_an_exact_v1_to_v2_claim_upgrade(tmp_path):
+    world = build_world(tmp_path / "world", research=True)
+    world.executor().execute(finalize=False)
+    receipt = finalise_research_world(world)
+    repository = tmp_path / "repository"
+    path = (
+        repository
+        / "evidence"
+        / "sourceafis-native-full"
+        / f"{receipt.run_id}.json"
+    )
+    payload = dict(to_plain(receipt))
+    payload["schema_version"] = "1"
+    for name in (
+        "preparation_set_id",
+        "preparation_set_fingerprint",
+        "transform_profile_id",
+        "transform_profile_fingerprint",
+        "transform_runtime_fingerprint",
+    ):
+        payload.pop(name)
+    write_json(path, payload)
+
+    assert write_evidence_copy(receipt, repository_root=repository) == path
+    assert read_json(path)["schema_version"] == "2"
+
+    payload["planned_jobs"] = receipt.planned_jobs + 1
+    write_json(path, payload)
+    with pytest.raises(ResultConflictError, match="refusing to overwrite"):
+        write_evidence_copy(receipt, repository_root=repository)

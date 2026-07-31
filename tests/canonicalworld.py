@@ -23,6 +23,7 @@ from fpbench.core.identifiers import ImageId, SubjectId, compose_id
 from fpbench.core.imaging_models import (
     ImageTransformProfile,
     PreparationDefinition,
+    PreparationSourceBundle,
     PreparedImageEntry,
     PreparedImageSetManifest,
     TransformRuntimeManifest,
@@ -87,6 +88,8 @@ class CanonicalWorld:
 
     images: Mapping[ImageId, ImageRecord]
     entries: tuple[PreparedImageEntry, ...]
+
+    source_bundle: PreparationSourceBundle
 
     @property
     def store(self) -> PreparedImageSetStore:
@@ -393,6 +396,15 @@ def build_canonical_world(
         manifest=manifest,
         images=images,
         entries=tuple(entries),
+        source_bundle=PreparationSourceBundle(
+            dataset_id=definition.dataset_id,
+            image_manifest_hash=definition.image_manifest_hash,
+            protocol_id=definition.protocol_id,
+            cohort_id=definition.cohort_id,
+            cohort_fingerprint=definition.cohort_fingerprint,
+            pair_manifest_hash=definition.pair_manifest_hash,
+            ordered_image_ids=definition.ordered_image_ids,
+        ),
     )
 
 
@@ -408,6 +420,23 @@ def publish_receipt_and_marker(world: CanonicalWorld) -> None:
 
     store = world.store
     set_id = world.preparation_set_id
+    from fpbench.imaging.verify import verify_prepared_image_set
+
+    verification = verify_prepared_image_set(
+        store=store,
+        preparation_set_id_value=set_id,
+        images=world.images,
+        dataset_root=world.dataset_root,
+        source_bundle=world.source_bundle,
+        recompute_pixels=True,
+        require_receipt=False,
+        require_finalization=False,
+    )
+    assert verification.is_valid
+    assert verification.transform_audit is not None
+    audit = verification.transform_audit
+    store.ensure_transform_audit(preparation_set_id=set_id, audit=audit)
+    audit = store.read_transform_audit(set_id)
     summary = {
         "preparation_set_id": set_id,
         "total_images": len(world.entries),
@@ -419,6 +448,7 @@ def publish_receipt_and_marker(world: CanonicalWorld) -> None:
         entries=world.entries,
         profile=world.profile,
         runtime=world.runtime,
+        audit=audit,
         images=world.images,
     )
     store.ensure_receipt(preparation_set_id=set_id, receipt=receipt)
@@ -427,6 +457,7 @@ def publish_receipt_and_marker(world: CanonicalWorld) -> None:
         profile=world.profile,
         runtime=world.runtime,
         receipt=store.read_receipt(set_id),
+        audit=audit,
         entries_table_content_hash=store.entries_table_content_hash(set_id),
         summary_content_hash=preparation_summary_content_hash(
             store.read_summary(set_id)

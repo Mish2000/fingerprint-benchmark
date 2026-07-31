@@ -27,7 +27,7 @@ from typing import Mapping
 from fpbench.core.enums import PreparationStatus
 from fpbench.core.errors import StorageError
 from fpbench.core.identifiers import ImageId
-from fpbench.core.imaging_models import PreparationDefinition
+from fpbench.core.imaging_models import PreparationDefinition, PreparationSourceBundle
 from fpbench.core.models import ImageRecord
 from fpbench.imaging.verify import (
     PreparedSetVerification,
@@ -74,7 +74,8 @@ def inspect_preparation(
     preparation_set_id_value: str | None = None,
     images: Mapping[ImageId, ImageRecord] | None = None,
     dataset_root: Path | None = None,
-    recompute_pixels: bool = False,
+    source_bundle: PreparationSourceBundle | None = None,
+    recompute_pixels: bool = True,
 ) -> PreparationState:
     """Report a preparation's state. Never writes anything.
 
@@ -162,6 +163,7 @@ def inspect_preparation(
             preparation_set_id_value=resolved_set,
             images=images,
             dataset_root=dataset_root,
+            source_bundle=source_bundle,
             recompute_pixels=recompute_pixels,
         )
     except StorageError as exc:
@@ -219,6 +221,7 @@ def _verify(
     preparation_set_id_value: str,
     images: Mapping[ImageId, ImageRecord] | None,
     dataset_root: Path | None,
+    source_bundle: PreparationSourceBundle | None,
     recompute_pixels: bool,
 ) -> PreparedSetVerification:
     if images is not None and dataset_root is not None:
@@ -227,6 +230,7 @@ def _verify(
             preparation_set_id_value=preparation_set_id_value,
             images=images,
             dataset_root=dataset_root,
+            source_bundle=source_bundle,
             recompute_pixels=recompute_pixels,
             require_receipt=False,
             require_finalization=False,

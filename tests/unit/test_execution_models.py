@@ -90,6 +90,23 @@ def test_prepared_image_rejects_a_non_positive_resolution(ppi):
         prepared(effective_ppi=ppi)
 
 
+@pytest.mark.parametrize("value", [2.5, "2", True, None])
+def test_prepared_image_requires_exact_integer_resolution(value):
+    with pytest.raises(ValueError, match="exact integer"):
+        prepared(effective_ppi=value)
+
+
+@pytest.mark.parametrize(
+    "field_name", ["source_effective_ppi", "prepared_size_bytes", "pixel_width", "pixel_height"]
+)
+@pytest.mark.parametrize("value", [2.5, "2", True])
+def test_prepared_image_optional_integrity_integers_do_not_coerce(
+    field_name, value
+):
+    with pytest.raises(ValueError, match="exact integer"):
+        prepared(**{field_name: value})
+
+
 @pytest.mark.parametrize("digest", ["", "abc", "z" * 64])
 def test_prepared_image_rejects_a_malformed_digest(digest):
     with pytest.raises(ValueError, match="hexadecimal"):

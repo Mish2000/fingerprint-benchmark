@@ -23,6 +23,7 @@ from fpbench.core.errors import ResultConflictError, RunIntegrityError
 from fpbench.core.execution_plan_models import ExecutionPlan
 from fpbench.core.identifiers import PairId
 from fpbench.core.models import ComparisonPair
+from fpbench.core.imaging_models import PreparedImageSetManifest
 from fpbench.core.provenance_models import SoftwareProvenance
 from fpbench.core.research_models import (
     NO_CONCLUSION_STATEMENT,
@@ -68,6 +69,7 @@ def build_research_receipt(
     validation: SourceAfisValidationReport,
     completion: RunCompletion,
     dataset_id: str,
+    preparation_manifest: PreparedImageSetManifest | None = None,
     primary_asset_role: str = BRIDGE_JAR_ROLE,
     timing_summary: Mapping[str, str] | None = None,
     created_utc: str | None = None,
@@ -117,6 +119,8 @@ def build_research_receipt(
         stage = pair.protocol_stage.value
         stage_counts[stage] = stage_counts.get(stage, 0) + 1
 
+    preparation_claims = _preparation_claims(run, preparation_manifest)
+
     return ResearchRunReceipt(
         schema_version=RESEARCH_RECEIPT_SCHEMA_VERSION,
         source_commit=software.source_revision,
@@ -143,6 +147,7 @@ def build_research_receipt(
         success_count=validation.successful_results,
         algorithmic_failure_count=validation.algorithmic_failures,
         blocking_failure_count=validation.blocking_failures,
+        **preparation_claims,
         failure_counts=dict(validation.failure_counts),
         release_counts=release_counts,
         stage_counts=stage_counts,
@@ -163,6 +168,7 @@ def verify_research_receipt(
     current_algorithm_validation: SourceAfisValidationReport,
     completion: RunCompletion,
     receipt: ResearchRunReceipt,
+    preparation_manifest: PreparedImageSetManifest | None = None,
     primary_asset_role: str = BRIDGE_JAR_ROLE,
 ) -> None:
     """Re-derive every load-bearing receipt claim from current evidence.
@@ -212,8 +218,13 @@ def verify_research_receipt(
 
     source_commit = run.environment.runtime.get("fpbench.source.revision")
     source_clean = run.environment.runtime.get("fpbench.source.clean") == "true"
+    receipt_schema = (
+        "1"
+        if preparation_manifest is None and receipt.schema_version == "1"
+        else RESEARCH_RECEIPT_SCHEMA_VERSION
+    )
     expected: dict[str, Any] = {
-        "schema_version": RESEARCH_RECEIPT_SCHEMA_VERSION,
+        "schema_version": receipt_schema,
         "source_commit": source_commit,
         "source_tree_clean": source_clean,
         "dataset_id": next(iter(dataset_ids)),
@@ -245,6 +256,7 @@ def verify_research_receipt(
         "failure_counts": dict(current_algorithm_validation.failure_counts),
         "release_counts": dict(sorted(release_counts.items())),
         "stage_counts": dict(sorted(stage_counts.items())),
+        **_preparation_claims(run, preparation_manifest),
     }
     for field_name, expected_value in expected.items():
         actual = getattr(receipt, field_name)
@@ -370,6 +382,25 @@ def write_evidence_copy(
     payload = rendered.replace("\n", os.linesep).encode("utf-8")
     if path.is_file():
         if path.read_bytes() != payload:
+            try:
+                existing = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                existing = {}
+            current = dict(to_plain(receipt))
+            shared_claims_match = all(
+                key in current and value == current[key]
+                for key, value in existing.items()
+                if key not in {"schema_version", "created_utc"}
+            )
+            if (
+                str(existing.get("schema_version")) == "1"
+                and receipt.schema_version == "2"
+                and shared_claims_match
+            ):
+                tmp = path.with_suffix(path.suffix + ".tmp")
+                tmp.write_bytes(payload)
+                tmp.replace(path)
+                return path
             raise ResultConflictError(
                 f"{path} already contains a different evidence receipt; refusing "
                 "to overwrite committed evidence"
@@ -389,6 +420,50 @@ def write_evidence_copy(
 
 
 # ----------------------------------------------------------------- internals
+
+
+def _preparation_claims(
+    run: RunDefinition,
+    manifest: PreparedImageSetManifest | None,
+) -> dict[str, str | None]:
+    """Derive public prepared-set claims from the run profile and set manifest."""
+    names = (
+        "preparation_set_id",
+        "preparation_set_fingerprint",
+        "transform_profile_id",
+        "transform_profile_fingerprint",
+    )
+    parameters = run.execution_profile.parameters
+    if manifest is None:
+        if any(parameters.get(name) is not None for name in names):
+            raise RunIntegrityError(
+                "the run execution profile names a prepared set but no verified "
+                "PreparedImageSetManifest was supplied"
+            )
+        return {
+            "preparation_set_id": None,
+            "preparation_set_fingerprint": None,
+            "transform_profile_id": None,
+            "transform_profile_fingerprint": None,
+            "transform_runtime_fingerprint": None,
+        }
+
+    expected = {
+        "preparation_set_id": manifest.preparation_set_id,
+        "preparation_set_fingerprint": manifest.preparation_set_fingerprint,
+        "transform_profile_id": manifest.transform_profile_id,
+        "transform_profile_fingerprint": manifest.transform_profile_fingerprint,
+    }
+    for field_name, expected_value in expected.items():
+        if parameters.get(field_name) != expected_value:
+            raise RunIntegrityError(
+                f"the run execution profile's {field_name} does not match the "
+                "verified PreparedImageSetManifest"
+            )
+    return {
+        **expected,
+        "transform_runtime_fingerprint": manifest.transform_runtime_fingerprint,
+    }
 
 
 def _require_consistent(

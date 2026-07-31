@@ -36,7 +36,7 @@ from fpbench.core.enums import (
 )
 from fpbench.core.identifiers import ImageId, validate_id
 from fpbench.core.serialization import freeze_str_mapping as _freeze_str_mapping
-from fpbench.core.serialization import stable_hash
+from fpbench.core.serialization import require_exact_int, stable_hash
 
 __all__ = [
     "PreparedImage",
@@ -188,9 +188,10 @@ class PreparedImage:
         object.__setattr__(
             self, "local_path", _require_absolute(self.local_path, "local_path")
         )
-        if int(self.effective_ppi) <= 0:
+        effective_ppi = require_exact_int(self.effective_ppi, "effective_ppi")
+        if effective_ppi <= 0:
             raise ValueError("effective_ppi must be positive")
-        object.__setattr__(self, "effective_ppi", int(self.effective_ppi))
+        object.__setattr__(self, "effective_ppi", effective_ppi)
         object.__setattr__(
             self, "media_type", _require_non_empty(self.media_type, "media_type")
         )
@@ -208,11 +209,14 @@ class PreparedImage:
 
         if self.source_effective_ppi is None:
             object.__setattr__(self, "source_effective_ppi", self.effective_ppi)
-        elif int(self.source_effective_ppi) <= 0:
-            raise ValueError("source_effective_ppi must be positive")
         else:
+            source_ppi = require_exact_int(
+                self.source_effective_ppi, "source_effective_ppi"
+            )
+            if source_ppi <= 0:
+                raise ValueError("source_effective_ppi must be positive")
             object.__setattr__(
-                self, "source_effective_ppi", int(self.source_effective_ppi)
+                self, "source_effective_ppi", source_ppi
             )
 
         if self.prepared_sha256 is None:
@@ -224,10 +228,13 @@ class PreparedImage:
                 _require_sha256(self.prepared_sha256, "prepared_sha256"),
             )
         if self.prepared_size_bytes is not None:
-            if int(self.prepared_size_bytes) <= 0:
+            prepared_size = require_exact_int(
+                self.prepared_size_bytes, "prepared_size_bytes"
+            )
+            if prepared_size <= 0:
                 raise ValueError("prepared_size_bytes must be positive")
             object.__setattr__(
-                self, "prepared_size_bytes", int(self.prepared_size_bytes)
+                self, "prepared_size_bytes", prepared_size
             )
 
         for name in ("preparation_set_id", "preparation_set_fingerprint",
@@ -243,9 +250,10 @@ class PreparedImage:
             value = getattr(self, name)
             if value is None:
                 continue
-            if int(value) <= 0:
+            number = require_exact_int(value, name)
+            if number <= 0:
                 raise ValueError(f"{name} must be positive")
-            object.__setattr__(self, name, int(value))
+            object.__setattr__(self, name, number)
 
         # A set id without a fingerprint, or an entry hash without a set, would
         # let a result claim membership of something it could not be checked

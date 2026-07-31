@@ -32,14 +32,18 @@ as it takes. Each invocation captures the transform runtime on the way in and on
 the way out and refuses to continue if it moved. Existing entries are fully
 re-verified before being reused, never repaired.
 
-`status` reports where the chain stands, re-deriving everything it reports.
-Pass `--recompute-pixels` to re-run the transform on every source and compare —
-correct and slow, and off by default.
+`status` reports where the chain stands, re-deriving everything it reports. It
+re-runs the pinned transform on every source by default. The diagnostic
+`--no-recompute-pixels` switch is available for a faster partial check, but its
+result cannot create or replace finalization evidence.
 
-`finalize` re-reads every source and every artefact, derives the set identity,
+`finalize` re-reads every source and every artefact, re-runs all 3,000 pinned
+transforms, and compares the action, dimensions, decoded pixels and encoded PNG
+bytes. It writes a content-addressed transform audit, derives the set identity,
 writes the manifest, the entries table, the summary and the sanitised receipt,
-re-reads each of them, and only then writes the finalization marker. It is the
-only command that can produce `PREPARATION_READY`.
+re-reads each of them, and only then writes the finalization marker. The receipt
+and marker both bind the audit fingerprint. This is the only command that can
+produce `PREPARATION_READY`.
 
 ## The definition, and why it exists
 
@@ -70,6 +74,7 @@ workspace/prepared-images/
     ├── preparation-definition.json
     ├── manifest.json
     ├── entries.parquet
+    ├── preparation-transform-audit.json
     ├── preparation-summary.json
     ├── preparation-receipt.json
     └── preparation-finalization.json
@@ -106,12 +111,18 @@ and after each batch.
 
 `verify_prepared_image_set` adds every source file: its digest against the
 manifest, its container against the profile's input contract, its raster against
-the entry's recorded source pixel hash, and — on the identity path — that the
-canonical raster is still byte for byte the source raster. `status` and
-`finalize` use this.
+the entry's recorded source pixel hash, and a fresh execution of the pinned
+transform. The fresh result must reproduce the action, dimensions, decoded
+pixels and encoded PNG bytes recorded by the entry. It also requires an
+authoritative source bundle that binds the dataset id, image-manifest hash,
+protocol id, cohort id and fingerprint, pair-manifest hash, and exact ordered
+image-id list to both the definition and the finished manifest. `status` and
+`finalize` use this full check by default.
 
-Neither re-runs the resampler by default; `recompute_pixels=True` does, and the
-golden fixtures exercise it cheaply on every CI run.
+The stored transform audit accounts for all planned images, verified sources,
+recomputed transforms and matching output identities. A self-consistent rewrite
+of an output PNG, its entry and the surrounding fingerprints therefore still
+fails against a fresh transform from the authoritative source.
 
 The threat model is **accidental drift** — a set regenerated in another
 terminal, a file touched by an image viewer, a Pillow upgrade — not an adversary

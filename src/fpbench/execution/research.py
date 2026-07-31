@@ -38,6 +38,7 @@ from fpbench.core.execution_models import (
 )
 from fpbench.core.execution_plan_models import ExecutionPlan
 from fpbench.core.identifiers import PairId
+from fpbench.core.imaging_models import PreparedImageSetManifest
 from fpbench.core.models import ComparisonPair
 from fpbench.core.provenance_models import SoftwareProvenance
 from fpbench.core.research_models import ResearchRunState
@@ -120,6 +121,8 @@ def inspect_research_run(
     algorithm_validation: Any | None = None,
     primary_asset_role: str = "sourceafis_bridge_jar",
     verifier_software: SoftwareProvenance | None = None,
+    preparation_manifest: PreparedImageSetManifest | None = None,
+    external_issues: tuple[str, ...] = (),
 ) -> ResearchRunState:
     """Recompute how far along the evidence chain ``run`` is.
 
@@ -131,7 +134,7 @@ def inspect_research_run(
     bundle_store = bundle_store or RuntimeBundleStore(result_store.root)
 
     progress = inspect_run_progress(run=run, plan=plan, result_store=result_store)
-    issues: list[str] = []
+    issues: list[str] = [str(issue) for issue in external_issues]
 
     prepared = (
         result_store.run_manifest_path(run.run_id).is_file()
@@ -180,6 +183,7 @@ def inspect_research_run(
             current_audit=current_audit,
             algorithm_validation=algorithm_validation,
             primary_asset_role=primary_asset_role,
+            preparation_manifest=preparation_manifest,
             issues=issues,
         )
 
@@ -363,6 +367,7 @@ def _check_receipt(
     current_audit: Any | None,
     algorithm_validation: Any | None,
     primary_asset_role: str,
+    preparation_manifest: PreparedImageSetManifest | None,
     issues: list[str],
 ) -> bool:
     try:
@@ -408,6 +413,7 @@ def _check_receipt(
             completion=completion,
             receipt=receipt,
             primary_asset_role=primary_asset_role,
+            preparation_manifest=preparation_manifest,
         )
     except (RunIntegrityError, StorageError, ValueError) as exc:
         issues.append(f"the research receipt does not hold up ({exc})")

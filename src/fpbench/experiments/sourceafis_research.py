@@ -40,6 +40,7 @@ from fpbench.core.errors import ResearchPreflightError
 from fpbench.core.execution_models import ExecutionProfile
 from fpbench.core.execution_plan_models import ExecutionPlan
 from fpbench.core.identifiers import ImageId, PairId
+from fpbench.core.imaging_models import PreparedImageSetManifest
 from fpbench.core.models import Cohort, ComparisonPair, ImageRecord
 from fpbench.core.provenance_models import SoftwareProvenance
 from fpbench.core.research_models import ResearchRunReceipt, ResearchRunState
@@ -68,6 +69,7 @@ from fpbench.experiments.sd300_inputs import (
     SD300Inputs,
     load_sd300_inputs,
     participating_image_ids,
+    preparation_source_bundle,
     require_expected_shape,
 )
 from fpbench.experiments.sourceafis_validation import (
@@ -166,6 +168,7 @@ class PreparedResearchRun:
     run: RunDefinition
     plan: ExecutionPlan
     runtime_reference: RunRuntimeReference
+    preparation_preflight_issue: str | None = None
 
     @property
     def protocol(self) -> SD300Protocol:
@@ -433,15 +436,20 @@ def inspect_research_experiment(
         require_source_match=False,
         run_preparer_preflight=False,
     )
-    validation = validate_sourceafis_result_set(
-        run=prepared.run,
-        plan=prepared.plan,
-        pairs=prepared.pairs,
-        images=prepared.images,
-        result_store=prepared.result_store,
-        runtime_reference=prepared.runtime_reference,
-        preparation=_preparation_expectations(prepared),
-    )
+    validation = None
+    manifest = None
+    if prepared.preparation_preflight_issue is None:
+        preparation = _preparation_expectations(prepared)
+        manifest = _preparation_manifest(prepared)
+        validation = validate_sourceafis_result_set(
+            run=prepared.run,
+            plan=prepared.plan,
+            pairs=prepared.pairs,
+            images=prepared.images,
+            result_store=prepared.result_store,
+            runtime_reference=prepared.runtime_reference,
+            preparation=preparation,
+        )
     return inspect_research_run(
         run=prepared.run,
         plan=prepared.plan,
@@ -450,6 +458,12 @@ def inspect_research_experiment(
         algorithm_validation=validation,
         primary_asset_role=BRIDGE_JAR_ROLE,
         verifier_software=prepared.verifier_software,
+        preparation_manifest=manifest,
+        external_issues=(
+            (prepared.preparation_preflight_issue,)
+            if prepared.preparation_preflight_issue
+            else ()
+        ),
     )
 
 
@@ -487,6 +501,8 @@ def finalize_research_run(
             f"{[issue.code.value for issue in audit.errors][:5]}"
         )
 
+    preparation = _preparation_expectations(prepared)
+    preparation_manifest = _preparation_manifest(prepared)
     validation = validate_sourceafis_result_set(
         run=prepared.run,
         plan=prepared.plan,
@@ -494,7 +510,7 @@ def finalize_research_run(
         images=prepared.images,
         result_store=result_store,
         runtime_reference=prepared.runtime_reference,
-        preparation=_preparation_expectations(prepared),
+        preparation=preparation,
     )
     if not validation.is_clean:
         raise ResearchPreflightError(
@@ -530,6 +546,7 @@ def finalize_research_run(
         completion=completion,
         dataset_id=prepared.protocol.dataset_id,
         timing_summary=timing_summary(summary),
+        preparation_manifest=preparation_manifest,
     )
 
     prepared.result_set_store.ensure_result_set(manifest, entries)
@@ -552,6 +569,7 @@ def finalize_research_run(
         current_algorithm_validation=validation,
         completion=stored_completion,
         receipt=stored_receipt,
+        preparation_manifest=preparation_manifest,
     )
 
     marker = build_research_finalization_marker(
@@ -575,6 +593,7 @@ def finalize_research_run(
         algorithm_validation=validation,
         primary_asset_role=BRIDGE_JAR_ROLE,
         verifier_software=prepared.verifier_software,
+        preparation_manifest=preparation_manifest,
     )
     if not state.is_research_ready:
         raise ResearchPreflightError(
@@ -662,6 +681,10 @@ def _require_preparer_covers(preparer: ImagePreparer, inputs: SD300Inputs) -> No
     asked for rather than assumed: the identity preparer has no such method and
     needs none.
     """
+    require_bundle = getattr(preparer, "require_source_bundle", None)
+    if require_bundle is not None:
+        require_bundle(preparation_source_bundle(inputs))
+
     require = getattr(preparer, "require_expected_images", None)
     if require is None:
         return
@@ -728,6 +751,19 @@ def _preparation_expectations(
     )
 
 
+def _preparation_manifest(
+    prepared: PreparedResearchRun,
+) -> PreparedImageSetManifest | None:
+    if not prepared.spec.is_canonical:
+        return None
+    manifest_of = getattr(prepared.preparer, "prepared_manifest", None)
+    if manifest_of is None:  # pragma: no cover - only canonical preparers reach here
+        raise ResearchPreflightError(
+            "a canonical run needs a verified PreparedImageSetManifest"
+        )
+    return manifest_of()
+
+
 def _load_prepared(
     *,
     spec: ResearchExperimentSpec,
@@ -786,6 +822,7 @@ def _load_prepared(
     )
 
     preparer = preparer_factory(workspace, spec)
+    preparation_preflight_issue = None
     if run_preparer_preflight:
         preparer.preflight()
         _require_preparer_covers(preparer, inputs)
@@ -798,8 +835,11 @@ def _load_prepared(
 
         try:
             preparer.preflight()
-        except PreflightError:
-            pass
+            _require_preparer_covers(preparer, inputs)
+        except PreflightError as exc:
+            preparation_preflight_issue = (
+                f"preparation-set preflight failed: {exc}"
+            )
 
     return PreparedResearchRun(
         spec=spec,
@@ -813,6 +853,7 @@ def _load_prepared(
         run=run,
         plan=plan,
         runtime_reference=reference,
+        preparation_preflight_issue=preparation_preflight_issue,
     )
 
 

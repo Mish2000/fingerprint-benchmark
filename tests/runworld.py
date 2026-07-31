@@ -373,7 +373,9 @@ def structural_validation_report(world: RunWorld):
     )
 
 
-def finalise_research_world(world: RunWorld, *, dataset_id: str = "sd300"):
+def finalise_research_world(
+    world: RunWorld, *, dataset_id: str = "sd300", preparation_manifest=None
+):
     """Run the external finalisation sequence over a completed dummy world.
 
     The same order the real entry point uses: audit, evidence validation,
@@ -414,6 +416,7 @@ def finalise_research_world(world: RunWorld, *, dataset_id: str = "sd300"):
         completion=completion,
         dataset_id=dataset_id,
         primary_asset_role=next(iter(world.runtime_reference.asset_sha256s)),
+        preparation_manifest=preparation_manifest,
     )
     world.result_store.ensure_research_receipt(receipt)
     stored_receipt = world.result_store.read_research_receipt(world.run.run_id)

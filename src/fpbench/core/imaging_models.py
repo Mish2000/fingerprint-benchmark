@@ -58,6 +58,7 @@ __all__ = [
     "PREPARED_ENTRY_SCHEMA_VERSION",
     "PREPARATION_SET_SCHEMA_VERSION",
     "PREPARATION_RECEIPT_SCHEMA_VERSION",
+    "PREPARATION_TRANSFORM_AUDIT_SCHEMA_VERSION",
     "PREPARATION_FINALIZATION_SCHEMA_VERSION",
     "PIXEL_HASH_MAGIC",
     "TRANSFORM_ACTION_IDENTITY",
@@ -74,6 +75,7 @@ __all__ = [
     "transform_runtime_fingerprint",
     "transform_runtime_id",
     "PreparationDefinition",
+    "PreparationSourceBundle",
     "preparation_definition_fingerprint",
     "preparation_definition_id",
     "ordered_image_ids_hash",
@@ -86,6 +88,9 @@ __all__ = [
     "PreparationReceipt",
     "preparation_receipt_fingerprint",
     "preparation_receipt_content_hash",
+    "PreparationTransformAudit",
+    "preparation_transform_audit_fingerprint",
+    "preparation_transform_audit_content_hash",
     "PreparationFinalizationMarker",
     "preparation_finalization_fingerprint",
     "NO_RESOLUTION_CONCLUSION_STATEMENT",
@@ -99,8 +104,9 @@ TRANSFORM_PROFILE_SCHEMA_VERSION = "1"
 TRANSFORM_RUNTIME_SCHEMA_VERSION = "1"
 PREPARED_ENTRY_SCHEMA_VERSION = "1"
 PREPARATION_SET_SCHEMA_VERSION = "1"
-PREPARATION_RECEIPT_SCHEMA_VERSION = "1"
-PREPARATION_FINALIZATION_SCHEMA_VERSION = "1"
+PREPARATION_RECEIPT_SCHEMA_VERSION = "2"
+PREPARATION_TRANSFORM_AUDIT_SCHEMA_VERSION = "1"
+PREPARATION_FINALIZATION_SCHEMA_VERSION = "2"
 
 #: Twelve hex characters, matching ``run_id``, ``plan_id`` and ``result_set_id``.
 PREPARATION_SET_ID_LENGTH = 12
@@ -615,6 +621,43 @@ def transform_runtime_id(fingerprint: str) -> str:
 
 
 # ---------------------------------------------------------- preparation intent
+
+
+@dataclass(frozen=True, slots=True)
+class PreparationSourceBundle:
+    """Authoritative external identities a prepared set must be derived from.
+
+    This is intentionally smaller than an experiment's complete input object.
+    It carries only the identities that a deep verifier must compare against the
+    stored definition and manifest, plus the exact ordered participating image
+    ids.  Recomputing a self-consistent prepared set cannot change this object,
+    because it is derived independently from the dataset, protocol, cohort and
+    pair manifests.
+    """
+
+    dataset_id: str
+    image_manifest_hash: str
+    protocol_id: str
+    cohort_id: str
+    cohort_fingerprint: str
+    pair_manifest_hash: str
+    ordered_image_ids: tuple[ImageId, ...]
+
+    def __post_init__(self) -> None:
+        for name in ("dataset_id", "protocol_id", "cohort_id"):
+            validate_id(getattr(self, name))
+        for name in (
+            "image_manifest_hash",
+            "cohort_fingerprint",
+            "pair_manifest_hash",
+        ):
+            object.__setattr__(self, name, _require_digest(getattr(self, name), name))
+        ordered = tuple(ImageId(validate_id(str(item))) for item in self.ordered_image_ids)
+        if not ordered:
+            raise ValueError("a preparation source bundle must name at least one image")
+        if len(set(ordered)) != len(ordered):
+            raise ValueError("a preparation source bundle names an image more than once")
+        object.__setattr__(self, "ordered_image_ids", ordered)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1170,6 +1213,136 @@ def preparation_set_id(fingerprint: str) -> str:
 
 
 @dataclass(frozen=True, slots=True)
+class PreparationTransformAudit:
+    """A full source-to-transform-to-output re-derivation pass.
+
+    Counts are kept instead of per-image details so the artefact can be shared
+    without publishing an inventory of the redistribution-restricted dataset.
+    A clean audit has every count equal to ``planned_images`` and no issues.
+    """
+
+    schema_version: str
+    preparation_set_id: str
+    preparation_set_fingerprint: str
+
+    planned_images: int
+    verified_sources: int
+    recomputed_transforms: int
+    matching_output_dimensions: int
+    matching_transform_actions: int
+    matching_pixel_hashes: int
+    matching_encoded_hashes: int
+
+    issues: tuple[str, ...]
+    audit_fingerprint: str
+    created_utc: str
+
+    def __post_init__(self) -> None:
+        validate_id(self.preparation_set_id)
+        object.__setattr__(
+            self,
+            "preparation_set_fingerprint",
+            _require_digest(
+                self.preparation_set_fingerprint, "preparation_set_fingerprint"
+            ),
+        )
+        for name in ("schema_version", "created_utc"):
+            object.__setattr__(self, name, _require_non_empty(getattr(self, name), name))
+        if self.schema_version != PREPARATION_TRANSFORM_AUDIT_SCHEMA_VERSION:
+            raise ValueError(
+                f"unsupported preparation transform audit schema {self.schema_version!r}"
+            )
+        for name in (
+            "planned_images",
+            "verified_sources",
+            "recomputed_transforms",
+            "matching_output_dimensions",
+            "matching_transform_actions",
+            "matching_pixel_hashes",
+            "matching_encoded_hashes",
+        ):
+            object.__setattr__(
+                self, name, _require_non_negative_int(getattr(self, name), name)
+            )
+        if self.planned_images <= 0:
+            raise ValueError("planned_images must be positive")
+        for name in (
+            "verified_sources",
+            "recomputed_transforms",
+            "matching_output_dimensions",
+            "matching_transform_actions",
+            "matching_pixel_hashes",
+            "matching_encoded_hashes",
+        ):
+            if getattr(self, name) > self.planned_images:
+                raise ValueError(f"{name} cannot exceed planned_images")
+        object.__setattr__(self, "issues", tuple(str(item) for item in self.issues))
+        object.__setattr__(
+            self,
+            "audit_fingerprint",
+            _require_digest(self.audit_fingerprint, "audit_fingerprint"),
+        )
+        expected = preparation_transform_audit_fingerprint(self.claims())
+        if self.audit_fingerprint != expected:
+            raise ValueError(
+                "audit_fingerprint does not cover the transform audit: expected "
+                f"{expected}, got {self.audit_fingerprint}"
+            )
+
+    @property
+    def is_clean(self) -> bool:
+        expected = self.planned_images
+        return not self.issues and all(
+            getattr(self, name) == expected
+            for name in (
+                "verified_sources",
+                "recomputed_transforms",
+                "matching_output_dimensions",
+                "matching_transform_actions",
+                "matching_pixel_hashes",
+                "matching_encoded_hashes",
+            )
+        )
+
+    def claims(self) -> Mapping[str, object]:
+        return {
+            "schema_version": self.schema_version,
+            "preparation_set_id": self.preparation_set_id,
+            "preparation_set_fingerprint": self.preparation_set_fingerprint,
+            "planned_images": self.planned_images,
+            "verified_sources": self.verified_sources,
+            "recomputed_transforms": self.recomputed_transforms,
+            "matching_output_dimensions": self.matching_output_dimensions,
+            "matching_transform_actions": self.matching_transform_actions,
+            "matching_pixel_hashes": self.matching_pixel_hashes,
+            "matching_encoded_hashes": self.matching_encoded_hashes,
+            "issues": list(self.issues),
+        }
+
+
+def preparation_transform_audit_fingerprint(
+    claims: Mapping[str, object],
+) -> str:
+    """Digest the durable claims of one full transform audit."""
+    return stable_hash(
+        {"schema": "preparation_transform_audit_fingerprint_v1", "claims": dict(claims)},
+        length=64,
+    )
+
+
+def preparation_transform_audit_content_hash(
+    audit: PreparationTransformAudit,
+) -> str:
+    """Digest the exact stored audit, including its timestamp."""
+    from fpbench.core.serialization import to_plain
+
+    return stable_hash(
+        {"schema": "preparation_transform_audit_content_hash_v1", "audit": to_plain(audit)},
+        length=64,
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class PreparationReceipt:
     """The one file from a preparation that is meant to leave the workspace.
 
@@ -1198,6 +1371,7 @@ class PreparationReceipt:
 
     source_commit: str
     source_tree_clean: bool
+    transform_audit_fingerprint: str
 
     total_images: int
     counts_by_release: Mapping[str, int]
@@ -1227,11 +1401,16 @@ class PreparationReceipt:
             "image_manifest_hash",
             "cohort_fingerprint",
             "pair_manifest_hash",
+            "transform_audit_fingerprint",
         ):
             object.__setattr__(self, name, _require_digest(getattr(self, name), name))
         for name in ("schema_version", "source_commit", "statement", "created_utc"):
             object.__setattr__(
                 self, name, _require_non_empty(getattr(self, name), name)
+            )
+        if self.schema_version != PREPARATION_RECEIPT_SCHEMA_VERSION:
+            raise ValueError(
+                f"unsupported preparation receipt schema {self.schema_version!r}"
             )
         object.__setattr__(
             self, "total_images", _require_positive_int(self.total_images, "total_images")
@@ -1327,6 +1506,9 @@ class PreparationFinalizationMarker:
     receipt_fingerprint: str
     receipt_content_hash: str
 
+    transform_audit_fingerprint: str
+    transform_audit_content_hash: str
+
     source_commit: str
     source_tree_clean: bool
 
@@ -1344,11 +1526,17 @@ class PreparationFinalizationMarker:
             "summary_content_hash",
             "receipt_fingerprint",
             "receipt_content_hash",
+            "transform_audit_fingerprint",
+            "transform_audit_content_hash",
         ):
             object.__setattr__(self, name, _require_digest(getattr(self, name), name))
         for name in ("schema_version", "source_commit", "created_utc"):
             object.__setattr__(
                 self, name, _require_non_empty(getattr(self, name), name)
+            )
+        if self.schema_version != PREPARATION_FINALIZATION_SCHEMA_VERSION:
+            raise ValueError(
+                f"unsupported preparation finalization schema {self.schema_version!r}"
             )
         if type(self.source_tree_clean) is not bool:
             raise ValueError("source_tree_clean must be a bool")
@@ -1375,6 +1563,8 @@ class PreparationFinalizationMarker:
             "summary_content_hash": self.summary_content_hash,
             "receipt_fingerprint": self.receipt_fingerprint,
             "receipt_content_hash": self.receipt_content_hash,
+            "transform_audit_fingerprint": self.transform_audit_fingerprint,
+            "transform_audit_content_hash": self.transform_audit_content_hash,
             "source_commit": self.source_commit,
             "source_tree_clean": self.source_tree_clean,
         }

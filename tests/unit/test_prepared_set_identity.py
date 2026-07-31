@@ -22,6 +22,7 @@ from fpbench.core.enums import GroundTruth, ProtocolStage
 from fpbench.core.identifiers import ImageId, PairId
 from fpbench.core.imaging_models import (
     PreparationDefinition,
+    PreparedImageSetManifest,
     ordered_image_ids_hash,
     ordered_prepared_entries_hash,
     preparation_definition_fingerprint,
@@ -30,6 +31,7 @@ from fpbench.core.imaging_models import (
 )
 from fpbench.core.models import ComparisonPair
 from fpbench.experiments.sd300_inputs import participating_image_ids
+from fpbench.imaging.verify import preparation_source_binding_issues
 from canonicalworld import build_canonical_world, make_runtime
 
 pytestmark = [pytest.mark.imaging, pytest.mark.canonical500]
@@ -227,6 +229,46 @@ def test_a_set_holding_no_images_is_not_a_set(world):
         dataclasses.replace(world.manifest, total_images=0)
 
 
+@pytest.mark.parametrize(
+    ("field_name", "forged_value"),
+    (
+        ("dataset_id", "other_dataset"),
+        ("image_manifest_hash", "a" * 64),
+        ("protocol_id", "other_protocol"),
+        ("cohort_id", "other_cohort"),
+        ("cohort_fingerprint", "b" * 64),
+        ("pair_manifest_hash", "c" * 64),
+    ),
+)
+def test_rehashed_source_identity_tampering_is_rejected(
+    world, field_name, forged_value
+):
+    """Recomputing every prepared-set id cannot forge external authority."""
+    definition = _redefine(world.definition, **{field_name: forged_value})
+    manifest = _remanifest(world, definition)
+    issues = preparation_source_binding_issues(
+        manifest=manifest,
+        definition=definition,
+        source_bundle=world.source_bundle,
+    )
+    assert any(field_name in issue for issue in issues)
+
+
+def test_rehashed_participating_image_identity_tampering_is_rejected(world):
+    forged_ids = world.definition.ordered_image_ids[:-1]
+    definition = _redefine(
+        world.definition,
+        ordered_image_ids=forged_ids,
+        expected_total_images=len(forged_ids),
+    )
+    issues = preparation_source_binding_issues(
+        manifest=world.manifest,
+        definition=definition,
+        source_bundle=world.source_bundle,
+    )
+    assert any("ordered participating image ids" in issue for issue in issues)
+
+
 # ----------------------------------------------------------------- internals
 
 
@@ -250,6 +292,37 @@ def _entry_with_different_hash(entry):
 
     return SimpleNamespace(
         ordinal=entry.ordinal, image_id=entry.image_id, entry_hash="f" * 64
+    )
+
+
+def _remanifest(world, definition: PreparationDefinition) -> PreparedImageSetManifest:
+    fingerprint = preparation_set_fingerprint(
+        dataset_id=definition.dataset_id,
+        image_manifest_hash=definition.image_manifest_hash,
+        protocol_id=definition.protocol_id,
+        cohort_id=definition.cohort_id,
+        cohort_fingerprint=definition.cohort_fingerprint,
+        pair_manifest_hash=definition.pair_manifest_hash,
+        transform_profile_fingerprint=definition.transform_profile_fingerprint,
+        transform_runtime_fingerprint=definition.transform_runtime_fingerprint,
+        entries=world.entries,
+    )
+    return PreparedImageSetManifest(
+        preparation_set_id=preparation_set_id(fingerprint),
+        preparation_set_fingerprint=fingerprint,
+        dataset_id=definition.dataset_id,
+        image_manifest_hash=definition.image_manifest_hash,
+        protocol_id=definition.protocol_id,
+        cohort_id=definition.cohort_id,
+        cohort_fingerprint=definition.cohort_fingerprint,
+        pair_manifest_hash=definition.pair_manifest_hash,
+        transform_profile_id=definition.transform_profile_id,
+        transform_profile_fingerprint=definition.transform_profile_fingerprint,
+        transform_runtime_id=definition.transform_runtime_id,
+        transform_runtime_fingerprint=definition.transform_runtime_fingerprint,
+        total_images=len(world.entries),
+        ordered_entries_hash=ordered_prepared_entries_hash(world.entries),
+        created_utc=world.manifest.created_utc,
     )
 
 

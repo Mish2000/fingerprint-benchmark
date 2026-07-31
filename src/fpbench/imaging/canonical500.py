@@ -49,12 +49,20 @@ from fpbench.core.errors import (
 )
 from fpbench.core.execution_models import ExecutionProfile, PreparedImage
 from fpbench.core.identifiers import ImageId
-from fpbench.core.imaging_models import PreparedImageEntry
+from fpbench.core.imaging_models import (
+    PreparationDefinition,
+    PreparationSourceBundle,
+    PreparedImageEntry,
+    PreparedImageSetManifest,
+)
 from fpbench.core.models import ImageRecord
 from fpbench.core.serialization import stable_hash
 from fpbench.imaging.base import ImagePreparer
 from fpbench.imaging.source_records import source_record_fingerprint
-from fpbench.imaging.verify import verify_prepared_artifacts
+from fpbench.imaging.verify import (
+    preparation_source_binding_issues,
+    verify_prepared_artifacts,
+)
 from fpbench.storage.prepared_image_set_store import PreparedImageSetStore
 
 __all__ = [
@@ -131,6 +139,8 @@ class Canonical500ImagePreparer(ImagePreparer):
         self._profile_fingerprint: str | None = None
         self._runtime_fingerprint: str | None = None
         self._target_ppi: int | None = None
+        self._manifest: PreparedImageSetManifest | None = None
+        self._definition: PreparationDefinition | None = None
         self._prepared = False
 
     @property
@@ -166,6 +176,13 @@ class Canonical500ImagePreparer(ImagePreparer):
         """
         self._require_prepared()
         return dict(self._entries)
+
+    def prepared_manifest(self) -> PreparedImageSetManifest:
+        """The verified set manifest, for receipt re-derivation."""
+        self._require_prepared()
+        if self._manifest is None:  # pragma: no cover - preflight assigns it
+            raise PreflightError("prepared-set manifest was not loaded at preflight")
+        return self._manifest
 
     # -------------------------------------------------------------- preflight
 
@@ -208,6 +225,7 @@ class Canonical500ImagePreparer(ImagePreparer):
         container = self._store.set_dir(self._set_id)
         profile = self._store.read_transform_profile(container)
         runtime = self._store.read_runtime(container)
+        definition = self._store.read_definition(container)
         entries = self._store.read_entries(self._set_id)
 
         self._entries = {entry.image_id: entry for entry in entries}
@@ -215,6 +233,8 @@ class Canonical500ImagePreparer(ImagePreparer):
         self._profile_fingerprint = profile.profile_fingerprint
         self._runtime_fingerprint = runtime.runtime_fingerprint
         self._target_ppi = profile.target_ppi
+        self._manifest = manifest
+        self._definition = definition
 
         self._identities = {}
         for entry in entries:
@@ -226,6 +246,22 @@ class Canonical500ImagePreparer(ImagePreparer):
             self._identities[entry.image_id] = _FileIdentity(path)
 
         self._prepared = True
+
+    def require_source_bundle(self, source_bundle: PreparationSourceBundle) -> None:
+        """Bind this set to the run's manifests and exact participating images."""
+        self._require_prepared()
+        if self._manifest is None or self._definition is None:  # pragma: no cover
+            raise PreflightError("prepared-set identity was not loaded at preflight")
+        issues = preparation_source_binding_issues(
+            manifest=self._manifest,
+            definition=self._definition,
+            source_bundle=source_bundle,
+        )
+        if issues:
+            raise PreflightError(
+                f"prepared-image set {self._set_id} is not derived from this "
+                f"run's source manifests: {'; '.join(issues[:3])}"
+            )
 
     def require_expected_images(self, image_ids: set[ImageId]) -> None:
         """Prove the set covers exactly the images a run will ask for.

@@ -20,9 +20,25 @@ __all__ = [
     "read_json",
     "stable_hash",
     "freeze_str_mapping",
+    "require_exact_int",
 ]
 
 T = TypeVar("T")
+
+
+def require_exact_int(value: Any, field_name: str) -> int:
+    """Return an integer without coercing another JSON type into one.
+
+    ``bool`` is deliberately rejected even though it is an ``int`` subclass in
+    Python. Integrity-bearing JSON must distinguish ``2`` from ``2.0``, ``"2"``
+    and ``true``; normalising any of those before hashing would let stored bytes
+    change while the reconstructed object's fingerprint stayed the same.
+    """
+    if type(value) is not int:
+        raise ValueError(
+            f"{field_name} must be an exact integer, got {type(value).__name__}"
+        )
+    return value
 
 
 def freeze_str_mapping(value: Mapping[str, Any]) -> Mapping[str, str]:

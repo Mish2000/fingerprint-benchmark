@@ -884,9 +884,12 @@ POLICY_READY → COUNTS_READY → METRICS_READY → REPORT_READY → EVALUATION_
 
 `EVALUATION_READY` means the defined metrics are reproducible: every count re-derived from
 the decisions and the views, every denominator re-resolved from its enum, every pooled
-value checked against the sum of its releases, and the report on disk still the report the
-finalization marker was issued over. **It does not mean the threshold was calibrated or
-that the benchmark estimates population-wide false-match performance.**
+value checked against the sum of its releases, the definition and manifest linked field by
+field to the actual source chain, and both the summary and report rebuilt canonically from
+that chain before the finalization marker is accepted. JSON-backed counts and ordinals are
+exact integers: floats, strings, booleans and nulls are rejected rather than coerced.
+**It does not mean the threshold was calibrated or that the benchmark estimates
+population-wide false-match performance.**
 
 ### The first result
 

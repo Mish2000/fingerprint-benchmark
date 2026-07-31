@@ -14,6 +14,8 @@ from pathlib import Path
 import pytest
 
 from fpbench.core.errors import MetricSetConflictError, StorageError
+from fpbench.core.metric_models import metric_set_fingerprint, metric_set_id
+from fpbench.core.serialization import to_plain, write_json
 from fpbench.storage.metric_set_store import MetricSetStore
 from metricworld import SPEC_EXAMPLE_SCRIPT, all_matching, build_metric_world
 
@@ -184,6 +186,46 @@ def test_parquet_metadata_names_the_metric_set(world, tmp_path: Path) -> None:
     assert metadata["metric_set_id"] == manifest.metric_set_id
     assert metadata["metric_set_fingerprint"] == manifest.metric_set_fingerprint
     assert metadata["row_kind"] == "metric_observations"
+
+
+def test_manifest_run_id_must_match_the_directory_argument(
+    world, tmp_path: Path
+) -> None:
+    _, _, _, manifest, _, _ = world.store_metric_set(tmp_path)
+    store = MetricSetStore(tmp_path)
+    payload = dict(to_plain(manifest))
+    payload["run_id"] = "run_forged"
+    write_json(store.manifest_path(world.run_id, manifest.metric_set_id), payload)
+
+    with pytest.raises(StorageError, match="was read from run"):
+        store.read_manifest(world.run_id, manifest.metric_set_id)
+
+
+def test_manifest_metric_set_id_must_match_the_directory_argument(
+    world, tmp_path: Path
+) -> None:
+    _, _, _, manifest, _, _ = world.store_metric_set(tmp_path)
+    store = MetricSetStore(tmp_path)
+    payload = dict(to_plain(manifest))
+    payload["run_fingerprint"] = "f" * 64
+    fingerprint = metric_set_fingerprint(
+        run_fingerprint=payload["run_fingerprint"],
+        decision_set_fingerprint=payload["decision_set_fingerprint"],
+        eligibility_set_fingerprint=payload["eligibility_set_fingerprint"],
+        unconditional_view_fingerprint=payload["unconditional_view_fingerprint"],
+        conditional_view_fingerprint=payload["conditional_view_fingerprint"],
+        non_mated_view_fingerprint=payload["non_mated_view_fingerprint"],
+        metric_policy_fingerprint=payload["metric_policy_fingerprint"],
+        metric_software_fingerprint=payload["metric_software_fingerprint"],
+        ordered_count_records_hash=payload["ordered_count_records_hash"],
+        ordered_observations_hash=payload["ordered_observations_hash"],
+    )
+    payload["metric_set_fingerprint"] = fingerprint
+    payload["metric_set_id"] = metric_set_id(fingerprint)
+    write_json(store.manifest_path(world.run_id, manifest.metric_set_id), payload)
+
+    with pytest.raises(StorageError, match="was read from"):
+        store.read_manifest(world.run_id, manifest.metric_set_id)
 
 
 def _forge_manifest(manifest):

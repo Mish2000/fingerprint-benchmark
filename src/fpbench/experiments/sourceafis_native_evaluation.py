@@ -72,6 +72,7 @@ from fpbench.core.provenance_models import (
     SoftwareProvenance,
     software_provenance_fingerprint,
 )
+from fpbench.core.serialization import require_exact_int
 from fpbench.derivations import inspect_decision_derivation
 from fpbench.metrics import (
     MetricSources,
@@ -81,16 +82,18 @@ from fpbench.metrics import (
     build_evaluation_receipt,
     build_evaluation_summary,
     build_observations,
+    build_report_context,
     build_report_profile,
     inspect_evaluation,
     load_metric_policy,
     release_order_of,
     render_report,
     structural_counts_of,
+    verify_evaluation_report,
+    verify_evaluation_summary,
     verify_metric_set,
     write_evaluation_evidence_copies,
 )
-from fpbench.metrics.aggregate import NEGATIVE_SANITY_METADATA
 from fpbench.experiments.sourceafis_native_decisions import (
     load_decision_experiment_config,
     load_decision_source,
@@ -207,11 +210,18 @@ def load_evaluation_config(
             decision_set_id=str(source["decision_set_id"]),
             metric_policy_config=Path(repository_root) / str(policy["ref"]),
             report_profile_id=str(profile["profile_id"]),
-            expected_decisions=int(shape["decisions"]),
-            expected_eligibility_units=int(shape["eligibility_units"]),
-            expected_rows_per_view=int(shape["rows_per_view"]),
-            expected_rows_per_release_per_view=int(
-                shape["rows_per_release_per_view"]
+            expected_decisions=require_exact_int(
+                shape["decisions"], "expected_shape.decisions"
+            ),
+            expected_eligibility_units=require_exact_int(
+                shape["eligibility_units"], "expected_shape.eligibility_units"
+            ),
+            expected_rows_per_view=require_exact_int(
+                shape["rows_per_view"], "expected_shape.rows_per_view"
+            ),
+            expected_rows_per_release_per_view=require_exact_int(
+                shape["rows_per_release_per_view"],
+                "expected_shape.rows_per_release_per_view",
             ),
             expected_releases=releases,
         )
@@ -383,6 +393,12 @@ def derive_metrics(
         counts=counts,
         observations=observations,
         sources=prepared.sources,
+        run=prepared.run,
+        result_set=prepared.result_set,
+        decision_profile=prepared.decision_profile,
+        decision_manifest=prepared.decision_manifest,
+        eligibility_manifest=prepared.eligibility_manifest,
+        view_manifests=prepared.view_manifests,
         releases=prepared.releases,
     )
 
@@ -414,6 +430,12 @@ def derive_metrics(
         counts=stored_counts,
         observations=stored_observations,
         sources=prepared.sources,
+        run=prepared.run,
+        result_set=prepared.result_set,
+        decision_profile=prepared.decision_profile,
+        decision_manifest=prepared.decision_manifest,
+        eligibility_manifest=prepared.eligibility_manifest,
+        view_manifests=prepared.view_manifests,
         releases=prepared.releases,
     )
 
@@ -452,7 +474,12 @@ def inspect_sourceafis_native_evaluation(
     )
 
     return inspect_evaluation(
-        run_id=prepared.run.run_id,
+        run=prepared.run,
+        result_set=prepared.result_set,
+        decision_profile=prepared.decision_profile,
+        decision_manifest=prepared.decision_manifest,
+        eligibility_manifest=prepared.eligibility_manifest,
+        run_source_commit=prepared.run_source_commit,
         sources=prepared.sources,
         decision_status=prepared.decision_status,
         decision_finalization_fingerprint=(
@@ -462,8 +489,6 @@ def inspect_sourceafis_native_evaluation(
         metric_set_id=resolved,
         releases=prepared.releases,
         structural_counts=prepared.structural_counts,
-        result_set_id=prepared.result_set.result_set_id,
-        decision_profile_id=prepared.decision_profile.profile_id,
         workspace=workspace,
     )
 
@@ -528,6 +553,12 @@ def finalize_evaluation(
         counts=counts,
         observations=observations,
         sources=prepared.sources,
+        run=prepared.run,
+        result_set=prepared.result_set,
+        decision_profile=prepared.decision_profile,
+        decision_manifest=prepared.decision_manifest,
+        eligibility_manifest=prepared.eligibility_manifest,
+        view_manifests=prepared.view_manifests,
         releases=prepared.releases,
     )
 
@@ -543,6 +574,15 @@ def finalize_evaluation(
         run_id=prepared.run.run_id, metric_set_id=set_id, summary=summary
     )
     stored_summary = store.read_summary(prepared.run.run_id, set_id)
+    verify_evaluation_summary(
+        summary=stored_summary,
+        manifest=manifest,
+        counts=counts,
+        observations=observations,
+        releases=prepared.releases,
+        run=prepared.run,
+        decision_profile=prepared.decision_profile,
+    )
 
     markdown = render_report(
         context=_report_context(prepared, manifest),
@@ -556,6 +596,9 @@ def finalize_evaluation(
         run_id=prepared.run.run_id, metric_set_id=set_id, markdown=markdown
     )
     stored_markdown = store.read_report(prepared.run.run_id, set_id)
+    verify_evaluation_report(
+        markdown=stored_markdown, expected_markdown=markdown
+    )
 
     receipt = build_evaluation_receipt(
         manifest=manifest,
@@ -578,7 +621,7 @@ def finalize_evaluation(
         definition=definition,
         manifest=manifest,
         summary=stored_summary,
-        markdown=stored_markdown,
+        markdown=markdown,
         receipt=stored_receipt,
         decision_finalization_fingerprint=(
             prepared.decision_finalization_fingerprint
@@ -590,7 +633,12 @@ def finalize_evaluation(
     )
 
     state = inspect_evaluation(
-        run_id=prepared.run.run_id,
+        run=prepared.run,
+        result_set=prepared.result_set,
+        decision_profile=prepared.decision_profile,
+        decision_manifest=prepared.decision_manifest,
+        eligibility_manifest=prepared.eligibility_manifest,
+        run_source_commit=prepared.run_source_commit,
         sources=prepared.sources,
         decision_status=prepared.decision_status,
         decision_finalization_fingerprint=(
@@ -600,8 +648,6 @@ def finalize_evaluation(
         metric_set_id=set_id,
         releases=prepared.releases,
         structural_counts=prepared.structural_counts,
-        result_set_id=prepared.result_set.result_set_id,
-        decision_profile_id=prepared.decision_profile.profile_id,
         workspace=workspace,
     )
     if not state.is_evaluation_ready:
@@ -884,34 +930,14 @@ def _build_manifest(
 def _report_context(
     prepared: PreparedEvaluation, manifest: MetricSetManifest
 ) -> ReportContext:
-    algorithm = prepared.run.algorithm
-    execution = prepared.run.execution_profile
-    return ReportContext(
-        algorithm_id=algorithm.algorithm_id,
-        implementation_version=algorithm.implementation_version,
-        adapter_id=algorithm.adapter_id,
-        integration_mode=str(
-            algorithm.metadata.get("integration_mode", "unspecified")
-        ),
-        execution_profile_id=execution.profile_id,
-        resolution_mode=str(
-            execution.parameters.get("resolution_mode", "unspecified")
-        ),
-        decision_profile_id=prepared.decision_profile.profile_id,
-        threshold=prepared.decision_profile.threshold,
-        comparator=prepared.decision_profile.comparator.value,
-        threshold_origin=prepared.decision_profile.origin.value,
-        run_id=prepared.run.run_id,
-        result_set_id=prepared.result_set.result_set_id,
-        decision_set_id=manifest.decision_set_id,
-        eligibility_set_id=manifest.eligibility_set_id,
-        metric_set_id=manifest.metric_set_id,
+    return build_report_context(
+        run=prepared.run,
+        result_set=prepared.result_set,
+        decision_profile=prepared.decision_profile,
+        decision_manifest=prepared.decision_manifest,
+        eligibility_manifest=prepared.eligibility_manifest,
+        metric_manifest=manifest,
         run_source_commit=prepared.run_source_commit,
-        decision_derivation_source_commit=(
-            prepared.decision_manifest.derivation_source_revision
-        ),
-        metric_derivation_source_commit=manifest.metric_source_revision,
-        negative_sanity_metadata=NEGATIVE_SANITY_METADATA,
     )
 
 

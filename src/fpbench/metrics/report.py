@@ -31,6 +31,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
+from fpbench.core.decision_models import DecisionProfile, DecisionSetManifest
+from fpbench.core.eligibility_models import SelfEligibilityManifest
 from fpbench.core.errors import EvaluationReportError
 from fpbench.core.evaluation_models import POOLED_SCOPE_LABEL
 from fpbench.core.metric_models import (
@@ -43,8 +45,16 @@ from fpbench.core.metric_models import (
     ReportProfile,
     render_percentage,
 )
+from fpbench.core.result_models import RunDefinition
+from fpbench.core.result_set_models import ResultSetManifest
+from fpbench.metrics.policy import NEGATIVE_SANITY_METADATA
 
-__all__ = ["ReportContext", "render_report", "DENOMINATOR_PHRASES"]
+__all__ = [
+    "ReportContext",
+    "build_report_context",
+    "render_report",
+    "DENOMINATOR_PHRASES",
+]
 
 #: What a zero denominator is called in the report, per denominator. Spelling
 #: this out is the difference between "undefined" (unhelpful) and "undefined
@@ -91,6 +101,48 @@ class ReportContext:
     metric_derivation_source_commit: str
 
     negative_sanity_metadata: Mapping[str, str]
+
+
+def build_report_context(
+    *,
+    run: RunDefinition,
+    result_set: ResultSetManifest,
+    decision_profile: DecisionProfile,
+    decision_manifest: DecisionSetManifest,
+    eligibility_manifest: SelfEligibilityManifest,
+    metric_manifest: MetricSetManifest,
+    run_source_commit: str,
+) -> ReportContext:
+    """Build the report identity only from the verified source chain.
+
+    Kept beside the renderer so finalization and later verification cannot grow
+    separate notions of what the canonical report context contains.
+    """
+    algorithm = run.algorithm
+    execution = run.execution_profile
+    return ReportContext(
+        algorithm_id=algorithm.algorithm_id,
+        implementation_version=algorithm.implementation_version,
+        adapter_id=algorithm.adapter_id,
+        integration_mode=str(algorithm.metadata.get("integration_mode", "unspecified")),
+        execution_profile_id=execution.profile_id,
+        resolution_mode=str(execution.parameters.get("resolution_mode", "unspecified")),
+        decision_profile_id=decision_profile.profile_id,
+        threshold=decision_profile.threshold,
+        comparator=decision_profile.comparator.value,
+        threshold_origin=decision_profile.origin.value,
+        run_id=run.run_id,
+        result_set_id=result_set.result_set_id,
+        decision_set_id=decision_manifest.decision_set_id,
+        eligibility_set_id=eligibility_manifest.eligibility_set_id,
+        metric_set_id=metric_manifest.metric_set_id,
+        run_source_commit=run_source_commit,
+        decision_derivation_source_commit=(
+            decision_manifest.derivation_source_revision
+        ),
+        metric_derivation_source_commit=metric_manifest.metric_source_revision,
+        negative_sanity_metadata=NEGATIVE_SANITY_METADATA,
+    )
 
 
 def render_report(

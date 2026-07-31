@@ -43,6 +43,8 @@ from fpbench.core.enums import (
     GroundTruth,
     ProtocolStage,
     SelfEligibilityStatus,
+    ThresholdComparator,
+    ThresholdOrigin,
 )
 from fpbench.core.evaluation_view_models import (
     MATED_CONDITIONAL_VIEW,
@@ -170,6 +172,56 @@ class MetricWorld:
     policy: Any = None
     report_profile: Any = None
     software: Any = None
+
+    @property
+    def run(self):
+        return _FakeRun(self)
+
+    @property
+    def decision_profile(self):
+        return _FakeProfile(self)
+
+    @property
+    def result_set_manifest(self):
+        return _Probe(
+            {
+                "result_set_id": self.result_set_id,
+                "result_set_fingerprint": self.result_set_fingerprint,
+                "run_id": self.run_id,
+                "run_fingerprint": self.run_fingerprint,
+            }
+        )
+
+    @property
+    def decision_manifest(self):
+        return _Probe(
+            {
+                "decision_set_id": self.decision_set_id,
+                "decision_set_fingerprint": self.sources.decision_set_fingerprint,
+                "run_id": self.run_id,
+                "run_fingerprint": self.run_fingerprint,
+                "result_set_id": self.result_set_id,
+                "result_set_fingerprint": self.result_set_fingerprint,
+                "decision_profile_id": self.decision_profile_id,
+                "decision_profile_fingerprint": _digest("decision-profile"),
+                "derivation_source_revision": self.software.source_revision,
+            }
+        )
+
+    @property
+    def eligibility_manifest(self):
+        return _Probe(
+            {
+                "eligibility_set_id": self.eligibility_set_id,
+                "eligibility_set_fingerprint": (
+                    self.sources.eligibility_set_fingerprint
+                ),
+                "run_id": self.run_id,
+                "result_set_fingerprint": self.result_set_fingerprint,
+                "decision_set_fingerprint": self.sources.decision_set_fingerprint,
+                "decision_profile_fingerprint": _digest("decision-profile"),
+            }
+        )
 
     # ------------------------------------------------------------- derivation
 
@@ -326,29 +378,16 @@ class MetricWorld:
         )
 
     def report_context(self, manifest):
-        from fpbench.metrics import ReportContext
-        from fpbench.metrics.aggregate import NEGATIVE_SANITY_METADATA
+        from fpbench.metrics import build_report_context
 
-        return ReportContext(
-            algorithm_id="scripted_matcher",
-            implementation_version="test-1",
-            adapter_id="scripted_matcher",
-            integration_mode="in_process",
-            execution_profile_id="test_profile_v1",
-            resolution_mode="native",
-            decision_profile_id=self.decision_profile_id,
-            threshold=self.threshold,
-            comparator="greater_than_or_equal",
-            threshold_origin="documented_native",
-            run_id=self.run_id,
-            result_set_id=self.result_set_id,
-            decision_set_id=manifest.decision_set_id,
-            eligibility_set_id=manifest.eligibility_set_id,
-            metric_set_id=manifest.metric_set_id,
+        return build_report_context(
+            run=self.run,
+            result_set=self.result_set_manifest,
+            decision_profile=self.decision_profile,
+            decision_manifest=self.decision_manifest,
+            eligibility_manifest=self.eligibility_manifest,
+            metric_manifest=manifest,
             run_source_commit=self.software.source_revision,
-            decision_derivation_source_commit=self.software.source_revision,
-            metric_derivation_source_commit=manifest.metric_source_revision,
-            negative_sanity_metadata=NEGATIVE_SANITY_METADATA,
         )
 
     def render(self, manifest, counts, observations) -> str:
@@ -388,8 +427,8 @@ class MetricWorld:
 
         summary = build_evaluation_summary(
             manifest=manifest,
-            run=_FakeRun(self),
-            decision_profile=_FakeProfile(self),
+            run=self.run,
+            decision_profile=self.decision_profile,
             releases=self.releases,
             counts=counts,
             observations=observations,
@@ -448,7 +487,12 @@ class MetricWorld:
         from fpbench.metrics import inspect_evaluation
 
         arguments = {
-            "run_id": self.run_id,
+            "run": self.run,
+            "result_set": self.result_set_manifest,
+            "decision_profile": self.decision_profile,
+            "decision_manifest": self.decision_manifest,
+            "eligibility_manifest": self.eligibility_manifest,
+            "run_source_commit": self.software.source_revision,
             "sources": self.sources,
             "decision_status": DecisionDerivationStatus.DECISION_READY,
             "decision_finalization_fingerprint": self.decision_finalization,
@@ -456,8 +500,6 @@ class MetricWorld:
             "metric_set_id": metric_set_id,
             "releases": self.releases,
             "structural_counts": self.structural_counts(),
-            "result_set_id": self.result_set_id,
-            "decision_profile_id": self.decision_profile_id,
             "workspace": Path(workspace),
         }
         arguments.update(overrides)
@@ -898,19 +940,30 @@ class _Probe:
 
 
 class _FakeRun:
-    """The four run fields the summary builder reads, and nothing else."""
+    """The run identity fields the canonical renderers and verifiers read."""
 
     def __init__(self, world: MetricWorld) -> None:
         self.run_id = world.run_id
+        self.run_fingerprint = world.run_fingerprint
         self.algorithm = _Probe(
-            {"algorithm_id": "scripted_matcher", "implementation_version": "test-1"}
+            {
+                "algorithm_id": "scripted_matcher",
+                "implementation_version": "test-1",
+                "adapter_id": "scripted_matcher",
+                "metadata": {"integration_mode": "in_process"},
+            }
         )
-        self.execution_profile = _Probe({"profile_id": "test_profile_v1"})
+        self.execution_profile = _Probe(
+            {"profile_id": "test_profile_v1", "parameters": {"resolution_mode": "native"}}
+        )
 
 
 class _FakeProfile:
-    """The two decision-profile fields the summary builder reads."""
+    """The decision-profile identity fields verification and rendering read."""
 
     def __init__(self, world: MetricWorld) -> None:
         self.profile_id = world.decision_profile_id
+        self.profile_fingerprint = _digest("decision-profile")
         self.threshold = world.threshold
+        self.comparator = ThresholdComparator.GREATER_THAN_OR_EQUAL
+        self.origin = ThresholdOrigin.DOCUMENTED_NATIVE

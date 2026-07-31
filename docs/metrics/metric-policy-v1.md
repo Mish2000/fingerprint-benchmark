@@ -132,6 +132,17 @@ unbound by the policy — so the metric-set store additionally requires the stor
 and the stored report profile to *agree* about them. A divergence means one of the two
 files was edited.
 
+The verifier does not stop at that fingerprint agreement. It rebuilds the report profile,
+summary identity and complete Markdown rendering from the verified run, decision profile,
+source manifests, counts and observations, then requires the stored renderings to match.
+A self-consistent edit to a displayed threshold or report sentence therefore remains
+invalid even if every publication hash and the finalization marker are recomputed.
+
+All integer fields entering this layer are strict JSON/YAML integers. Ordinals, count
+components, manifest row totals, receipt pairs, expected-shape counts and percentage
+precision reject floats, numeric strings, booleans and nulls rather than normalising them
+before fingerprinting.
+
 ## Threshold provenance
 
 Threshold 40 is **documented, not calibrated**. It is a number SourceAFIS's own authors

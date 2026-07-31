@@ -49,7 +49,7 @@ from fpbench.core.provenance_models import (
     SoftwareProvenance,
     software_provenance_fingerprint,
 )
-from fpbench.core.serialization import stable_hash, to_plain
+from fpbench.core.serialization import require_exact_int, stable_hash, to_plain
 
 __all__ = [
     "MetricDerivationDefinition",
@@ -415,7 +415,7 @@ def _walk(value: Any, *, path: str) -> None:
 def _freeze_counts(value: Mapping[str, int], field_name: str) -> Mapping[str, int]:
     counts: dict[str, int] = {}
     for key, count in dict(value).items():
-        number = int(count)
+        number = require_exact_int(count, f"{field_name}[{key}]")
         if number < 0:
             raise ValueError(f"{field_name}[{key}] must not be negative")
         counts[str(key)] = number

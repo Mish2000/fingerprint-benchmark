@@ -50,6 +50,7 @@ from fpbench.core.metric_models import (
     metric_policy_fingerprint,
     report_profile_fingerprint,
 )
+from fpbench.core.serialization import require_exact_int
 
 __all__ = [
     "METRIC_CATALOGUE",
@@ -501,7 +502,10 @@ def load_metric_policy(path: Path) -> MetricPolicy:
             policy_id=str(policy["policy_id"]),
             policy_version=str(policy.get("policy_version", "1")),
             metric_definitions=tuple(selected),
-            percentage_decimal_places=int(display.get("percentage_decimal_places", 4)),
+            percentage_decimal_places=require_exact_int(
+                display.get("percentage_decimal_places", 4),
+                "display.percentage_decimal_places",
+            ),
             always_show_fraction=_flag(display.get("always_show_fraction", True)),
             zero_format=str(display.get("zero_format", ZERO_FORMAT_OBSERVED_ZERO)),
             metadata=metadata,

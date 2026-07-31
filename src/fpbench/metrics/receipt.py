@@ -54,7 +54,7 @@ from fpbench.core.provenance_models import (
     SoftwareProvenance,
     software_provenance_fingerprint,
 )
-from fpbench.core.serialization import to_plain
+from fpbench.core.serialization import require_exact_int, to_plain
 
 __all__ = [
     "EVIDENCE_DIRECTORY",
@@ -79,11 +79,17 @@ def structural_counts_of(
 ) -> Mapping[str, int]:
     """The shape of the evaluation, in the fixed key order the receipt expects."""
     counts = {
-        "decisions": int(total_decisions),
-        "eligibility_units": int(total_eligibility_units),
-        "unconditional_rows": int(unconditional_rows),
-        "conditional_rows": int(conditional_rows),
-        "negative_sanity_rows": int(negative_sanity_rows),
+        "decisions": require_exact_int(total_decisions, "total_decisions"),
+        "eligibility_units": require_exact_int(
+            total_eligibility_units, "total_eligibility_units"
+        ),
+        "unconditional_rows": require_exact_int(
+            unconditional_rows, "unconditional_rows"
+        ),
+        "conditional_rows": require_exact_int(conditional_rows, "conditional_rows"),
+        "negative_sanity_rows": require_exact_int(
+            negative_sanity_rows, "negative_sanity_rows"
+        ),
     }
     missing = [key for key in STRUCTURAL_COUNT_KEYS if key not in counts]
     if missing:  # pragma: no cover - guarded by the signature

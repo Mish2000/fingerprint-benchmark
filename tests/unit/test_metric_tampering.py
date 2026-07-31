@@ -20,7 +20,20 @@ from pathlib import Path
 import pytest
 
 from fpbench.core.enums import EvaluationStatus, MetricScopeKind
-from fpbench.core.metric_models import CountFamily, MetricScope
+from fpbench.core.errors import MetricSetIntegrityError
+from fpbench.core.evaluation_models import (
+    MetricDerivationDefinition,
+    metric_derivation_definition_fingerprint,
+)
+from fpbench.core.metric_models import (
+    CountFamily,
+    MetricScope,
+    MetricSetManifest,
+    metric_set_fingerprint,
+    metric_set_id,
+)
+from fpbench.core.serialization import to_plain, write_json
+from fpbench.metrics import build_evaluation_finalization_marker, verify_metric_set
 from fpbench.storage.metric_set_store import MetricSetStore
 from metricworld import (
     SPEC_EXAMPLE_SCRIPT,
@@ -62,6 +75,70 @@ def _edit_json(path: Path, mutate) -> None:
     payload = json.loads(path.read_text(encoding="utf-8"))
     mutate(payload)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _rehash_marker(world, store, set_id, *, definition=None) -> None:
+    original = store.read_finalization(world.run_id, set_id)
+    marker = build_evaluation_finalization_marker(
+        definition=definition or store.read_definition(world.run_id, set_id),
+        manifest=store.read_manifest(world.run_id, set_id),
+        summary=store.read_summary(world.run_id, set_id),
+        markdown=store.read_report(world.run_id, set_id),
+        receipt=store.read_receipt(world.run_id, set_id),
+        decision_finalization_fingerprint=world.decision_finalization,
+        metric_software=world.software,
+        created_utc=original.created_utc,
+    )
+    write_json(store.finalization_path(world.run_id, set_id), marker)
+
+
+def _rebuild_definition(definition, **overrides) -> MetricDerivationDefinition:
+    fields = dict(to_plain(definition))
+    fields.update(overrides)
+    fingerprint = metric_derivation_definition_fingerprint(fields)
+    fields["definition_fingerprint"] = fingerprint
+    fields["definition_id"] = f"metricderivation_{fingerprint[:12]}"
+    return MetricDerivationDefinition(**fields)
+
+
+def _rebuild_manifest(manifest, **overrides) -> MetricSetManifest:
+    fields = dict(to_plain(manifest))
+    fields.update(overrides)
+    fingerprint = metric_set_fingerprint(
+        run_fingerprint=fields["run_fingerprint"],
+        decision_set_fingerprint=fields["decision_set_fingerprint"],
+        eligibility_set_fingerprint=fields["eligibility_set_fingerprint"],
+        unconditional_view_fingerprint=fields["unconditional_view_fingerprint"],
+        conditional_view_fingerprint=fields["conditional_view_fingerprint"],
+        non_mated_view_fingerprint=fields["non_mated_view_fingerprint"],
+        metric_policy_fingerprint=fields["metric_policy_fingerprint"],
+        metric_software_fingerprint=fields["metric_software_fingerprint"],
+        ordered_count_records_hash=fields["ordered_count_records_hash"],
+        ordered_observations_hash=fields["ordered_observations_hash"],
+    )
+    fields["metric_set_fingerprint"] = fingerprint
+    fields["metric_set_id"] = metric_set_id(fingerprint)
+    return MetricSetManifest(**fields)
+
+
+def _verify_parts(world, parts) -> None:
+    definition, policy, profile, manifest, counts, observations = parts
+    verify_metric_set(
+        definition=definition,
+        policy=policy,
+        report_profile=profile,
+        manifest=manifest,
+        counts=counts,
+        observations=observations,
+        sources=world.sources,
+        run=world.run,
+        result_set=world.result_set_manifest,
+        decision_profile=world.decision_profile,
+        decision_manifest=world.decision_manifest,
+        eligibility_manifest=world.eligibility_manifest,
+        view_manifests=world.sources.view_manifests,
+        releases=world.releases,
+    )
 
 
 # ------------------------------------------------------------- count records
@@ -229,12 +306,43 @@ def test_a_tampered_summary_value_is_caught(finalised) -> None:
     _assert_invalid(world, workspace, set_id)
 
 
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("threshold", "41"),
+        ("algorithm_id", "forged_algorithm"),
+        ("execution_profile_id", "forged_execution_profile"),
+        ("decision_profile_id", "forged_decision_profile"),
+    ],
+)
+def test_self_consistent_summary_identity_tampering_is_caught(
+    finalised, field, value
+) -> None:
+    world, workspace, set_id, store = finalised
+    _edit_json(
+        store.summary_path(world.run_id, set_id),
+        lambda payload: payload.__setitem__(field, value),
+    )
+    _rehash_marker(world, store, set_id)
+    _assert_invalid(world, workspace, set_id)
+
+
 def test_tampered_report_bytes_are_caught(finalised) -> None:
     world, workspace, set_id, store = finalised
     path = store.report_path(world.run_id, set_id)
     path.write_text(
         path.read_text(encoding="utf-8") + "\nFMR = 0.0000%\n", encoding="utf-8"
     )
+    _assert_invalid(world, workspace, set_id)
+
+
+def test_self_consistent_report_tampering_is_caught(finalised) -> None:
+    world, workspace, set_id, store = finalised
+    path = store.report_path(world.run_id, set_id)
+    path.write_text(
+        path.read_text(encoding="utf-8") + "\nFMR = 0.0000%\n", encoding="utf-8"
+    )
+    _rehash_marker(world, store, set_id)
     _assert_invalid(world, workspace, set_id)
 
 
@@ -292,3 +400,54 @@ def test_a_source_derivation_that_is_no_longer_ready_invalidates_everything(
     )
     assert state.status is EvaluationStatus.INVALID
     assert not state.source_decision_ready
+
+
+# -------------------------------------------------------- source-chain identity
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("run_id", "run_forged"),
+        ("result_set_fingerprint", "f" * 64),
+        ("decision_set_id", "decisionset_forged"),
+        ("eligibility_set_id", "eligibilityset_forged"),
+        ("metric_policy_id", "forged_metric_policy"),
+        ("report_profile_id", "forged_report_profile"),
+    ],
+)
+def test_rehashed_definition_claims_are_checked_against_actual_sources(
+    field, value
+) -> None:
+    world = build_metric_world({"SD300A": SPEC_EXAMPLE_SCRIPT})
+    definition, policy, profile, manifest, counts, observations = world.metric_set()
+    forged = _rebuild_definition(definition, **{field: value})
+
+    with pytest.raises(MetricSetIntegrityError):
+        _verify_parts(
+            world, (forged, policy, profile, manifest, counts, observations)
+        )
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("run_id", "run_forged"),
+        ("run_fingerprint", "e" * 64),
+        ("decision_set_id", "decisionset_forged"),
+        ("eligibility_set_id", "eligibilityset_forged"),
+        ("metric_policy_id", "forged_metric_policy"),
+        ("report_profile_fingerprint", "d" * 64),
+    ],
+)
+def test_rehashed_manifest_claims_are_checked_against_actual_sources(
+    field, value
+) -> None:
+    world = build_metric_world({"SD300A": SPEC_EXAMPLE_SCRIPT})
+    definition, policy, profile, manifest, counts, observations = world.metric_set()
+    forged = _rebuild_manifest(manifest, **{field: value})
+
+    with pytest.raises(MetricSetIntegrityError):
+        _verify_parts(
+            world, (definition, policy, profile, forged, counts, observations)
+        )

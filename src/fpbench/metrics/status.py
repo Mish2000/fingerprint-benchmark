@@ -3,8 +3,9 @@
 Nothing here checks that a file exists and moves on. ``counts_valid`` means the
 counts were re-derived from the decisions and the views and agreed;
 ``observations_valid`` means every numerator and denominator was re-resolved from
-its enum; ``report_valid`` means the bytes on disk still hash to what the
-finalization marker was issued over.
+its enum; ``summary_valid`` and ``report_valid`` mean both renderings were rebuilt
+from the verified source chain and agree exactly with the stored copies. The
+finalization marker is then checked against those canonical renderings.
 
 That is expensive — reading a status costs roughly what producing it did — and it
 is the only reading that means anything. A cheap status would answer "does the
@@ -18,17 +19,22 @@ import datetime as _dt
 from pathlib import Path
 from typing import Mapping, Sequence
 
+from fpbench.core.decision_models import DecisionProfile, DecisionSetManifest
+from fpbench.core.eligibility_models import SelfEligibilityManifest
 from fpbench.core.enums import DecisionDerivationStatus, EvaluationStatus
 from fpbench.core.errors import FpbenchError
 from fpbench.core.evaluation_models import (
     EvaluationState,
     MetricDerivationDefinition,
-    report_content_hash,
 )
+from fpbench.core.result_models import RunDefinition
+from fpbench.core.result_set_models import ResultSetManifest
 from fpbench.metrics.aggregate import MetricSources
+from fpbench.metrics.report import build_report_context, render_report
 from fpbench.metrics.verify import (
     verify_evaluation_finalization_marker,
     verify_evaluation_receipt,
+    verify_evaluation_report,
     verify_evaluation_summary,
     verify_metric_set,
 )
@@ -39,7 +45,12 @@ __all__ = ["inspect_evaluation"]
 
 def inspect_evaluation(
     *,
-    run_id: str,
+    run: RunDefinition,
+    result_set: ResultSetManifest,
+    decision_profile: DecisionProfile,
+    decision_manifest: DecisionSetManifest,
+    eligibility_manifest: SelfEligibilityManifest,
+    run_source_commit: str,
     sources: MetricSources,
     decision_status: DecisionDerivationStatus,
     decision_finalization_fingerprint: str | None,
@@ -47,8 +58,6 @@ def inspect_evaluation(
     metric_set_id: str | None,
     releases: Sequence[str],
     structural_counts: Mapping[str, int],
-    result_set_id: str,
-    decision_profile_id: str,
     workspace: Path,
 ) -> EvaluationState:
     """Recompute the whole chain and report where it stands. Never writes.
@@ -56,6 +65,7 @@ def inspect_evaluation(
     Never raises for an evaluation that is merely unfinished or even broken; the
     state is the answer.
     """
+    run_id = run.run_id
     store = MetricSetStore(Path(workspace))
     releases = tuple(releases)
 
@@ -93,6 +103,7 @@ def inspect_evaluation(
     observations: tuple = ()
     summary = None
     markdown = None
+    canonical_markdown = None
     receipt = None
 
     if metric_set_id and store.has_metric_set(run_id, metric_set_id):
@@ -132,6 +143,12 @@ def inspect_evaluation(
                 counts=counts,
                 observations=observations,
                 sources=sources,
+                run=run,
+                result_set=result_set,
+                decision_profile=decision_profile,
+                decision_manifest=decision_manifest,
+                eligibility_manifest=eligibility_manifest,
+                view_manifests=sources.view_manifests,
                 releases=releases,
             )
             policy_valid = True
@@ -152,6 +169,8 @@ def inspect_evaluation(
                 counts=counts,
                 observations=observations,
                 releases=releases,
+                run=run,
+                decision_profile=decision_profile,
             )
             summary_valid = True
         except FpbenchError as exc:
@@ -161,11 +180,26 @@ def inspect_evaluation(
         report_present = True
         try:
             markdown = store.read_report(run_id, metric_set_id)
-            # Until a marker exists there is nothing authoritative to compare the
-            # bytes against; the marker check below is what makes them binding.
-            report_valid = bool(markdown.strip())
-            if not report_valid:
-                issues.append("evaluation report: the stored report is empty")
+            canonical_markdown = render_report(
+                context=build_report_context(
+                    run=run,
+                    result_set=result_set,
+                    decision_profile=decision_profile,
+                    decision_manifest=decision_manifest,
+                    eligibility_manifest=eligibility_manifest,
+                    metric_manifest=manifest,
+                    run_source_commit=run_source_commit,
+                ),
+                manifest=manifest,
+                policy=policy,
+                report_profile=report_profile,
+                counts=counts,
+                observations=observations,
+            )
+            verify_evaluation_report(
+                markdown=markdown, expected_markdown=canonical_markdown
+            )
+            report_valid = True
         except FpbenchError as exc:
             issues.append(f"evaluation report: {exc}")
 
@@ -187,8 +221,8 @@ def inspect_evaluation(
                 releases=releases,
                 structural_counts=structural_counts,
                 run_id=run_id,
-                result_set_id=result_set_id,
-                decision_profile_id=decision_profile_id,
+                result_set_id=result_set.result_set_id,
+                decision_profile_id=decision_profile.profile_id,
             )
             receipt_valid = True
         except FpbenchError as exc:
@@ -217,17 +251,11 @@ def inspect_evaluation(
                     manifest=manifest,
                     receipt=receipt,
                     summary=summary,
-                    markdown=markdown,
+                    canonical_markdown=canonical_markdown,
                     decision_finalization_fingerprint=(
                         decision_finalization_fingerprint
                     ),
                 )
-                # The marker binds the bytes; now that one exists, the stored
-                # report is checked against it rather than merely being present.
-                if report_content_hash(markdown) != marker.report_content_hash:
-                    raise FpbenchError(
-                        "the stored report is not the report the marker covers"
-                    )
                 finalization_valid = True
             except FpbenchError as exc:
                 issues.append(f"finalization marker: {exc}")

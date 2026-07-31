@@ -58,7 +58,7 @@ from fpbench.metrics.receipt import (
     structural_counts_of,
     write_evaluation_evidence_copies,
 )
-from fpbench.metrics.report import ReportContext, render_report
+from fpbench.metrics.report import ReportContext, build_report_context, render_report
 from fpbench.metrics.status import inspect_evaluation
 from fpbench.metrics.summary import build_evaluation_summary
 from fpbench.metrics.verify import (
@@ -85,6 +85,7 @@ __all__ = [
     "structural_counts_of",
     "write_evaluation_evidence_copies",
     "ReportContext",
+    "build_report_context",
     "render_report",
     "inspect_evaluation",
     "build_evaluation_summary",

@@ -46,7 +46,7 @@ from fpbench.core.enums import (
 )
 from fpbench.core.errors import DecisionProfileError
 from fpbench.core.identifiers import validate_id
-from fpbench.core.serialization import freeze_str_mapping, stable_hash
+from fpbench.core.serialization import freeze_str_mapping, require_exact_int, stable_hash
 
 __all__ = [
     "DecisionApplicationStatus",
@@ -343,9 +343,10 @@ class DecisionRecord:
         validate_id(self.job_id)
         validate_id(self.result_set_id)
         validate_id(self.decision_profile_id)
-        if int(self.ordinal) < 0:
+        ordinal = require_exact_int(self.ordinal, "ordinal")
+        if ordinal < 0:
             raise ValueError("ordinal is 0-based and must not be negative")
-        object.__setattr__(self, "ordinal", int(self.ordinal))
+        object.__setattr__(self, "ordinal", ordinal)
 
         for name in (
             "job_fingerprint",
@@ -562,7 +563,7 @@ class DecisionSetManifest:
         object.__setattr__(self, "derivation_source_revision", revision)
 
         for name in ("total_decisions", "decided_count", "undecidable_count"):
-            number = int(getattr(self, name))
+            number = require_exact_int(getattr(self, name), name)
             if number < 0:
                 raise ValueError(f"{name} must not be negative")
             object.__setattr__(self, name, number)

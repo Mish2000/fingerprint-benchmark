@@ -43,7 +43,7 @@ from fpbench.core.enums import (
 )
 from fpbench.core.errors import EvaluationViewIntegrityError
 from fpbench.core.identifiers import validate_id
-from fpbench.core.serialization import freeze_str_mapping, stable_hash
+from fpbench.core.serialization import freeze_str_mapping, require_exact_int, stable_hash
 
 __all__ = [
     "EvaluationViewEntry",
@@ -141,9 +141,10 @@ class EvaluationViewEntry:
 
     def __post_init__(self) -> None:
         validate_id(self.job_id)
-        if int(self.ordinal) < 0:
+        ordinal = require_exact_int(self.ordinal, "ordinal")
+        if ordinal < 0:
             raise ValueError("ordinal is 0-based and must not be negative")
-        object.__setattr__(self, "ordinal", int(self.ordinal))
+        object.__setattr__(self, "ordinal", ordinal)
         pair_id = str(self.pair_id).strip()
         if not pair_id:
             raise ValueError("pair_id must not be empty")
@@ -348,7 +349,7 @@ class EvaluationViewManifest:
                 ),
             )
 
-        total = int(self.total_rows)
+        total = require_exact_int(self.total_rows, "total_rows")
         if total <= 0:
             raise ValueError("an evaluation view with no rows is not a view")
         object.__setattr__(self, "total_rows", total)

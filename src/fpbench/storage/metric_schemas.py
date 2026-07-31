@@ -109,7 +109,7 @@ def counts_to_table(records: Iterable[EvaluationCountRecord]) -> pa.Table:
             "release": record.scope.release,
             "total_count": record.total_count,
             "counts": [
-                {"name": name, "value": int(value)}
+                {"name": name, "value": value}
                 for name, value in sorted(record.counts.items())
             ],
             "source_fingerprint": record.source_fingerprint,
@@ -129,7 +129,7 @@ def table_to_counts(table: pa.Table) -> list[EvaluationCountRecord]:
             scope=_scope_of(row),
             total_count=row["total_count"],
             counts={
-                str(entry["name"]): int(entry["value"]) for entry in row["counts"]
+                str(entry["name"]): entry["value"] for entry in row["counts"]
             },
             source_fingerprint=row["source_fingerprint"],
             count_record_hash=row["count_record_hash"],

@@ -359,11 +359,22 @@ class MetricSetStore:
         path = self.manifest_path(run_id, metric_set_id)
         payload = self._read_json(path, "metric-set manifest")
         try:
-            return MetricSetManifest(**payload)
+            manifest = MetricSetManifest(**payload)
         except (KeyError, TypeError, ValueError) as exc:
             raise StorageError(
                 f"{path}: unreadable metric-set manifest ({exc})"
             ) from exc
+        if manifest.run_id != run_id:
+            raise StorageError(
+                f"{path}: manifest names run {manifest.run_id}, but was read from "
+                f"run {run_id}"
+            )
+        if manifest.metric_set_id != metric_set_id:
+            raise StorageError(
+                f"{path}: manifest names metric set {manifest.metric_set_id}, but "
+                f"was read from {metric_set_id}"
+            )
+        return manifest
 
     def read_counts(
         self, run_id: str, metric_set_id: str

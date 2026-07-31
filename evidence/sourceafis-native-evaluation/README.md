@@ -62,7 +62,9 @@ python -m fpbench.experiments.sourceafis_native_evaluation status
 `EVALUATION_READY` means every link still holds: the source derivation is still
 `DECISION_READY`, every count re-derives from the decisions and the views, every
 denominator re-resolves from its enum, every pooled value is the sum of its releases, and
-the report on disk is the report the finalization marker was issued over. Any broken link
+the summary and report on disk equal fresh canonical renderings from the verified run,
+decision profile, source manifests and metric set. The finalization marker binds those
+canonical renderings rather than merely agreeing with the files beside it. Any broken link
 reports `INVALID` rather than degrading quietly.
 
 To print the verified report:

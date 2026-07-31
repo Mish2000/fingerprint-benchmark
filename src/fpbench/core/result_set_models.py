@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from typing import Iterable, Mapping
 
 from fpbench.core.identifiers import validate_id
-from fpbench.core.serialization import stable_hash
+from fpbench.core.serialization import require_exact_int, stable_hash
 
 __all__ = [
     "ResultSetEntry",
@@ -57,7 +57,7 @@ def _require_digest(value: str, field_name: str) -> str:
 
 
 def _require_non_negative(value: int, field_name: str) -> int:
-    number = int(value)
+    number = require_exact_int(value, field_name)
     if number < 0:
         raise ValueError(f"{field_name} must not be negative")
     return number
@@ -79,9 +79,10 @@ class ResultSetEntry:
 
     def __post_init__(self) -> None:
         validate_id(self.job_id)
-        if int(self.ordinal) < 0:
+        ordinal = require_exact_int(self.ordinal, "ordinal")
+        if ordinal < 0:
             raise ValueError("ordinal is 0-based and must not be negative")
-        object.__setattr__(self, "ordinal", int(self.ordinal))
+        object.__setattr__(self, "ordinal", ordinal)
         object.__setattr__(
             self, "result_hash", _require_digest(self.result_hash, "result_hash")
         )

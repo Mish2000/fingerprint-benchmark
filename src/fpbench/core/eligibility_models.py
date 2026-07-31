@@ -38,7 +38,7 @@ from fpbench.core.enums import (
     SelfEligibilityStatus,
 )
 from fpbench.core.identifiers import validate_id
-from fpbench.core.serialization import stable_hash
+from fpbench.core.serialization import require_exact_int, stable_hash
 
 __all__ = [
     "SelfEligibilityStatus",
@@ -151,7 +151,7 @@ class SelfEligibilityUnit:
             if not value:
                 raise ValueError(f"{name} must not be empty")
             object.__setattr__(self, name, value)
-        finger = int(self.canonical_finger)
+        finger = require_exact_int(self.canonical_finger, "canonical_finger")
         if not 1 <= finger <= 10:
             raise ValueError(
                 f"canonical_finger must be an ANSI/NIST FRGP 1-10 position, got "
@@ -203,10 +203,15 @@ class SelfEligibilityDecisionRecord:
         validate_id(self.eligibility_unit_id)
         for name in ("plain_self_job_id", "roll_self_job_id", "mated_job_id"):
             validate_id(str(getattr(self, name)))
-        if int(self.ordinal) < 0:
+        ordinal = require_exact_int(self.ordinal, "ordinal")
+        if ordinal < 0:
             raise ValueError("ordinal is 0-based and must not be negative")
-        object.__setattr__(self, "ordinal", int(self.ordinal))
-        object.__setattr__(self, "canonical_finger", int(self.canonical_finger))
+        object.__setattr__(self, "ordinal", ordinal)
+        object.__setattr__(
+            self,
+            "canonical_finger",
+            require_exact_int(self.canonical_finger, "canonical_finger"),
+        )
         for name in ("plain_self_decision_hash", "roll_self_decision_hash"):
             object.__setattr__(self, name, _require_digest(getattr(self, name), name))
         object.__setattr__(
@@ -418,7 +423,7 @@ class SelfEligibilityManifest:
         ):
             object.__setattr__(self, name, _require_digest(getattr(self, name), name))
 
-        total = int(self.total_units)
+        total = require_exact_int(self.total_units, "total_units")
         if total <= 0:
             raise ValueError("an eligibility set with no units is not one")
         object.__setattr__(self, "total_units", total)

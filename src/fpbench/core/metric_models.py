@@ -53,7 +53,7 @@ from fpbench.core.enums import (
 )
 from fpbench.core.errors import MetricPolicyError
 from fpbench.core.identifiers import validate_id
-from fpbench.core.serialization import freeze_str_mapping, stable_hash
+from fpbench.core.serialization import freeze_str_mapping, require_exact_int, stable_hash
 
 __all__ = [
     "MetricNumerator",
@@ -143,7 +143,7 @@ def _require_digest(value: str, field_name: str) -> str:
 
 
 def _require_count(value: Any, field_name: str) -> int:
-    number = int(value)
+    number = require_exact_int(value, field_name)
     if number < 0:
         raise ValueError(f"{field_name} must not be negative, got {number}")
     return number
@@ -667,7 +667,9 @@ class MetricPolicy:
             raise MetricPolicyError(f"metric ids must be unique; repeated: {duplicates}")
         object.__setattr__(self, "metric_definitions", definitions)
 
-        places = int(self.percentage_decimal_places)
+        places = require_exact_int(
+            self.percentage_decimal_places, "percentage_decimal_places"
+        )
         if not 0 <= places <= 10:
             raise MetricPolicyError(
                 f"percentage_decimal_places must be between 0 and 10, got {places}"
@@ -773,7 +775,9 @@ class ReportProfile:
                 self.report_profile_fingerprint, "report_profile_fingerprint"
             ),
         )
-        places = int(self.percentage_decimal_places)
+        places = require_exact_int(
+            self.percentage_decimal_places, "percentage_decimal_places"
+        )
         if not 0 <= places <= 10:
             raise MetricPolicyError(
                 f"percentage_decimal_places must be between 0 and 10, got {places}"

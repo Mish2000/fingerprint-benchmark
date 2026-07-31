@@ -25,6 +25,8 @@ from __future__ import annotations
 
 from typing import Mapping, Sequence
 
+from fpbench.core.decision_models import DecisionProfile, DecisionSetManifest
+from fpbench.core.eligibility_models import SelfEligibilityManifest
 from fpbench.core.errors import MetricSetIntegrityError
 from fpbench.core.evaluation_models import (
     EvaluationFinalizationMarker,
@@ -41,6 +43,7 @@ from fpbench.core.evaluation_view_models import (
     MATED_CONDITIONAL_VIEW,
     MATED_UNCONDITIONAL_VIEW,
     NON_MATED_SANITY_VIEW,
+    EvaluationViewManifest,
 )
 from fpbench.core.metric_models import (
     EvaluationCountRecord,
@@ -58,9 +61,12 @@ from fpbench.core.metric_models import (
     ordered_observations_hash,
     report_profile_fingerprint,
 )
+from fpbench.core.result_models import RunDefinition
+from fpbench.core.result_set_models import ResultSetManifest
 from fpbench.metrics.aggregate import MetricSources, aggregate_count_records
 from fpbench.metrics.denominators import resolve
 from fpbench.metrics.observations import build_observations, index_count_records
+from fpbench.metrics.summary import build_evaluation_summary
 
 __all__ = [
     "verify_metric_set",
@@ -80,6 +86,12 @@ def verify_metric_set(
     counts: Sequence[EvaluationCountRecord],
     observations: Sequence[MetricObservation],
     sources: MetricSources,
+    run: RunDefinition,
+    result_set: ResultSetManifest,
+    decision_profile: DecisionProfile,
+    decision_manifest: DecisionSetManifest,
+    eligibility_manifest: SelfEligibilityManifest,
+    view_manifests: Mapping[str, EvaluationViewManifest],
     releases: Sequence[str],
 ) -> None:
     """Recompute a stored metric set from its sources and refuse any difference.
@@ -88,6 +100,24 @@ def verify_metric_set(
         MetricSetIntegrityError: anything at all does not survive re-derivation.
     """
     releases = tuple(releases)
+
+    # 1. The definition and manifest must point to the actual, already verified
+    # source chain. Recomputing their own fingerprints is not enough: a forged
+    # definition and manifest can agree perfectly with one another while naming
+    # a run, set or view that was never supplied to this evaluation.
+    _verify_source_chain(
+        definition=definition,
+        policy=policy,
+        report_profile=report_profile,
+        manifest=manifest,
+        sources=sources,
+        run=run,
+        result_set=result_set,
+        decision_profile=decision_profile,
+        decision_manifest=decision_manifest,
+        eligibility_manifest=eligibility_manifest,
+        view_manifests=view_manifests,
+    )
 
     # 2-4. The three immutable inputs still fingerprint to what they claim, and
     # the definition still names the artefacts actually in front of us.
@@ -297,46 +327,49 @@ def verify_evaluation_summary(
     counts: Sequence[EvaluationCountRecord],
     observations: Sequence[MetricObservation],
     releases: Sequence[str],
+    run: RunDefinition,
+    decision_profile: DecisionProfile,
 ) -> None:
     """Confirm the summary is a rendering of *this* metric set and nothing else.
 
     Field by field rather than by comparing one hash, because a forged summary
     can be internally consistent while describing a different evaluation.
     """
-    _require(
-        summary.metric_set_id == manifest.metric_set_id,
-        f"the summary names metric set {summary.metric_set_id}, not "
-        f"{manifest.metric_set_id}",
+    expected = build_evaluation_summary(
+        manifest=manifest,
+        run=run,
+        decision_profile=decision_profile,
+        releases=releases,
+        counts=counts,
+        observations=observations,
+        # The clock is intentionally non-semantic. Reusing the stored value lets
+        # ordinary dataclass equality compare every other field exactly.
+        generated_utc=summary.generated_utc,
     )
-    _require(
-        tuple(summary.releases) == tuple(releases),
-        f"the summary covers releases {list(summary.releases)}, expected "
-        f"{list(releases)}",
-    )
-    _require(
-        ordered_count_records_hash(summary.count_records)
-        == manifest.ordered_count_records_hash,
-        "the summary's count records are not the metric set's",
-    )
-    _require(
-        ordered_observations_hash(summary.observations)
-        == manifest.ordered_observations_hash,
-        "the summary's observations are not the metric set's",
-    )
-    _require(
-        len(summary.count_records) == len(counts)
-        and len(summary.observations) == len(observations),
-        "the summary holds a different number of rows than the metric set",
-    )
+    for name in (
+        "metric_set_id",
+        "algorithm_id",
+        "implementation_version",
+        "execution_profile_id",
+        "decision_profile_id",
+        "threshold",
+        "releases",
+        "count_records",
+        "observations",
+    ):
+        _require(
+            getattr(summary, name) == getattr(expected, name),
+            f"the summary field {name} is not the canonical value derived from "
+            "the verified run, decision profile and metric set",
+        )
 
 
-def verify_evaluation_report(
-    *, markdown: str, expected_content_hash: str
-) -> None:
-    """Confirm the stored report is the one the marker was issued over."""
+def verify_evaluation_report(*, markdown: str, expected_markdown: str) -> None:
+    """Confirm stored report text equals a fresh canonical rendering."""
     _require(
-        report_content_hash(markdown) == expected_content_hash,
-        "the stored report is not the report the finalization marker covers",
+        markdown == expected_markdown,
+        "the stored report is not the canonical rendering of the verified "
+        "sources and metric set",
     )
 
 
@@ -394,8 +427,8 @@ def verify_evaluation_receipt(
     }
     published = {
         (metric_id, label): (
-            int(pair["numerator"]),
-            int(pair["denominator"]),
+            pair["numerator"],
+            pair["denominator"],
         )
         for metric_id, by_scope in receipt.metrics.items()
         for label, pair in by_scope.items()
@@ -414,7 +447,7 @@ def verify_evaluation_finalization_marker(
     manifest: MetricSetManifest,
     receipt: EvaluationReceipt,
     summary: EvaluationSummary,
-    markdown: str,
+    canonical_markdown: str,
     decision_finalization_fingerprint: str,
 ) -> None:
     """Confirm the marker still names every current durable artefact."""
@@ -423,7 +456,7 @@ def verify_evaluation_finalization_marker(
         "metric_definition_fingerprint": definition.definition_fingerprint,
         "metric_set_fingerprint": manifest.metric_set_fingerprint,
         "summary_content_hash": evaluation_summary_content_hash(summary),
-        "report_content_hash": report_content_hash(markdown),
+        "report_content_hash": report_content_hash(canonical_markdown),
         "evaluation_receipt_fingerprint": evaluation_receipt_fingerprint(receipt),
         "evaluation_receipt_content_hash": evaluation_receipt_content_hash(receipt),
         "metric_source_commit": definition.metric_source_commit,
@@ -439,6 +472,165 @@ def verify_evaluation_finalization_marker(
 
 
 # ----------------------------------------------------------------- internals
+
+
+def _verify_source_chain(
+    *,
+    definition: MetricDerivationDefinition,
+    policy: MetricPolicy,
+    report_profile: ReportProfile,
+    manifest: MetricSetManifest,
+    sources: MetricSources,
+    run: RunDefinition,
+    result_set: ResultSetManifest,
+    decision_profile: DecisionProfile,
+    decision_manifest: DecisionSetManifest,
+    eligibility_manifest: SelfEligibilityManifest,
+    view_manifests: Mapping[str, EvaluationViewManifest],
+) -> None:
+    required_views = (
+        MATED_UNCONDITIONAL_VIEW,
+        MATED_CONDITIONAL_VIEW,
+        NON_MATED_SANITY_VIEW,
+    )
+    _require(
+        set(view_manifests) == set(required_views),
+        f"the source chain supplies views {sorted(view_manifests)}, expected "
+        f"{sorted(required_views)}",
+    )
+    _require(
+        set(sources.view_manifests) == set(required_views),
+        "the aggregation inputs do not carry exactly the source view manifests",
+    )
+
+    _require_fields(
+        "definition",
+        definition,
+        {
+            "run_id": run.run_id,
+            "result_set_fingerprint": result_set.result_set_fingerprint,
+            "decision_set_id": decision_manifest.decision_set_id,
+            "decision_set_fingerprint": decision_manifest.decision_set_fingerprint,
+            "eligibility_set_id": eligibility_manifest.eligibility_set_id,
+            "eligibility_set_fingerprint": (
+                eligibility_manifest.eligibility_set_fingerprint
+            ),
+            "unconditional_view_fingerprint": view_manifests[
+                MATED_UNCONDITIONAL_VIEW
+            ].view_fingerprint,
+            "conditional_view_fingerprint": view_manifests[
+                MATED_CONDITIONAL_VIEW
+            ].view_fingerprint,
+            "non_mated_view_fingerprint": view_manifests[
+                NON_MATED_SANITY_VIEW
+            ].view_fingerprint,
+            "metric_policy_id": policy.policy_id,
+            "metric_policy_fingerprint": policy.policy_fingerprint,
+            "report_profile_id": report_profile.report_profile_id,
+            "report_profile_fingerprint": report_profile.report_profile_fingerprint,
+        },
+    )
+    _require_fields(
+        "metric-set manifest",
+        manifest,
+        {
+            "run_id": run.run_id,
+            "run_fingerprint": run.run_fingerprint,
+            "decision_set_id": decision_manifest.decision_set_id,
+            "decision_set_fingerprint": decision_manifest.decision_set_fingerprint,
+            "eligibility_set_id": eligibility_manifest.eligibility_set_id,
+            "eligibility_set_fingerprint": (
+                eligibility_manifest.eligibility_set_fingerprint
+            ),
+            "unconditional_view_fingerprint": view_manifests[
+                MATED_UNCONDITIONAL_VIEW
+            ].view_fingerprint,
+            "conditional_view_fingerprint": view_manifests[
+                MATED_CONDITIONAL_VIEW
+            ].view_fingerprint,
+            "non_mated_view_fingerprint": view_manifests[
+                NON_MATED_SANITY_VIEW
+            ].view_fingerprint,
+            "metric_policy_id": policy.policy_id,
+            "metric_policy_fingerprint": policy.policy_fingerprint,
+            "report_profile_fingerprint": report_profile.report_profile_fingerprint,
+            "metric_software_fingerprint": definition.metric_software_fingerprint,
+            "metric_source_revision": definition.metric_source_commit,
+        },
+    )
+
+    # Prove that the objects supplied as the source chain agree with each other,
+    # rather than merely agreeing with the new metric artefacts.
+    _require_fields(
+        "result-set manifest",
+        result_set,
+        {"run_id": run.run_id, "run_fingerprint": run.run_fingerprint},
+    )
+    _require_fields(
+        "decision-set manifest",
+        decision_manifest,
+        {
+            "run_id": run.run_id,
+            "run_fingerprint": run.run_fingerprint,
+            "result_set_id": result_set.result_set_id,
+            "result_set_fingerprint": result_set.result_set_fingerprint,
+            "decision_profile_id": decision_profile.profile_id,
+            "decision_profile_fingerprint": decision_profile.profile_fingerprint,
+        },
+    )
+    _require_fields(
+        "eligibility-set manifest",
+        eligibility_manifest,
+        {
+            "run_id": run.run_id,
+            "result_set_fingerprint": result_set.result_set_fingerprint,
+            "decision_set_fingerprint": decision_manifest.decision_set_fingerprint,
+            "decision_profile_fingerprint": decision_profile.profile_fingerprint,
+        },
+    )
+    _require(
+        sources.decision_set_fingerprint
+        == decision_manifest.decision_set_fingerprint,
+        "the aggregation inputs do not come from the supplied decision-set manifest",
+    )
+    _require(
+        sources.eligibility_set_fingerprint
+        == eligibility_manifest.eligibility_set_fingerprint,
+        "the aggregation inputs do not come from the supplied eligibility-set manifest",
+    )
+
+    for kind in required_views:
+        source_view = sources.view_manifests[kind]
+        view = view_manifests[kind]
+        _require(
+            source_view.view_fingerprint == view.view_fingerprint,
+            f"the aggregation inputs carry a different {kind} view manifest",
+        )
+        _require_fields(
+            f"{kind} view manifest",
+            view,
+            {
+                "view_kind": kind,
+                "run_fingerprint": run.run_fingerprint,
+                "result_set_fingerprint": result_set.result_set_fingerprint,
+                "decision_set_fingerprint": decision_manifest.decision_set_fingerprint,
+                "eligibility_set_fingerprint": (
+                    eligibility_manifest.eligibility_set_fingerprint
+                    if kind == MATED_CONDITIONAL_VIEW
+                    else None
+                ),
+            },
+        )
+
+
+def _require_fields(label: str, actual: object, expected: Mapping[str, object]) -> None:
+    for name, expected_value in expected.items():
+        actual_value = getattr(actual, name)
+        _require(
+            actual_value == expected_value,
+            f"{label}.{name} is {actual_value!r}, expected {expected_value!r} "
+            "from the verified source chain",
+        )
 
 
 def _definition_or_fail(policy: MetricPolicy, metric_id: str):

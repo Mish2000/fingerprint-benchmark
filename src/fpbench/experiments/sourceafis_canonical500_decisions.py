@@ -52,6 +52,7 @@ from fpbench.experiments.sd300_inputs import (
     EXPECTED_SUBJECTS,
 )
 from fpbench.experiments.sourceafis_decisions import (
+    PreparationBinding,
     PreparedDerivation,
     SourceAfisDecisionExperimentSpec,
     derive_decisions,
@@ -95,12 +96,13 @@ EXPECTED_UNITS_PER_RELEASE = EXPECTED_SUBJECTS * 10  # 500
 EXPECTED_VIEW_ROWS = EXPECTED_PER_STAGE  # 1,500
 
 
-def _canonical_preparation_expectations(workspace: Path):
-    """What every canonical result must claim about the input set it used.
+def _canonical_preparation_binding(workspace: Path) -> PreparationBinding:
+    """The verified input set this derivation rests on, produced once.
 
     Built lazily, from the workspace, because it needs the prepared-image set's
     entries — and building it eagerly would make merely *importing* this module
-    require a materialised set.
+    require a materialised set. Built once per invocation because the preflight
+    behind it re-reads and re-decodes 3,000 canonical PNGs.
     """
     from fpbench.experiments.sourceafis_canonical500_full import (
         canonical_preparer_factory,
@@ -114,21 +116,24 @@ def _canonical_preparation_expectations(workspace: Path):
     spec = config.to_spec()
     preparer = canonical_preparer_factory(Path(workspace), spec)
     preparer.preflight()
-    return CanonicalPreparationExpectations(
-        execution_profile_id=spec.execution_profile.profile_id,
-        preparer_id=preparer.preparer_id,
-        preparer_version=preparer.preparer_version,
-        runner_metadata_schema=preparer.runner_metadata_schema,
-        preparation_set_id=str(spec.preparation_set_id),
-        preparation_set_fingerprint=str(spec.preparation_set_fingerprint),
-        transform_profile_id=str(spec.transform_profile_id),
-        transform_profile_fingerprint=str(spec.transform_profile_fingerprint),
-        transform_runtime_fingerprint=str(
-            preparer.run_metadata()["transform_runtime_fingerprint"]
+    return PreparationBinding(
+        expectations=CanonicalPreparationExpectations(
+            execution_profile_id=spec.execution_profile.profile_id,
+            preparer_id=preparer.preparer_id,
+            preparer_version=preparer.preparer_version,
+            runner_metadata_schema=preparer.runner_metadata_schema,
+            preparation_set_id=str(spec.preparation_set_id),
+            preparation_set_fingerprint=str(spec.preparation_set_fingerprint),
+            transform_profile_id=str(spec.transform_profile_id),
+            transform_profile_fingerprint=str(spec.transform_profile_fingerprint),
+            transform_runtime_fingerprint=str(
+                preparer.run_metadata()["transform_runtime_fingerprint"]
+            ),
+            target_ppi=int(spec.execution_profile.parameters["target_ppi"]),
+            entries=preparer.prepared_entries(),
+            expected_source_ppi=dict(spec.expected_source_ppi),
         ),
-        target_ppi=int(spec.execution_profile.parameters["target_ppi"]),
-        entries=preparer.prepared_entries(),
-        expected_source_ppi=dict(spec.expected_source_ppi),
+        manifest=preparer.prepared_manifest(),
     )
 
 
@@ -156,7 +161,7 @@ def load_canonical_decision_spec(
         expected_rows_per_view=EXPECTED_VIEW_ROWS,
         expected_units_per_release=EXPECTED_UNITS_PER_RELEASE,
         non_mated_finger_shift=load_non_mated_finger_shift(source.protocol_config),
-        preparation_expectations=_canonical_preparation_expectations,
+        preparation_binding=_canonical_preparation_binding,
     )
 
 

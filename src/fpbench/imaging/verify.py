@@ -24,14 +24,10 @@ Two depths, named rather than implied:
 ``verify_prepared_image_set``
     All of the above, plus every source file: its digest against the manifest,
     its container against the profile's input contract, its raster against the
-    entry's recorded source pixel hash, and — for the identity path — that the
-    canonical raster is still byte for byte the source raster. This is what
-    ``status`` and ``finalize`` run.
-
-Neither re-runs the resampler by default. Re-deriving 3,000 Lanczos passes to
-confirm they produce the pixel hashes already recorded is available behind
-``recompute_pixels`` and is what the golden fixtures exercise cheaply on every
-CI run; making it the default would turn verification into materialisation.
+    entry's recorded source pixel hash, and a fresh execution of the pinned
+    transform whose dimensions, action, pixel hash and encoded hash must all
+    agree. This is what ``status`` and ``finalize`` run by default. A caller may
+    disable recomputation only for a faster diagnostic inspection.
 """
 
 from __future__ import annotations
@@ -645,6 +641,10 @@ def _check_receipt(
 
     try:
         stored = store.read_receipt(manifest.preparation_set_id)
+        verifier_runtime = store.read_audit_runtime(
+            manifest.preparation_set_id,
+            stored.verifier_transform_runtime_fingerprint,
+        )
     except StorageError as exc:
         return [str(exc)]
 
@@ -658,6 +658,7 @@ def _check_receipt(
             profile=profile,
             runtime=runtime,
             audit=audit,
+            verifier_runtime=verifier_runtime,
             images=images,
             created_utc=stored.created_utc,
         )
@@ -710,6 +711,10 @@ def _check_finalization(
         receipt = store.read_receipt(manifest.preparation_set_id)
         summary = store.read_summary(manifest.preparation_set_id)
         entries_hash = store.entries_table_content_hash(manifest.preparation_set_id)
+        verifier_runtime = store.read_audit_runtime(
+            manifest.preparation_set_id,
+            marker.verifier_transform_runtime_fingerprint,
+        )
     except StorageError as exc:
         return [str(exc)]
 
@@ -729,6 +734,11 @@ def _check_finalization(
         ),
         "source_commit": runtime.source_revision,
         "source_tree_clean": runtime.source_tree_clean,
+        "verifier_source_commit": verifier_runtime.source_revision,
+        "verifier_source_tree_clean": verifier_runtime.source_tree_clean,
+        "verifier_transform_runtime_fingerprint": (
+            verifier_runtime.runtime_fingerprint
+        ),
     }
     for name, value in expected.items():
         actual = getattr(marker, name)

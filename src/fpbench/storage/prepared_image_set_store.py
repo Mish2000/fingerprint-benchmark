@@ -27,6 +27,7 @@ workspace level rather than inside the set directory.
 from __future__ import annotations
 
 import datetime as _dt
+import dataclasses
 import hashlib
 import os
 import stat
@@ -64,6 +65,7 @@ _ENTRIES = "entries.parquet"
 _SUMMARY = "preparation-summary.json"
 _RECEIPT = "preparation-receipt.json"
 _TRANSFORM_AUDIT = "preparation-transform-audit.json"
+_AUDIT_RUNTIMES_DIRECTORY = "audit-runtimes"
 _FINALIZATION = "preparation-finalization.json"
 _ENTRIES_DIRECTORY = "entries"
 
@@ -135,6 +137,15 @@ class PreparedImageSetStore:
 
     def transform_audit_path(self, preparation_set_id: str) -> Path:
         return self.set_dir(preparation_set_id) / _TRANSFORM_AUDIT
+
+    def audit_runtime_path(
+        self, preparation_set_id: str, runtime_fingerprint: str
+    ) -> Path:
+        return (
+            self.set_dir(preparation_set_id)
+            / _AUDIT_RUNTIMES_DIRECTORY
+            / f"{runtime_fingerprint}.json"
+        )
 
     def finalization_path(self, preparation_set_id: str) -> Path:
         return self.set_dir(preparation_set_id) / _FINALIZATION
@@ -503,6 +514,33 @@ class PreparedImageSetStore:
             return path
         return write_json(path, audit)
 
+    def ensure_audit_runtime(
+        self,
+        *,
+        preparation_set_id: str,
+        runtime: TransformRuntimeManifest,
+    ) -> Path:
+        """Persist the verifier runtime by content identity, never by a mutable slot."""
+        path = self.audit_runtime_path(
+            preparation_set_id, runtime.runtime_fingerprint
+        )
+        if path.is_file():
+            stored = self.read_audit_runtime(
+                preparation_set_id, runtime.runtime_fingerprint
+            )
+            if stored != runtime:
+                # The timestamp is outside the fingerprint, but the first
+                # durable capture remains authoritative for this exact runtime.
+                comparable_stored = dataclasses.replace(
+                    stored, created_utc=runtime.created_utc
+                )
+                if comparable_stored != runtime:
+                    raise PreparedImageSetConflictError(
+                        f"{path} already carries different audit-runtime claims"
+                    )
+            return path
+        return write_json(path, runtime)
+
     def ensure_finalization(
         self, *, preparation_set_id: str, marker: PreparationFinalizationMarker
     ) -> Path:
@@ -616,6 +654,24 @@ class PreparedImageSetStore:
             raise StorageError(
                 f"{path}: unreadable preparation transform audit ({exc})"
             ) from exc
+
+    def read_audit_runtime(
+        self, preparation_set_id: str, runtime_fingerprint: str
+    ) -> TransformRuntimeManifest:
+        path = self.audit_runtime_path(preparation_set_id, runtime_fingerprint)
+        payload = self._read_json(path, "preparation audit runtime")
+        try:
+            runtime = TransformRuntimeManifest(**payload)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise StorageError(
+                f"{path}: unreadable preparation audit runtime ({exc})"
+            ) from exc
+        if runtime.runtime_fingerprint != runtime_fingerprint:
+            raise StorageError(
+                f"{path}: audit runtime fingerprints to "
+                f"{runtime.runtime_fingerprint}, expected {runtime_fingerprint}"
+            )
+        return runtime
 
     def read_finalization(
         self, preparation_set_id: str
@@ -901,7 +957,10 @@ def preparation_summary_content_hash(summary: Mapping[str, object]) -> str:
 def _is_preparation_receipt_schema_upgrade(
     stored: Mapping[str, object], new: PreparationReceipt
 ) -> bool:
-    if str(stored.get("schema_version")) != "1" or new.schema_version != "2":
+    if (
+        str(stored.get("schema_version")) not in {"1", "2"}
+        or new.schema_version != "3"
+    ):
         return False
     current = dict(to_plain(new))
     ignored = {"schema_version", "created_utc"}
@@ -915,7 +974,10 @@ def _is_preparation_receipt_schema_upgrade(
 def _is_preparation_finalization_schema_upgrade(
     stored: Mapping[str, object], new: PreparationFinalizationMarker
 ) -> bool:
-    if str(stored.get("schema_version")) != "1" or new.schema_version != "2":
+    if (
+        str(stored.get("schema_version")) not in {"1", "2"}
+        or new.schema_version != "3"
+    ):
         return False
     invariant = (
         "preparation_set_id",
@@ -927,7 +989,16 @@ def _is_preparation_finalization_schema_upgrade(
         "source_commit",
         "source_tree_clean",
     )
-    return all(stored.get(key) == getattr(new, key) for key in invariant)
+    if not all(stored.get(key) == getattr(new, key) for key in invariant):
+        return False
+    optional_invariant = (
+        "transform_audit_fingerprint",
+        "transform_audit_content_hash",
+    )
+    return all(
+        key not in stored or stored[key] == getattr(new, key)
+        for key in optional_invariant
+    )
 
 
 def _archive_preparation_publication(path: Path) -> Path:

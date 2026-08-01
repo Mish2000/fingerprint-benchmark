@@ -103,6 +103,7 @@ def build_preparation_receipt(
     profile: ImageTransformProfile,
     runtime: TransformRuntimeManifest,
     audit: PreparationTransformAudit,
+    verifier_runtime: TransformRuntimeManifest,
     images: Mapping[ImageId, ImageRecord] | None = None,
     created_utc: str | None = None,
 ) -> PreparationReceipt:
@@ -125,6 +126,7 @@ def build_preparation_receipt(
         != manifest.preparation_set_fingerprint
     ):
         raise ImagingError("the transform audit describes a different prepared set")
+    _require_audit_verifier_runtime(verifier_runtime)
 
     counts_by_release: dict[str, int] = {}
     counts_by_source_ppi: dict[str, int] = {}
@@ -161,6 +163,11 @@ def build_preparation_receipt(
         source_commit=runtime.source_revision,
         source_tree_clean=runtime.source_tree_clean,
         transform_audit_fingerprint=audit.audit_fingerprint,
+        verifier_source_commit=verifier_runtime.source_revision,
+        verifier_source_tree_clean=verifier_runtime.source_tree_clean,
+        verifier_transform_runtime_fingerprint=(
+            verifier_runtime.runtime_fingerprint
+        ),
         total_images=manifest.total_images,
         counts_by_release=counts_by_release,
         counts_by_source_ppi=counts_by_source_ppi,
@@ -214,6 +221,7 @@ def verify_preparation_receipt(
     profile: ImageTransformProfile,
     runtime: TransformRuntimeManifest,
     audit: PreparationTransformAudit,
+    verifier_runtime: TransformRuntimeManifest,
     images: Mapping[ImageId, ImageRecord] | None = None,
 ) -> None:
     """Re-derive every load-bearing claim from current evidence.
@@ -232,6 +240,7 @@ def verify_preparation_receipt(
         profile=profile,
         runtime=runtime,
         audit=audit,
+        verifier_runtime=verifier_runtime,
         images=images,
         created_utc=receipt.created_utc,
     )
@@ -258,6 +267,7 @@ def build_preparation_finalization_marker(
     runtime: TransformRuntimeManifest,
     receipt: PreparationReceipt,
     audit: PreparationTransformAudit,
+    verifier_runtime: TransformRuntimeManifest,
     entries_table_content_hash: str,
     summary_content_hash: str,
     created_utc: str | None = None,
@@ -277,6 +287,20 @@ def build_preparation_finalization_marker(
         raise PreparationFinalizationError(
             "the preparation receipt does not cite the transform audit being finalised"
         )
+    _require_audit_verifier_runtime(verifier_runtime)
+    verifier_claims = {
+        "verifier_source_commit": verifier_runtime.source_revision,
+        "verifier_source_tree_clean": verifier_runtime.source_tree_clean,
+        "verifier_transform_runtime_fingerprint": (
+            verifier_runtime.runtime_fingerprint
+        ),
+    }
+    for name, expected in verifier_claims.items():
+        if getattr(receipt, name) != expected:
+            raise PreparationFinalizationError(
+                f"the preparation receipt's {name} does not describe the "
+                "runtime that performed the transform audit"
+            )
     claims = {
         "schema_version": PREPARATION_FINALIZATION_SCHEMA_VERSION,
         "preparation_set_id": manifest.preparation_set_id,
@@ -293,6 +317,7 @@ def build_preparation_finalization_marker(
         ),
         "source_commit": runtime.source_revision,
         "source_tree_clean": runtime.source_tree_clean,
+        **verifier_claims,
     }
     fingerprint = preparation_finalization_fingerprint(claims)
     return PreparationFinalizationMarker(
@@ -338,8 +363,8 @@ def write_preparation_evidence_copy(
                 if key not in {"schema_version", "created_utc"}
             )
             if (
-                str(existing.get("schema_version")) == "1"
-                and receipt.schema_version == "2"
+                str(existing.get("schema_version")) in {"1", "2"}
+                and receipt.schema_version == "3"
                 and shared_claims_match
             ):
                 tmp = path.with_suffix(path.suffix + ".tmp")
@@ -365,6 +390,18 @@ def write_preparation_evidence_copy(
 
 
 # ----------------------------------------------------------------- internals
+
+
+def _require_audit_verifier_runtime(runtime: TransformRuntimeManifest) -> None:
+    if not runtime.source_tree_clean:
+        raise PreparationFinalizationError(
+            "a transform audit requires a committed, clean verifier source tree"
+        )
+    commit = str(runtime.source_revision).strip().lower()
+    if len(commit) != 40 or not set(commit) <= set("0123456789abcdef"):
+        raise PreparationFinalizationError(
+            "a transform audit requires a full verifier source commit"
+        )
 
 
 def _release_of(

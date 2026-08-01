@@ -42,8 +42,10 @@ transforms, and compares the action, dimensions, decoded pixels and encoded PNG
 bytes. It writes a content-addressed transform audit, derives the set identity,
 writes the manifest, the entries table, the summary and the sanitised receipt,
 re-reads each of them, and only then writes the finalization marker. The receipt
-and marker both bind the audit fingerprint. This is the only command that can
-produce `PREPARATION_READY`.
+and marker both bind the audit fingerprint and the separate verifier commit and
+transform-runtime fingerprint. The verifier runtime is captured before and
+after all recomputations; any drift refuses finalization. This is the only
+command that can produce `PREPARATION_READY`.
 
 ## The definition, and why it exists
 
@@ -75,6 +77,7 @@ workspace/prepared-images/
     ├── manifest.json
     ├── entries.parquet
     ├── preparation-transform-audit.json
+    ├── audit-runtimes/<verifier-runtime-fingerprint>.json
     ├── preparation-summary.json
     ├── preparation-receipt.json
     └── preparation-finalization.json
@@ -123,6 +126,13 @@ The stored transform audit accounts for all planned images, verified sources,
 recomputed transforms and matching output identities. A self-consistent rewrite
 of an output PNG, its entry and the surrounding fingerprints therefore still
 fails against a fresh transform from the authoritative source.
+
+The set's `transform-runtime.json` remains the runtime that created its pixels
+and remains part of the set identity. Audit runtimes are separate,
+content-addressed records: they name the clean commit, Pillow distribution,
+Python, platform and zlib that re-derived the audit. A later verifier may check
+the same semantic findings without running from the historical verifier commit;
+the receipt and marker continue to say who issued the historical audit.
 
 The threat model is **accidental drift** — a set regenerated in another
 terminal, a file touched by an image viewer, a Pillow upgrade — not an adversary

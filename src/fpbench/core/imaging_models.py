@@ -104,9 +104,9 @@ TRANSFORM_PROFILE_SCHEMA_VERSION = "1"
 TRANSFORM_RUNTIME_SCHEMA_VERSION = "1"
 PREPARED_ENTRY_SCHEMA_VERSION = "1"
 PREPARATION_SET_SCHEMA_VERSION = "1"
-PREPARATION_RECEIPT_SCHEMA_VERSION = "2"
+PREPARATION_RECEIPT_SCHEMA_VERSION = "3"
 PREPARATION_TRANSFORM_AUDIT_SCHEMA_VERSION = "1"
-PREPARATION_FINALIZATION_SCHEMA_VERSION = "2"
+PREPARATION_FINALIZATION_SCHEMA_VERSION = "3"
 
 #: Twelve hex characters, matching ``run_id``, ``plan_id`` and ``result_set_id``.
 PREPARATION_SET_ID_LENGTH = 12
@@ -168,6 +168,13 @@ def _require_non_empty(value: str, field_name: str) -> str:
     if not text:
         raise ValueError(f"{field_name} must not be empty")
     return text
+
+
+def _require_commit(value: str, field_name: str) -> str:
+    commit = str(value).strip().lower()
+    if len(commit) != 40 or not set(commit) <= _HEX:
+        raise ValueError(f"{field_name} must be a full 40-character commit SHA")
+    return commit
 
 
 def _require_positive_int(value: object, field_name: str) -> int:
@@ -1372,6 +1379,9 @@ class PreparationReceipt:
     source_commit: str
     source_tree_clean: bool
     transform_audit_fingerprint: str
+    verifier_source_commit: str
+    verifier_source_tree_clean: bool
+    verifier_transform_runtime_fingerprint: str
 
     total_images: int
     counts_by_release: Mapping[str, int]
@@ -1402,12 +1412,21 @@ class PreparationReceipt:
             "cohort_fingerprint",
             "pair_manifest_hash",
             "transform_audit_fingerprint",
+            "verifier_transform_runtime_fingerprint",
         ):
             object.__setattr__(self, name, _require_digest(getattr(self, name), name))
-        for name in ("schema_version", "source_commit", "statement", "created_utc"):
+        for name in ("schema_version", "statement", "created_utc"):
             object.__setattr__(
                 self, name, _require_non_empty(getattr(self, name), name)
             )
+        object.__setattr__(
+            self, "source_commit", _require_commit(self.source_commit, "source_commit")
+        )
+        object.__setattr__(
+            self,
+            "verifier_source_commit",
+            _require_commit(self.verifier_source_commit, "verifier_source_commit"),
+        )
         if self.schema_version != PREPARATION_RECEIPT_SCHEMA_VERSION:
             raise ValueError(
                 f"unsupported preparation receipt schema {self.schema_version!r}"
@@ -1421,6 +1440,10 @@ class PreparationReceipt:
             )
         if type(self.source_tree_clean) is not bool:
             raise ValueError("source_tree_clean must be a bool")
+        if type(self.verifier_source_tree_clean) is not bool:
+            raise ValueError("verifier_source_tree_clean must be a bool")
+        if not self.verifier_source_tree_clean:
+            raise ValueError("a preparation receipt requires a clean verifier tree")
         for name in (
             "counts_by_release",
             "counts_by_source_ppi",
@@ -1511,6 +1534,9 @@ class PreparationFinalizationMarker:
 
     source_commit: str
     source_tree_clean: bool
+    verifier_source_commit: str
+    verifier_source_tree_clean: bool
+    verifier_transform_runtime_fingerprint: str
 
     created_utc: str
 
@@ -1528,18 +1554,31 @@ class PreparationFinalizationMarker:
             "receipt_content_hash",
             "transform_audit_fingerprint",
             "transform_audit_content_hash",
+            "verifier_transform_runtime_fingerprint",
         ):
             object.__setattr__(self, name, _require_digest(getattr(self, name), name))
-        for name in ("schema_version", "source_commit", "created_utc"):
+        for name in ("schema_version", "created_utc"):
             object.__setattr__(
                 self, name, _require_non_empty(getattr(self, name), name)
             )
+        object.__setattr__(
+            self, "source_commit", _require_commit(self.source_commit, "source_commit")
+        )
+        object.__setattr__(
+            self,
+            "verifier_source_commit",
+            _require_commit(self.verifier_source_commit, "verifier_source_commit"),
+        )
         if self.schema_version != PREPARATION_FINALIZATION_SCHEMA_VERSION:
             raise ValueError(
                 f"unsupported preparation finalization schema {self.schema_version!r}"
             )
         if type(self.source_tree_clean) is not bool:
             raise ValueError("source_tree_clean must be a bool")
+        if type(self.verifier_source_tree_clean) is not bool:
+            raise ValueError("verifier_source_tree_clean must be a bool")
+        if not self.verifier_source_tree_clean:
+            raise ValueError("preparation finalization requires a clean verifier tree")
 
         expected = preparation_finalization_fingerprint(self.claims())
         if self.finalization_fingerprint != expected:
@@ -1567,6 +1606,11 @@ class PreparationFinalizationMarker:
             "transform_audit_content_hash": self.transform_audit_content_hash,
             "source_commit": self.source_commit,
             "source_tree_clean": self.source_tree_clean,
+            "verifier_source_commit": self.verifier_source_commit,
+            "verifier_source_tree_clean": self.verifier_source_tree_clean,
+            "verifier_transform_runtime_fingerprint": (
+                self.verifier_transform_runtime_fingerprint
+            ),
         }
 
 

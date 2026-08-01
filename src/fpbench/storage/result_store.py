@@ -468,7 +468,7 @@ def _is_research_receipt_schema_upgrade(
 def _is_research_finalization_schema_upgrade(
     stored: ResearchFinalizationMarker, new: ResearchFinalizationMarker
 ) -> bool:
-    if stored.schema_version != "1" or new.schema_version != "2":
+    if stored.schema_version not in {"1", "2"} or new.schema_version != "3":
         return False
     invariant = (
         "run_id",

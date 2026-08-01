@@ -52,7 +52,7 @@ __all__ = [
 ]
 
 RESEARCH_RECEIPT_SCHEMA_VERSION = "2"
-RESEARCH_FINALIZATION_SCHEMA_VERSION = "2"
+RESEARCH_FINALIZATION_SCHEMA_VERSION = "3"
 
 #: Printed verbatim into every receipt. A reader who sees only this file must
 #: not be able to mistake it for a result.
@@ -484,7 +484,7 @@ class ResearchFinalizationMarker:
             raise ValueError("research finalization requires a clean verifier tree")
 
         version = str(self.schema_version).strip()
-        if version not in {"1", RESEARCH_FINALIZATION_SCHEMA_VERSION}:
+        if version not in {"1", "2", RESEARCH_FINALIZATION_SCHEMA_VERSION}:
             raise ValueError(
                 "unsupported research finalization schema version "
                 f"{version!r}"

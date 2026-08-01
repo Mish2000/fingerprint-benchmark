@@ -408,7 +408,11 @@ def build_canonical_world(
     )
 
 
-def publish_receipt_and_marker(world: CanonicalWorld) -> None:
+def publish_receipt_and_marker(
+    world: CanonicalWorld,
+    *,
+    verifier_runtime: TransformRuntimeManifest | None = None,
+) -> None:
     """Finish the chain: summary, receipt and the marker that makes it count."""
     from fpbench.experiments.preparation_receipt import (
         build_preparation_finalization_marker,
@@ -420,6 +424,7 @@ def publish_receipt_and_marker(world: CanonicalWorld) -> None:
 
     store = world.store
     set_id = world.preparation_set_id
+    verifier_runtime = verifier_runtime or world.runtime
     from fpbench.imaging.verify import verify_prepared_image_set
 
     verification = verify_prepared_image_set(
@@ -437,6 +442,9 @@ def publish_receipt_and_marker(world: CanonicalWorld) -> None:
     audit = verification.transform_audit
     store.ensure_transform_audit(preparation_set_id=set_id, audit=audit)
     audit = store.read_transform_audit(set_id)
+    store.ensure_audit_runtime(
+        preparation_set_id=set_id, runtime=verifier_runtime
+    )
     summary = {
         "preparation_set_id": set_id,
         "total_images": len(world.entries),
@@ -449,6 +457,7 @@ def publish_receipt_and_marker(world: CanonicalWorld) -> None:
         profile=world.profile,
         runtime=world.runtime,
         audit=audit,
+        verifier_runtime=verifier_runtime,
         images=world.images,
     )
     store.ensure_receipt(preparation_set_id=set_id, receipt=receipt)
@@ -458,6 +467,7 @@ def publish_receipt_and_marker(world: CanonicalWorld) -> None:
         runtime=world.runtime,
         receipt=store.read_receipt(set_id),
         audit=audit,
+        verifier_runtime=verifier_runtime,
         entries_table_content_hash=store.entries_table_content_hash(set_id),
         summary_content_hash=preparation_summary_content_hash(
             store.read_summary(set_id)

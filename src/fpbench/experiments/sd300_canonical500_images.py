@@ -51,6 +51,7 @@ from fpbench.core.identifiers import ImageId
 from fpbench.core.imaging_models import (
     ImageTransformProfile,
     PreparationDefinition,
+    PreparationTransformAudit,
     PreparedImageEntry,
     PreparedImageSetManifest,
     TransformRuntimeManifest,
@@ -658,30 +659,24 @@ def finalize_canonical500_images(
     # audit is the load-bearing proof that each stored B/C output is the direct
     # Lanczos result of the authoritative source, not merely a self-consistent
     # PNG with freshly recomputed hashes.
-    verification = verify_prepared_image_set(
-        store=store,
-        preparation_set_id_value=manifest.preparation_set_id,
-        images=prepared.inputs.images,
-        dataset_root=prepared.inputs.dataset_root,
-        source_bundle=preparation_source_bundle(prepared.inputs),
-        recompute_pixels=True,
-        require_receipt=False,
-        require_finalization=False,
-        # A v1 receipt/marker may be present. They are upgraded only after the
-        # new independent audit succeeds; the final status pass below verifies
-        # the complete v2 publication from disk.
-        check_existing_publication=False,
+    audit, verifier_runtime = _run_transform_audit_with_provenance(
+        prepared=prepared,
+        manifest=manifest,
+        repository_root=Path(repository_root),
+        require_clean=require_clean,
     )
-    audit = verification.transform_audit
-    if not verification.is_valid or audit is None or not audit.is_clean:
-        raise PreparationFinalizationError(
-            f"preparation set {manifest.preparation_set_id} failed its full "
-            f"transform audit: {list(verification.issues)[:3]}"
-        )
     store.ensure_transform_audit(
         preparation_set_id=manifest.preparation_set_id, audit=audit
     )
+    store.ensure_audit_runtime(
+        preparation_set_id=manifest.preparation_set_id,
+        runtime=verifier_runtime,
+    )
     stored_audit = store.read_transform_audit(manifest.preparation_set_id)
+    stored_verifier_runtime = store.read_audit_runtime(
+        manifest.preparation_set_id,
+        verifier_runtime.runtime_fingerprint,
+    )
 
     # 11-14. Summary, then the sanitised receipt, then both re-read.
     summary = _build_summary(
@@ -700,6 +695,7 @@ def finalize_canonical500_images(
         profile=prepared.profile,
         runtime=prepared.runtime,
         audit=stored_audit,
+        verifier_runtime=stored_verifier_runtime,
         images=prepared.inputs.images,
     )
     store.ensure_receipt(
@@ -714,6 +710,7 @@ def finalize_canonical500_images(
         profile=prepared.profile,
         runtime=prepared.runtime,
         audit=stored_audit,
+        verifier_runtime=stored_verifier_runtime,
         images=prepared.inputs.images,
     )
 
@@ -728,6 +725,7 @@ def finalize_canonical500_images(
         runtime=prepared.runtime,
         receipt=stored_receipt,
         audit=stored_audit,
+        verifier_runtime=stored_verifier_runtime,
         entries_table_content_hash=store.entries_table_content_hash(
             manifest.preparation_set_id
         ),
@@ -761,6 +759,65 @@ def finalize_canonical500_images(
 
 
 # ------------------------------------------------------------------- internals
+
+
+def _run_transform_audit_with_provenance(
+    *,
+    prepared: PreparedMaterialisation,
+    manifest: PreparedImageSetManifest,
+    repository_root: Path,
+    require_clean: bool,
+) -> tuple[PreparationTransformAudit, TransformRuntimeManifest]:
+    """Run the semantic audit between two identical verifier-runtime captures."""
+    before_software = _capture_provenance(
+        repository_root, require_clean=require_clean
+    )
+    if not before_software.is_research_grade:
+        raise PreparationFinalizationError(
+            "the transform audit verifier must be a committed, clean source tree"
+        )
+    if before_software.source_revision != prepared.software.source_revision:
+        raise PreparationFinalizationError(
+            "the fpbench source revision changed before the transform audit began"
+        )
+    before_runtime = capture_transform_runtime(software=before_software)
+
+    verification = verify_prepared_image_set(
+        store=prepared.store,
+        preparation_set_id_value=manifest.preparation_set_id,
+        images=prepared.inputs.images,
+        dataset_root=prepared.inputs.dataset_root,
+        source_bundle=preparation_source_bundle(prepared.inputs),
+        recompute_pixels=True,
+        require_receipt=False,
+        require_finalization=False,
+        # An older receipt/marker may be present. They are upgraded only after
+        # the new attributed audit succeeds; the final status pass verifies the
+        # complete new publication from disk.
+        check_existing_publication=False,
+    )
+
+    after_software = _capture_provenance(
+        repository_root, require_clean=require_clean
+    )
+    if not after_software.is_research_grade:
+        raise PreparationFinalizationError(
+            "the transform audit verifier became uncommitted or dirty"
+        )
+    after_runtime = capture_transform_runtime(software=after_software)
+    if after_runtime.runtime_fingerprint != before_runtime.runtime_fingerprint:
+        raise PreparationFinalizationError(
+            "the verifier transform runtime changed while the full audit was "
+            "running; no finalization marker may be issued"
+        )
+
+    audit = verification.transform_audit
+    if not verification.is_valid or audit is None or not audit.is_clean:
+        raise PreparationFinalizationError(
+            f"preparation set {manifest.preparation_set_id} failed its full "
+            f"transform audit: {list(verification.issues)[:3]}"
+        )
+    return audit, before_runtime
 
 
 def _capture_provenance(

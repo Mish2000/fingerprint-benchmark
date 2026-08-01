@@ -1,4 +1,4 @@
-"""The one authorised publication rewrite is the v1-to-v2 audit upgrade."""
+"""Only known preparation-publication schema upgrades may replace evidence."""
 
 from __future__ import annotations
 
@@ -17,6 +17,9 @@ def _v1_receipt(receipt):
     payload = dict(to_plain(receipt))
     payload["schema_version"] = "1"
     payload.pop("transform_audit_fingerprint")
+    payload.pop("verifier_source_commit")
+    payload.pop("verifier_source_tree_clean")
+    payload.pop("verifier_transform_runtime_fingerprint")
     return payload
 
 
@@ -25,10 +28,34 @@ def _v1_marker(marker):
     payload["schema_version"] = "1"
     payload.pop("transform_audit_fingerprint")
     payload.pop("transform_audit_content_hash")
+    payload.pop("verifier_source_commit")
+    payload.pop("verifier_source_tree_clean")
+    payload.pop("verifier_transform_runtime_fingerprint")
     return payload
 
 
-def test_workspace_publication_can_upgrade_only_after_a_fresh_full_audit(tmp_path):
+def _v2_receipt(receipt):
+    payload = dict(to_plain(receipt))
+    payload["schema_version"] = "2"
+    payload.pop("verifier_source_commit")
+    payload.pop("verifier_source_tree_clean")
+    payload.pop("verifier_transform_runtime_fingerprint")
+    return payload
+
+
+def _v2_marker(marker):
+    payload = dict(to_plain(marker))
+    payload["schema_version"] = "2"
+    payload.pop("verifier_source_commit")
+    payload.pop("verifier_source_tree_clean")
+    payload.pop("verifier_transform_runtime_fingerprint")
+    return payload
+
+
+@pytest.mark.parametrize("legacy_version", ["1", "2"])
+def test_workspace_publication_can_upgrade_only_after_a_fresh_full_audit(
+    tmp_path, legacy_version
+):
     world = build_canonical_world(tmp_path)
     publish_receipt_and_marker(world)
     store = world.store
@@ -36,9 +63,13 @@ def test_workspace_publication_can_upgrade_only_after_a_fresh_full_audit(tmp_pat
     receipt = store.read_receipt(set_id)
     marker = store.read_finalization(set_id)
 
-    write_json(store.receipt_path(set_id), _v1_receipt(receipt))
-    write_json(store.finalization_path(set_id), _v1_marker(marker))
-    store.transform_audit_path(set_id).unlink()
+    if legacy_version == "1":
+        write_json(store.receipt_path(set_id), _v1_receipt(receipt))
+        write_json(store.finalization_path(set_id), _v1_marker(marker))
+        store.transform_audit_path(set_id).unlink()
+    else:
+        write_json(store.receipt_path(set_id), _v2_receipt(receipt))
+        write_json(store.finalization_path(set_id), _v2_marker(marker))
 
     verification = verify_prepared_image_set(
         store=store,

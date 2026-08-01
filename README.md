@@ -1005,6 +1005,12 @@ marker. The check also binds the definition and manifest to the authoritative da
 protocol, cohort, pair manifest and exact ordered source list, so a self-consistent
 rewrite of prepared artefacts cannot pass by merely recomputing their hashes.
 
+Audit provenance is independent of pixel-production provenance. The verifier's clean
+commit and content-addressed Pillow/Python/zlib transform runtime are captured before
+and after the full audit and bound into the public receipt and finalization marker. A
+future verifier may re-check the semantic audit under newer code without rewriting who
+issued the historical evidence.
+
 Details: [docs/imaging/canonical-500-profile.md](docs/imaging/canonical-500-profile.md)
 and [docs/imaging/prepared-image-sets.md](docs/imaging/prepared-image-sets.md).
 

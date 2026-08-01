@@ -210,6 +210,10 @@ def test_self_consistent_valid_png_substitution_fails_fresh_transform_audit(worl
     store.ensure_transform_audit(
         preparation_set_id=manifest.preparation_set_id, audit=audit
     )
+    store.ensure_audit_runtime(
+        preparation_set_id=manifest.preparation_set_id,
+        runtime=world.runtime,
+    )
 
     from fpbench.experiments.preparation_receipt import (
         build_preparation_finalization_marker,
@@ -233,6 +237,7 @@ def test_self_consistent_valid_png_substitution_fails_fresh_transform_audit(worl
         profile=world.profile,
         runtime=world.runtime,
         audit=audit,
+        verifier_runtime=world.runtime,
         images=world.images,
     )
     store.ensure_receipt(
@@ -244,6 +249,7 @@ def test_self_consistent_valid_png_substitution_fails_fresh_transform_audit(worl
         runtime=world.runtime,
         receipt=receipt,
         audit=audit,
+        verifier_runtime=world.runtime,
         entries_table_content_hash=store.entries_table_content_hash(
             manifest.preparation_set_id
         ),
@@ -412,9 +418,35 @@ def test_tampering_with_a_receipt_field(world):
     _assert_invalid(world)
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("verifier_source_commit", "d" * 40),
+        ("verifier_transform_runtime_fingerprint", "e" * 64),
+    ],
+)
+def test_tampering_with_receipt_audit_provenance(world, field, value):
+    path = world.store.receipt_path(world.preparation_set_id)
+    _edit_json(path, **{field: value})
+    _assert_invalid(world)
+
+
 def test_tampering_with_the_finalization_marker(world):
     path = world.store.finalization_path(world.preparation_set_id)
     _edit_json(path, receipt_content_hash="f" * 64)
+    _assert_invalid(world)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("verifier_source_commit", "d" * 40),
+        ("verifier_transform_runtime_fingerprint", "e" * 64),
+    ],
+)
+def test_tampering_with_marker_audit_provenance(world, field, value):
+    path = world.store.finalization_path(world.preparation_set_id)
+    _edit_json(path, **{field: value})
     _assert_invalid(world)
 
 

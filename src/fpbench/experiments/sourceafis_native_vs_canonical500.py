@@ -277,13 +277,16 @@ def prepare_paired_evaluation(
     _write_pointer(
         workspace,
         config.experiment_id,
-        {
-            "experiment_id": config.experiment_id,
-            "definition_id": definition.definition_id,
-            "native_run_id": native.run.run_id,
-            "canonical_run_id": canonical.run.run_id,
-            "prepared_utc": _utc_now(),
-        },
+        carry_forward_pointer(
+            _read_pointer_payload(workspace, config.experiment_id),
+            {
+                "experiment_id": config.experiment_id,
+                "definition_id": definition.definition_id,
+                "native_run_id": native.run.run_id,
+                "canonical_run_id": canonical.run.run_id,
+                "prepared_utc": _utc_now(),
+            },
+        ),
     )
     return prepared
 
@@ -575,6 +578,18 @@ def finalize_paired_evaluation(
         repository_root=Path(repository_root),
         directory=prepared.config.evidence_directory,
     )
+    _write_pointer(
+        prepared.workspace,
+        prepared.config.experiment_id,
+        {
+            "experiment_id": prepared.config.experiment_id,
+            "definition_id": prepared.definition.definition_id,
+            "paired_evaluation_id": paired_id,
+            "native_run_id": native.run.run_id,
+            "canonical_run_id": canonical.run.run_id,
+            "finalized_utc": _utc_now(),
+        },
+    )
     return paired_id
 
 
@@ -773,14 +788,45 @@ def _write_pointer(
     return write_json(_pointer_path(workspace, experiment_id), dict(payload))
 
 
-def _read_pointer(workspace: Path, experiment_id: str, key: str) -> str | None:
+def _read_pointer_payload(workspace: Path, experiment_id: str) -> Mapping[str, Any]:
     from fpbench.core.serialization import read_json
 
     path = _pointer_path(workspace, experiment_id)
-    if not path.is_file():
-        return None
-    payload = read_json(path)
+    return read_json(path) if path.is_file() else {}
+
+
+def _read_pointer(workspace: Path, experiment_id: str, key: str) -> str | None:
+    payload = _read_pointer_payload(workspace, experiment_id)
     return str(payload.get(key) or "") or None
+
+
+#: What a re-prepare keeps from the pointer it is about to overwrite.
+CARRIED_POINTER_KEYS = ("paired_evaluation_id", "derived_utc", "finalized_utc")
+
+
+def carry_forward_pointer(
+    existing: Mapping[str, Any], fresh: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Merge a freshly prepared pointer over its predecessor.
+
+    ``derive`` and ``finalize`` both re-prepare before doing anything, so a
+    pointer that simply overwrote its predecessor would delete the derived id a
+    successful finalisation had just recorded — leaving ``status`` reporting
+    ``not_prepared`` over a finished comparison.
+
+    The derived id is carried across only while the definition underneath it is
+    unchanged. If the definition moved — a new derivation commit, a re-derived
+    input chain — the earlier derivation belongs to a comparison this one is
+    not, and pointing at it would be worse than pointing at nothing.
+    """
+    merged = dict(fresh)
+    if existing.get("definition_id") != fresh.get("definition_id"):
+        return merged
+    for key in CARRIED_POINTER_KEYS:
+        carried = existing.get(key)
+        if carried:
+            merged[key] = carried
+    return merged
 
 
 def _utc_now() -> str:

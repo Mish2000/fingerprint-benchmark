@@ -56,6 +56,11 @@ any adapter, producing an immutable content-addressed set that every algorithm e
 under the profile receives unchanged — and then the same 6,000 SourceAFIS comparisons
 over it, with the algorithm's identity untouched.
 
+Phase 6B carried the **documented threshold across unchanged** to the canonical run and
+counted it, then answered the question 6A deliberately refused to ask. SD300A's provably
+identical pixels did produce identical scores: all 2,000 of its comparisons reproduced
+exactly, with no rounding tolerance anywhere.
+
 ```
 VERIFIED SOURCE IMAGES
         ↓
@@ -63,17 +68,29 @@ PREPARATION_READY canonical image set
         ↓
 RESEARCH_READY canonical raw run
         ↓
-Stage 6B decisions and paired evaluation
+DECISIONS_READY canonical decisions ──┐
+        ↓                             │
+EVALUATION_READY canonical metrics    │
+                                      ↓
+        PAIRED_EVALUATION_READY native vs canonical
 ```
 
-`canonical_500` is a shared **input profile**, not an algorithm feature. Stage 6A applies
-no threshold, computes no metric, reads no native score and produces no
-native-versus-canonical conclusion. It proves that SD300A's pixels came through
-untouched; whether identical pixels produced identical scores is stage 6B's observation.
+`canonical_500` is a shared **input profile**, not an algorithm feature. Both chains run
+the same derivation engines, parameterised by data rather than branched on: one decision
+engine, one evaluation engine, two thin wrappers. That is what makes a difference between
+the two sets of numbers attributable to the images rather than to how they were counted.
 
-Still no EER, no ROC, no calibrated threshold, no confidence interval, and no general
-FMR — the closed-set same-subject negative fraction is published as a sanity check and is
-not one. And still no claim that any resolution is better than any other.
+The paired comparison is a **third artefact** with its own identity, not a section of
+either report ([ADR 0036](docs/adr/0036-paired-comparison-is-a-third-artefact.md)). It
+reports transitions and exact rate differences, and refuses to subtract two rates whose
+denominators cover different rows — enforced by the model, which will not construct an
+observation carrying an illegitimate difference
+([ADR 0038](docs/adr/0038-conditional-rates-over-different-populations-are-not-subtracted.md)).
+
+Still no EER, no ROC, no calibrated threshold, no confidence interval, no significance
+test, and no general FMR — the closed-set same-subject negative fraction is published as a
+sanity check and is not one. And still no claim that any resolution is better than any
+other: the canonical path changes the whole preparation pipeline, not only the resolution.
 
 | Package | Status | Responsibility |
 |---|---|---|
@@ -90,7 +107,8 @@ not one. And still no claim that any resolution is better than any other.
 | `fpbench.evaluation` | built (views) | which comparisons an evaluation covers |
 | `fpbench.derivations` | built | derivation receipts, finalization markers, derivation status |
 | `fpbench.metrics` | built | metric policy, named denominators, counts, report, evaluation status |
-| `fpbench.experiments` | built (five) | the SourceAFIS full run, its decisions, the counts over them, the canonical image set, and the canonical run |
+| `fpbench.paired` | built | alignment, the SD300A control, transitions, exact rate differences |
+| `fpbench.experiments` | built (six) | the SourceAFIS full run, the canonical image set, the canonical run, the shared decision and evaluation engines behind both chains, and the paired comparison |
 | `fpbench.cli` | not yet | command-line entry points |
 
 Deliberate omissions, so they read as decisions rather than oversights:
@@ -1048,6 +1066,55 @@ resolution.** Reaching `RESEARCH_READY` here means 6,000 scores exist and can be
 attributed to inputs whose identity is provable. Details:
 [docs/experiments/sourceafis-canonical500-full.md](docs/experiments/sourceafis-canonical500-full.md).
 
+## Stage 6B: canonical decisions, canonical counts, and the paired comparison
+
+Three artefacts, derived in that order, each with its own identity.
+
+```bash
+python -m fpbench.experiments.sourceafis_canonical500_decisions prepare
+python -m fpbench.experiments.sourceafis_canonical500_decisions derive
+python -m fpbench.experiments.sourceafis_canonical500_decisions finalize
+```
+```bash
+python -m fpbench.experiments.sourceafis_canonical500_evaluation prepare
+python -m fpbench.experiments.sourceafis_canonical500_evaluation derive
+python -m fpbench.experiments.sourceafis_canonical500_evaluation finalize
+```
+```bash
+python -m fpbench.experiments.sourceafis_native_vs_canonical500 prepare
+python -m fpbench.experiments.sourceafis_native_vs_canonical500 derive
+python -m fpbench.experiments.sourceafis_native_vs_canonical500 finalize
+```
+
+The threshold is SourceAFIS's documented 40, **transferred unchanged**. The canonical
+decision profile records where it came from, that it was not re-chosen, and that nothing
+was calibrated — and that transfer block is inside the profile fingerprint, so a profile
+that started claiming a calibration would be a different profile
+([ADR 0037](docs/adr/0037-the-threshold-transfers-unchanged.md)). It is not a recommended
+canonical threshold, not adapted to 500 ppi input, and not validated on SD300.
+
+Both chains run one decision engine and one evaluation engine. Neither wrapper imports
+the other, neither performs any derivation of its own, and a structural test enforces
+both. The native identities did not move across the extraction: `run_7ac1cecc0bb3`,
+`resultset_2bf3cacfd806`, `decisionset_0122544e71b1`, `eligibilityset_77dbf75cdc76` and
+`metricset_f6ffa71f3880` are the same ids they were before stage 6B existed.
+
+The paired comparison joins the two chains on `pair_id` only — never on a job id, never
+on a score, never on a reconstructed key. The **SD300A exact control** is a hard
+acceptance condition: SD300A arrives at 500 ppi, so its canonical preparation is an
+identity, and all 2,000 of its comparisons must reproduce exactly. One mismatch aborts
+the derivation before any aggregate is written.
+
+Two mated FNMRs are published, and the difference between them is the point. The
+common-eligible one is conditioned on the 1,468 units both runs found eligible and is
+subtractable. The per-run conditional one is conditioned on each run's own eligible set —
+1,468 against 1,472 — and prints `not comparable`, because subtracting two rates over
+different populations produces a number that describes nothing.
+
+**No ROC, no EER, no significance test, no confidence interval, no general FMR, no
+resolution-superiority claim and no causal claim.** Details:
+[docs/experiments/sourceafis-native-vs-canonical500.md](docs/experiments/sourceafis-native-vs-canonical500.md).
+
 ## Architecture note: where the models live
 
 Several containers sit in `core` rather than in the package that derives them:
@@ -1074,16 +1141,13 @@ one experiment, and it needs somewhere to live that is not the planner.
    becomes possible without touching the 50 test subjects
    ([ADR 0021](docs/adr/0021-decision-profiles-are-immutable-and-external.md));
 3. failure analysis over the algorithmic failure codes the run recorded;
-4. stage 6B: decisions and a *paired* evaluation over the canonical run, joined to the
-   native one by `pair_id` — including whether SD300A's provably identical pixels
-   produced identical scores, which stage 6A deliberately did not ask;
-5. NBIS as the second algorithm — `nbis_mindtct_bozorth3`, both halves named — which is
+4. NBIS as the second algorithm — `nbis_mindtct_bozorth3`, both halves named — which is
    the real test of whether the adapter contract holds, and the second consumer of the
    runtime-bundle mechanism;
-6. the persistent-JVM decision, on the strength of the full run's operational summary
+5. the persistent-JVM decision, on the strength of the full run's operational summary
    rather than a guess ([ADR 0015](docs/adr/0015-sourceafis-uses-stateless-java-bridge.md));
-7. a better negative set, if a real false-match rate is ever wanted: cross-subject, and
+6. a better negative set, if a real false-match rate is ever wanted: cross-subject, and
    either exhaustive or a stated sample
    ([ADR 0025](docs/adr/0025-same-subject-different-finger-is-a-sanity-check.md));
-8. parallel execution, a retry policy keyed to the failure taxonomy, and a CLI over all
+7. parallel execution, a retry policy keyed to the failure taxonomy, and a CLI over all
    of it.

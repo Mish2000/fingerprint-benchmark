@@ -18,6 +18,7 @@ eight PNGs and the matcher hashes their digests.
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -209,6 +210,84 @@ def test_a_multi_asset_runtime_goes_through_unchanged(tmp_path):
     roles = {asset.role for asset in prepared.bundle.assets}
     assert roles == {"tool_extractor", "tool_matcher", "tool_support_data"}
     assert set(prepared.runtime_reference.asset_sha256s) == roles
+
+
+def test_a_two_stage_route_finishes_through_the_same_engine(tmp_path):
+    """Forty comparisons, a hundred and twenty subprocesses, one engine.
+
+    The route extracts a template per side and runs a separate matcher, and it
+    reaches ``RESEARCH_READY`` without the engine, the runner, the stores or the
+    result schema learning that it has stages (docs/adr/0043).
+    """
+    from fpbench.adapters.synthetic_two_stage import (
+        ADAPTER_ID as TWO_STAGE_ID,
+        EXTRACTOR_ROLE,
+        MATCHER_ROLE,
+        SyntheticTwoStageCliAdapter,
+        SyntheticTwoStageConfig,
+    )
+
+    fixtures = Path(__file__).resolve().parents[1] / "fixtures" / "two_stage_cli"
+    world = build_engine_world(tmp_path, subject_count=1, experiment_id="two_stage_v1")
+
+    tools = tmp_path / "tools"
+    tools.mkdir(parents=True, exist_ok=True)
+    extractor = tools / "extractor.py"
+    matcher = tools / "matcher.py"
+    extractor.write_bytes((fixtures / "extractor.py").read_bytes())
+    matcher.write_bytes((fixtures / "matcher.py").read_bytes())
+
+    def build() -> SyntheticTwoStageCliAdapter:
+        return SyntheticTwoStageCliAdapter(
+            SyntheticTwoStageConfig(
+                extractor=extractor,
+                matcher=matcher,
+                interpreter=Path(sys.executable).resolve(),
+            )
+        )
+
+    integration = structural_integration(
+        integration_id="synthetic_two_stage_research_v1",
+        adapter_id=TWO_STAGE_ID,
+        build_adapter=build,
+        asset_payloads={
+            EXTRACTOR_ROLE: extractor.read_bytes(),
+            MATCHER_ROLE: matcher.read_bytes(),
+        },
+    )
+    shared = {
+        "spec": world.spec,
+        "integration": integration,
+        "preparer_factory": identity_preparer,
+        "workspace": world.workspace,
+        "dataset_root": world.dataset_root,
+        "repository_root": world.repository_root,
+    }
+    prepared = prepare_algorithm_research_run(**shared)
+    summary = execute_algorithm_research_run(**shared)
+    finalize_algorithm_research_run(**shared)
+    state = inspect_algorithm_research_experiment(**shared)
+
+    assert summary.newly_executed_jobs == world.expected_jobs == 40
+    assert state.status is ResearchRunStatus.RESEARCH_READY, list(state.issues)
+    assert {asset.role for asset in prepared.bundle.assets} == {
+        EXTRACTOR_ROLE,
+        MATCHER_ROLE,
+    }
+
+    # And the stored results record the two-stage facts, which is what a
+    # validator for a real two-stage route would insist on (spec section 31).
+    record = prepared.result_store.read_raw_result(
+        prepared.run.run_id, prepared.plan.jobs[0].job.job_id
+    )
+    assert record.adapter_metadata["extraction_count"] == "2"
+    assert record.adapter_metadata["template_cache"] == "disabled"
+    assert set(record.timings.adapter_components_ms) == {
+        "input_conversion",
+        "left_extraction",
+        "right_extraction",
+        "matching",
+    }
 
 
 def test_the_engine_never_compares_an_identifier_against_a_literal():

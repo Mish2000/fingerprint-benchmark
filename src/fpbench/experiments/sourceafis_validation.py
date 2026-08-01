@@ -63,9 +63,15 @@ from fpbench.core.run_state_models import IntegrityIssue
 from fpbench.core.runtime_models import RunRuntimeReference
 from fpbench.core.serialization import stable_hash
 from fpbench.datasets.sd300 import ppi_policy
+from fpbench.execution.adapter_result_validation import (
+    FORBIDDEN_METADATA_KEYS as UNIVERSAL_FORBIDDEN_METADATA_KEYS,
+)
+from fpbench.execution.adapter_result_validation import forbidden_metadata_present
 from fpbench.experiments.prepared_input_validation import (
     CanonicalPreparationExpectations,
     PreparedInputExpectations,
+    check_prepared_inputs,
+    check_release_source_resolutions,
 )
 from fpbench.storage.result_store import ResultStore
 
@@ -80,6 +86,7 @@ __all__ = [
     "ALGORITHMIC_FAILURE_CODES",
     "BLOCKING_FAILURE_CODES",
     "FORBIDDEN_METADATA_KEYS",
+    "SOURCEAFIS_FORBIDDEN_METADATA_KEYS",
 ]
 
 #: The algorithm looked at the print and could not produce a template, or could
@@ -107,21 +114,20 @@ BLOCKING_FAILURE_CODES: frozenset[FailureCode] = frozenset(
     }
 )
 
-#: Keys that would mean an adapter had made a decision. Their absence is
-#: checked rather than assumed, because the one thing a raw result may never
-#: contain is an answer (docs/adr/0003, docs/adr/0010).
-FORBIDDEN_METADATA_KEYS: frozenset[str] = frozenset(
-    {
-        "threshold",
-        "decision",
-        "is_match",
-        "matched",
-        "ground_truth",
-        "protocol_stage",
-        "subject_id",
-        "template",
-        "minutiae",
-    }
+#: SourceAFIS's own additions to the universal list. It stores no template and
+#: no minutiae file, so a result carrying either means the adapter changed
+#: underneath the results. Another algorithm may legitimately record both, which
+#: is why these two are here rather than in
+#: :mod:`fpbench.execution.adapter_result_validation` (spec section 28).
+SOURCEAFIS_FORBIDDEN_METADATA_KEYS: frozenset[str] = frozenset(
+    {"template", "minutiae"}
+)
+
+#: Keys that would mean an adapter had made a decision, plus the two above.
+#: Their absence is checked rather than assumed, because the one thing a raw
+#: result may never contain is an answer (docs/adr/0003, docs/adr/0010).
+FORBIDDEN_METADATA_KEYS: frozenset[str] = (
+    UNIVERSAL_FORBIDDEN_METADATA_KEYS | SOURCEAFIS_FORBIDDEN_METADATA_KEYS
 )
 
 _EXPECTED_METADATA = {
@@ -271,7 +277,7 @@ def validate_sourceafis_result_set(
             )
         elif preparation.expected_source_ppi:
             issues.extend(
-                _check_release_source_resolutions(
+                check_release_source_resolutions(
                     pairs=pairs,
                     preparation=preparation,
                     expected_source_ppi=preparation.expected_source_ppi,
@@ -304,7 +310,10 @@ def validate_sourceafis_result_set(
         )
         issues.extend(_check_resolution(record, pair, images, preparation))
         if preparation is not None:
-            issues.extend(_check_preparation(record, preparation))
+            # Shared with every other algorithm: "this result names an artefact
+            # that exists in this exact set" is not a SourceAFIS question
+            # (spec section 26).
+            issues.extend(check_prepared_inputs(record, preparation))
 
         if record.status is ExecutionStatus.SUCCESS:
             successes += 1
@@ -486,7 +495,9 @@ def _check_identity(
             job_id=job_id,
         )
 
-    present = FORBIDDEN_METADATA_KEYS & set(metadata)
+    present = forbidden_metadata_present(
+        metadata, additional=SOURCEAFIS_FORBIDDEN_METADATA_KEYS
+    )
     if present:
         yield _issue(
             IntegrityIssueCode.RESULT_PIPELINE_MISMATCH,
@@ -557,128 +568,6 @@ def _check_resolution(
                 f"{pair.release} is used at {expected}",
                 job_id=job_id,
             )
-
-
-def _check_preparation(
-    record: RawResultRecord, preparation: CanonicalPreparationExpectations
-) -> Iterable[IntegrityIssue]:
-    """Does this result name an artefact that actually exists in the set?
-
-    Every check here is against the *entries*, not against another copy of the
-    same claim. A result that recorded a preparation-set fingerprint and nothing
-    else would prove only that somebody typed the fingerprint; a result whose
-    recorded entry hash, file digest, raster digest and dimensions all match the
-    entry for its own image id could not have been produced from anything else
-    (spec section 75).
-    """
-    job_id = record.job_id
-    metadata = record.runner_metadata
-
-    for key, expected in preparation.run_level_metadata().items():
-        actual = metadata.get(key)
-        if actual is None:
-            yield _issue(
-                IntegrityIssueCode.RESULT_METADATA_MISSING,
-                f"result {job_id} does not record {key}; it cannot be attributed "
-                "to the input set that produced it",
-                job_id=job_id,
-            )
-        elif actual != expected:
-            yield _issue(
-                IntegrityIssueCode.RESULT_PIPELINE_MISMATCH,
-                f"result {job_id} records {key}={str(actual)[:16]}..., expected "
-                f"{str(expected)[:16]}...",
-                job_id=job_id,
-            )
-
-    for side, image_id in (
-        ("left", record.left_image_id),
-        ("right", record.right_image_id),
-    ):
-        entry = preparation.entries.get(image_id)
-        if entry is None:
-            yield _issue(
-                IntegrityIssueCode.RESULT_PIPELINE_MISMATCH,
-                f"result {job_id}'s {side} image has no entry in prepared-image set "
-                f"{preparation.preparation_set_id}",
-                job_id=job_id,
-            )
-            continue
-
-        for suffix, expected in (
-            ("preparation_entry_hash", entry.entry_hash),
-            ("prepared_sha256", entry.output_encoded_sha256),
-            ("pixel_sha256", entry.output_pixel_sha256),
-            ("source_ppi", str(entry.source_effective_ppi)),
-            ("output_ppi", str(entry.output_effective_ppi)),
-            ("output_width", str(entry.output_width)),
-            ("output_height", str(entry.output_height)),
-        ):
-            key = f"{side}_{suffix}"
-            actual = metadata.get(key)
-            if actual is None:
-                yield _issue(
-                    IntegrityIssueCode.RESULT_METADATA_MISSING,
-                    f"result {job_id} does not record {key}",
-                    job_id=job_id,
-                )
-            elif actual != str(expected):
-                yield _issue(
-                    IntegrityIssueCode.RESULT_PIPELINE_MISMATCH,
-                    f"result {job_id} records {key}={str(actual)[:16]}..., but the "
-                    f"prepared-image set says {str(expected)[:16]}...",
-                    job_id=job_id,
-                )
-
-        if entry.output_effective_ppi != preparation.target_ppi:
-            yield _issue(
-                IntegrityIssueCode.RESULT_RESOLUTION_MISMATCH,
-                f"result {job_id}'s {side} artefact is "
-                f"{entry.output_effective_ppi} ppi; this profile targets "
-                f"{preparation.target_ppi}",
-                job_id=job_id,
-            )
-        if entry.source_effective_ppi < entry.output_effective_ppi:
-            yield _issue(  # pragma: no cover - the entry model forbids it
-                IntegrityIssueCode.RESULT_RESOLUTION_MISMATCH,
-                f"result {job_id}'s {side} artefact was upsampled",
-                job_id=job_id,
-            )
-
-def _check_release_source_resolutions(
-    *,
-    pairs: Mapping[PairId, ComparisonPair],
-    preparation: CanonicalPreparationExpectations,
-    expected_source_ppi: Mapping[str, int],
-) -> Iterable[IntegrityIssue]:
-    """Every SD300A entry came from 500 ppi, every B from 1000, every C from 2000.
-
-    Joined back through the pair manifest rather than read off adapter metadata,
-    which by construction says 500 for all three after canonicalisation
-    (spec section 76).
-    """
-    for pair in pairs.values():
-        expected = expected_source_ppi.get(pair.release)
-        if expected is None:
-            continue
-        for side, image_id in (
-            ("left", pair.left_image_id),
-            ("right", pair.right_image_id),
-        ):
-            entry = preparation.entries.get(image_id)
-            if entry is None:
-                yield _issue(
-                    IntegrityIssueCode.RESULT_PIPELINE_MISMATCH,
-                    f"pair {pair.pair_id}'s {side} image has no prepared entry",
-                )
-                continue
-            if entry.source_effective_ppi != expected:
-                yield _issue(
-                    IntegrityIssueCode.RESULT_RESOLUTION_MISMATCH,
-                    f"pair {pair.pair_id}'s {side} artefact was scaled from "
-                    f"{entry.source_effective_ppi} ppi; {pair.release} is used at "
-                    f"{expected}",
-                )
 
 
 def _check_success(record: RawResultRecord) -> Iterable[IntegrityIssue]:

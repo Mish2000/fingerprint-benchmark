@@ -3,12 +3,15 @@
 One JSON and one Markdown file per paired comparison, named by its
 `paired_evaluation_id`.
 
-The current hardened comparison is `pairedeval_ba790ca1e900` (schema 2), derived
-from source commit `d000fb1d9f0f23ed3a96fe5ec7e89e3fc41aa13a`. Schema 2 binds
-each row to the exact execution status and failure code on both sides. Ready
-status is granted only after the stored policy and every publication artefact
-have been rebuilt from both source chains and compared with the frozen files.
-The earlier schema-1 comparison remains here as historical evidence.
+The current hardened comparison is `pairedeval_ee2e0fe7ddb6` (schema 2), derived
+from source commit `b73118b3be994e929f129c636d760e136332604f`. Schema 2 binds
+each row to the exact execution status and failure code on both sides. Before
+paired derivation, the shared evaluation inspector must re-establish
+`EVALUATION_READY` for both exact source metric sets, including their summary,
+report, receipt and finalization marker. Ready status is then granted only after
+the stored paired policy and every paired publication artefact have been rebuilt
+from both source chains and compared with the frozen files. Earlier comparisons
+remain here as historical evidence.
 
 ## What these prove
 

@@ -8,7 +8,7 @@ what got committed is what the workspace holds.
 
 These are the exact ids stage 6B produced and committed:
 
-    pairedeval_ba790ca1e900   over run_7ac1cecc0bb3 and run_4c59fa02a6ab
+    pairedeval_ee2e0fe7ddb6   over run_7ac1cecc0bb3 and run_4c59fa02a6ab
 
 Skip policy: no workspace, skip. A workspace holding a *broken* comparison is a
 failure, not a skip — reporting it as absent is exactly the outcome this suite
@@ -31,7 +31,7 @@ WORKSPACE = REPO / "workspace"
 
 NATIVE_RUN_ID = "run_7ac1cecc0bb3"
 CANONICAL_RUN_ID = "run_4c59fa02a6ab"
-PAIRED_ID = "pairedeval_ba790ca1e900"
+PAIRED_ID = "pairedeval_ee2e0fe7ddb6"
 
 EVIDENCE = REPO / "evidence" / "sourceafis-native-vs-canonical500"
 

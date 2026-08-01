@@ -223,6 +223,10 @@ def build_paired_records(
 
         native_score = _score_of(native, native_job)
         canonical_score = _score_of(canonical, canonical_job)
+        native_result = native.result_store.read_raw_result(native.run.run_id, native_job)
+        canonical_result = canonical.result_store.read_raw_result(
+            canonical.run.run_id, canonical_job
+        )
         relation, delta = _relate(native_score, canonical_score)
 
         draft = dict(
@@ -236,6 +240,14 @@ def build_paired_records(
             canonical_raw_result_hash=canonical_decision.source_result_hash,
             native_decision_hash=native_decision.decision_record_hash,
             canonical_decision_hash=canonical_decision.decision_record_hash,
+            native_execution_status=native_result.status,
+            canonical_execution_status=canonical_result.status,
+            native_failure_code=(
+                native_result.failure.code.value if native_result.failure else None
+            ),
+            canonical_failure_code=(
+                canonical_result.failure.code.value if canonical_result.failure else None
+            ),
             native_outcome=decision_outcome_of(
                 application_status=native_decision.application_status,
                 decision=native_decision.decision,
@@ -274,6 +286,10 @@ class _Draft:
         "canonical_raw_result_hash",
         "native_decision_hash",
         "canonical_decision_hash",
+        "native_execution_status",
+        "canonical_execution_status",
+        "native_failure_code",
+        "canonical_failure_code",
         "native_outcome",
         "canonical_outcome",
         "score_relation",
@@ -369,13 +385,22 @@ def build_control_audit(
                     "identical"
                 )
 
-        native_failed = record.native_outcome is DecisionOutcome.UNDECIDABLE
-        canonical_failed = record.canonical_outcome is DecisionOutcome.UNDECIDABLE
-        if native_failed == canonical_failed:
+        if record.native_execution_status is record.canonical_execution_status:
             equal_statuses += 1
         else:
             issues.append(
-                f"{record.pair_id}: one side produced a score and the other did not"
+                f"{record.pair_id}: execution status changed from "
+                f"{record.native_execution_status.value} to "
+                f"{record.canonical_execution_status.value}"
+            )
+        if (
+            record.native_execution_status is not ExecutionStatus.SUCCESS
+            and record.canonical_execution_status is not ExecutionStatus.SUCCESS
+            and record.native_failure_code != record.canonical_failure_code
+        ):
+            issues.append(
+                f"{record.pair_id}: failure code changed from "
+                f"{record.native_failure_code!r} to {record.canonical_failure_code!r}"
             )
 
         if record.native_outcome is record.canonical_outcome:
@@ -720,10 +745,7 @@ def build_paired_observations(
                 comparability = ComparabilityStatus.UNDEFINED
 
             difference = None
-            if comparability in {
-                ComparabilityStatus.DIRECTLY_COMPARABLE,
-                ComparabilityStatus.SAME_ATTEMPTS_DIFFERENT_DECIDED_SUBSETS,
-            }:
+            if comparability is ComparabilityStatus.DIRECTLY_COMPARABLE:
                 difference = exact_rate_difference(
                     native_numerator=native_numerator,
                     native_denominator=native_denominator,
@@ -873,9 +895,11 @@ def _observation_counts(
             for item in rows
             if item.canonical_outcome is not DecisionOutcome.UNDECIDABLE
         ]
+        native_decided_ids = {str(item.pair_id) for item in native_decided}
+        canonical_decided_ids = {str(item.pair_id) for item in canonical_decided}
         comparability = (
             ComparabilityStatus.DIRECTLY_COMPARABLE
-            if len(native_decided) == len(canonical_decided) == len(rows)
+            if native_decided_ids == canonical_decided_ids
             else ComparabilityStatus.SAME_ATTEMPTS_DIFFERENT_DECIDED_SUBSETS
         )
         return (
@@ -990,9 +1014,11 @@ def _decided_fnmr(
     canonical_decided = [
         row for row in rows if row.canonical_outcome is not DecisionOutcome.UNDECIDABLE
     ]
+    native_decided_ids = {str(row.pair_id) for row in native_decided}
+    canonical_decided_ids = {str(row.pair_id) for row in canonical_decided}
     comparability = (
         ComparabilityStatus.DIRECTLY_COMPARABLE
-        if len(native_decided) == len(canonical_decided) == len(rows)
+        if native_decided_ids == canonical_decided_ids
         else ComparabilityStatus.SAME_ATTEMPTS_DIFFERENT_DECIDED_SUBSETS
     )
     return (

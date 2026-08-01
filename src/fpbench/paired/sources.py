@@ -39,6 +39,27 @@ from fpbench.storage.metric_set_store import MetricSetStore
 
 __all__ = ["PairedSide", "load_paired_side", "require_comparable_runs"]
 
+NATIVE_EXECUTION_PROFILE_ID = "native_identity_60s_v1"
+CANONICAL_EXECUTION_PROFILE_ID = "canonical_500_lanczos3_60s_v1"
+
+# These are the only execution-profile parameters allowed to differ. They all
+# describe the input artefact handed to the unchanged matcher. Every operational
+# parameter (including a future retry/parallelism knob) must compare equal.
+_PREPARATION_PARAMETER_KEYS = frozenset(
+    {
+        "resolution_mode",
+        "shared_resampling",
+        "target_ppi",
+        "preparation_set_id",
+        "preparation_set_fingerprint",
+        "transform_profile_id",
+        "transform_profile_fingerprint",
+        "output_media_type",
+        "output_pixel_format",
+        "output_ppi_metadata_policy",
+    }
+)
+
 
 @dataclass(frozen=True, slots=True)
 class PairedSide:
@@ -288,17 +309,66 @@ def require_comparable_runs(
 
     _require_same_runtime(native, canonical)
     _require_same_threshold_rule(native, canonical)
-
-    native_profile = native.run.execution_profile.profile_id
-    canonical_profile = canonical.run.execution_profile.profile_id
-    if native_profile == canonical_profile:
-        raise PairedSourceMismatchError(
-            f"both runs used execution profile {native_profile!r}; there is nothing "
-            "to compare"
-        )
+    _require_only_preparation_profile_difference(native, canonical)
     if native.run.run_fingerprint == canonical.run.run_fingerprint:
         raise PairedSourceMismatchError(
             "both runs have the same fingerprint; there is nothing to compare"
+        )
+
+
+def _require_only_preparation_profile_difference(
+    native: PairedSide, canonical: PairedSide
+) -> None:
+    """Allow only the named native/canonical image-preparation differences."""
+    left = native.run.execution_profile
+    right = canonical.run.execution_profile
+    expected_ids = (
+        ("native", left.profile_id, NATIVE_EXECUTION_PROFILE_ID),
+        ("canonical", right.profile_id, CANONICAL_EXECUTION_PROFILE_ID),
+    )
+    for label, actual, expected in expected_ids:
+        if actual != expected:
+            raise PairedSourceMismatchError(
+                f"the {label} run must use execution profile {expected!r}, got "
+                f"{actual!r}"
+            )
+
+    for label, a, b in (
+        ("timeout_seconds", left.timeout_seconds, right.timeout_seconds),
+        ("deterministic_seed", left.deterministic_seed, right.deterministic_seed),
+        ("replicate_index", native.run.replicate_index, canonical.run.replicate_index),
+    ):
+        if a != b:
+            raise PairedSourceMismatchError(
+                f"the execution profiles differ in {label}: {a!r} versus {b!r}. "
+                "Only image preparation may differ"
+            )
+
+    left_operational = {
+        key: value
+        for key, value in dict(left.parameters).items()
+        if key not in _PREPARATION_PARAMETER_KEYS
+    }
+    right_operational = {
+        key: value
+        for key, value in dict(right.parameters).items()
+        if key not in _PREPARATION_PARAMETER_KEYS
+    }
+    if left_operational != right_operational:
+        differing = sorted(
+            key
+            for key in set(left_operational) | set(right_operational)
+            if left_operational.get(key) != right_operational.get(key)
+        )
+        raise PairedSourceMismatchError(
+            "the execution profiles differ outside image preparation; "
+            f"operational parameter(s): {differing}"
+        )
+
+    if any(planned.job.attempt != 1 for planned in (*native.plan.jobs, *canonical.plan.jobs)):
+        raise PairedSourceMismatchError(
+            "a paired run contains a retry attempt; stage 6B requires the same "
+            "single-attempt policy on both sides"
         )
 
 

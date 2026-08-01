@@ -44,11 +44,15 @@ from fpbench.core.enums import (
     DecisionApplicationStatus,
     DecisionOutcome,
     DecisionValue,
+    ExecutionStatus,
     ProtocolStage,
     ScoreRelation,
 )
 from fpbench.core.identifiers import PairId, validate_id
-from fpbench.core.provenance_models import SoftwareProvenance
+from fpbench.core.provenance_models import (
+    SoftwareProvenance,
+    software_provenance_fingerprint,
+)
 from fpbench.core.serialization import require_exact_int, stable_hash, to_plain
 
 __all__ = [
@@ -96,7 +100,7 @@ __all__ = [
 
 #: Bumped when the meaning of any paired record changes. Inside every
 #: fingerprint below, so a bump separates new artefacts from old.
-PAIRED_SCHEMA_VERSION = "1"
+PAIRED_SCHEMA_VERSION = "2"
 
 #: Twelve hex characters, matching every other id in the project.
 PAIRED_EVALUATION_ID_LENGTH = 12
@@ -301,6 +305,11 @@ class PairedComparisonRecord:
     native_decision_hash: str
     canonical_decision_hash: str
 
+    native_execution_status: ExecutionStatus
+    canonical_execution_status: ExecutionStatus
+    native_failure_code: str | None
+    canonical_failure_code: str | None
+
     native_outcome: DecisionOutcome
     canonical_outcome: DecisionOutcome
 
@@ -325,6 +334,26 @@ class PairedComparisonRecord:
             "record_hash",
         ):
             object.__setattr__(self, name, _require_digest(getattr(self, name), name))
+        for prefix in ("native", "canonical"):
+            status = getattr(self, f"{prefix}_execution_status")
+            outcome = getattr(self, f"{prefix}_outcome")
+            failure_code = getattr(self, f"{prefix}_failure_code")
+            if status is ExecutionStatus.SUCCESS:
+                if failure_code is not None:
+                    raise ValueError(
+                        f"{prefix}: a successful result must not carry a failure code"
+                    )
+                if outcome is DecisionOutcome.UNDECIDABLE:
+                    raise ValueError(
+                        f"{prefix}: a successful result must carry a decided outcome"
+                    )
+            else:
+                code = _require_non_empty(failure_code or "", f"{prefix}_failure_code")
+                object.__setattr__(self, f"{prefix}_failure_code", code)
+                if outcome is not DecisionOutcome.UNDECIDABLE:
+                    raise ValueError(
+                        f"{prefix}: a failed result must carry an undecidable outcome"
+                    )
         if self.score_delta_decimal is not None:
             object.__setattr__(
                 self,
@@ -397,12 +426,16 @@ def paired_comparison_record_hash(record: PairedComparisonRecord) -> str:
                 "raw_result_hash": record.native_raw_result_hash,
                 "decision_hash": record.native_decision_hash,
                 "outcome": record.native_outcome.value,
+                "execution_status": record.native_execution_status.value,
+                "failure_code": record.native_failure_code,
             },
             "canonical": {
                 "job_id": record.canonical_job_id,
                 "raw_result_hash": record.canonical_raw_result_hash,
                 "decision_hash": record.canonical_decision_hash,
                 "outcome": record.canonical_outcome.value,
+                "execution_status": record.canonical_execution_status.value,
+                "failure_code": record.canonical_failure_code,
             },
             "score_relation": record.score_relation.value,
             "score_delta_decimal": record.score_delta_decimal,
@@ -868,6 +901,7 @@ class PairedRateObservation:
         # A difference may only exist where the two sides are comparable at all.
         if self.comparability in {
             ComparabilityStatus.DIFFERENT_SELECTION,
+            ComparabilityStatus.SAME_ATTEMPTS_DIFFERENT_DECIDED_SUBSETS,
             ComparabilityStatus.UNDEFINED,
         } and has_difference:
             raise ValueError(
@@ -1085,6 +1119,13 @@ class PairedEvaluationDefinition:
             raise ValueError("definition_fingerprint does not cover these claims")
         if self.definition_id != f"paireddef_{expected[:PAIRED_EVALUATION_ID_LENGTH]}":
             raise ValueError("definition_id must be derived from the fingerprint")
+        actual_software_fingerprint = software_provenance_fingerprint(
+            self.derivation_software
+        )
+        if self.derivation_software_fingerprint != actual_software_fingerprint:
+            raise ValueError(
+                "derivation_software_fingerprint does not cover derivation_software"
+            )
 
     def claims(self) -> Mapping[str, object]:
         return {
@@ -1176,6 +1217,22 @@ class PairedEvaluationManifest:
             raise ValueError(
                 f"paired_evaluation_id must be derived from the fingerprint: "
                 f"expected {expected_id}, got {self.paired_evaluation_id!r}"
+            )
+        expected_fingerprint = paired_evaluation_fingerprint(
+            definition_fingerprint=self.definition_fingerprint,
+            ordered_records_hash=self.ordered_paired_records_hash,
+            ordered_eligibility_hash=self.ordered_eligibility_transitions_hash,
+            common_eligible_hash=self.common_eligible_view_hash,
+            ordered_counts_hash=self.ordered_count_records_hash,
+            ordered_observations_hash=self.ordered_observations_hash,
+            control_fingerprint=self.control_audit_fingerprint,
+            total_paired_comparisons=self.total_paired_comparisons,
+            total_eligibility_units=self.total_eligibility_units,
+            total_common_eligible_rows=self.total_common_eligible_rows,
+        )
+        if self.paired_evaluation_fingerprint != expected_fingerprint:
+            raise ValueError(
+                "paired_evaluation_fingerprint does not cover the manifest fields"
             )
 
 

@@ -177,6 +177,23 @@ def test_a_changed_threshold_is_not_a_transfer(canonical_document, tmp_path):
         _parse(broken, tmp_path / "changed")
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("threshold_unchanged", "false"),
+        ("calibration_performed", "false"),
+        ("test_cohort_used", 0),
+    ),
+)
+def test_transfer_flags_require_yaml_booleans(
+    canonical_document, tmp_path, field, value
+):
+    broken = copy.deepcopy(canonical_document)
+    broken["transfer"][field] = value
+    with pytest.raises(DecisionProfileError, match="YAML boolean"):
+        _parse(broken, tmp_path / f"typed-{field}")
+
+
 def test_a_transfer_claiming_calibration_is_refused(canonical_document, tmp_path):
     for field in ("calibration_performed", "test_cohort_used"):
         broken = copy.deepcopy(canonical_document)
@@ -409,6 +426,37 @@ def test_the_paired_policy_refuses_a_relaxed_pairing_rule(tmp_path):
         path.write_text(yaml.safe_dump(broken), encoding="utf-8")
         with pytest.raises(ConfigurationError, match=name):
             load_paired_policy(path)
+
+
+@pytest.mark.parametrize(
+    ("section", "name", "value"),
+    (
+        ("pairing", "require_same_algorithm", "false"),
+        ("statistics", "bootstrap", "false"),
+        ("claims", "general_fmr", 0),
+        ("scores", "retain_pair_delta", "true"),
+        ("transitions", "plain_self", 1),
+    ),
+)
+def test_paired_policy_flags_require_yaml_booleans(
+    tmp_path, section, name, value
+):
+    from fpbench.core.errors import ConfigurationError
+    from fpbench.paired import load_paired_policy
+
+    source = (
+        REPO
+        / "configs"
+        / "comparisons"
+        / "policies"
+        / "sourceafis_native_vs_canonical500_paired_v1.yaml"
+    )
+    broken = yaml.safe_load(source.read_text("utf-8"))
+    broken[section][name] = value
+    path = tmp_path / f"typed-{section}-{name}.yaml"
+    path.write_text(yaml.safe_dump(broken), encoding="utf-8")
+    with pytest.raises(ConfigurationError, match="YAML boolean"):
+        load_paired_policy(path)
 
 
 def test_the_paired_policy_refuses_a_non_pair_id_join(tmp_path):

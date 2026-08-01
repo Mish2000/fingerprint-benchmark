@@ -105,7 +105,7 @@ def load_paired_policy(path: Path) -> PairedComparisonPolicy:
         "require_same_runtime_bundle",
         "require_same_threshold_rule",
     ):
-        if not bool(pairing.get(name, False)):
+        if not _yaml_bool(pairing, name, path=path, section="pairing", default=False):
             raise ConfigurationError(
                 f"{path}: pairing.{name} must be true. Relaxing it would let the "
                 "comparison measure a sum of differences and attribute it to one"
@@ -120,20 +120,23 @@ def load_paired_policy(path: Path) -> PairedComparisonPolicy:
             )
 
     for name in FORBIDDEN_STATISTICS:
-        if bool(statistics.get(name, False)):
+        if _yaml_bool(statistics, name, path=path, section="statistics", default=False):
             raise ConfigurationError(
                 f"{path}: statistics.{name} may not be true. The machinery behind "
                 "it does not exist, and switching a flag would not create it"
             )
     for name in FORBIDDEN_CLAIMS:
-        if bool(claims.get(name, False)):
+        if _yaml_bool(claims, name, path=path, section="claims", default=False):
             raise ConfigurationError(
                 f"{path}: claims.{name} may not be true. This comparison observes "
                 "what changed between two runs; it establishes no superiority, no "
                 "cause and no population rate"
             )
 
-    if bool(scores.get("report_distribution", False)):
+    report_distribution = _yaml_bool(
+        scores, "report_distribution", path=path, section="scores", default=False
+    )
+    if report_distribution:
         raise ConfigurationError(
             f"{path}: scores.report_distribution may not be true. Scores are used "
             "here for exact equality on the control, for direction counts, and for "
@@ -141,7 +144,9 @@ def load_paired_policy(path: Path) -> PairedComparisonPolicy:
         )
 
     families = tuple(
-        name for name, enabled in sorted(dict(transitions).items()) if bool(enabled)
+        name
+        for name in sorted(transitions)
+        if _yaml_bool(transitions, name, path=path, section="transitions")
     )
     if not families:
         raise ConfigurationError(f"{path}: transitions enables no family")
@@ -157,8 +162,16 @@ def load_paired_policy(path: Path) -> PairedComparisonPolicy:
         sd300a_exact_score_equality=True,
         sd300a_exact_decision_equality=True,
         transition_families=families,
-        retain_pair_delta=bool(scores.get("retain_pair_delta", True)),
-        report_direction_counts=bool(scores.get("report_direction_counts", True)),
+        retain_pair_delta=_yaml_bool(
+            scores, "retain_pair_delta", path=path, section="scores", default=True
+        ),
+        report_direction_counts=_yaml_bool(
+            scores,
+            "report_direction_counts",
+            path=path,
+            section="scores",
+            default=True,
+        ),
         report_distribution=False,
         document=dict(document),
     )
@@ -178,4 +191,30 @@ def _section(document: Mapping[str, Any], key: str, path: Path) -> Mapping[str, 
     value = document.get(key)
     if not isinstance(value, Mapping):
         raise ConfigurationError(f"{path}: missing or malformed '{key}' section")
+    return value
+
+
+_MISSING = object()
+
+
+def _yaml_bool(
+    section_value: Mapping[str, Any],
+    name: str,
+    *,
+    path: Path,
+    section: str,
+    default: object = _MISSING,
+) -> bool:
+    """Read one YAML boolean without Python's truthiness coercions."""
+    if name not in section_value:
+        if default is _MISSING:
+            raise ConfigurationError(f"{path}: {section}.{name} is required")
+        value = default
+    else:
+        value = section_value[name]
+    if type(value) is not bool:
+        raise ConfigurationError(
+            f"{path}: {section}.{name} must be a YAML boolean, got "
+            f"{type(value).__name__}"
+        )
     return value

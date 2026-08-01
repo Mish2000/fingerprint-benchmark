@@ -23,6 +23,7 @@ import pyarrow as pa
 from fpbench.core.enums import (
     ComparabilityStatus,
     DecisionOutcome,
+    ExecutionStatus,
     ProtocolStage,
     ScoreRelation,
 )
@@ -67,6 +68,10 @@ PAIRED_COMPARISON_SCHEMA = pa.schema(
         pa.field("canonical_raw_result_hash", pa.string(), nullable=False),
         pa.field("native_decision_hash", pa.string(), nullable=False),
         pa.field("canonical_decision_hash", pa.string(), nullable=False),
+        pa.field("native_execution_status", pa.string(), nullable=False),
+        pa.field("canonical_execution_status", pa.string(), nullable=False),
+        pa.field("native_failure_code", pa.string(), nullable=True),
+        pa.field("canonical_failure_code", pa.string(), nullable=True),
         pa.field("native_outcome", pa.string(), nullable=False),
         pa.field("canonical_outcome", pa.string(), nullable=False),
         pa.field("score_relation", pa.string(), nullable=False),
@@ -191,6 +196,10 @@ def paired_comparisons_to_table(
                 "canonical_raw_result_hash": record.canonical_raw_result_hash,
                 "native_decision_hash": record.native_decision_hash,
                 "canonical_decision_hash": record.canonical_decision_hash,
+                "native_execution_status": record.native_execution_status.value,
+                "canonical_execution_status": record.canonical_execution_status.value,
+                "native_failure_code": record.native_failure_code,
+                "canonical_failure_code": record.canonical_failure_code,
                 "native_outcome": record.native_outcome.value,
                 "canonical_outcome": record.canonical_outcome.value,
                 "score_relation": record.score_relation.value,
@@ -220,6 +229,14 @@ def table_to_paired_comparisons(table: pa.Table) -> list[PairedComparisonRecord]
                 canonical_raw_result_hash=row["canonical_raw_result_hash"],
                 native_decision_hash=row["native_decision_hash"],
                 canonical_decision_hash=row["canonical_decision_hash"],
+                native_execution_status=ExecutionStatus(
+                    row["native_execution_status"]
+                ),
+                canonical_execution_status=ExecutionStatus(
+                    row["canonical_execution_status"]
+                ),
+                native_failure_code=row["native_failure_code"],
+                canonical_failure_code=row["canonical_failure_code"],
                 native_outcome=DecisionOutcome(row["native_outcome"]),
                 canonical_outcome=DecisionOutcome(row["canonical_outcome"]),
                 score_relation=ScoreRelation(row["score_relation"]),

@@ -101,7 +101,29 @@ def load_decision_profile(
             f"is being bound to {str(algorithm_fingerprint)[:12]}..."
         )
 
-    if calibration.get("test_cohort_used"):
+    calibration_test_cohort_used = _yaml_bool(
+        calibration,
+        "test_cohort_used",
+        path=path,
+        section="calibration",
+        default=False,
+    )
+    calibration_performed = _yaml_bool(
+        calibration,
+        "performed",
+        path=path,
+        section="calibration",
+        default=False,
+    )
+    upstream_not_benchmark = _yaml_bool(
+        provenance,
+        "upstream_claim_is_not_benchmark_result",
+        path=path,
+        section="provenance",
+        default=True,
+    )
+
+    if calibration_test_cohort_used:
         raise DecisionProfileError(
             f"{path}: a threshold may never be calibrated on the TEST cohort. "
             "Choosing a threshold from the same 50 subjects it is later reported "
@@ -111,12 +133,8 @@ def load_decision_profile(
 
     metadata = {
         "upstream_claim": str(provenance.get("upstream_claim", "")),
-        "upstream_claim_is_not_benchmark_result": _flag(
-            provenance.get("upstream_claim_is_not_benchmark_result", True)
-        ),
-        "calibration_test_cohort_used": _flag(
-            calibration.get("test_cohort_used", False)
-        ),
+        "upstream_claim_is_not_benchmark_result": _flag(upstream_not_benchmark),
+        "calibration_test_cohort_used": _flag(calibration_test_cohort_used),
     }
     metadata.update(_transfer_metadata(document, path))
     extra = document.get("metadata") or {}
@@ -141,7 +159,7 @@ def load_decision_profile(
             allowed_execution_profiles=tuple(
                 str(item) for item in (scope.get("execution_profiles") or ())
             ),
-            calibration_performed=bool(calibration.get("performed", False)),
+            calibration_performed=calibration_performed,
             calibration_manifest_fingerprint=(
                 str(calibration["manifest_fingerprint"])
                 if calibration.get("manifest_fingerprint")
@@ -315,14 +333,20 @@ def _transfer_metadata(
             "or it is indistinguishable from a threshold somebody chose"
         )
 
-    if not bool(block["threshold_unchanged"]):
+    threshold_unchanged = _yaml_bool(
+        block,
+        "threshold_unchanged",
+        path=path,
+        section="transfer",
+    )
+    if not threshold_unchanged:
         raise DecisionProfileError(
             f"{path}: transfer.threshold_unchanged is false. A transfer that moved "
             "the number is not a transfer; it is a new threshold, and a new "
             "threshold needs an origin of its own"
         )
     for name in ("calibration_performed", "test_cohort_used"):
-        if bool(block[name]):
+        if _yaml_bool(block, name, path=path, section="transfer"):
             raise DecisionProfileError(
                 f"{path}: transfer.{name} may not be true. Nothing was calibrated "
                 "here and the TEST cohort was not used to choose anything; a "
@@ -351,5 +375,33 @@ def _section(document: Mapping[str, Any], key: str, path: Path) -> Mapping[str, 
     return value
 
 
-def _flag(value: Any) -> str:
-    return "true" if bool(value) else "false"
+_MISSING = object()
+
+
+def _yaml_bool(
+    section_value: Mapping[str, Any],
+    name: str,
+    *,
+    path: Path,
+    section: str,
+    default: object = _MISSING,
+) -> bool:
+    """Read one YAML boolean without accepting truthy strings or integers."""
+    if name not in section_value:
+        if default is _MISSING:
+            raise DecisionProfileError(f"{path}: {section}.{name} is required")
+        value = default
+    else:
+        value = section_value[name]
+    if type(value) is not bool:
+        raise DecisionProfileError(
+            f"{path}: {section}.{name} must be a YAML boolean, got "
+            f"{type(value).__name__}"
+        )
+    return value
+
+
+def _flag(value: bool) -> str:
+    if type(value) is not bool:
+        raise TypeError("a rendered flag must be a bool")
+    return "true" if value else "false"

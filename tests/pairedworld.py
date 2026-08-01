@@ -25,6 +25,7 @@ from fpbench.core.enums import (
     DecisionApplicationStatus,
     DecisionValue,
     ExecutionStatus,
+    FailureCode,
     GroundTruth,
     ProtocolStage,
     ScoreDirection,
@@ -189,7 +190,12 @@ def _side(
         )
         result_hash = _digest(job_salt, item.pair_id, "result", score)
         results[job_id] = SimpleNamespace(
-            status=status, raw_score=score, job_id=job_id
+            status=status,
+            raw_score=score,
+            job_id=job_id,
+            failure=(
+                SimpleNamespace(code=FailureCode.NO_SCORE) if score is None else None
+            ),
         )
         if score is None:
             application = DecisionApplicationStatus.UNDECIDABLE
@@ -223,7 +229,9 @@ def _side(
     plan = SimpleNamespace(
         jobs=tuple(
             SimpleNamespace(
-                job=SimpleNamespace(pair_id=item.pair_id, job_id=jobs[item.pair_id])
+                job=SimpleNamespace(
+                    pair_id=item.pair_id, job_id=jobs[item.pair_id], attempt=1
+                )
             )
             for item in comparisons
         ),
@@ -243,7 +251,24 @@ def _side(
             implementation_version="3.18.1",
             score_direction=ScoreDirection.HIGHER_IS_BETTER,
         ),
-        execution_profile=SimpleNamespace(profile_id=profile_id),
+        execution_profile=SimpleNamespace(
+            profile_id=profile_id,
+            preparer_id=("identity" if label == "native" else "canonical_500_png"),
+            timeout_seconds=60.0,
+            deterministic_seed=0,
+            parameters=(
+                {"resolution_mode": "native", "shared_resampling": "none"}
+                if label == "native"
+                else {
+                    "resolution_mode": "canonical_500",
+                    "target_ppi": "500",
+                    "preparation_set_id": "prepset_synthetic1",
+                    "transform_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+                    "output_media_type": "image/png",
+                }
+            ),
+        ),
+        replicate_index=0,
         environment=SimpleNamespace(
             dependencies={
                 "bridge.jar.sha256": _digest("jar"),

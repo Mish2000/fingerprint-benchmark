@@ -17,6 +17,7 @@ Spec sections 73 (tampering), 74 (failure injection) and 75 (re-render).
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -101,10 +102,16 @@ def _derive(tmp_path: Path, *, finalize: bool = True) -> _Derived:
         common_eligible=common,
         releases=releases,
         source_fingerprints={
-            "native_decision_set": "a" * 64,
-            "canonical_decision_set": "b" * 64,
-            "native_eligibility_set": "c" * 64,
-            "canonical_eligibility_set": "d" * 64,
+            "native_decision_set": native.decision_manifest.decision_set_fingerprint,
+            "canonical_decision_set": (
+                canonical.decision_manifest.decision_set_fingerprint
+            ),
+            "native_eligibility_set": (
+                native.eligibility_manifest.eligibility_set_fingerprint
+            ),
+            "canonical_eligibility_set": (
+                canonical.eligibility_manifest.eligibility_set_fingerprint
+            ),
         },
     )
     observations = build_paired_observations(
@@ -314,6 +321,129 @@ def test_the_untouched_comparison_verifies(tmp_path):
     )
     assert state.status is PairedEvaluationStatus.PAIRED_EVALUATION_READY
     assert state.issues == ()
+
+
+def test_manifest_fingerprint_is_recomputed_from_all_manifest_fields(tmp_path):
+    derived = _derive(tmp_path, finalize=False)
+    with pytest.raises(ValueError, match="does not cover the manifest fields"):
+        replace(
+            derived.manifest,
+            total_paired_comparisons=(
+                derived.manifest.total_paired_comparisons + 1
+            ),
+        )
+
+
+def test_derivation_software_fingerprint_covers_the_software_object(tmp_path):
+    derived = _derive(tmp_path, finalize=False)
+    forged_software = replace(
+        derived.definition.derivation_software, package_version="forged"
+    )
+    with pytest.raises(ValueError, match="does not cover derivation_software"):
+        replace(derived.definition, derivation_software=forged_software)
+
+
+def _verify_against_synthetic_sources(derived, monkeypatch):
+    import fpbench.experiments.sourceafis_native_vs_canonical500 as experiment
+
+    policy = type(
+        "Policy",
+        (),
+        {
+            "policy_id": "synthetic_v1",
+            "policy_fingerprint": "e" * 64,
+            "document": {"policy": {"policy_id": "synthetic_v1"}},
+        },
+    )()
+    config = experiment.PairedComparisonConfig(
+        experiment_id="synthetic_paired_v1",
+        native=dict(_IDS),
+        canonical=dict(_IDS),
+        policy_config=tmp_path_placeholder(),
+        evidence_directory=Path("evidence") / "synthetic",
+    )
+    prepared = experiment.PreparedPairedComparison(
+        config=config,
+        policy=policy,
+        software=derived.definition.derivation_software,
+        workspace=derived.store.root,
+        native=derived.world.native,
+        canonical=derived.world.canonical,
+        definition=derived.definition,
+    )
+    monkeypatch.setattr(experiment, "prepare_paired_evaluation", lambda **_: prepared)
+    monkeypatch.setattr(experiment, "load_paired_policy", lambda _path: policy)
+    monkeypatch.setattr(
+        experiment,
+        "_canonical_preparation_set_id",
+        lambda _root: "preparedset_000000000001",
+    )
+    monkeypatch.setattr(
+        experiment,
+        "_run_commit",
+        lambda side: "1" * 40 if side.label == "native" else "2" * 40,
+    )
+    state = inspect_paired_evaluation(
+        store=derived.store, paired_evaluation_id=derived.paired_id
+    )
+    return experiment.verify_paired_evaluation_against_sources(
+        workspace=derived.store.root,
+        config=config,
+        repository_root=Path.cwd(),
+        paired_evaluation_id=derived.paired_id,
+        storage_state=state,
+    )
+
+
+def tmp_path_placeholder() -> Path:
+    """A config path the monkeypatched synthetic verifier never opens."""
+    return Path("synthetic-policy.yaml")
+
+
+def test_the_full_verifier_rebuilds_an_untouched_comparison(tmp_path, monkeypatch):
+    derived = _derive(tmp_path)
+    state = _verify_against_synthetic_sources(derived, monkeypatch)
+    assert state.status is PairedEvaluationStatus.PAIRED_EVALUATION_READY
+
+
+def test_consistently_forged_publication_files_fail_source_verification(
+    tmp_path, monkeypatch
+):
+    """A fresh marker cannot make coordinated publication edits authoritative."""
+    derived = _derive(tmp_path)
+    paired_id = derived.paired_id
+    store = derived.store
+
+    summary = dict(store.read_summary(paired_id))
+    summary["forged_claim"] = "canonical is superior"
+    write_json(store.summary_path(paired_id), summary)
+
+    report = store.read_report(paired_id) + "\n\nCanonical is superior.\n"
+    store.report_path(paired_id).write_text(report, encoding="utf-8")
+
+    receipt_payload = read_json(store.receipt_path(paired_id))
+    receipt_payload["total_paired_comparisons"] = 1
+    write_json(store.receipt_path(paired_id), receipt_payload)
+    forged_receipt = store.read_receipt(paired_id)
+
+    marker = build_paired_finalization_marker(
+        manifest=derived.manifest,
+        control=derived.control,
+        summary_content_hash=paired_summary_content_hash(summary),
+        report_content_hash=report_content_hash(report),
+        receipt=forged_receipt,
+        source_commit="f" * 40,
+        source_tree_clean=True,
+        created_utc=derived.marker.created_utc,
+    )
+    write_json(store.finalization_path(paired_id), marker)
+
+    storage_only = inspect_paired_evaluation(
+        store=store, paired_evaluation_id=paired_id
+    )
+    assert storage_only.status is PairedEvaluationStatus.PAIRED_EVALUATION_READY
+    with pytest.raises(PairedEvaluationError, match="summary.json"):
+        _verify_against_synthetic_sources(derived, monkeypatch)
 
 
 def test_an_edited_paired_record_is_caught(tmp_path):

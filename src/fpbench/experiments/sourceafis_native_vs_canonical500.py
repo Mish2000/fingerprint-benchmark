@@ -27,7 +27,7 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -93,6 +93,7 @@ __all__ = [
     "prepare_paired_evaluation",
     "derive_paired_evaluation",
     "inspect_paired_experiment",
+    "verify_paired_evaluation_against_sources",
     "finalize_paired_evaluation",
     "read_verified_paired_report",
     "EXPERIMENT_ID",
@@ -217,6 +218,8 @@ def prepare_paired_evaluation(
     config: PairedComparisonConfig | None = None,
     repository_root: Path = REPOSITORY_ROOT,
     require_clean: bool = True,
+    write_pointer: bool = True,
+    definition_software: SoftwareProvenance | None = None,
 ) -> PreparedPairedComparison:
     """Load and revalidate both chains, prove they are comparable, pin nothing else.
 
@@ -226,7 +229,8 @@ def prepare_paired_evaluation(
     """
     workspace = Path(workspace)
     config = config or load_paired_config(repository_root=repository_root)
-    software = _capture(repository_root, require_clean=require_clean)
+    verifier_software = _capture(repository_root, require_clean=require_clean)
+    definition_software = definition_software or verifier_software
     policy = load_paired_policy(config.policy_config)
 
     from fpbench.experiments.sourceafis_canonical500_decisions import (
@@ -244,7 +248,7 @@ def prepare_paired_evaluation(
         run_id=config.native["run_id"],
         decision_set_id=config.native["decision_set_id"],
         metric_set_id=config.native["metric_set_id"],
-        software=software,
+        software=verifier_software,
     )
     canonical = load_paired_side(
         label="canonical",
@@ -254,7 +258,7 @@ def prepare_paired_evaluation(
         run_id=config.canonical["run_id"],
         decision_set_id=config.canonical["decision_set_id"],
         metric_set_id=config.canonical["metric_set_id"],
-        software=software,
+        software=verifier_software,
     )
     _require_declared_ids(config, native, canonical)
     require_comparable_runs(native=native, canonical=canonical)
@@ -263,31 +267,32 @@ def prepare_paired_evaluation(
         native=native,
         canonical=canonical,
         policy=policy,
-        software=software,
+        software=definition_software,
     )
     prepared = PreparedPairedComparison(
         config=config,
         policy=policy,
-        software=software,
+        software=definition_software,
         workspace=workspace,
         native=native,
         canonical=canonical,
         definition=definition,
     )
-    _write_pointer(
-        workspace,
-        config.experiment_id,
-        carry_forward_pointer(
-            _read_pointer_payload(workspace, config.experiment_id),
-            {
-                "experiment_id": config.experiment_id,
-                "definition_id": definition.definition_id,
-                "native_run_id": native.run.run_id,
-                "canonical_run_id": canonical.run.run_id,
-                "prepared_utc": _utc_now(),
-            },
-        ),
-    )
+    if write_pointer:
+        _write_pointer(
+            workspace,
+            config.experiment_id,
+            carry_forward_pointer(
+                _read_pointer_payload(workspace, config.experiment_id),
+                {
+                    "experiment_id": config.experiment_id,
+                    "definition_id": definition.definition_id,
+                    "native_run_id": native.run.run_id,
+                    "canonical_run_id": canonical.run.run_id,
+                    "prepared_utc": _utc_now(),
+                },
+            ),
+        )
     return prepared
 
 
@@ -310,49 +315,14 @@ def derive_paired_evaluation(
     )
     native, canonical = prepared.native, prepared.canonical
 
-    pair_ids = align_pairs(native=native, canonical=canonical)
-    records = build_paired_records(
-        native=native, canonical=canonical, pair_ids=pair_ids
-    )
-    transitions = build_eligibility_transitions(native=native, canonical=canonical)
-    common = build_common_eligible_view(
-        native=native,
-        canonical=canonical,
-        transitions=transitions,
-        records=records,
-    )
-
-    # Before any aggregate. A failed control withdraws the interpretation every
-    # later number depends on, so producing them would be producing something
-    # nobody could read (spec section 59, step 6).
-    control = build_control_audit(records)
-    require_clean_control(control)
-
-    releases = release_order(native)
-    counts = build_transition_counts(
-        records=records,
-        transitions=transitions,
-        common_eligible=common,
-        releases=releases,
-        source_fingerprints=_source_fingerprints(native, canonical),
-    )
-    observations = build_paired_observations(
-        records=records,
-        transitions=transitions,
-        common_eligible=common,
-        releases=releases,
-        policy_fingerprint=prepared.policy.policy_fingerprint,
-    )
-
-    manifest = _build_manifest(
-        definition=prepared.definition,
-        records=records,
-        transitions=transitions,
-        common=common,
-        counts=counts,
-        observations=observations,
-        control=control,
-    )
+    rebuilt = _rebuild_paired_evaluation(prepared)
+    records = rebuilt.records
+    transitions = rebuilt.transitions
+    common = rebuilt.common
+    control = rebuilt.control
+    counts = rebuilt.counts
+    observations = rebuilt.observations
+    manifest = rebuilt.manifest
     paired_id = manifest.paired_evaluation_id
 
     store = prepared.store
@@ -400,9 +370,267 @@ def inspect_paired_experiment(
     resolved = paired_evaluation_id_override or _read_pointer(
         workspace, config.experiment_id, "paired_evaluation_id"
     )
-    return inspect_paired_evaluation(
-        store=PairedEvaluationStore(workspace), paired_evaluation_id=resolved
+    store = PairedEvaluationStore(workspace)
+    state = inspect_paired_evaluation(
+        store=store, paired_evaluation_id=resolved
     )
+    if not state.manifest_valid:
+        return state
+    try:
+        return verify_paired_evaluation_against_sources(
+            workspace=workspace,
+            config=config,
+            repository_root=repository_root,
+            paired_evaluation_id=str(resolved),
+            storage_state=state,
+        )
+    except (
+        ConfigurationError,
+        PairedEvaluationError,
+        PreflightError,
+        StorageError,
+        OSError,
+        TypeError,
+        ValueError,
+    ) as exc:
+        return replace(
+            state,
+            status=PairedEvaluationStatus.INVALID,
+            finalization_valid=False,
+            issues=(*state.issues, f"source verification failed: {exc}"),
+            inspected_utc=_utc_now(),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class _RebuiltPairedEvaluation:
+    records: tuple
+    transitions: tuple
+    common: tuple
+    control: Any
+    releases: tuple[str, ...]
+    counts: tuple
+    observations: tuple
+    manifest: PairedEvaluationManifest
+
+
+def _rebuild_paired_evaluation(prepared: PreparedPairedComparison) -> _RebuiltPairedEvaluation:
+    """Recompute every paired artefact from the two verified source chains."""
+    native, canonical = prepared.native, prepared.canonical
+    pair_ids = align_pairs(native=native, canonical=canonical)
+    records = build_paired_records(
+        native=native, canonical=canonical, pair_ids=pair_ids
+    )
+    transitions = build_eligibility_transitions(native=native, canonical=canonical)
+    common = build_common_eligible_view(
+        native=native,
+        canonical=canonical,
+        transitions=transitions,
+        records=records,
+    )
+    control = build_control_audit(records)
+    require_clean_control(control)
+    releases = release_order(native)
+    counts = build_transition_counts(
+        records=records,
+        transitions=transitions,
+        common_eligible=common,
+        releases=releases,
+        source_fingerprints=_source_fingerprints(native, canonical),
+    )
+    observations = build_paired_observations(
+        records=records,
+        transitions=transitions,
+        common_eligible=common,
+        releases=releases,
+        policy_fingerprint=prepared.policy.policy_fingerprint,
+    )
+    manifest = _build_manifest(
+        definition=prepared.definition,
+        records=records,
+        transitions=transitions,
+        common=common,
+        counts=counts,
+        observations=observations,
+        control=control,
+    )
+    return _RebuiltPairedEvaluation(
+        records=records,
+        transitions=transitions,
+        common=common,
+        control=control,
+        releases=releases,
+        counts=counts,
+        observations=observations,
+        manifest=manifest,
+    )
+
+
+def verify_paired_evaluation_against_sources(
+    *,
+    workspace: Path = DEFAULT_WORKSPACE,
+    config: PairedComparisonConfig | None = None,
+    repository_root: Path = REPOSITORY_ROOT,
+    paired_evaluation_id: str,
+    storage_state: PairedEvaluationState | None = None,
+) -> PairedEvaluationState:
+    """Rebuild a stored comparison from both source chains without writing.
+
+    Storage verification is intentionally only the first layer. This verifier
+    reloads both runs, decision/eligibility/metric sets and the frozen policy,
+    aligns all pairs, rebuilds every table and publication artefact, and finally
+    proves that the ready marker names those canonical results.
+    """
+    workspace = Path(workspace)
+    config = config or load_paired_config(repository_root=repository_root)
+    store = PairedEvaluationStore(workspace)
+    state = storage_state or inspect_paired_evaluation(
+        store=store, paired_evaluation_id=paired_evaluation_id
+    )
+    if not state.manifest_valid:
+        raise PairedFinalizationError(
+            f"paired comparison {paired_evaluation_id} is not storage-valid"
+        )
+
+    stored_definition = store.read_definition(paired_evaluation_id)
+    prepared = prepare_paired_evaluation(
+        workspace=workspace,
+        config=config,
+        repository_root=repository_root,
+        require_clean=False,
+        write_pointer=False,
+        definition_software=stored_definition.derivation_software,
+    )
+    if prepared.definition.definition_fingerprint != stored_definition.definition_fingerprint:
+        raise PairedFinalizationError(
+            "the stored paired definition does not match the two current source chains"
+        )
+
+    stored_policy = load_paired_policy(store.policy_path(paired_evaluation_id))
+    if stored_policy.policy_fingerprint != prepared.policy.policy_fingerprint:
+        raise PairedFinalizationError(
+            "policy.json does not match the configured paired-comparison policy"
+        )
+    if stored_policy.policy_fingerprint != stored_definition.policy_fingerprint:
+        raise PairedFinalizationError(
+            "policy.json fingerprint does not match the paired definition"
+        )
+
+    rebuilt = _rebuild_paired_evaluation(prepared)
+    stored_manifest = store.verify_paired_evaluation(paired_evaluation_id)
+    if rebuilt.manifest.paired_evaluation_id != paired_evaluation_id:
+        raise PairedFinalizationError(
+            f"the sources derive {rebuilt.manifest.paired_evaluation_id}, not "
+            f"{paired_evaluation_id}"
+        )
+    if (
+        rebuilt.manifest.paired_evaluation_fingerprint
+        != stored_manifest.paired_evaluation_fingerprint
+    ):
+        raise PairedFinalizationError(
+            "the stored paired tables do not match a fresh derivation from the sources"
+        )
+
+    stored_observations = store.read_observations(paired_evaluation_id)
+    if any(
+        observation.policy_fingerprint != stored_policy.policy_fingerprint
+        for observation in stored_observations
+    ):
+        raise PairedFinalizationError(
+            "an observation does not carry policy.json's fingerprint"
+        )
+
+    native_ids = _side_ids(config.native)
+    canonical_ids = _side_ids(config.canonical)
+    if store.has_summary(paired_evaluation_id):
+        stored_summary = store.read_summary(paired_evaluation_id)
+        expected_summary = build_paired_summary(
+            manifest=stored_manifest,
+            native_ids=native_ids,
+            canonical_ids=canonical_ids,
+            control=rebuilt.control,
+            counts=rebuilt.counts,
+            observations=rebuilt.observations,
+            records=rebuilt.records,
+            generated_utc=str(stored_summary.get("generated_utc") or "verified"),
+        )
+        if paired_summary_content_hash(stored_summary) != paired_summary_content_hash(
+            expected_summary
+        ):
+            raise PairedFinalizationError(
+                "summary.json does not match a fresh summary from the sources"
+            )
+
+    if store.has_report(paired_evaluation_id):
+        expected_report = render_paired_report(
+            manifest=stored_manifest,
+            policy_id=stored_policy.policy_id,
+            native_ids=native_ids,
+            canonical_ids=canonical_ids,
+            native_source_commit=_run_commit(prepared.native),
+            canonical_source_commit=_run_commit(prepared.canonical),
+            derivation_commit=stored_definition.derivation_software.source_revision,
+            control=rebuilt.control,
+            counts=rebuilt.counts,
+            observations=rebuilt.observations,
+            records=rebuilt.records,
+            common_eligible=rebuilt.common,
+            transitions=rebuilt.transitions,
+            releases=rebuilt.releases,
+        )
+        if store.read_report(paired_evaluation_id) != expected_report:
+            raise PairedFinalizationError(
+                "report.md is not byte-identical to a fresh rendering from the sources"
+            )
+
+    if store.has_receipt(paired_evaluation_id):
+        receipt = store.read_receipt(paired_evaluation_id)
+        if (
+            receipt.source_commit
+            != stored_definition.derivation_software.source_revision
+            or receipt.source_tree_clean
+            != stored_definition.derivation_software.source_tree_clean
+        ):
+            raise PairedFinalizationError(
+                "the paired receipt names different derivation software"
+            )
+        verify_paired_receipt(
+            receipt=receipt,
+            manifest=stored_manifest,
+            policy_id=stored_policy.policy_id,
+            policy_fingerprint=stored_policy.policy_fingerprint,
+            native_ids=native_ids,
+            canonical_ids=canonical_ids,
+            canonical_preparation_set_id=_canonical_preparation_set_id(repository_root),
+            pair_manifest_hash=prepared.native.pair_manifest_hash,
+            control=rebuilt.control,
+            counts=rebuilt.counts,
+            observations=rebuilt.observations,
+        )
+
+    if store.has_finalization(paired_evaluation_id):
+        marker = store.read_finalization(paired_evaluation_id)
+        receipt = store.read_receipt(paired_evaluation_id)
+        expected_marker = build_paired_finalization_marker(
+            manifest=stored_manifest,
+            control=rebuilt.control,
+            summary_content_hash=paired_summary_content_hash(
+                store.read_summary(paired_evaluation_id)
+            ),
+            report_content_hash=report_content_hash(
+                store.read_report(paired_evaluation_id)
+            ),
+            receipt=receipt,
+            source_commit=stored_definition.derivation_software.source_revision,
+            source_tree_clean=stored_definition.derivation_software.source_tree_clean,
+            created_utc=marker.created_utc,
+        )
+        if marker.finalization_fingerprint != expected_marker.finalization_fingerprint:
+            raise PairedFinalizationError(
+                "the finalization marker does not cover the canonical source-derived artefacts"
+            )
+
+    return state
 
 
 # ------------------------------------------------------------------ finalize
@@ -428,41 +656,15 @@ def finalize_paired_evaluation(
     native, canonical = prepared.native, prepared.canonical
     store = prepared.store
 
-    pair_ids = align_pairs(native=native, canonical=canonical)
-    records = build_paired_records(
-        native=native, canonical=canonical, pair_ids=pair_ids
-    )
-    transitions = build_eligibility_transitions(native=native, canonical=canonical)
-    common = build_common_eligible_view(
-        native=native, canonical=canonical, transitions=transitions, records=records
-    )
-    control = build_control_audit(records)
-    require_clean_control(control)
-
-    releases = release_order(native)
-    counts = build_transition_counts(
-        records=records,
-        transitions=transitions,
-        common_eligible=common,
-        releases=releases,
-        source_fingerprints=_source_fingerprints(native, canonical),
-    )
-    observations = build_paired_observations(
-        records=records,
-        transitions=transitions,
-        common_eligible=common,
-        releases=releases,
-        policy_fingerprint=prepared.policy.policy_fingerprint,
-    )
-    manifest = _build_manifest(
-        definition=prepared.definition,
-        records=records,
-        transitions=transitions,
-        common=common,
-        counts=counts,
-        observations=observations,
-        control=control,
-    )
+    rebuilt = _rebuild_paired_evaluation(prepared)
+    records = rebuilt.records
+    transitions = rebuilt.transitions
+    common = rebuilt.common
+    control = rebuilt.control
+    releases = rebuilt.releases
+    counts = rebuilt.counts
+    observations = rebuilt.observations
+    manifest = rebuilt.manifest
     paired_id = paired_evaluation_id_override or manifest.paired_evaluation_id
     if paired_id != manifest.paired_evaluation_id:
         raise PairedFinalizationError(
@@ -564,7 +766,15 @@ def finalize_paired_evaluation(
     )
     store.ensure_finalization(paired_id, marker)
 
-    state = inspect_paired_evaluation(store=store, paired_evaluation_id=paired_id)
+    state = verify_paired_evaluation_against_sources(
+        workspace=workspace,
+        config=prepared.config,
+        repository_root=repository_root,
+        paired_evaluation_id=paired_id,
+        storage_state=inspect_paired_evaluation(
+            store=store, paired_evaluation_id=paired_id
+        ),
+    )
     if not state.is_paired_evaluation_ready:
         raise PairedFinalizationError(
             f"paired comparison {paired_id} finalised but did not reach "

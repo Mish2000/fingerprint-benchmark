@@ -23,10 +23,16 @@ import pytest
 from fpbench.core.enums import (
     ComparabilityStatus,
     DecisionOutcome,
+    ExecutionStatus,
+    FailureCode,
     ProtocolStage,
     ScoreRelation,
 )
-from fpbench.core.errors import ControlAuditError, PairedAlignmentError
+from fpbench.core.errors import (
+    ControlAuditError,
+    PairedAlignmentError,
+    PairedSourceMismatchError,
+)
 from fpbench.core.paired_models import (
     ALL_TRANSITION_KEYS,
     ELIGIBILITY_FAMILY,
@@ -84,6 +90,38 @@ def _derive(world):
 
 def test_the_two_runs_are_comparable(world):
     require_comparable_runs(native=world.native, canonical=world.canonical)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (("timeout_seconds", 61.0), ("deterministic_seed", 99)),
+)
+def test_an_operational_execution_field_difference_is_refused(world, field, value):
+    setattr(world.canonical.run.execution_profile, field, value)
+    with pytest.raises(PairedSourceMismatchError, match=field):
+        require_comparable_runs(native=world.native, canonical=world.canonical)
+
+
+def test_a_replicate_difference_is_refused(world):
+    world.canonical.run.replicate_index = 1
+    with pytest.raises(PairedSourceMismatchError, match="replicate_index"):
+        require_comparable_runs(native=world.native, canonical=world.canonical)
+
+
+@pytest.mark.parametrize("parameter", ("retry_policy", "execution_mode", "workers"))
+def test_an_arbitrary_non_preparation_parameter_is_refused(world, parameter):
+    world.canonical.run.execution_profile.parameters = {
+        **world.canonical.run.execution_profile.parameters,
+        parameter: "different",
+    }
+    with pytest.raises(PairedSourceMismatchError, match="operational parameter"):
+        require_comparable_runs(native=world.native, canonical=world.canonical)
+
+
+def test_the_two_exact_execution_profile_ids_are_required(world):
+    world.canonical.run.execution_profile.profile_id = "canonical_other_v1"
+    with pytest.raises(PairedSourceMismatchError, match="must use execution profile"):
+        require_comparable_runs(native=world.native, canonical=world.canonical)
 
 
 def test_alignment_returns_every_pair_in_manifest_order(world):
@@ -166,6 +204,10 @@ def test_both_sides_failing_is_still_a_recorded_transition():
     records, _, _ = _derive(world)
     record = next(r for r in records if str(r.pair_id) == "sd300b_s0002_f01_mated")
     assert record.transition == "undecidable_to_undecidable"
+    assert record.native_execution_status is ExecutionStatus.FAILURE
+    assert record.canonical_execution_status is ExecutionStatus.FAILURE
+    assert record.native_failure_code == FailureCode.NO_SCORE.value
+    assert record.canonical_failure_code == FailureCode.NO_SCORE.value
 
 
 # ------------------------------------------------------------------ control
@@ -223,6 +265,22 @@ def test_the_control_does_not_round(world):
     )
     records, _, _ = _derive(broken)
     assert not build_control_audit(records).is_clean
+
+
+def test_the_control_compares_failure_codes_exactly():
+    pair_id = "sd300a_s0001_f01_mated"
+    world = build_paired_world(
+        scores={(pair_id, ProtocolStage.PLAIN_ROLL_MATED): (None, None)}
+    )
+    canonical_job = world.canonical.jobs_by_pair[pair_id]
+    result = world.canonical.result_store.read_raw_result(
+        world.canonical.run.run_id, canonical_job
+    )
+    result.failure.code = FailureCode.TIMEOUT
+    records, _, _ = _derive(world)
+    audit = build_control_audit(records)
+    assert not audit.is_clean
+    assert any("failure code changed" in issue for issue in audit.issues)
 
 
 # ------------------------------------------------------------- eligibility
@@ -419,6 +477,86 @@ def test_per_run_conditional_rates_are_never_subtracted(world):
             ComparabilityStatus.UNDEFINED,
         }
         assert not observation.has_difference
+
+
+def _decided_mated_observations(world):
+    records, transitions, common = _derive(world)
+    return [
+        observation
+        for observation in build_paired_observations(
+            records=records,
+            transitions=transitions,
+            common_eligible=common,
+            releases=release_order(world.native),
+            policy_fingerprint=_POLICY_FINGERPRINT,
+        )
+        if observation.scope.label == "pooled"
+        and observation.observation_id
+        in {
+            "mated_unconditional_decision_fnmr",
+            "common_eligible_mated_decision_fnmr",
+        }
+    ]
+
+
+def test_identical_decided_pair_sets_are_directly_comparable():
+    pair_id = "sd300b_s0001_f01_mated"
+    observations = _decided_mated_observations(
+        build_paired_world(
+            scores={(pair_id, ProtocolStage.PLAIN_ROLL_MATED): (None, None)}
+        )
+    )
+    assert observations
+    assert all(
+        item.comparability is ComparabilityStatus.DIRECTLY_COMPARABLE
+        and item.has_difference
+        for item in observations
+    )
+
+
+def test_equal_failure_counts_on_different_pairs_are_not_subtracted():
+    observations = _decided_mated_observations(
+        build_paired_world(
+            scores={
+                ("sd300b_s0001_f02_mated", ProtocolStage.PLAIN_ROLL_MATED): (
+                    None,
+                    60.0,
+                ),
+                ("sd300b_s0002_f01_mated", ProtocolStage.PLAIN_ROLL_MATED): (
+                    60.0,
+                    None,
+                ),
+            }
+        )
+    )
+    assert observations
+    assert all(
+        item.native_denominator == item.canonical_denominator
+        and item.comparability
+        is ComparabilityStatus.SAME_ATTEMPTS_DIFFERENT_DECIDED_SUBSETS
+        and not item.has_difference
+        for item in observations
+    )
+
+
+def test_different_failure_counts_are_not_subtracted():
+    observations = _decided_mated_observations(
+        build_paired_world(
+            scores={
+                ("sd300b_s0001_f02_mated", ProtocolStage.PLAIN_ROLL_MATED): (
+                    None,
+                    60.0,
+                )
+            }
+        )
+    )
+    assert observations
+    assert all(
+        item.comparability
+        is ComparabilityStatus.SAME_ATTEMPTS_DIFFERENT_DECIDED_SUBSETS
+        and not item.has_difference
+        for item in observations
+    )
 
 
 def test_the_common_eligible_denominators_are_identical(world):

@@ -25,7 +25,7 @@ from fpbench.experiments.sourceafis_native_evaluation import (
     DEFAULT_WORKSPACE,
     inspect_sourceafis_native_evaluation,
     load_evaluation_config,
-    read_verified_report,
+    read_native_verified_report,
 )
 from fpbench.metrics.receipt import EVIDENCE_DIRECTORY
 from fpbench.storage.metric_set_store import MetricSetStore
@@ -130,8 +130,8 @@ def test_the_committed_evidence_matches_the_workspace_byte_for_byte(
 
 def test_the_verified_report_is_the_stored_one(workspace, evaluation) -> None:
     config, state = evaluation
-    shown = read_verified_report(
-        workspace=workspace, config=config, repository_root=REPOSITORY_ROOT
+    shown = read_native_verified_report(
+        workspace=workspace, repository_root=REPOSITORY_ROOT
     )
     assert shown == MetricSetStore(workspace).read_report(
         config.run_id, str(state.metric_set_id)

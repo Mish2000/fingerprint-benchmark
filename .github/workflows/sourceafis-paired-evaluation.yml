@@ -83,6 +83,11 @@ jobs:
       - name: Alignment, control audit, transitions, exact differences
         run: pytest tests/unit/test_paired_derivation.py -q
 
+      # Every check above asks whether the engine computes the right answer.
+      # This one breaks a finished comparison on purpose and requires a refusal.
+      - name: Tampering, failure injection and the byte-identical re-render
+        run: pytest tests/unit/test_paired_failure_injection.py -q
+
       - name: The whole paired layer
         run: pytest -m "paired_evaluation and not dataset and not sourceafis" -q
 

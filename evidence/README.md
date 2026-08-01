@@ -1,10 +1,23 @@
 # Committed run evidence
 
-One file per research run, written by `finalize` and committed deliberately:
+One file per finalised artefact, written by `finalize` and committed deliberately. Each
+directory has its own README explaining what its receipts prove and what they refuse to
+say; this file covers what they all have in common.
 
 ```
-evidence/sourceafis-native-full/<run_id>.json
+sd300-canonical500-images/         <prepared_set_id>          the shared 500 ppi input set
+sourceafis-native-full/            <run_id>                   6,000 native raw scores
+sourceafis-canonical500-full/      <run_id>                   the same 6,000, canonical input
+sourceafis-native-decisions/       <decision_set_id>          threshold 40 over native scores
+sourceafis-canonical500-decisions/ <decision_set_id>          the same threshold, transferred
+sourceafis-native-evaluation/      <metric_set_id>            counts over the native decisions
+sourceafis-canonical500-evaluation/<metric_set_id>            counts over the canonical ones
+sourceafis-native-vs-canonical500/ <paired_evaluation_id>     the two, joined on pair_id
 ```
+
+Each layer cites the one beneath it by exact id, never by "latest". A receipt is checkable
+without a workspace: every id in it is derived from the artefacts under it, so a reader
+who has the repository can follow the chain down to the images without trusting any step.
 
 ## What a receipt is
 

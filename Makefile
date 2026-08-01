@@ -5,7 +5,7 @@ MVNW := ./integrations/sourceafis-java/mvnw
 POM := integrations/sourceafis-java/pom.xml
 BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
 
-.PHONY: help test test-all full-run \
+.PHONY: help test test-all full-run adapter-contract \
         sourceafis-build sourceafis-java-test sourceafis-python-test \
         sourceafis-test sourceafis-sd300-smoke \
         research-prepare research-execute research-status research-finalize \
@@ -22,6 +22,7 @@ help:
 	@echo "test                    unit + integration, no dataset, no Java, no full run"
 	@echo "test-all                everything available on this machine"
 	@echo "full-run                the 6,000-job dummy protocol (minutes)"
+	@echo "adapter-contract        what a new algorithm must satisfy (no dataset, no JVM)"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
 	@echo "sourceafis-java-test    Java unit tests"
 	@echo "sourceafis-python-test  Python SourceAFIS tests, excluding the dataset"
@@ -67,6 +68,12 @@ test-all:
 
 full-run:
 	pytest -m full_run
+
+# The suite a new algorithm's author runs first: the shared adapter tools, the
+# conformance checks, the generic research engine, the import boundaries and the
+# SourceAFIS descriptor regression. Needs no dataset and no JVM.
+adapter-contract:
+	pytest -m "adapter_contract and not dataset" -q
 
 # ------------------------------------------------------------------- SourceAFIS
 

@@ -1,31 +1,32 @@
-"""Applying threshold 40 to the 6,000 native SourceAFIS scores, in four commands.
+"""Applying the same threshold 40 to the 6,000 canonical SourceAFIS scores.
 
-    python -m fpbench.experiments.sourceafis_native_decisions prepare
-    python -m fpbench.experiments.sourceafis_native_decisions derive
-    python -m fpbench.experiments.sourceafis_native_decisions status
-    python -m fpbench.experiments.sourceafis_native_decisions finalize
+    python -m fpbench.experiments.sourceafis_canonical500_decisions prepare
+    python -m fpbench.experiments.sourceafis_canonical500_decisions derive
+    python -m fpbench.experiments.sourceafis_canonical500_decisions status
+    python -m fpbench.experiments.sourceafis_canonical500_decisions finalize
 
-Since stage 6B the work happens in
-:mod:`fpbench.experiments.sourceafis_decisions`, shared with the canonical
-derivation. This module is what that engine is given: the native run's
-experiment id, the native decision profile, the native evidence directory, and
-the shape stage 4B's run implies.
+The canonical sibling of ``sourceafis_native_decisions``, and it is a wrapper of
+the same size for the same reason: the work happens in
+:mod:`fpbench.experiments.sourceafis_decisions`, shared with the native
+derivation, so the two sets of decisions cannot differ in how they were derived.
 
-The extraction was deliberate and it is load-bearing. If the two derivations were
-two files, a difference between the native and canonical numbers could be a
-difference in how they were derived. It cannot be, because there is one
-derivation engine and both wrappers call it.
+Four things differ from the native wrapper, and all four are data:
 
-Nothing about this derivation's identity changed when the code moved. Same
-profile, same run, same result set, same derivation-definition fingerprint, and
-therefore the same `decisionset_0122544e71b1`, the same
-`eligibilityset_77dbf75cdc76` and the same three view fingerprints — which a
-regression test asserts rather than assumes (spec section 4).
+* the run pointer it reads — the canonical experiment's, not the native one's;
+* the decision profile — ``..._canonical500_v1``, whose scope is
+  ``canonical_500_lanczos3_60s_v1`` and nothing else;
+* the evidence directory;
+* the preparation expectations, which is the one thing the canonical derivation
+  checks that the native one has nothing to check: every stored result must name
+  the exact prepared-image set it was produced from, and every claim it makes
+  about that set must match the set's own entries.
 
-What it does *not* do bears repeating, because a file called "native_decisions"
-invites the assumption: it computes no rate, no distribution, and no accuracy
-figure of any kind. It says which comparisons crossed a documented threshold and
-which fingers are usable for conditional reporting (docs/adr/0003).
+**The threshold is not re-chosen.** 40 is transferred unchanged, which is what
+makes the paired comparison in the last part of stage 6B a comparison of one
+variable. Nothing here calibrates anything and nothing here may (spec section 9).
+
+No Java is run. This module reads the 6,000 scores stage 6A produced and does not
+modify them.
 """
 
 from __future__ import annotations
@@ -43,9 +44,8 @@ from fpbench.core.errors import (
     ConfigurationError,
     DecisionProfileError,
     DerivationError,
-    ResearchPreflightError,
+    PreflightError,
 )
-from fpbench.derivations.receipt import EVIDENCE_DIRECTORY
 from fpbench.experiments.sd300_inputs import (
     EXPECTED_JOBS,
     EXPECTED_PER_STAGE,
@@ -57,69 +57,93 @@ from fpbench.experiments.sourceafis_decisions import (
     derive_decisions,
     finalize_decision_derivation,
     inspect_decisions,
-    load_decision_source,
     load_non_mated_finger_shift,
     prepare_decision_derivation,
-    read_decision_set_pointer,
 )
 
 __all__ = [
-    "DecisionExperimentConfig",
-    "PreparedDerivation",
     "EXPERIMENT_ID",
-    "load_decision_experiment_config",
-    "load_decision_source",
-    "prepare_native_decision_derivation",
-    "derive_native_decisions",
-    "inspect_sourceafis_native_decisions",
-    "finalize_native_decision_derivation",
-    "EXPECTED_DECISIONS",
-    "EXPECTED_ELIGIBILITY_UNITS",
-    "EXPECTED_VIEW_ROWS",
+    "EVIDENCE_DIRECTORY",
+    "DEFAULT_DECISION_CONFIG",
+    "load_canonical_decision_spec",
+    "prepare_canonical_decision_derivation",
+    "derive_canonical_decisions",
+    "inspect_canonical_decisions",
+    "finalize_canonical_decision_derivation",
     "main",
 ]
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_WORKSPACE = REPOSITORY_ROOT / "workspace"
+
+EXPERIMENT_ID = "sourceafis_canonical500_decisions_v1"
+
 DEFAULT_DECISION_CONFIG = (
     REPOSITORY_ROOT
     / "configs"
     / "decisions"
-    / "sourceafis_java_3_18_1_documented_40_v1.yaml"
+    / "sourceafis_java_3_18_1_documented_40_canonical500_v1.yaml"
 )
 
-EXPERIMENT_ID = "sourceafis_native_decisions_v1"
+#: One committed file per canonical decision set, kept apart from the native
+#: ones so that neither can overwrite the other's evidence.
+EVIDENCE_DIRECTORY = Path("evidence") / "sourceafis-canonical500-decisions"
 
-#: The shape stage 4B's run implies. Asserted in this module rather than in the
-#: shared engine, for the same reason the 6,000-job counts live in the run's
-#: experiment module: they are true of this protocol, not of derivations.
 EXPECTED_DECISIONS = EXPECTED_JOBS  # 6,000
 EXPECTED_ELIGIBILITY_UNITS = EXPECTED_PER_STAGE  # 1,500
 EXPECTED_UNITS_PER_RELEASE = EXPECTED_SUBJECTS * 10  # 500
 EXPECTED_VIEW_ROWS = EXPECTED_PER_STAGE  # 1,500
 
-#: Kept as an alias so that stage 5A/5B callers importing the old name still
-#: work. The spec object *is* the configuration now.
-DecisionExperimentConfig = SourceAfisDecisionExperimentSpec
+
+def _canonical_preparation_expectations(workspace: Path):
+    """What every canonical result must claim about the input set it used.
+
+    Built lazily, from the workspace, because it needs the prepared-image set's
+    entries — and building it eagerly would make merely *importing* this module
+    require a materialised set.
+    """
+    from fpbench.experiments.sourceafis_canonical500_full import (
+        canonical_preparer_factory,
+        load_canonical_experiment_config,
+    )
+    from fpbench.experiments.sourceafis_validation import (
+        CanonicalPreparationExpectations,
+    )
+
+    config = load_canonical_experiment_config()
+    spec = config.to_spec()
+    preparer = canonical_preparer_factory(Path(workspace), spec)
+    preparer.preflight()
+    return CanonicalPreparationExpectations(
+        execution_profile_id=spec.execution_profile.profile_id,
+        preparer_id=preparer.preparer_id,
+        preparer_version=preparer.preparer_version,
+        runner_metadata_schema=preparer.runner_metadata_schema,
+        preparation_set_id=str(spec.preparation_set_id),
+        preparation_set_fingerprint=str(spec.preparation_set_fingerprint),
+        transform_profile_id=str(spec.transform_profile_id),
+        transform_profile_fingerprint=str(spec.transform_profile_fingerprint),
+        transform_runtime_fingerprint=str(
+            preparer.run_metadata()["transform_runtime_fingerprint"]
+        ),
+        target_ppi=int(spec.execution_profile.parameters["target_ppi"]),
+        entries=preparer.prepared_entries(),
+        expected_source_ppi=dict(spec.expected_source_ppi),
+    )
 
 
-def load_decision_experiment_config(
+def load_canonical_decision_spec(
     *,
     decision_profile_config: Path = DEFAULT_DECISION_CONFIG,
     repository_root: Path = REPOSITORY_ROOT,
 ) -> SourceAfisDecisionExperimentSpec:
-    """Assemble the native derivation's specification.
-
-    Reading the native run's experiment config here — rather than in the shared
-    engine — is what keeps the engine free of any dependency on either run
-    module (spec section 12).
-    """
-    from fpbench.experiments.sourceafis_native_full import (
+    """What the shared engine is given for the canonical derivation."""
+    from fpbench.experiments.sourceafis_canonical500_full import (
         DEFAULT_EXPERIMENT_CONFIG,
-        load_experiment_config,
+        load_canonical_experiment_config,
     )
 
-    source = load_experiment_config(repository_root=repository_root)
+    source = load_canonical_experiment_config(repository_root=repository_root)
     return SourceAfisDecisionExperimentSpec(
         experiment_id=EXPERIMENT_ID,
         source_experiment_id=source.experiment_id,
@@ -132,14 +156,14 @@ def load_decision_experiment_config(
         expected_rows_per_view=EXPECTED_VIEW_ROWS,
         expected_units_per_release=EXPECTED_UNITS_PER_RELEASE,
         non_mated_finger_shift=load_non_mated_finger_shift(source.protocol_config),
-        preparation_expectations=None,
+        preparation_expectations=_canonical_preparation_expectations,
     )
 
 
 # ------------------------------------------------------------------ commands
 
 
-def prepare_native_decision_derivation(
+def prepare_canonical_decision_derivation(
     *,
     workspace: Path = DEFAULT_WORKSPACE,
     config: SourceAfisDecisionExperimentSpec | None = None,
@@ -148,7 +172,7 @@ def prepare_native_decision_derivation(
     require_expected_shape: bool = True,
 ) -> PreparedDerivation:
     return prepare_decision_derivation(
-        spec=config or load_decision_experiment_config(repository_root=repository_root),
+        spec=config or load_canonical_decision_spec(repository_root=repository_root),
         workspace=Path(workspace),
         repository_root=repository_root,
         run_id=run_id,
@@ -156,7 +180,7 @@ def prepare_native_decision_derivation(
     )
 
 
-def derive_native_decisions(
+def derive_canonical_decisions(
     *,
     workspace: Path = DEFAULT_WORKSPACE,
     config: SourceAfisDecisionExperimentSpec | None = None,
@@ -165,7 +189,7 @@ def derive_native_decisions(
     require_expected_shape: bool = True,
 ) -> str:
     return derive_decisions(
-        spec=config or load_decision_experiment_config(repository_root=repository_root),
+        spec=config or load_canonical_decision_spec(repository_root=repository_root),
         workspace=Path(workspace),
         repository_root=repository_root,
         run_id=run_id,
@@ -173,7 +197,7 @@ def derive_native_decisions(
     )
 
 
-def inspect_sourceafis_native_decisions(
+def inspect_canonical_decisions(
     *,
     workspace: Path = DEFAULT_WORKSPACE,
     config: SourceAfisDecisionExperimentSpec | None = None,
@@ -182,7 +206,7 @@ def inspect_sourceafis_native_decisions(
     decision_set_id: str | None = None,
 ) -> DecisionDerivationState:
     return inspect_decisions(
-        spec=config or load_decision_experiment_config(repository_root=repository_root),
+        spec=config or load_canonical_decision_spec(repository_root=repository_root),
         workspace=Path(workspace),
         repository_root=repository_root,
         run_id=run_id,
@@ -190,7 +214,7 @@ def inspect_sourceafis_native_decisions(
     )
 
 
-def finalize_native_decision_derivation(
+def finalize_canonical_decision_derivation(
     *,
     workspace: Path = DEFAULT_WORKSPACE,
     config: SourceAfisDecisionExperimentSpec | None = None,
@@ -199,7 +223,7 @@ def finalize_native_decision_derivation(
     decision_set_id: str | None = None,
 ) -> DecisionDerivationReceipt:
     return finalize_decision_derivation(
-        spec=config or load_decision_experiment_config(repository_root=repository_root),
+        spec=config or load_canonical_decision_spec(repository_root=repository_root),
         workspace=Path(workspace),
         repository_root=repository_root,
         run_id=run_id,
@@ -207,20 +231,17 @@ def finalize_native_decision_derivation(
     )
 
 
-#: Historical names, kept so that stage 5A/5B tests and callers keep working.
-prepare_decision_derivation_native = prepare_native_decision_derivation
-
-
 # --------------------------------------------------------------------- CLI
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python -m fpbench.experiments.sourceafis_native_decisions",
+        prog="python -m fpbench.experiments.sourceafis_canonical500_decisions",
         description=(
-            "Apply a documented threshold to the finished native SourceAFIS run. "
-            "Produces decisions, SELF eligibility and evaluation views; computes "
-            "no metric and makes no accuracy claim."
+            "Apply SourceAFIS's documented threshold 40, transferred unchanged, to "
+            "the finished canonical 500 ppi run. Produces decisions, SELF "
+            "eligibility and evaluation views; calibrates nothing and computes no "
+            "metric."
         ),
     )
     parser.add_argument("command", choices=("prepare", "derive", "status", "finalize"))
@@ -234,13 +255,13 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     arguments = _parser().parse_args(list(argv) if argv is not None else None)
     try:
-        config = load_decision_experiment_config(
+        config = load_canonical_decision_spec(
             decision_profile_config=arguments.profile
         )
         shared = {"workspace": arguments.workspace, "config": config}
 
         if arguments.command == "prepare":
-            prepared = prepare_native_decision_derivation(
+            prepared = prepare_canonical_decision_derivation(
                 **shared, run_id=arguments.run_id
             )
             print(f"run          {prepared.run.run_id}")
@@ -249,18 +270,21 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"threshold    {prepared.profile.threshold} "
                   f"({prepared.profile.comparator.value}, "
                   f"{prepared.profile.origin.value})")
+            print(f"transferred  from "
+                  f"{prepared.profile.metadata.get('transfer.source_profile_id')} "
+                  f"(unchanged)")
             print(f"definition   {prepared.definition.definition_id}")
             print(f"units        {len(prepared.units)}")
             return 0
 
         if arguments.command == "derive":
-            set_id = derive_native_decisions(**shared, run_id=arguments.run_id)
+            set_id = derive_canonical_decisions(**shared, run_id=arguments.run_id)
             print(f"decision set {set_id}")
             print("next         finalize")
             return 0
 
         if arguments.command == "status":
-            state = inspect_sourceafis_native_decisions(
+            state = inspect_canonical_decisions(
                 **shared,
                 run_id=arguments.run_id,
                 decision_set_id=arguments.decision_set_id,
@@ -283,7 +307,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(f"  issue      {issue}")
             return 0
 
-        receipt = finalize_native_decision_derivation(
+        receipt = finalize_canonical_decision_derivation(
             **shared,
             run_id=arguments.run_id,
             decision_set_id=arguments.decision_set_id,
@@ -297,12 +321,12 @@ def main(argv: Sequence[str] | None = None) -> int:
               f"{receipt.undecidable_count} undecidable)")
         for kind, rows in sorted(receipt.view_total_rows.items()):
             print(f"  view       {kind}: {rows} rows")
-        print(f"receipt      evidence/sourceafis-native-decisions/"
+        print(f"receipt      evidence/sourceafis-canonical500-decisions/"
               f"{receipt.decision_set_id}.json")
         print(receipt.statement)
         return 0
     except (
-        ResearchPreflightError,
+        PreflightError,
         ConfigurationError,
         DecisionProfileError,
         DerivationError,

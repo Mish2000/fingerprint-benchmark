@@ -1,26 +1,25 @@
-"""Counting the 6,000 native SourceAFIS decisions, in five commands.
+"""Counting the 6,000 canonical SourceAFIS decisions, in five commands.
 
-    python -m fpbench.experiments.sourceafis_native_evaluation prepare
-    python -m fpbench.experiments.sourceafis_native_evaluation derive
-    python -m fpbench.experiments.sourceafis_native_evaluation status
-    python -m fpbench.experiments.sourceafis_native_evaluation finalize
-    python -m fpbench.experiments.sourceafis_native_evaluation show
+    python -m fpbench.experiments.sourceafis_canonical500_evaluation prepare
+    python -m fpbench.experiments.sourceafis_canonical500_evaluation derive
+    python -m fpbench.experiments.sourceafis_canonical500_evaluation status
+    python -m fpbench.experiments.sourceafis_canonical500_evaluation finalize
+    python -m fpbench.experiments.sourceafis_canonical500_evaluation show
 
-Since stage 6B the work happens in
-:mod:`fpbench.experiments.sourceafis_evaluation`, shared with the canonical
-evaluation. This module is what that engine is given: the native evaluation
-config, the native decision spec beneath it, and the native evidence directory.
+The canonical sibling of ``sourceafis_native_evaluation``, and a wrapper of the
+same size: the arithmetic happens in
+:mod:`fpbench.experiments.sourceafis_evaluation`, shared with the native
+evaluation, under the identical metric policy.
 
-Nothing about this evaluation's identity changed when the code moved. Same
-decision set, same policy, same report profile, same metric-software
-fingerprint, and therefore the same `metricset_f6ffa71f3880` and the same report
-bytes — which a regression test asserts rather than assumes (spec section 4).
+**The metrics are not redefined because the input is canonical.** Same fourteen
+metrics, same numerators, same denominators, same pooling rule. A metric whose
+denominator changed with the input would make the two evaluations
+incommensurable, which is the opposite of the point (spec section 22).
 
-What it produces is the project's first biometric result, and the first thing
-worth saying about that result is what it is not. It is a set of observed counts
-over a closed cohort under one documented threshold. It is not an accuracy
-figure, not a false-match rate, not a comparison between capture resolutions, and
-not an estimate with an interval around it (docs/adr/0026 through docs/adr/0030).
+The report this produces stands alone. It says what the canonical run measured
+and under which threshold, and it makes no comparison with the native run at
+all — that comparison is a third artefact with its own identity, its own policy
+and its own refusals (spec section 23).
 """
 
 from __future__ import annotations
@@ -35,11 +34,13 @@ from fpbench.core.errors import (
     DerivationError,
     MetricError,
     MetricPolicyError,
-    ResearchPreflightError,
+    PreflightError,
     StorageError,
 )
 from fpbench.core.evaluation_models import EvaluationState
-from fpbench.metrics.receipt import EVIDENCE_DIRECTORY
+from fpbench.experiments.sourceafis_canonical500_decisions import (
+    load_canonical_decision_spec,
+)
 from fpbench.experiments.sourceafis_evaluation import (
     EvaluationExperimentConfig,
     PreparedEvaluation,
@@ -53,20 +54,17 @@ from fpbench.experiments.sourceafis_evaluation import (
 from fpbench.experiments.sourceafis_evaluation import (
     load_evaluation_config as _load_evaluation_config,
 )
-from fpbench.experiments.sourceafis_native_decisions import (
-    load_decision_experiment_config,
-)
 
 __all__ = [
-    "EvaluationExperimentConfig",
-    "PreparedEvaluation",
+    "EVIDENCE_DIRECTORY",
+    "DEFAULT_EVALUATION_CONFIG",
     "load_evaluation_config",
-    "native_evaluation_spec",
-    "prepare_native_evaluation",
-    "derive_native_metrics",
-    "inspect_sourceafis_native_evaluation",
-    "finalize_native_evaluation",
-    "read_native_verified_report",
+    "canonical_evaluation_spec",
+    "prepare_canonical_evaluation",
+    "derive_canonical_metrics",
+    "inspect_canonical_evaluation",
+    "finalize_canonical_evaluation",
+    "read_canonical_verified_report",
     "main",
 ]
 
@@ -76,8 +74,11 @@ DEFAULT_EVALUATION_CONFIG = (
     REPOSITORY_ROOT
     / "configs"
     / "evaluations"
-    / "sourceafis_native_threshold40_v1.yaml"
+    / "sourceafis_canonical500_threshold40_v1.yaml"
 )
+
+#: One JSON and one Markdown file per canonical metric set.
+EVIDENCE_DIRECTORY = Path("evidence") / "sourceafis-canonical500-evaluation"
 
 
 def load_evaluation_config(
@@ -85,21 +86,18 @@ def load_evaluation_config(
     *,
     repository_root: Path = REPOSITORY_ROOT,
 ) -> EvaluationExperimentConfig:
-    """Read the native evaluation config. Kept for stage 5B callers."""
     return _load_evaluation_config(path, repository_root=repository_root)
 
 
-def native_evaluation_spec(
+def canonical_evaluation_spec(
     *,
     evaluation_config: Path = DEFAULT_EVALUATION_CONFIG,
     repository_root: Path = REPOSITORY_ROOT,
 ) -> SourceAfisEvaluationExperimentSpec:
-    """What the shared engine is given for the native evaluation."""
+    """What the shared engine is given for the canonical evaluation."""
     return SourceAfisEvaluationExperimentSpec(
         evaluation_config=Path(evaluation_config),
-        decision_spec=load_decision_experiment_config(
-            repository_root=repository_root
-        ),
+        decision_spec=load_canonical_decision_spec(repository_root=repository_root),
         evidence_directory=EVIDENCE_DIRECTORY,
     )
 
@@ -107,18 +105,16 @@ def native_evaluation_spec(
 # ------------------------------------------------------------------ commands
 
 
-def prepare_native_evaluation(
+def prepare_canonical_evaluation(
     *,
     workspace: Path = DEFAULT_WORKSPACE,
-    config: EvaluationExperimentConfig | None = None,
     repository_root: Path = REPOSITORY_ROOT,
     require_expected_shape: bool = True,
     permissive_provenance: bool = False,
     evaluation_config: Path = DEFAULT_EVALUATION_CONFIG,
 ) -> PreparedEvaluation:
-    del config  # the engine reads the file; the object is only a caller's cache
     return prepare_evaluation(
-        spec=native_evaluation_spec(
+        spec=canonical_evaluation_spec(
             evaluation_config=evaluation_config, repository_root=repository_root
         ),
         workspace=Path(workspace),
@@ -128,7 +124,7 @@ def prepare_native_evaluation(
     )
 
 
-def derive_native_metrics(
+def derive_canonical_metrics(
     *,
     workspace: Path = DEFAULT_WORKSPACE,
     repository_root: Path = REPOSITORY_ROOT,
@@ -136,7 +132,7 @@ def derive_native_metrics(
     evaluation_config: Path = DEFAULT_EVALUATION_CONFIG,
 ) -> str:
     return derive_metrics(
-        spec=native_evaluation_spec(
+        spec=canonical_evaluation_spec(
             evaluation_config=evaluation_config, repository_root=repository_root
         ),
         workspace=Path(workspace),
@@ -145,17 +141,15 @@ def derive_native_metrics(
     )
 
 
-def inspect_sourceafis_native_evaluation(
+def inspect_canonical_evaluation(
     *,
     workspace: Path = DEFAULT_WORKSPACE,
-    config: EvaluationExperimentConfig | None = None,
     repository_root: Path = REPOSITORY_ROOT,
     metric_set_id_override: str | None = None,
     evaluation_config: Path = DEFAULT_EVALUATION_CONFIG,
 ) -> EvaluationState:
-    del config
     return inspect_evaluation_experiment(
-        spec=native_evaluation_spec(
+        spec=canonical_evaluation_spec(
             evaluation_config=evaluation_config, repository_root=repository_root
         ),
         workspace=Path(workspace),
@@ -164,7 +158,7 @@ def inspect_sourceafis_native_evaluation(
     )
 
 
-def finalize_native_evaluation(
+def finalize_canonical_evaluation(
     *,
     workspace: Path = DEFAULT_WORKSPACE,
     repository_root: Path = REPOSITORY_ROOT,
@@ -172,7 +166,7 @@ def finalize_native_evaluation(
     evaluation_config: Path = DEFAULT_EVALUATION_CONFIG,
 ) -> str:
     return finalize_evaluation(
-        spec=native_evaluation_spec(
+        spec=canonical_evaluation_spec(
             evaluation_config=evaluation_config, repository_root=repository_root
         ),
         workspace=Path(workspace),
@@ -181,7 +175,7 @@ def finalize_native_evaluation(
     )
 
 
-def read_native_verified_report(
+def read_canonical_verified_report(
     *,
     workspace: Path = DEFAULT_WORKSPACE,
     repository_root: Path = REPOSITORY_ROOT,
@@ -189,7 +183,7 @@ def read_native_verified_report(
     evaluation_config: Path = DEFAULT_EVALUATION_CONFIG,
 ) -> str:
     return read_verified_report(
-        spec=native_evaluation_spec(
+        spec=canonical_evaluation_spec(
             evaluation_config=evaluation_config, repository_root=repository_root
         ),
         workspace=Path(workspace),
@@ -203,11 +197,12 @@ def read_native_verified_report(
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python -m fpbench.experiments.sourceafis_native_evaluation",
+        prog="python -m fpbench.experiments.sourceafis_canonical500_evaluation",
         description=(
-            "Count the finished native decision derivation under an immutable "
-            "metric policy. Applies no threshold, tries no alternative, and claims "
-            "no population-level false-match rate."
+            "Count the finished canonical 500 ppi decision derivation under the "
+            "same immutable metric policy the native evaluation used. Applies no "
+            "threshold, redefines no denominator, and compares nothing with the "
+            "native run."
         ),
     )
     parser.add_argument(
@@ -228,7 +223,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         }
 
         if arguments.command == "prepare":
-            prepared = prepare_native_evaluation(**shared)
+            prepared = prepare_canonical_evaluation(**shared)
             print(f"run          {prepared.run.run_id}")
             print(f"decision set {prepared.decision_manifest.decision_set_id}")
             print(f"eligibility  {prepared.eligibility_manifest.eligibility_set_id}")
@@ -240,13 +235,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
 
         if arguments.command == "derive":
-            set_id = derive_native_metrics(**shared)
+            set_id = derive_canonical_metrics(**shared)
             print(f"metric set   {set_id}")
             print("next         finalize")
             return 0
 
         if arguments.command == "status":
-            state = inspect_sourceafis_native_evaluation(
+            state = inspect_canonical_evaluation(
                 **shared, metric_set_id_override=arguments.metric_set_id
             )
             print(f"run          {state.run_id}")
@@ -267,23 +262,29 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
 
         if arguments.command == "finalize":
-            set_id = finalize_native_evaluation(
+            set_id = finalize_canonical_evaluation(
                 **shared, metric_set_id_override=arguments.metric_set_id
             )
             print(f"metric set   {set_id}")
-            print(f"evidence     evidence/sourceafis-native-evaluation/{set_id}.json")
-            print(f"             evidence/sourceafis-native-evaluation/{set_id}.md")
+            print(
+                f"evidence     evidence/sourceafis-canonical500-evaluation/"
+                f"{set_id}.json"
+            )
+            print(
+                f"             evidence/sourceafis-canonical500-evaluation/"
+                f"{set_id}.md"
+            )
             print("status       evaluation_ready")
             return 0
 
         print(
-            read_native_verified_report(
+            read_canonical_verified_report(
                 **shared, metric_set_id_override=arguments.metric_set_id
             )
         )
         return 0
     except (
-        ResearchPreflightError,
+        PreflightError,
         ConfigurationError,
         DerivationError,
         MetricError,

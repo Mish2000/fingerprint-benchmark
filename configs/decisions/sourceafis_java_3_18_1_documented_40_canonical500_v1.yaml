@@ -1,0 +1,73 @@
+# SourceAFIS's documented threshold 40, transferred unchanged to canonical inputs.
+#
+# The single most important sentence about this file:
+#
+#   The threshold of 40 was transferred without change to the canonical path in
+#   order to isolate the effect of image preparation.
+#
+# It is not a "recommended canonical threshold", not a "threshold adapted to
+# 500 ppi input", not a "threshold validated on SD300", and not an optimum.
+# Nothing has been calibrated. If 40 were re-chosen for the canonical inputs,
+# then the canonical and native runs would differ in *two* things and the paired
+# comparison would be measuring their sum (docs/adr/0021, spec section 9).
+#
+# It exists as a separate file only because the native profile's scope is
+# `native_identity_60s_v1` and nothing else — deliberately, since a threshold is
+# chosen for images prepared a particular way. Reusing it here would have meant
+# widening that scope, which is exactly the quiet change this project refuses to
+# make.
+
+profile:
+  profile_id: sourceafis_java_3_18_1_documented_40_canonical500_v1
+  display_name: SourceAFIS Java 3.18.1 documented threshold 40 on canonical 500 PPI
+
+  origin: documented_native
+  profile_version: "1"
+
+algorithm:
+  algorithm_id: sourceafis_java
+  implementation_version: "3.18.1"
+  score_direction: higher_is_better
+
+rule:
+  # Identical to the native profile, byte for byte. score >= 40 is a MATCH.
+  comparator: greater_than_or_equal
+  threshold: "40"
+
+scope:
+  # This profile covers canonical 500 ppi preparation and nothing else, for the
+  # same reason the native one covers native identity preparation and nothing
+  # else. Each refuses the other's execution profile.
+  execution_profiles:
+    - canonical_500_lanczos3_60s_v1
+
+transfer:
+  # Where the number came from, and what was deliberately not done to it. Every
+  # field here is inside the profile fingerprint, so a transfer that started
+  # claiming a calibration, or pointed at a different source profile, would be a
+  # different profile and could not be mistaken for this one (spec section 10).
+  source_profile_id: sourceafis_java_3_18_1_documented_40_v1
+  threshold_unchanged: true
+  calibration_performed: false
+  test_cohort_used: false
+  interpretation: upstream_documented_threshold_transferred_to_canonical_inputs
+
+provenance:
+  source_kind: upstream_documentation
+  source_reference: sourceafis_fingerprint_matcher_javadoc_3_18_1
+  source_version: "3.18.1"
+
+  # What upstream says about their own number, recorded as provenance and never
+  # as a finding. It describes SourceAFIS's own evaluation on their own data at
+  # their own resolution; it is not a measurement of anything in this study, and
+  # it is certainly not a measurement of anything at canonical 500 ppi.
+  upstream_claim: approximate_fmr_0_0001
+  upstream_claim_is_not_benchmark_result: true
+
+calibration:
+  performed: false
+
+  # The cohort these decisions are reported over is a TEST cohort. Choosing a
+  # threshold from it would be leakage, and the loader refuses this file outright
+  # if this is ever set to true.
+  test_cohort_used: false

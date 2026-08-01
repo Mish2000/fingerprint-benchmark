@@ -23,8 +23,8 @@ native:
 canonical:
   run_id: run_4c59fa02a6ab
   result_set_id: resultset_087b084fb8a8
-  decision_set_id: "TO_BE_FILLED_AFTER_CANONICAL_DERIVATION"
-  eligibility_set_id: "TO_BE_FILLED_AFTER_CANONICAL_DERIVATION"
+  decision_set_id: decisionset_df0d584bdede
+  eligibility_set_id: eligibilityset_d87d6591d517
   metric_set_id: "TO_BE_FILLED_AFTER_CANONICAL_EVALUATION"
 
 policy:

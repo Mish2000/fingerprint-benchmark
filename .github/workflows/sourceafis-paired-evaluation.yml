@@ -1,0 +1,107 @@
+# The native-versus-canonical paired comparison, on every push.
+#
+# No JVM and no dataset. Everything here is the comparison layer itself: the
+# alignment rules, the SD300A control, the transition matrices, the exact
+# rational rate differences, the decision-profile scopes, and the refusals that
+# keep two rates over different populations from being subtracted.
+#
+# The regression that matters most is the first job step: extracting the shared
+# decision and evaluation engines must not have changed any native identity. The
+# dataset-marked test that asserts that against the real workspace cannot run
+# here, so this runs the structural half — one engine, no cross-imports, no
+# duplicated derivation logic.
+
+name: sourceafis paired evaluation
+
+on:
+  push:
+    paths:
+      - "src/fpbench/paired/**"
+      - "src/fpbench/core/paired_models.py"
+      - "src/fpbench/core/enums.py"
+      - "src/fpbench/core/errors.py"
+      - "src/fpbench/decisions/**"
+      - "src/fpbench/eligibility/**"
+      - "src/fpbench/evaluation/**"
+      - "src/fpbench/metrics/**"
+      - "src/fpbench/experiments/**"
+      - "src/fpbench/storage/paired_*"
+      - "configs/comparisons/**"
+      - "configs/decisions/**"
+      - "configs/evaluations/**"
+      - "tests/pairedworld.py"
+      - "tests/**paired**"
+      - "tests/**shared_engine**"
+      - ".github/workflows/sourceafis-paired-evaluation.yml"
+  pull_request:
+    paths:
+      - "src/fpbench/paired/**"
+      - "src/fpbench/core/paired_models.py"
+      - "src/fpbench/core/enums.py"
+      - "src/fpbench/core/errors.py"
+      - "src/fpbench/decisions/**"
+      - "src/fpbench/eligibility/**"
+      - "src/fpbench/evaluation/**"
+      - "src/fpbench/metrics/**"
+      - "src/fpbench/experiments/**"
+      - "src/fpbench/storage/paired_*"
+      - "configs/comparisons/**"
+      - "configs/decisions/**"
+      - "configs/evaluations/**"
+      - "tests/pairedworld.py"
+      - "tests/**paired**"
+      - "tests/**shared_engine**"
+      - ".github/workflows/sourceafis-paired-evaluation.yml"
+
+jobs:
+  paired:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project and the pinned resampler
+        run: |
+          pip install -r requirements-imaging.lock
+          pip install -e ".[dev]"
+
+      # One engine, not two copies of it. Checked structurally: both wrappers
+      # import the same module, neither imports the other, and neither performs
+      # any derivation of its own (spec section 66).
+      - name: The two SourceAFIS paths share one engine
+        run: pytest tests/unit/test_shared_engine_separation.py -q
+
+      - name: Decision-profile scopes, paired storage, tampering
+        run: pytest tests/unit/test_paired_profile_and_store.py -q
+
+      - name: Alignment, control audit, transitions, exact differences
+        run: pytest tests/unit/test_paired_derivation.py -q
+
+      - name: The whole paired layer
+        run: pytest -m "paired_evaluation and not dataset and not sourceafis" -q
+
+      # The committed comparison config must name exact ids, never "latest", and
+      # the committed policy must still refuse every claim it is supposed to.
+      - name: The committed policy still refuses what it must
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, "src")
+          from fpbench.paired import load_paired_policy
+          policy = load_paired_policy(
+              Path("configs/comparisons/policies/"
+                   "sourceafis_native_vs_canonical500_paired_v1.yaml")
+          )
+          assert policy.pairing_key == "pair_id"
+          assert policy.sd300a_exact_score_equality
+          assert policy.sd300a_exact_decision_equality
+          assert not policy.report_distribution
+          print(f"policy {policy.policy_id} fingerprint {policy.policy_fingerprint[:16]}")
+          PY

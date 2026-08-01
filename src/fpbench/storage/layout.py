@@ -64,6 +64,8 @@ __all__ = [
     "prepared_image_blob_path",
     "prepared_image_pending_directory",
     "prepared_image_set_directory",
+    "paired_evaluations_root",
+    "paired_evaluation_directory",
     "VIEW_DIRECTORY_NAMES",
 ]
 
@@ -270,3 +272,36 @@ def prepared_image_pending_directory(root: Path, definition_id: str) -> Path:
 def prepared_image_set_directory(root: Path, preparation_set_id: str) -> Path:
     """The immutable, finished set."""
     return prepared_images_root(root) / validate_id(preparation_set_id)
+
+
+# ----------------------------------------------------------- paired analysis
+#
+# A paired comparison belongs to *two* runs, so it cannot live under either::
+#
+#     <workspace>/paired-evaluations/<paired_evaluation_id>/
+#     ├── definition.json
+#     ├── policy.json
+#     ├── manifest.json
+#     ├── paired-comparisons.parquet
+#     ├── eligibility-transitions.parquet
+#     ├── common-eligible-mated.parquet
+#     ├── transition-counts.parquet
+#     ├── observations.parquet
+#     ├── control-audit.json
+#     ├── summary.json
+#     ├── report.md
+#     ├── receipt.json
+#     └── finalization.json
+#
+# Filing it under the canonical run would suggest the canonical run is the
+# subject and the native one merely a reference. Neither is: the comparison is
+# symmetric in its inputs and asymmetric only in which direction its deltas are
+# written.
+
+
+def paired_evaluations_root(root: Path) -> Path:
+    return Path(root) / "paired-evaluations"
+
+
+def paired_evaluation_directory(root: Path, paired_evaluation_id: str) -> Path:
+    return paired_evaluations_root(root) / validate_id(paired_evaluation_id)

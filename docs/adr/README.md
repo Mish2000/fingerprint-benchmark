@@ -42,6 +42,9 @@ can be held to.
 | [0033](0033-prepared-image-sets-are-immutable-reusable-evidence.md) | A prepared-image set is materialised once, content-addressed, verified and reused | Accepted, implemented |
 | [0034](0034-pixel-and-encoded-identities-are-separate.md) | Raster identity and encoded-file identity are both retained | Accepted, implemented |
 | [0035](0035-self-reuses-prepared-pixels-but-not-template-extraction.md) | SELF reuses one prepared artefact; independence is two extractions | Accepted, implemented |
+| [0036](0036-paired-comparison-is-a-third-artefact.md) | A paired comparison has its own identity, under neither run | Accepted, implemented |
+| [0037](0037-the-threshold-transfers-unchanged.md) | The documented threshold transfers to canonical inputs unchanged | Accepted, implemented |
+| [0038](0038-conditional-rates-over-different-populations-are-not-subtracted.md) | Two rates over different populations are reported, never subtracted | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

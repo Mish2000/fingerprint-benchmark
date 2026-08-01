@@ -1,0 +1,65 @@
+# How the native and canonical derivations are compared, and what may not be said.
+#
+# Most of this file is a list of refusals, and that is deliberate. The
+# interesting failure mode of a paired analysis is not a wrong number — it is a
+# correct number presented as an answer to a question nobody asked.
+#
+# Every flag under `statistics` and `claims` names machinery that does not exist
+# in this project. The loader refuses the file if any of them is switched on,
+# because switching a flag would not create a sampling model, a hypothesis or an
+# impostor design chosen for estimation.
+
+policy:
+  policy_id: sourceafis_native_vs_canonical500_paired_v1
+  policy_version: "1"
+
+pairing:
+  # A job id is a hash over its own run and therefore differs between the two.
+  # Joining on it would match nothing; joining on an ordinal alone would match
+  # silently and wrongly (spec section 27).
+  key: pair_id
+
+  # Each of these must hold, or a change in the numbers is the sum of several
+  # causes rather than the effect of one.
+  require_same_pair_manifest: true
+  require_same_algorithm: true
+  require_same_runtime_bundle: true
+  require_same_threshold_rule: true
+
+control:
+  # SD300A's canonical artefacts preserve their source rasters byte for byte, so
+  # identical pixels went through an identical build. Anything other than exact
+  # reproduction means something unaccounted-for differs between the runs, and
+  # every other number here would then be measuring an unknown sum.
+  sd300a_exact_score_equality: required
+  sd300a_exact_decision_equality: required
+
+transitions:
+  plain_self: true
+  roll_self: true
+  mated_unconditional: true
+  negative_sanity: true
+  eligibility: true
+  # The only mated population the two runs share, and therefore the only one
+  # whose conditional rates may be subtracted (spec sections 39-41).
+  mated_common_eligible: true
+
+scores:
+  # Kept per pair so the control can be checked exactly and directions counted.
+  retain_pair_delta: true
+  report_direction_counts: true
+
+  # No mean, no median, no histogram. A distribution of deltas invites a claim
+  # about magnitude that nothing here supports (spec section 31).
+  report_distribution: false
+
+statistics:
+  confidence_intervals: false
+  significance_tests: false
+  bootstrap: false
+  mcnemar: false
+
+claims:
+  resolution_superiority: false
+  capture_quality_causality: false
+  general_fmr: false

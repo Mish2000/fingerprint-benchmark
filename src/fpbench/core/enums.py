@@ -39,6 +39,10 @@ __all__ = [
     "MetricObservationStatus",
     "EvaluationStatus",
     "PreparationStatus",
+    "DecisionOutcome",
+    "ScoreRelation",
+    "ComparabilityStatus",
+    "PairedEvaluationStatus",
 ]
 
 
@@ -513,6 +517,88 @@ class EvaluationStatus(str, Enum):
     METRICS_READY = "metrics_ready"
     REPORT_READY = "report_ready"
     EVALUATION_READY = "evaluation_ready"
+    INVALID = "invalid"
+
+
+# ------------------------------------------------------------ paired analysis
+#
+# The vocabulary of comparing two finished derivations of the same 6,000 pairs.
+# Nothing here is a verdict about which run is better: these name *what
+# changed*, and whether the two sides were even measuring the same population.
+
+
+class DecisionOutcome(str, Enum):
+    """What one threshold said about one comparison, in three values.
+
+    The join of :class:`DecisionApplicationStatus` and :class:`DecisionValue`,
+    flattened so a transition matrix can have a row for it. ``UNDECIDABLE`` is
+    kept as its own outcome and is never folded into ``NON_MATCH`` — a
+    comparison that produced no score did not fail to match, it failed to happen
+    (docs/adr/0006).
+    """
+
+    MATCH = "match"
+    NON_MATCH = "non_match"
+    UNDECIDABLE = "undecidable"
+
+
+class ScoreRelation(str, Enum):
+    """Which way a pair's score moved between two runs.
+
+    A direction and nothing more. Counting how many scores rose is a diagnostic;
+    it is not a measurement, and the distribution behind it is deliberately not
+    retained at this stage.
+    """
+
+    CANONICAL_LOWER = "canonical_lower"
+    EQUAL = "equal"
+    CANONICAL_HIGHER = "canonical_higher"
+    #: At least one side produced no score, so there is nothing to compare.
+    UNAVAILABLE = "unavailable"
+
+
+class ComparabilityStatus(str, Enum):
+    """Whether two rates may be subtracted from each other at all.
+
+    The distinction that keeps a conditional comparison honest. Two conditional
+    FNMRs computed over *different eligible populations* are two different
+    measurements, and their difference is not the effect of anything — it is the
+    sum of the effect and the change in who was counted.
+    """
+
+    #: Same attempts on both sides, same denominator. Subtract freely.
+    DIRECTLY_COMPARABLE = "directly_comparable"
+    #: Same attempts, but the two sides could decide different subsets of them.
+    #: The attempt-level rates are comparable; the decided-level ones are not.
+    SAME_ATTEMPTS_DIFFERENT_DECIDED_SUBSETS = (
+        "same_attempts_different_decided_subsets"
+    )
+    #: The two sides selected different rows. Report them side by side, never as
+    #: a difference.
+    DIFFERENT_SELECTION = "different_selection"
+    #: One side had nothing to divide by.
+    UNDEFINED = "undefined"
+
+
+class PairedEvaluationStatus(str, Enum):
+    """How much of a paired comparison's evidence chain is in place.
+
+    The same shape as every other status ladder in this project, and for the
+    same reason: everything before the finalization marker is retryable work.
+
+    ``PAIRED_EVALUATION_READY`` additionally requires a clean control audit. If
+    the 2,000 SD300A comparisons — identical pixels, identical build, identical
+    pairs — did not produce identical scores and identical decisions, then
+    something other than image preparation differs between the two runs, and no
+    number derived from them means what it appears to mean.
+    """
+
+    NOT_PREPARED = "not_prepared"
+    SOURCES_READY = "sources_ready"
+    RECORDS_READY = "records_ready"
+    AGGREGATES_READY = "aggregates_ready"
+    REPORT_READY = "report_ready"
+    PAIRED_EVALUATION_READY = "paired_evaluation_ready"
     INVALID = "invalid"
 
 

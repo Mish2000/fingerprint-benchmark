@@ -54,6 +54,13 @@ __all__ = [
     "PreparationIntegrityError",
     "PreparationFinalizationError",
     "PreparedImageDriftError",
+    "PairedEvaluationError",
+    "PairedSourceMismatchError",
+    "PairedAlignmentError",
+    "ControlAuditError",
+    "PairedEvaluationConflictError",
+    "PairedEvaluationIntegrityError",
+    "PairedFinalizationError",
 ]
 
 
@@ -419,3 +426,64 @@ class PreparedImageDriftError(RuntimeDriftError):
     would claim an input it did not have, and no later run can salvage it — the
     fix is a new preparation set and a new run (docs/adr/0033).
     """
+
+
+# ------------------------------------------------------------ paired analysis
+#
+# The layer that compares two finished derivations of the same 6,000 pairs.
+# Still not a biometric vocabulary: a comparison that moved from MATCH to
+# NON_MATCH is a finding, not an error. These are the conditions under which a
+# *comparison* cannot honestly be produced or believed (docs/adr/0036).
+
+
+class PairedEvaluationError(FpbenchError):
+    """Two derivation chains could not be compared as defined."""
+
+
+class PairedSourceMismatchError(PairedEvaluationError):
+    """The two runs differ in something other than image preparation.
+
+    A different cohort, a different pair manifest, a different algorithm build,
+    a different bridge jar, a different runtime bundle or a different threshold.
+    Any of them makes the comparison measure a sum rather than a difference, and
+    there is deliberately no warn-and-continue path (spec section 6).
+    """
+
+
+class PairedAlignmentError(PairedEvaluationError):
+    """The two runs' comparisons do not line up pair for pair.
+
+    A missing pair, a duplicate, an extra one, a swapped left and right, a
+    different release or protocol stage for the same ``pair_id``. Joining
+    anyway would compare two different comparisons and call the result an
+    effect (spec section 28).
+    """
+
+
+class ControlAuditError(PairedEvaluationError):
+    """SD300A did not reproduce exactly.
+
+    Its canonical artefacts preserve their source rasters byte for byte, the
+    algorithm is deterministic, and the build is identical — so every one of the
+    2,000 SD300A comparisons must have produced the same score and the same
+    decision. One mismatch means something unaccounted-for differs between the
+    runs, and every other number in the comparison is then measuring an unknown
+    sum (spec section 32).
+    """
+
+
+class PairedEvaluationConflictError(StorageError):
+    """A different paired comparison is already stored under this identity."""
+
+
+class PairedEvaluationIntegrityError(PairedEvaluationError):
+    """A stored paired comparison does not survive re-derivation.
+
+    A paired comparison is not evidence of itself: verification re-aligns every
+    pair, recomputes every transition, re-derives every exact difference and
+    re-renders the report, then compares.
+    """
+
+
+class PairedFinalizationError(PairedEvaluationError):
+    """A comparison could not be finalised, or its marker no longer holds."""

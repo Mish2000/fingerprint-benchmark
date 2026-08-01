@@ -1,0 +1,32 @@
+# The paired comparison: the same 6,000 pairs, two preparation paths.
+#
+# Every id below is exact. There is deliberately no "latest": a comparison that
+# resolved its own inputs would silently become a different comparison the next
+# time either chain was re-derived, while continuing to cite the same evidence
+# file (spec section 26).
+#
+# The canonical ids are filled in after the canonical derivation and evaluation
+# have produced them, for the same reason the preparation-set id was filled in
+# after the images existed: each is derived from the artefacts beneath it and
+# cannot be known before them.
+
+experiment:
+  id: sourceafis_native_vs_canonical500_v1
+
+native:
+  run_id: run_7ac1cecc0bb3
+  result_set_id: resultset_2bf3cacfd806
+  decision_set_id: decisionset_0122544e71b1
+  eligibility_set_id: eligibilityset_77dbf75cdc76
+  metric_set_id: metricset_f6ffa71f3880
+
+canonical:
+  run_id: run_4c59fa02a6ab
+  result_set_id: resultset_087b084fb8a8
+  decision_set_id: "TO_BE_FILLED_AFTER_CANONICAL_DERIVATION"
+  eligibility_set_id: "TO_BE_FILLED_AFTER_CANONICAL_DERIVATION"
+  metric_set_id: "TO_BE_FILLED_AFTER_CANONICAL_EVALUATION"
+
+policy:
+  policy_id: sourceafis_native_vs_canonical500_paired_v1
+  ref: configs/comparisons/policies/sourceafis_native_vs_canonical500_paired_v1.yaml

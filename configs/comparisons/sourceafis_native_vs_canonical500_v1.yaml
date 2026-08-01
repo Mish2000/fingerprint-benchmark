@@ -25,7 +25,7 @@ canonical:
   result_set_id: resultset_087b084fb8a8
   decision_set_id: decisionset_df0d584bdede
   eligibility_set_id: eligibilityset_d87d6591d517
-  metric_set_id: "TO_BE_FILLED_AFTER_CANONICAL_EVALUATION"
+  metric_set_id: metricset_b4c70fbfd1d3
 
 policy:
   policy_id: sourceafis_native_vs_canonical500_paired_v1

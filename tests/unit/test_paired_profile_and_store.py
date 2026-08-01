@@ -445,7 +445,7 @@ def test_the_receipt_sanitiser_refuses_per_pair_detail():
     original = module.to_plain
     module.to_plain = lambda _value: {
         **payload,
-        "rate_observations": {"x": {"pair_id": "sd300a_s0001_plain_f01"}},
+        "rate_observations": {"x": {"pair_id": "sd300a_00001012_plain_f01"}},
     }
     try:
         with pytest.raises(PairedEvaluationError, match="per-pair detail"):
@@ -506,3 +506,30 @@ def test_json_round_trip_of_a_manifest(tmp_path):
     write_json(store.manifest_path(manifest.paired_evaluation_id), payload)
     with pytest.raises(StorageError, match="must be derived from the fingerprint"):
         store.read_manifest(manifest.paired_evaluation_id)
+
+
+def test_the_sanitiser_does_not_fire_on_the_projects_own_field_names():
+    """``planned_sd300a_pairs`` is a count, not an inventory row.
+
+    The control audit legitimately names the release it audits. An id matcher
+    that fired on that would make every honest receipt unpublishable, which is
+    the failure mode a too-eager check actually has.
+    """
+    from fpbench.paired import require_sanitised_paired_receipt
+    import fpbench.paired.receipt as module
+
+    class _Receipt:
+        pass
+
+    original = module.to_plain
+    module.to_plain = lambda _value: {
+        "control_audit": {
+            "planned_sd300a_pairs": 2000,
+            "equal_scores": 2000,
+        },
+        "transition_counts": {"plain_self.sd300a": {"match_to_match": 500}},
+    }
+    try:
+        require_sanitised_paired_receipt(_Receipt())
+    finally:
+        module.to_plain = original

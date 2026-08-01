@@ -46,7 +46,7 @@ from fpbench.experiments.config_values import (
     require_yaml_positive_number,
     require_yaml_string_mapping,
 )
-from fpbench.core.research_models import ResearchRunReceipt, ResearchRunState
+from fpbench.core.research_models import ResearchReceipt, ResearchRunState
 from fpbench.execution.batch_runner import RunExecutionSummary
 from fpbench.experiments.research_receipt import EVIDENCE_DIRECTORY
 from fpbench.experiments.sd300_inputs import (
@@ -309,7 +309,7 @@ def finalize_sourceafis_native_run(
     config: ExperimentConfig | None = None,
     repository_root: Path = REPOSITORY_ROOT,
     run_id: str | None = None,
-) -> ResearchRunReceipt:
+) -> ResearchReceipt:
     """Revalidate everything and publish one last immutable commit marker."""
     config = config or load_experiment_config(repository_root=repository_root)
     return finalize_research_run(

@@ -26,10 +26,14 @@ from fpbench.core.models import ComparisonPair
 from fpbench.core.imaging_models import PreparedImageSetManifest
 from fpbench.core.provenance_models import SoftwareProvenance
 from fpbench.core.research_models import (
+    LegacyResearchFinalizationMarker,
+    LegacyResearchRunReceipt,
     NO_CONCLUSION_STATEMENT,
     RESEARCH_FINALIZATION_SCHEMA_VERSION,
     RESEARCH_RECEIPT_SCHEMA_VERSION,
+    ResearchFinalization,
     ResearchFinalizationMarker,
+    ResearchReceipt,
     ResearchRunReceipt,
     research_finalization_fingerprint,
     research_receipt_content_hash,
@@ -80,7 +84,7 @@ def build_research_receipt(
     primary_asset_role: str = LEGACY_PRIMARY_ASSET_ROLE,
     timing_summary: Mapping[str, str] | None = None,
     created_utc: str | None = None,
-) -> ResearchRunReceipt:
+) -> ResearchReceipt:
     """Derive the sanitised receipt for a finished, verified research run.
 
     Args:
@@ -105,13 +109,7 @@ def build_research_receipt(
         completion=completion,
     )
 
-    bridge_jar_sha256 = dict(runtime_reference.asset_sha256s).get(primary_asset_role)
-    if bridge_jar_sha256 is None:
-        raise RunIntegrityError(
-            f"the runtime reference for {run.run_id} holds no "
-            f"{primary_asset_role!r} asset; there is no executable to attribute "
-            "these results to"
-        )
+    integration_claims = _integration_claims(run)
 
     release_counts: dict[str, int] = {}
     stage_counts: dict[str, int] = {}
@@ -128,8 +126,7 @@ def build_research_receipt(
 
     preparation_claims = _preparation_claims(run, preparation_manifest)
 
-    return ResearchRunReceipt(
-        schema_version=RESEARCH_RECEIPT_SCHEMA_VERSION,
+    common: dict[str, Any] = dict(
         source_commit=software.source_revision,
         source_tree_clean=software.source_tree_clean,
         dataset_id=dataset_id,
@@ -142,11 +139,9 @@ def build_research_receipt(
         environment_fingerprint=run.environment_fingerprint,
         runtime_bundle_id=runtime_reference.bundle_id,
         runtime_bundle_fingerprint=runtime_reference.bundle_fingerprint,
-        bridge_jar_sha256=bridge_jar_sha256,
         result_set_id=result_set.result_set_id,
         result_set_fingerprint=result_set.result_set_fingerprint,
         audit_fingerprint=audit.audit_fingerprint,
-        sourceafis_validation_fingerprint=validation.validation_fingerprint,
         completion_id=completion.completion_id,
         completion_fingerprint=completion.completion_fingerprint,
         planned_jobs=plan.total_jobs,
@@ -162,6 +157,27 @@ def build_research_receipt(
         statement=NO_CONCLUSION_STATEMENT,
         created_utc=created_utc or _dt.datetime.now(_dt.timezone.utc).isoformat(),
     )
+    if integration_claims is None:
+        primary_sha = dict(runtime_reference.asset_sha256s).get(primary_asset_role)
+        if primary_sha is None:
+            raise RunIntegrityError(
+                f"the runtime reference for {run.run_id} holds no "
+                f"{primary_asset_role!r} asset; there is no executable to "
+                "attribute these results to"
+            )
+        return LegacyResearchRunReceipt(
+            schema_version="2",
+            bridge_jar_sha256=primary_sha,
+            sourceafis_validation_fingerprint=validation.validation_fingerprint,
+            **common,
+        )
+    return ResearchRunReceipt(
+        schema_version=RESEARCH_RECEIPT_SCHEMA_VERSION,
+        **integration_claims,
+        runtime_asset_sha256s=dict(runtime_reference.asset_sha256s),
+        algorithm_validation_fingerprint=validation.validation_fingerprint,
+        **common,
+    )
 
 
 def verify_research_receipt(
@@ -174,7 +190,7 @@ def verify_research_receipt(
     current_audit: RunAuditReport,
     current_algorithm_validation: AlgorithmValidationReport,
     completion: RunCompletion,
-    receipt: ResearchRunReceipt,
+    receipt: ResearchReceipt,
     preparation_manifest: PreparedImageSetManifest | None = None,
     primary_asset_role: str = LEGACY_PRIMARY_ASSET_ROLE,
 ) -> None:
@@ -217,21 +233,9 @@ def verify_research_receipt(
             f"the planned pairs name {sorted(dataset_ids)!r} datasets, expected one"
         )
 
-    primary_sha = dict(runtime_reference.asset_sha256s).get(primary_asset_role)
-    if primary_sha is None:
-        raise RunIntegrityError(
-            f"the runtime reference holds no {primary_asset_role!r} asset"
-        )
-
     source_commit = run.environment.runtime.get("fpbench.source.revision")
     source_clean = run.environment.runtime.get("fpbench.source.clean") == "true"
-    receipt_schema = (
-        "1"
-        if preparation_manifest is None and receipt.schema_version == "1"
-        else RESEARCH_RECEIPT_SCHEMA_VERSION
-    )
     expected: dict[str, Any] = {
-        "schema_version": receipt_schema,
         "source_commit": source_commit,
         "source_tree_clean": source_clean,
         "dataset_id": next(iter(dataset_ids)),
@@ -244,13 +248,9 @@ def verify_research_receipt(
         "environment_fingerprint": run.environment_fingerprint,
         "runtime_bundle_id": runtime_reference.bundle_id,
         "runtime_bundle_fingerprint": runtime_reference.bundle_fingerprint,
-        "bridge_jar_sha256": primary_sha,
         "result_set_id": result_set.result_set_id,
         "result_set_fingerprint": result_set.result_set_fingerprint,
         "audit_fingerprint": current_audit.audit_fingerprint,
-        "sourceafis_validation_fingerprint": (
-            current_algorithm_validation.validation_fingerprint
-        ),
         "completion_id": completion.completion_id,
         "completion_fingerprint": completion.completion_fingerprint,
         "planned_jobs": plan.total_jobs,
@@ -265,6 +265,38 @@ def verify_research_receipt(
         "stage_counts": dict(sorted(stage_counts.items())),
         **_preparation_claims(run, preparation_manifest),
     }
+    if isinstance(receipt, LegacyResearchRunReceipt):
+        primary_sha = dict(runtime_reference.asset_sha256s).get(primary_asset_role)
+        if primary_sha is None:
+            raise RunIntegrityError(
+                f"the runtime reference holds no {primary_asset_role!r} asset"
+            )
+        expected.update(
+            schema_version=(
+                "1"
+                if preparation_manifest is None and receipt.schema_version == "1"
+                else "2"
+            ),
+            bridge_jar_sha256=primary_sha,
+            sourceafis_validation_fingerprint=(
+                current_algorithm_validation.validation_fingerprint
+            ),
+        )
+    else:
+        integration_claims = _integration_claims(run)
+        if integration_claims is None:
+            raise RunIntegrityError(
+                "a generic research receipt cannot verify a legacy run without "
+                "integration identity"
+            )
+        expected.update(
+            schema_version=RESEARCH_RECEIPT_SCHEMA_VERSION,
+            **integration_claims,
+            runtime_asset_sha256s=dict(runtime_reference.asset_sha256s),
+            algorithm_validation_fingerprint=(
+                current_algorithm_validation.validation_fingerprint
+            ),
+        )
     for field_name, expected_value in expected.items():
         actual = getattr(receipt, field_name)
         if isinstance(actual, Mapping):
@@ -285,17 +317,16 @@ def build_research_finalization_marker(
     audit: RunAuditReport,
     validation: AlgorithmValidationReport,
     completion: RunCompletion,
-    receipt: ResearchRunReceipt,
+    receipt: ResearchReceipt,
     verifier_software: SoftwareProvenance,
     created_utc: str | None = None,
-) -> ResearchFinalizationMarker:
+) -> ResearchFinalization:
     """Build the last-written authority over an already verified chain."""
     if not verifier_software.is_research_grade:
         raise RunIntegrityError(
             "research finalization requires a committed, clean verifier revision"
         )
-    claims = {
-        "schema_version": RESEARCH_FINALIZATION_SCHEMA_VERSION,
+    claims: dict[str, Any] = {
         "run_id": run.run_id,
         "run_fingerprint": run.run_fingerprint,
         "plan_id": plan.plan_id,
@@ -306,15 +337,32 @@ def build_research_finalization_marker(
         ),
         "result_set_fingerprint": result_set.result_set_fingerprint,
         "audit_fingerprint": audit.audit_fingerprint,
-        "sourceafis_validation_fingerprint": validation.validation_fingerprint,
         "completion_fingerprint": completion.completion_fingerprint,
         "receipt_fingerprint": research_receipt_fingerprint(receipt),
         "receipt_content_hash": research_receipt_content_hash(receipt),
         "verifier_source_commit": verifier_software.source_revision,
         "verifier_source_tree_clean": verifier_software.source_tree_clean,
     }
+    if isinstance(receipt, LegacyResearchRunReceipt):
+        claims.update(
+            schema_version="3",
+            sourceafis_validation_fingerprint=validation.validation_fingerprint,
+        )
+        marker_type = LegacyResearchFinalizationMarker
+    else:
+        integration_claims = _integration_claims(run)
+        if integration_claims is None:
+            raise RunIntegrityError(
+                "a generic finalization marker requires integration identity"
+            )
+        claims.update(
+            schema_version=RESEARCH_FINALIZATION_SCHEMA_VERSION,
+            **integration_claims,
+            algorithm_validation_fingerprint=validation.validation_fingerprint,
+        )
+        marker_type = ResearchFinalizationMarker
     fingerprint = research_finalization_fingerprint(claims)
-    return ResearchFinalizationMarker(
+    return marker_type(
         **claims,
         finalization_id=f"finalization_{fingerprint[:12]}",
         finalization_fingerprint=fingerprint,
@@ -324,7 +372,7 @@ def build_research_finalization_marker(
 
 def verify_research_finalization_marker(
     *,
-    marker: ResearchFinalizationMarker,
+    marker: ResearchFinalization,
     run: RunDefinition,
     plan: ExecutionPlan,
     runtime_reference: RunRuntimeReference,
@@ -332,7 +380,7 @@ def verify_research_finalization_marker(
     current_audit: RunAuditReport,
     current_algorithm_validation: AlgorithmValidationReport,
     completion: RunCompletion,
-    receipt: ResearchRunReceipt,
+    receipt: ResearchReceipt,
 ) -> None:
     """Confirm the final marker still names every current durable artefact."""
     expected = {
@@ -346,13 +394,34 @@ def verify_research_finalization_marker(
         ),
         "result_set_fingerprint": result_set.result_set_fingerprint,
         "audit_fingerprint": current_audit.audit_fingerprint,
-        "sourceafis_validation_fingerprint": (
-            current_algorithm_validation.validation_fingerprint
-        ),
         "completion_fingerprint": completion.completion_fingerprint,
         "receipt_fingerprint": research_receipt_fingerprint(receipt),
         "receipt_content_hash": research_receipt_content_hash(receipt),
     }
+    if isinstance(marker, LegacyResearchFinalizationMarker):
+        if not isinstance(receipt, LegacyResearchRunReceipt):
+            raise RunIntegrityError(
+                "a legacy finalization marker cannot authorize a generic receipt"
+            )
+        expected["sourceafis_validation_fingerprint"] = (
+            current_algorithm_validation.validation_fingerprint
+        )
+    else:
+        if isinstance(receipt, LegacyResearchRunReceipt):
+            raise RunIntegrityError(
+                "a generic finalization marker cannot authorize a legacy receipt"
+            )
+        integration_claims = _integration_claims(run)
+        if integration_claims is None:
+            raise RunIntegrityError(
+                "a generic finalization marker requires integration identity"
+            )
+        expected.update(
+            **integration_claims,
+            algorithm_validation_fingerprint=(
+                current_algorithm_validation.validation_fingerprint
+            ),
+        )
     for field_name, expected_value in expected.items():
         actual = getattr(marker, field_name)
         if actual != expected_value:
@@ -363,7 +432,7 @@ def verify_research_finalization_marker(
 
 
 def write_evidence_copy(
-    receipt: ResearchRunReceipt,
+    receipt: ResearchReceipt,
     *,
     repository_root: Path,
     directory: Path = EVIDENCE_DIRECTORY,
@@ -427,6 +496,23 @@ def write_evidence_copy(
 
 
 # ----------------------------------------------------------------- internals
+
+
+def _integration_claims(run: RunDefinition) -> dict[str, str] | None:
+    integration_id = run.environment.runtime.get("fpbench.integration.id")
+    integration_fingerprint = run.environment.runtime.get(
+        "fpbench.integration.fingerprint"
+    )
+    if integration_id is None and integration_fingerprint is None:
+        return None
+    if integration_id is None or integration_fingerprint is None:
+        raise RunIntegrityError(
+            "research environment contains an incomplete integration identity"
+        )
+    return {
+        "integration_id": integration_id,
+        "integration_fingerprint": integration_fingerprint,
+    }
 
 
 def _preparation_claims(
@@ -534,7 +620,7 @@ def _require_consistent(
         )
     if not validation.is_clean:
         raise RunIntegrityError(
-            f"run {run.run_id} failed SourceAFIS validation: "
+            f"run {run.run_id} failed algorithm validation: "
             f"{[issue.code.value for issue in validation.errors][:5]}"
         )
     if validation.total_results != plan.total_jobs:

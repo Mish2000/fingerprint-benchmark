@@ -35,7 +35,11 @@ from fpbench.core.execution_models import (
 )
 from fpbench.core.identifiers import CohortId, validate_id
 from fpbench.core.research_models import (
+    LegacyResearchFinalizationMarker,
+    LegacyResearchRunReceipt,
+    ResearchFinalization,
     ResearchFinalizationMarker,
+    ResearchReceipt,
     ResearchRunReceipt,
 )
 from fpbench.core.result_models import (
@@ -266,7 +270,7 @@ class ResultStore:
     def has_research_receipt(self, run_id: str) -> bool:
         return self.research_receipt_path(run_id).is_file()
 
-    def ensure_research_receipt(self, receipt: ResearchRunReceipt) -> Path:
+    def ensure_research_receipt(self, receipt: ResearchReceipt) -> Path:
         """Write the sanitised receipt once, or confirm the stored one matches."""
         from fpbench.core.research_models import research_receipt_fingerprint
 
@@ -286,13 +290,18 @@ class ResultStore:
             return path
         return write_json(path, receipt)
 
-    def read_research_receipt(self, run_id: str) -> ResearchRunReceipt:
+    def read_research_receipt(self, run_id: str) -> ResearchReceipt:
         path = self.research_receipt_path(run_id)
         if not path.is_file():
             raise StorageError(f"research receipt not found: {path}")
         payload = read_json(path)
         try:
-            return ResearchRunReceipt(**payload)
+            receipt_type = (
+                LegacyResearchRunReceipt
+                if str(payload.get("schema_version")) in {"1", "2"}
+                else ResearchRunReceipt
+            )
+            return receipt_type(**payload)
         except (KeyError, TypeError, ValueError) as exc:
             raise StorageError(f"{path}: unreadable research receipt ({exc})") from exc
 
@@ -302,7 +311,7 @@ class ResultStore:
         return self.research_finalization_path(run_id).is_file()
 
     def ensure_research_finalization(
-        self, marker: ResearchFinalizationMarker
+        self, marker: ResearchFinalization
     ) -> Path:
         """Publish the immutable, last-written authority for finalization."""
         path = self.research_finalization_path(marker.run_id)
@@ -321,13 +330,18 @@ class ResultStore:
 
     def read_research_finalization(
         self, run_id: str
-    ) -> ResearchFinalizationMarker:
+    ) -> ResearchFinalization:
         path = self.research_finalization_path(run_id)
         if not path.is_file():
             raise StorageError(f"research finalization marker not found: {path}")
         payload = read_json(path)
         try:
-            return ResearchFinalizationMarker(**payload)
+            marker_type = (
+                LegacyResearchFinalizationMarker
+                if str(payload.get("schema_version")) in {"1", "2", "3"}
+                else ResearchFinalizationMarker
+            )
+            return marker_type(**payload)
         except (KeyError, TypeError, ValueError) as exc:
             raise StorageError(
                 f"{path}: unreadable research finalization marker ({exc})"
@@ -455,8 +469,12 @@ class ResultStore:
 
 
 def _is_research_receipt_schema_upgrade(
-    stored: ResearchRunReceipt, new: ResearchRunReceipt
+    stored: ResearchReceipt, new: ResearchReceipt
 ) -> bool:
+    if not isinstance(stored, LegacyResearchRunReceipt) or not isinstance(
+        new, LegacyResearchRunReceipt
+    ):
+        return False
     if stored.schema_version != "1" or new.schema_version != "2":
         return False
     old = dict(to_plain(stored))
@@ -466,8 +484,12 @@ def _is_research_receipt_schema_upgrade(
 
 
 def _is_research_finalization_schema_upgrade(
-    stored: ResearchFinalizationMarker, new: ResearchFinalizationMarker
+    stored: ResearchFinalization, new: ResearchFinalization
 ) -> bool:
+    if not isinstance(stored, LegacyResearchFinalizationMarker) or not isinstance(
+        new, LegacyResearchFinalizationMarker
+    ):
+        return False
     if stored.schema_version not in {"1", "2"} or new.schema_version != "3":
         return False
     invariant = (

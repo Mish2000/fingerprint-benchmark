@@ -47,6 +47,13 @@ class ResearchAdapterIntegration:
 a second way of driving the same adapter — a different runtime layout, a
 different set of roles — is a different integration and says so.
 
+The record derives `integration_fingerprint` from that id, `adapter_id`, the
+ordered role tuple and the primary role. Both values enter the research
+environment and therefore the run fingerprint. A prepared run can be executed,
+inspected or finalized only through the exact integration that prepared it;
+legacy SourceAFIS runs without these environment fields use an explicit legacy
+reader (docs/adr/0044).
+
 It refuses, at construction, an empty role tuple, a duplicate role, a primary
 role that is not among the declared roles, an unusable identifier, and a hook
 that is not callable.
@@ -93,7 +100,9 @@ the runtime reference and — for a run over a materialised input set — the
 
 **The build is the algorithm you declared.** `require_development_runtime`
 compares the produced role set against the declared one and the built adapter's
-id against `adapter_id`.
+id against `adapter_id`. Both development and pinned adapters must be real
+`FingerprintAlgorithmAdapter` instances, expose a stable descriptor, and declare
+a contract version in `SUPPORTED_ADAPTER_CONTRACT_VERSIONS`.
 
 **Pinning did not change the algorithm.** `require_same_algorithm` compares the
 development and research descriptors field by field and then by fingerprint.
@@ -104,6 +113,11 @@ check proved nothing about the thing that will produce the scores.
 a declared role, carrying an undeclared one, or belonging to another adapter —
 on creation *and* on every reload, because a bundle can be edited between
 invocations (docs/adr/0042).
+
+**The evidence is generic.** New receipts cite the complete
+`runtime_asset_sha256s` map and an `algorithm_validation_fingerprint`; receipts
+and finalization markers also cite the integration id and fingerprint. The old
+SourceAFIS-shaped schemas remain readable but are never emitted for a new run.
 
 ## What the engine will not do
 

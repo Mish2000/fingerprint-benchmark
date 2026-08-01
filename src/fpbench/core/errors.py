@@ -29,6 +29,7 @@ __all__ = [
     "RunIntegrityError",
     "IncompleteRunError",
     "RuntimeDriftError",
+    "ProcessTreeTerminationError",
     "DerivationError",
     "DecisionProfileError",
     "DecisionProfileApplicabilityError",
@@ -170,6 +171,14 @@ class RuntimeDriftError(FpbenchError):
     after the bytes underneath the adapter changed would claim provenance it
     does not have, so this exception is fatal to the whole invocation and must
     reach the caller unrecorded (docs/adr/0018).
+    """
+
+
+class ProcessTreeTerminationError(FpbenchError):
+    """A timed-out external tool's complete process tree may still be alive.
+
+    This is fatal to the invocation rather than a per-comparison timeout: an
+    uncontrolled descendant may still be writing into the job workspace.
     """
 
 

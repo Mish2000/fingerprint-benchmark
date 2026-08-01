@@ -38,11 +38,11 @@ there are, and the whole set is treated as the runtime:
   a failed pair: the results already written were produced by something that is
   no longer there, which is a fact about the run rather than about one comparison.
 
-`primary_runtime_asset_role` remains, and is **display only**. It names the asset
-a receipt records under its existing `bridge_jar_sha256` field, so that the two
-finished runs' receipts keep verifying. It is not the runtime's identity. The
-runtime's identity is the bundle fingerprint, which covers every asset's role,
-filename, digest, size and media type.
+`primary_runtime_asset_role` remains as an integration declaration and reaches
+the integration fingerprint. New receipts record the complete
+`runtime_asset_sha256s` mapping, not a selected executable. It is not the
+runtime's identity: the bundle fingerprint covers every asset's role, filename,
+digest, size and media type.
 
 For a future NBIS integration that means: even if MINDTCT is nominated as the
 primary asset, replacing Bozorth3 alone produces a different bundle, a different
@@ -54,10 +54,11 @@ run and a different environment fingerprint.
 the old import path re-exports the same objects, so nothing that already worked
 stopped working.
 
-`fpbench.experiments.research_receipt` no longer imports an adapter package. The
-stored field is still called `bridge_jar_sha256` and the stored receipts are
-unchanged — renaming a field in a receipt already committed to `evidence/` would
-break the artefacts this decision exists to protect.
+`fpbench.experiments.research_receipt` no longer imports an adapter package. New
+receipts use the algorithm-neutral schema described by docs/adr/0044. The two
+stored SourceAFIS receipts retain their legacy schema and fields byte-for-byte;
+compatibility is a read path, not a generic field with an algorithm-specific
+name.
 
 The multi-asset path is exercised rather than assumed: a three-file bundle in
 `tests/unit/test_runtime_guard_assets.py`, a two-executable route materialised

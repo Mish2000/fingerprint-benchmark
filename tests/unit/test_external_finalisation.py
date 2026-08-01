@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 from fpbench.core.enums import RunState
-from fpbench.core.errors import RuntimeDriftError
+from fpbench.core.errors import ProcessTreeTerminationError, RuntimeDriftError
 from fpbench.execution.progress import inspect_run_progress
 from runworld import build_world
 
@@ -154,6 +154,21 @@ def test_runtime_drift_is_never_recorded_as_a_comparison_failure(tmp_path):
 
     for record in world.result_store.iter_raw_results(world.run.run_id):
         assert record.failure is None, "drift must not become an INTERNAL_ERROR row"
+
+
+def test_uncertain_process_tree_termination_is_fatal_and_unrecorded(tmp_path):
+    world = build_world(tmp_path)
+
+    class _UncertainTermination(_DriftingAdapter):
+        def compare(self, left, right, context):
+            raise ProcessTreeTerminationError("a descendant may still be alive")
+
+    with pytest.raises(ProcessTreeTerminationError):
+        world.executor(
+            job_runner=_runner(world, _UncertainTermination(world.adapter, after=0))
+        ).execute()
+
+    assert world.result_store.stored_job_ids(world.run.run_id) == ()
 
 
 def _runner(world, adapter):

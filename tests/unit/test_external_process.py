@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -191,6 +192,26 @@ def test_a_timeout_leaves_no_child_holding_the_directory(tmp_path):
     assert result.timed_out
     assert marker.is_file()
     assert "survived" not in marker.read_text(encoding="utf-8")
+
+
+def test_a_timeout_ends_descendants_before_they_can_write(tmp_path):
+    marker = tmp_path / "descendant-survived.txt"
+    child_program = (
+        "import time,pathlib;"
+        "time.sleep(1.5);"
+        f"pathlib.Path({str(marker)!r}).write_text('survived')"
+    )
+    parent_program = (
+        "import subprocess,sys,time;"
+        f"subprocess.Popen([sys.executable, '-c', {child_program!r}]);"
+        "time.sleep(30)"
+    )
+    result = run_external_command(
+        python_command(parent_program, tmp_path, timeout_seconds=0.5)
+    )
+    assert result.timed_out
+    time.sleep(2.0)
+    assert not marker.exists()
 
 
 def test_large_stdout_is_truncated_rather_than_read_whole(tmp_path):

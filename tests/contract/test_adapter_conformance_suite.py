@@ -25,6 +25,7 @@ from fpbench.adapters.conformance import (
     ConformanceReport,
     run_adapter_conformance,
 )
+from fpbench.adapters.support.workspace import AdapterJobWorkspace
 from fpbench.adapters.dummy.adapter import ALGORITHM_ID as DUMMY_ID
 from fpbench.adapters.dummy.adapter import DummyShaAdapter
 from fpbench.adapters.synthetic_two_stage import (
@@ -32,7 +33,7 @@ from fpbench.adapters.synthetic_two_stage import (
     SyntheticTwoStageCliAdapter,
 )
 from fpbench.core.enums import ChecksumStatus, ScoreDirection
-from fpbench.core.execution_models import PreparedImage
+from fpbench.core.execution_models import ArtifactReference, PreparedImage, RawMatchResult
 from synthetic_ridges import whorl_png
 
 pytestmark = pytest.mark.adapter_contract
@@ -157,6 +158,7 @@ def test_a_two_stage_route_passes_the_same_suite(sandbox, tmp_path):
         "environment_is_ready_when_dependencies_are_present",
         "missing_dependency_is_not_an_exception",
         "environment_is_unavailable_when_a_dependency_is_missing",
+        "compare_does_not_raise",
         "compare_returns_a_raw_match_result",
         "result_score_direction_matches_the_descriptor",
         "outcome_shape_is_valid",
@@ -239,6 +241,112 @@ def test_the_forbidden_metadata_check_can_fail(sandbox):
     finding = report.finding("result_metadata_carries_no_answer")
     assert finding is not None and not finding.passed
     assert "threshold" in finding.detail
+
+
+class _RaisingAdapter(DummyShaAdapter):
+    def compare(self, left, right, context):
+        raise RuntimeError("synthetic compare failure")
+
+
+def test_a_compare_exception_is_reported_instead_of_escaping(sandbox):
+    case = _dummy_variant_case(sandbox, lambda: _RaisingAdapter())
+    report = run(case, sandbox)
+    finding = report.finding("compare_does_not_raise")
+    assert finding is not None and not finding.passed
+    assert "RuntimeError" in finding.detail
+
+
+class _FixedArtifactAdapter(DummyShaAdapter):
+    def compare(self, left, right, context):
+        workspace = AdapterJobWorkspace.from_context(context)
+        source = workspace.work_path("fixed-output.txt")
+        source.write_bytes(b"fixed")
+        artifact = workspace.publish_artifact(
+            artifact_id="fixed_output",
+            kind="output",
+            source=source,
+            relative_name="fixed-output.txt",
+        )
+        result = super().compare(left, right, context)
+        return RawMatchResult.success(
+            raw_score=float(result.raw_score),
+            score_direction=result.score_direction,
+            artifacts=(artifact,),
+        )
+
+
+def test_each_compare_gets_fresh_directories_for_fixed_artifact_names(sandbox):
+    report = run(_dummy_variant_case(sandbox, lambda: _FixedArtifactAdapter()), sandbox)
+    assert report.finding("compare_does_not_raise").passed
+    assert report.finding("artifacts_are_verifiable").passed
+    assert len(list(sandbox["artifacts"].rglob("fixed-output.txt"))) == 3
+
+
+class _SymlinkArtifactAdapter(DummyShaAdapter):
+    def compare(self, left, right, context):
+        directory = Path(context.artifact_directory)
+        target = directory / "real-output.txt"
+        target.write_bytes(b"payload")
+        link = directory / "linked-output.txt"
+        link.symlink_to(target)
+        reference = ArtifactReference(
+            artifact_id="linked_output",
+            kind="output",
+            relative_path=link.name,
+            sha256=hashlib.sha256(b"payload").hexdigest(),
+            size_bytes=len(b"payload"),
+        )
+        return RawMatchResult.success(
+            raw_score=1.0,
+            score_direction=ScoreDirection.HIGHER_IS_BETTER,
+            artifacts=(reference,),
+        )
+
+
+def test_a_symlink_artifact_is_not_treated_as_a_regular_file(sandbox):
+    probe = sandbox["root"] / "symlink-probe"
+    target = sandbox["root"] / "symlink-target"
+    target.write_bytes(b"x")
+    try:
+        probe.symlink_to(target)
+        probe.unlink()
+    except (OSError, NotImplementedError):  # pragma: no cover - platform policy
+        pytest.skip("this platform will not create symlinks")
+    report = run(_dummy_variant_case(sandbox, lambda: _SymlinkArtifactAdapter()), sandbox)
+    finding = report.finding("artifacts_are_verifiable")
+    assert finding is not None and not finding.passed
+
+
+class _SecondCallMutator(DummyShaAdapter):
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls = 0
+
+    def compare(self, left, right, context):
+        self.calls += 1
+        result = super().compare(left, right, context)
+        if self.calls == 2:
+            Path(left.local_path).write_bytes(b"mutated-on-second-call")
+        return result
+
+
+def test_input_mutation_on_the_second_compare_is_detected(sandbox):
+    report = run(_dummy_variant_case(sandbox, lambda: _SecondCallMutator()), sandbox)
+    finding = report.finding("compare_does_not_modify_its_inputs")
+    assert finding is not None and not finding.passed
+    assert "forward-2" in finding.detail
+
+
+def _dummy_variant_case(sandbox, build) -> AdapterConformanceCase:
+    return AdapterConformanceCase(
+        adapter_id=DUMMY_ID,
+        factory=lambda config: build(),
+        ready_config={},
+        unavailable_config={},
+        left_image=prepared(sandbox["inputs"], "left"),
+        right_image=prepared(sandbox["inputs"], "right"),
+        expected_score_direction=ScoreDirection.HIGHER_IS_BETTER,
+    )
 
 
 def test_require_clean_raises_with_every_failure_named(sandbox):

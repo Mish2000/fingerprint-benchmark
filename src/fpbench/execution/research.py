@@ -70,10 +70,14 @@ class ResearchModeAdapter(FingerprintAlgorithmAdapter):
         delegate: FingerprintAlgorithmAdapter,
         software: SoftwareProvenance,
         runtime_bundle: RuntimeBundleDefinition,
+        integration_id: str | None = None,
+        integration_fingerprint: str | None = None,
     ) -> None:
         self._delegate = delegate
         self._software = software
         self._runtime_bundle = runtime_bundle
+        self._integration_id = integration_id
+        self._integration_fingerprint = integration_fingerprint
 
     @property
     def delegate(self) -> FingerprintAlgorithmAdapter:
@@ -98,6 +102,8 @@ class ResearchModeAdapter(FingerprintAlgorithmAdapter):
             adapter_environment=report,
             software=self._software,
             runtime_bundle=self._runtime_bundle,
+            integration_id=self._integration_id,
+            integration_fingerprint=self._integration_fingerprint,
         )
 
     def compare(

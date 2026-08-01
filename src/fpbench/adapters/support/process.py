@@ -44,20 +44,22 @@ from __future__ import annotations
 
 import math
 import os
+import signal
 import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from time import perf_counter_ns
+from time import monotonic, perf_counter_ns, sleep
 from types import MappingProxyType
 from typing import Mapping
 
-from fpbench.core.errors import ConfigurationError
+from fpbench.core.errors import ConfigurationError, ProcessTreeTerminationError
 
 __all__ = [
     "ExternalCommand",
     "ExternalCommandResult",
+    "ProcessTreeTerminationError",
     "run_external_command",
     "DETERMINISTIC_ENVIRONMENT",
     "PLATFORM_ENVIRONMENT_FLOOR",
@@ -237,6 +239,7 @@ def run_external_command(command: ExternalCommand) -> ExternalCommandResult:
     with tempfile.TemporaryFile(dir=directory) as out_file, tempfile.TemporaryFile(
         dir=directory
     ) as err_file:
+        windows_job = _create_windows_job() if sys.platform == "win32" else None
         try:
             process = subprocess.Popen(  # noqa: S603 - argv list, shell=False
                 list(command.argv),
@@ -247,8 +250,10 @@ def run_external_command(command: ExternalCommand) -> ExternalCommandResult:
                 env=environment,
                 shell=False,
                 close_fds=True,
+                start_new_session=sys.platform != "win32",
             )
         except (OSError, ValueError) as exc:
+            _close_windows_job(windows_job)
             return ExternalCommandResult(
                 exit_code=None,
                 timed_out=False,
@@ -265,12 +270,17 @@ def run_external_command(command: ExternalCommand) -> ExternalCommandResult:
                 duration_ms=(perf_counter_ns() - started) / _NS_PER_MS,
             )
 
+        if windows_job is not None:
+            _assign_windows_job(windows_job, process)
+
         timed_out = False
         try:
             exit_code: int | None = process.wait(timeout=command.timeout_seconds)
         except subprocess.TimeoutExpired:
             timed_out = True
-            exit_code = _end_process(process)
+            exit_code = _end_process_tree(process, windows_job)
+        finally:
+            _close_windows_job(windows_job)
 
         stdout, stdout_truncated = _read_capped(out_file, command.stdout_limit_bytes)
         stderr, stderr_truncated = _read_capped(err_file, command.stderr_limit_bytes)
@@ -287,23 +297,205 @@ def run_external_command(command: ExternalCommand) -> ExternalCommandResult:
     )
 
 
-def _end_process(process: "subprocess.Popen[bytes]") -> int | None:
-    """Terminate, then kill, then wait. Leaves no child running.
+def _end_process_tree(
+    process: "subprocess.Popen[bytes]", windows_job: int | None
+) -> int | None:
+    """End the complete process tree and return only after proving it is gone."""
+    if sys.platform == "win32":
+        tree_terminated = _terminate_windows_process_tree(process.pid)
+        job_terminated = (
+            windows_job is not None and _terminate_windows_job(windows_job)
+        )
+        if not tree_terminated or not job_terminated:
+            raise ProcessTreeTerminationError(
+                "could not prove termination of the timed-out Windows process tree"
+            )
+        try:
+            return process.wait(timeout=TERMINATE_GRACE_SECONDS)
+        except subprocess.TimeoutExpired as exc:  # pragma: no cover - OS failure
+            raise ProcessTreeTerminationError(
+                "the Windows job was terminated but its root process stayed alive"
+            ) from exc
 
-    Returns whatever exit status the platform reports, which may be ``None`` on
-    a process that never reported one. The caller already knows it timed out;
-    the status is diagnostic.
-    """
-    process.terminate()
+    process_group = process.pid
+    _signal_process_group(process_group, signal.SIGTERM)
+    deadline = monotonic() + TERMINATE_GRACE_SECONDS
+    while monotonic() < deadline and _process_group_exists(process_group):
+        process.poll()
+        sleep(0.02)
+    if _process_group_exists(process_group):
+        _signal_process_group(process_group, signal.SIGKILL)
+        deadline = monotonic() + TERMINATE_GRACE_SECONDS
+        while monotonic() < deadline and _process_group_exists(process_group):
+            process.poll()
+            sleep(0.02)
     try:
-        return process.wait(timeout=TERMINATE_GRACE_SECONDS)
-    except subprocess.TimeoutExpired:
-        pass
-    process.kill()
+        exit_code = process.wait(timeout=TERMINATE_GRACE_SECONDS)
+    except subprocess.TimeoutExpired as exc:  # pragma: no cover - OS failure
+        raise ProcessTreeTerminationError(
+            "the process group was killed but its root process stayed alive"
+        ) from exc
+    if _process_group_exists(process_group):  # pragma: no cover - OS failure
+        raise ProcessTreeTerminationError(
+            "the timed-out process group still exists after forced termination"
+        )
+    return exit_code
+
+
+def _signal_process_group(process_group: int, requested_signal: int) -> None:
     try:
-        return process.wait(timeout=TERMINATE_GRACE_SECONDS)
-    except subprocess.TimeoutExpired:  # pragma: no cover - unkillable process
+        os.killpg(process_group, requested_signal)
+    except ProcessLookupError:
+        return
+    except OSError as exc:  # pragma: no cover - OS failure
+        raise ProcessTreeTerminationError(
+            f"could not signal timed-out process group {process_group}"
+        ) from exc
+
+
+def _process_group_exists(process_group: int) -> bool:
+    try:
+        os.killpg(process_group, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError as exc:  # pragma: no cover - OS failure
+        raise ProcessTreeTerminationError(
+            f"cannot verify timed-out process group {process_group}"
+        ) from exc
+    return True
+
+
+def _create_windows_job() -> int | None:
+    if sys.platform != "win32":
         return None
+    import ctypes
+    from ctypes import wintypes
+
+    class _BasicLimitInformation(ctypes.Structure):
+        _fields_ = [
+            ("PerProcessUserTimeLimit", ctypes.c_longlong),
+            ("PerJobUserTimeLimit", ctypes.c_longlong),
+            ("LimitFlags", wintypes.DWORD),
+            ("MinimumWorkingSetSize", ctypes.c_size_t),
+            ("MaximumWorkingSetSize", ctypes.c_size_t),
+            ("ActiveProcessLimit", wintypes.DWORD),
+            ("Affinity", ctypes.c_size_t),
+            ("PriorityClass", wintypes.DWORD),
+            ("SchedulingClass", wintypes.DWORD),
+        ]
+
+    class _IoCounters(ctypes.Structure):
+        _fields_ = [(name, ctypes.c_ulonglong) for name in (
+            "ReadOperationCount", "WriteOperationCount", "OtherOperationCount",
+            "ReadTransferCount", "WriteTransferCount", "OtherTransferCount",
+        )]
+
+    class _ExtendedLimitInformation(ctypes.Structure):
+        _fields_ = [
+            ("BasicLimitInformation", _BasicLimitInformation),
+            ("IoInfo", _IoCounters),
+            ("ProcessMemoryLimit", ctypes.c_size_t),
+            ("JobMemoryLimit", ctypes.c_size_t),
+            ("PeakProcessMemoryUsed", ctypes.c_size_t),
+            ("PeakJobMemoryUsed", ctypes.c_size_t),
+        ]
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateJobObjectW.argtypes = [ctypes.c_void_p, wintypes.LPCWSTR]
+    kernel32.CreateJobObjectW.restype = wintypes.HANDLE
+    kernel32.SetInformationJobObject.argtypes = [
+        wintypes.HANDLE,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        wintypes.DWORD,
+    ]
+    kernel32.SetInformationJobObject.restype = wintypes.BOOL
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    handle = kernel32.CreateJobObjectW(None, None)
+    if not handle:
+        raise ProcessTreeTerminationError("could not create a Windows process job")
+    information = _ExtendedLimitInformation()
+    information.BasicLimitInformation.LimitFlags = 0x00002000
+    if not kernel32.SetInformationJobObject(
+        handle, 9, ctypes.byref(information), ctypes.sizeof(information)
+    ):
+        kernel32.CloseHandle(handle)
+        raise ProcessTreeTerminationError(
+            "could not configure a Windows process job for tree termination"
+        )
+    return int(handle)
+
+
+def _assign_windows_job(
+    job: int, process: "subprocess.Popen[bytes]"
+) -> None:
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
+    kernel32.AssignProcessToJobObject.restype = wintypes.BOOL
+    if not kernel32.AssignProcessToJobObject(
+        wintypes.HANDLE(job), wintypes.HANDLE(int(process._handle))  # type: ignore[attr-defined]
+    ):
+        process.kill()
+        process.wait(timeout=TERMINATE_GRACE_SECONDS)
+        _close_windows_job(job)
+        raise ProcessTreeTerminationError(
+            "could not place the external tool in its Windows process job"
+        )
+
+
+def _terminate_windows_job(job: int) -> bool:
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.TerminateJobObject.argtypes = [wintypes.HANDLE, wintypes.UINT]
+    kernel32.TerminateJobObject.restype = wintypes.BOOL
+    return bool(kernel32.TerminateJobObject(wintypes.HANDLE(job), 1))
+
+
+def _terminate_windows_process_tree(process_id: int) -> bool:
+    """Use Windows' own descendant walk in addition to the assigned Job Object.
+
+    Assignment happens immediately after process creation, but Windows can
+    schedule the child in that narrow interval. ``taskkill /T`` covers any
+    descendant created before assignment; the Job Object covers everything
+    created afterwards.
+    """
+    system_root = os.environ.get("SystemRoot") or os.environ.get("windir")
+    if not system_root:
+        return False
+    executable = Path(system_root) / "System32" / "taskkill.exe"
+    if not executable.is_file():
+        return False
+    try:
+        completed = subprocess.run(  # noqa: S603 - absolute Windows system tool
+            [str(executable), "/PID", str(process_id), "/T", "/F"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            shell=False,
+            timeout=TERMINATE_GRACE_SECONDS,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return completed.returncode == 0
+
+
+def _close_windows_job(job: int | None) -> None:
+    if job is None or sys.platform != "win32":
+        return
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    kernel32.CloseHandle(wintypes.HANDLE(job))
 
 
 def _read_capped(handle, limit: int) -> tuple[str, bool]:

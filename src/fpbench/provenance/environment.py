@@ -41,6 +41,8 @@ RUNTIME_KEYS = (
     "fpbench.source.kind",
     "fpbench.source.revision",
     "fpbench.source.clean",
+    "fpbench.integration.id",
+    "fpbench.integration.fingerprint",
 )
 
 #: The dependency facts it adds. Per-asset digests are named separately, since
@@ -65,6 +67,8 @@ def build_research_environment(
     adapter_environment: EnvironmentReport,
     software: SoftwareProvenance,
     runtime_bundle: RuntimeBundleDefinition,
+    integration_id: str | None = None,
+    integration_fingerprint: str | None = None,
 ) -> EnvironmentReport:
     """Return a new report carrying the adapter's environment plus provenance.
 
@@ -96,6 +100,18 @@ def build_research_environment(
         # Lower-case so the value reads the same whichever language writes it.
         "fpbench.source.clean": "true" if software.source_tree_clean else "false",
     }
+    integration_claims = (integration_id, integration_fingerprint)
+    if any(value is not None for value in integration_claims):
+        if not all(value is not None for value in integration_claims):
+            raise ResearchPreflightError(
+                "research integration id and fingerprint must be supplied together"
+            )
+        additions_runtime.update(
+            {
+                "fpbench.integration.id": str(integration_id),
+                "fpbench.integration.fingerprint": str(integration_fingerprint),
+            }
+        )
 
     additions_dependencies: dict[str, str] = {
         "fpbench.package": software.package_version,

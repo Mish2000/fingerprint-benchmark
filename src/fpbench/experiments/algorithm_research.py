@@ -47,7 +47,7 @@ from fpbench.core.identifiers import ImageId, PairId
 from fpbench.core.imaging_models import PreparedImageSetManifest
 from fpbench.core.models import Cohort, ComparisonPair, ImageRecord
 from fpbench.core.provenance_models import SoftwareProvenance
-from fpbench.core.research_models import ResearchRunReceipt, ResearchRunState
+from fpbench.core.research_models import ResearchReceipt, ResearchRunState
 from fpbench.core.result_models import RunDefinition
 from fpbench.core.runtime_models import RunRuntimeReference, RuntimeBundleDefinition
 from fpbench.core.serialization import read_json, write_json
@@ -294,6 +294,7 @@ def prepare_algorithm_research_run(
         bundle=bundle,
         bundle_store=bundle_store,
         software=software,
+        include_integration_identity=True,
     )
     # Pinning moved where the bytes live. It must not have moved what the
     # algorithm is, or the environment check above proved nothing about the
@@ -362,6 +363,7 @@ def prepare_algorithm_research_run(
     pointer: dict[str, Any] = {
         "experiment_id": spec.experiment_id,
         "integration_id": integration.integration_id,
+        "integration_fingerprint": integration.integration_fingerprint,
         "run_id": run.run_id,
         "plan_id": plan.plan_id,
         "runtime_bundle_id": bundle.bundle_id,
@@ -529,7 +531,7 @@ def finalize_algorithm_research_run(
     dataset_root: Path | None = None,
     repository_root: Path = REPOSITORY_ROOT,
     run_id: str | None = None,
-) -> ResearchRunReceipt:
+) -> ResearchReceipt:
     """Revalidate everything and publish one last immutable commit marker."""
     prepared = _load_prepared(
         spec=spec,
@@ -696,6 +698,7 @@ def _research_adapter(
     bundle: RuntimeBundleDefinition,
     bundle_store: RuntimeBundleStore,
     software: SoftwareProvenance,
+    include_integration_identity: bool,
 ) -> ResearchModeAdapter:
     """Build the algorithm pinned to ``bundle``, wrapped for research mode.
 
@@ -714,14 +717,19 @@ def _research_adapter(
         asset_paths,
         software,
     )
-    if delegate.descriptor.adapter_id != integration.adapter_id:
-        raise ResearchPreflightError(
-            f"integration {integration.integration_id!r} built a research adapter "
-            f"describing {delegate.descriptor.adapter_id!r}, not "
-            f"{integration.adapter_id!r}"
-        )
+    delegate = integration.require_adapter(
+        delegate, label="pinned research adapter"
+    )
     return ResearchModeAdapter(
-        delegate=delegate, software=software, runtime_bundle=bundle
+        delegate=delegate,
+        software=software,
+        runtime_bundle=bundle,
+        integration_id=(integration.integration_id if include_integration_identity else None),
+        integration_fingerprint=(
+            integration.integration_fingerprint
+            if include_integration_identity
+            else None
+        ),
     )
 
 
@@ -877,6 +885,32 @@ def _load_prepared(
     # that acquired a role, lost one, or belongs to another adapter is not the
     # runtime this run was defined against (spec section 64).
     integration.require_bundle_matches(bundle)
+    recorded_integration_id = run.environment.runtime.get(
+        "fpbench.integration.id"
+    )
+    recorded_integration_fingerprint = run.environment.runtime.get(
+        "fpbench.integration.fingerprint"
+    )
+    recorded_integration = (
+        recorded_integration_id,
+        recorded_integration_fingerprint,
+    )
+    if any(value is not None for value in recorded_integration):
+        if not all(value is not None for value in recorded_integration):
+            raise ResearchPreflightError(
+                f"run {run.run_id} carries an incomplete research integration identity"
+            )
+        if (
+            recorded_integration_id != integration.integration_id
+            or recorded_integration_fingerprint != integration.integration_fingerprint
+        ):
+            raise ResearchPreflightError(
+                f"run {run.run_id} was prepared with integration "
+                f"{recorded_integration_id!r} "
+                f"({str(recorded_integration_fingerprint)[:12]}...), but this "
+                f"invocation supplied {integration.integration_id!r} "
+                f"({integration.integration_fingerprint[:12]}...)"
+            )
     adapter = _research_adapter(
         integration=integration,
         spec=spec,
@@ -884,6 +918,7 @@ def _load_prepared(
         bundle=bundle,
         bundle_store=bundle_store,
         software=software,
+        include_integration_identity=recorded_integration_id is not None,
     )
 
     inputs = load_sd300_inputs(

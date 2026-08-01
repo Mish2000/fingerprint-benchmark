@@ -34,8 +34,10 @@ arranged to prevent.
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import shutil
+import stat
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Mapping
@@ -151,21 +153,38 @@ class AdapterJobWorkspace:
             WorkspaceContainmentError: the source is outside the job, the target
                 would be, or an artefact is already published under that name.
         """
-        source = Path(source)
-        if not source.is_absolute():
-            source = (self.working_directory / source).resolve()
-        else:
-            source = source.resolve()
-
-        if source.is_symlink() or not source.is_file():
+        source_raw = Path(source)
+        if not source_raw.is_absolute():
+            source_raw = self.working_directory / source_raw
+        source_raw = Path(os.path.abspath(source_raw))
+        source_base: Path | None = None
+        for base in (self.artifact_directory, self.working_directory):
+            if source_raw.is_relative_to(base):
+                source_base = base
+                break
+        if source_base is None:
+            raise WorkspaceContainmentError(
+                f"artefact source {source_raw.name!r} is outside this job's "
+                "directories"
+            )
+        _reject_symlink_components(source_base, source_raw)
+        try:
+            source = source_raw.resolve(strict=True)
+            source_stat = source.lstat()
+        except (FileNotFoundError, OSError):
+            raise WorkspaceContainmentError(
+                f"artefact source {source_raw.name!r} is not a regular file"
+            )
+        if not stat.S_ISREG(source_stat.st_mode):
             raise WorkspaceContainmentError(
                 f"artefact source {source.name!r} is not a regular file"
             )
-        inside_artifacts = source.is_relative_to(self.artifact_directory)
-        if not inside_artifacts and not source.is_relative_to(self.working_directory):
+        if source_stat.st_nlink != 1:
             raise WorkspaceContainmentError(
-                f"artefact source {source.name!r} is outside this job's directories"
+                f"artefact source {source.name!r} has multiple hard links; "
+                "published evidence must have exclusive ownership"
             )
+        inside_artifacts = source_base == self.artifact_directory
 
         target = (
             source
@@ -173,14 +192,24 @@ class AdapterJobWorkspace:
             else self.artifact_path(relative_name or source.name)
         )
         if target != source:
-            if target.exists():
+            if target.exists() or target.is_symlink():
                 raise WorkspaceContainmentError(
                     f"an artefact is already published as {target.name!r}; "
                     "publishing must not overwrite"
                 )
-            # copyfile, not copy2 and not link: the artefact is evidence and must
-            # own its own bytes.
-            shutil.copyfile(source, target)
+            # The exclusive create produces a fresh inode owned by this job.
+            # It also makes an appearance between the containment check and the
+            # write a conflict instead of an overwrite.
+            try:
+                with source.open("rb") as source_stream, target.open("xb") as target_stream:
+                    shutil.copyfileobj(source_stream, target_stream, _READ_CHUNK)
+            except FileExistsError as exc:
+                raise WorkspaceContainmentError(
+                    f"an artefact is already published as {target.name!r}; "
+                    "publishing must not overwrite"
+                ) from exc
+
+        _require_exclusive_regular_file(target, label="published artefact")
 
         digest, size = _digest_file(target)
         return ArtifactReference(
@@ -197,17 +226,16 @@ class AdapterJobWorkspace:
 
     def _resolve(self, base: Path, relative_name: str) -> Path:
         _require_safe_name(relative_name)
-        candidate = (base / relative_name).resolve()
+        raw_candidate = base / relative_name
+        _reject_symlink_components(base, raw_candidate)
+        candidate = raw_candidate.resolve(strict=False)
         if not candidate.is_relative_to(base):
             raise WorkspaceContainmentError(
                 f"{relative_name!r} resolves outside the directory it was built "
                 "from; a job may not write past its own boundary"
             )
-        if candidate.is_symlink():
-            raise WorkspaceContainmentError(
-                f"{relative_name!r} is a symlink; a job's files own their bytes"
-            )
         candidate.parent.mkdir(parents=True, exist_ok=True)
+        _reject_symlink_components(base, raw_candidate)
         return candidate
 
     def _reference_path(self, target: Path) -> str:
@@ -272,6 +300,45 @@ def _require_safe_name(relative_name: str) -> None:
         raise WorkspaceContainmentError(
             f"{name!r} embeds a long digit run that looks like a dataset "
             "identifier; intermediate files carry no research meaning"
+        )
+
+
+def _reject_symlink_components(base: Path, candidate: Path) -> None:
+    """Inspect every existing component with ``lstat`` before resolving it."""
+    try:
+        relative = candidate.relative_to(base)
+    except ValueError as exc:
+        raise WorkspaceContainmentError(
+            f"{candidate.name!r} is outside this job's directory"
+        ) from exc
+    current = base
+    for component in relative.parts:
+        current = current / component
+        try:
+            mode = current.lstat().st_mode
+        except FileNotFoundError:
+            continue
+        except OSError as exc:
+            raise WorkspaceContainmentError(
+                f"cannot safely inspect path component {component!r}"
+            ) from exc
+        if stat.S_ISLNK(mode):
+            raise WorkspaceContainmentError(
+                f"path component {component!r} is a symlink and may redirect "
+                "outside the job; a job's files must own their bytes"
+            )
+
+
+def _require_exclusive_regular_file(path: Path, *, label: str) -> None:
+    try:
+        info = path.lstat()
+    except (FileNotFoundError, OSError) as exc:
+        raise WorkspaceContainmentError(f"{label} is not a regular file") from exc
+    if not stat.S_ISREG(info.st_mode):
+        raise WorkspaceContainmentError(f"{label} is not a regular file")
+    if info.st_nlink != 1:
+        raise WorkspaceContainmentError(
+            f"{label} has multiple hard links; evidence must have exclusive ownership"
         )
 
 

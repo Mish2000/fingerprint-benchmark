@@ -266,6 +266,38 @@ def test_a_metadata_only_difference_is_still_a_different_algorithm():
         )
 
 
+def test_an_unsupported_development_adapter_contract_is_refused(asset):
+    descriptor = replace(
+        fake_descriptor("counting_adapter"), adapter_contract_version="99"
+    )
+    runtime = DevelopmentAdapterRuntime(
+        adapter=_Descriptive(descriptor), assets={"tool_extractor": asset}
+    )
+    with pytest.raises(ResearchPreflightError, match="unsupported.*99"):
+        integration().require_development_runtime(runtime)
+
+
+def test_an_unsupported_pinned_adapter_contract_is_refused():
+    valid = fake_descriptor("counting_adapter")
+    unsupported = replace(valid, adapter_contract_version="99")
+    with pytest.raises(ResearchPreflightError, match="unsupported.*99"):
+        integration().require_same_algorithm(
+            development=_Descriptive(valid),
+            research=_Descriptive(unsupported),
+        )
+
+
+def test_two_adapters_cannot_agree_on_the_same_unsupported_contract():
+    unsupported = replace(
+        fake_descriptor("counting_adapter"), adapter_contract_version="99"
+    )
+    with pytest.raises(ResearchPreflightError, match="unsupported.*99"):
+        integration().require_same_algorithm(
+            development=_Descriptive(unsupported),
+            research=_Descriptive(unsupported),
+        )
+
+
 # ----------------------------------------------------- the validator contract
 
 

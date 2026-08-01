@@ -18,6 +18,7 @@ eight PNGs and the matcher hashes their digests.
 
 from __future__ import annotations
 
+import json
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -28,6 +29,7 @@ from fpbench.adapters.dummy.adapter import ALGORITHM_ID as DUMMY_ID
 from fpbench.adapters.dummy.adapter import DummyShaAdapter
 from fpbench.core.enums import ResearchRunStatus
 from fpbench.core.errors import ResearchPreflightError
+from fpbench.core.serialization import to_plain
 from fpbench.experiments.algorithm_research import (
     execute_algorithm_research_run,
     finalize_algorithm_research_run,
@@ -35,6 +37,7 @@ from fpbench.experiments.algorithm_research import (
     prepare_algorithm_research_run,
 )
 from fpbench.imaging.identity import IdentityImagePreparer
+from fpbench.storage.result_store import ResultStore
 from engineworld import build_engine_world, git_available, structural_integration
 
 pytestmark = [
@@ -132,6 +135,22 @@ def test_the_pointer_is_generic(finished, world):
     assert "bridge_jar_sha256" not in pointer
 
 
+def test_generic_evidence_contains_no_first_integration_vocabulary(finished, world):
+    receipt = finished["receipt"]
+    marker = ResultStore(world.workspace).read_research_finalization(receipt.run_id)
+    rendered = json.dumps(
+        {"receipt": to_plain(receipt), "marker": to_plain(marker)},
+        sort_keys=True,
+    ).lower()
+    for forbidden in ("sourceafis", "bridge", "jar"):
+        assert forbidden not in rendered
+    assert dict(receipt.runtime_asset_sha256s) == dict(
+        finished["prepared"].runtime_reference.asset_sha256s
+    )
+    assert receipt.algorithm_validation_fingerprint
+    assert marker.algorithm_validation_fingerprint
+
+
 # -------------------------------------------------------- runtime integration
 
 
@@ -164,6 +183,24 @@ def test_an_integration_for_a_different_adapter_is_refused(world):
             dataset_root=world.dataset_root,
             repository_root=world.repository_root,
         )
+
+
+def test_a_different_integration_id_cannot_execute_the_prepared_run(tmp_path):
+    local = build_engine_world(
+        tmp_path, subject_count=1, experiment_id="integration_identity_v1"
+    )
+    first = dummy_integration(integration_id="dummy_identity_a_v1")
+    shared = {
+        "spec": local.spec,
+        "preparer_factory": identity_preparer,
+        "workspace": local.workspace,
+        "dataset_root": local.dataset_root,
+        "repository_root": local.repository_root,
+    }
+    prepare_algorithm_research_run(integration=first, **shared)
+    second = dummy_integration(integration_id="dummy_identity_b_v1")
+    with pytest.raises(ResearchPreflightError, match="prepared with integration"):
+        execute_algorithm_research_run(integration=second, **shared)
 
 
 def test_a_development_runtime_that_builds_another_algorithm_is_refused(tmp_path):
@@ -213,7 +250,7 @@ def test_a_research_delegate_for_another_algorithm_is_refused(tmp_path):
 
 
 def test_a_multi_asset_runtime_goes_through_unchanged(tmp_path):
-    """Three files, one bundle, and the engine never looks inside any of them."""
+    """Every runtime file reaches both the bundle and the generic receipt."""
     world = build_engine_world(tmp_path, subject_count=1, experiment_id="multi_v1")
     integration = structural_integration(
         integration_id="dummy_research_multi_v1",
@@ -225,17 +262,25 @@ def test_a_multi_asset_runtime_goes_through_unchanged(tmp_path):
             "tool_support_data": b"support bytes",
         },
     )
+    shared = {
+        "spec": world.spec,
+        "integration": integration,
+        "preparer_factory": identity_preparer,
+        "workspace": world.workspace,
+        "dataset_root": world.dataset_root,
+        "repository_root": world.repository_root,
+    }
     prepared = prepare_algorithm_research_run(
-        spec=world.spec,
-        integration=integration,
-        preparer_factory=identity_preparer,
-        workspace=world.workspace,
-        dataset_root=world.dataset_root,
-        repository_root=world.repository_root,
+        **shared,
     )
     roles = {asset.role for asset in prepared.bundle.assets}
     assert roles == {"tool_extractor", "tool_matcher", "tool_support_data"}
     assert set(prepared.runtime_reference.asset_sha256s) == roles
+    execute_algorithm_research_run(**shared)
+    receipt = finalize_algorithm_research_run(**shared)
+    assert dict(receipt.runtime_asset_sha256s) == dict(
+        prepared.runtime_reference.asset_sha256s
+    )
 
 
 def test_a_two_stage_route_finishes_through_the_same_engine(tmp_path):

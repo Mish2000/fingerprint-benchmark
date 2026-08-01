@@ -53,7 +53,7 @@ from fpbench.core.errors import (
     ResearchPreflightError,
 )
 from fpbench.core.execution_models import ExecutionProfile
-from fpbench.core.research_models import ResearchRunReceipt, ResearchRunState
+from fpbench.core.research_models import ResearchReceipt, ResearchRunState
 from fpbench.core.serialization import require_exact_int
 from fpbench.execution.batch_runner import RunExecutionSummary
 from fpbench.experiments.config_values import (
@@ -440,7 +440,7 @@ def finalize_sourceafis_canonical500_run(
     config: CanonicalExperimentConfig | None = None,
     repository_root: Path = REPOSITORY_ROOT,
     run_id: str | None = None,
-) -> ResearchRunReceipt:
+) -> ResearchReceipt:
     """Revalidate everything and publish one last immutable commit marker."""
     config = config or load_canonical_experiment_config(
         repository_root=repository_root

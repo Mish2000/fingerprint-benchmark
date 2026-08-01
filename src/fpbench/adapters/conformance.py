@@ -19,6 +19,7 @@ about why not.
 from __future__ import annotations
 
 import hashlib
+import stat
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Mapping
@@ -51,6 +52,7 @@ __all__ = [
 ]
 
 AdapterFactory = Callable[[Mapping[str, object]], FingerprintAlgorithmAdapter]
+DirectionalGolden = Callable[[RawMatchResult, RawMatchResult], bool]
 
 #: Keys that would mean the adapter had been told something it must not know, or
 #: had answered a question that is not its to answer (docs/adr/0003,
@@ -149,6 +151,11 @@ class AdapterConformanceCase:
     #: Extra metadata keys this adapter must never emit.
     additional_forbidden_metadata: tuple[str, ...] = ()
 
+    #: Optional algorithm-specific proof that reversing probe and reference was
+    #: not silently normalised back into the same call. Generic score equality
+    #: cannot prove this because a conformant matcher may be symmetric.
+    directional_golden: DirectionalGolden | None = None
+
     context_overrides: Mapping[str, object] = field(default_factory=dict)
 
 
@@ -177,7 +184,10 @@ def run_adapter_conformance(
     add = findings.append
 
     adapter = case.factory(dict(case.ready_config))
-    add(_check_is_adapter(adapter))
+    adapter_finding = _check_is_adapter(adapter)
+    add(adapter_finding)
+    if not adapter_finding.passed:
+        return ConformanceReport(adapter_id=case.adapter_id, findings=tuple(findings))
     descriptor = adapter.descriptor
 
     add(_check_identifiers(descriptor))
@@ -191,29 +201,103 @@ def run_adapter_conformance(
     add(_check_ready_environment(adapter))
     findings.extend(_check_unavailable_environment(case))
 
-    context = _context(working_directory, artifact_directory, case)
-    before_files = _files_under(sandbox_root)
-    before_inputs = {
-        "left": _file_identity(case.left_image.local_path),
-        "right": _file_identity(case.right_image.local_path),
-    }
+    invocation_specs = (
+        ("forward-1", case.left_image, case.right_image),
+        ("forward-2", case.left_image, case.right_image),
+        ("reverse-1", case.right_image, case.left_image),
+    )
+    invocation_directories: dict[str, tuple[Path, Path]] = {}
+    for label, _, _ in invocation_specs:
+        invocation_work = Path(working_directory) / label
+        invocation_artifacts = Path(artifact_directory) / label
+        invocation_work.mkdir(parents=True, exist_ok=False)
+        invocation_artifacts.mkdir(parents=True, exist_ok=False)
+        invocation_directories[label] = (invocation_work, invocation_artifacts)
 
-    result = adapter.compare(case.left_image, case.right_image, context)
+    invocations: list[_Invocation] = []
+    for label, left, right in invocation_specs:
+        invocation_work, invocation_artifacts = invocation_directories[label]
+        invocations.append(
+            _invoke_compare(
+                label=label,
+                adapter=adapter,
+                case=case,
+                left=left,
+                right=right,
+                working_directory=invocation_work,
+                artifact_directory=invocation_artifacts,
+                sandbox_root=Path(sandbox_root),
+            )
+        )
 
-    add(_check_result_type(result))
-    if isinstance(result, RawMatchResult):
-        add(_check_score_direction_matches(result, descriptor))
-        add(_check_outcome_shape(result, case))
-        add(_check_metadata_types(result))
-        add(_check_forbidden_metadata(result, case))
-        add(_check_no_absolute_paths(result, sandbox_root))
-        add(_check_artifacts(result, artifact_directory))
+    raised = [
+        f"{item.label}: {type(item.exception).__name__}: {item.exception}"
+        for item in invocations
+        if item.exception is not None
+    ]
+    add(ConformanceFinding("compare_does_not_raise", not raised, "; ".join(raised)))
+    add(
+        _merge_findings(
+            "compare_returns_a_raw_match_result",
+            [
+                _label_finding(item, _check_result_type(item.result))
+                for item in invocations
+            ],
+        )
+    )
 
-    add(_check_inputs_unmodified(case, before_inputs))
-    add(_check_containment(sandbox_root, before_files, working_directory,
-                           artifact_directory))
-    add(_check_determinism(adapter, case, context, result))
-    add(_check_direction_is_not_reordered(adapter, case, context, result))
+    result_checks: tuple[
+        tuple[str, Callable[[RawMatchResult], ConformanceFinding]], ...
+    ] = (
+        (
+            "result_score_direction_matches_the_descriptor",
+            lambda result: _check_score_direction_matches(result, descriptor),
+        ),
+        ("outcome_shape_is_valid", lambda result: _check_outcome_shape(result, case)),
+        ("result_metadata_is_string_to_string", _check_metadata_types),
+        (
+            "result_metadata_carries_no_answer",
+            lambda result: _check_forbidden_metadata(result, case),
+        ),
+        (
+            "result_metadata_holds_no_absolute_path",
+            lambda result: _check_no_absolute_paths(result, Path(sandbox_root)),
+        ),
+    )
+    for check_name, check in result_checks:
+        per_call: list[ConformanceFinding] = []
+        for item in invocations:
+            if isinstance(item.result, RawMatchResult):
+                per_call.append(_label_finding(item, check(item.result)))
+            else:
+                per_call.append(
+                    ConformanceFinding(check_name, False, f"{item.label}: no result")
+                )
+        add(_merge_findings(check_name, per_call))
+
+    add(
+        _merge_findings(
+            "artifacts_are_verifiable", [item.artifacts for item in invocations]
+        )
+    )
+    add(
+        _merge_findings(
+            "compare_does_not_modify_its_inputs",
+            [item.inputs for item in invocations],
+        )
+    )
+    add(
+        _merge_findings(
+            "compare_writes_only_inside_its_directories",
+            [item.containment for item in invocations],
+        )
+    )
+    add(_check_determinism(descriptor, invocations[0].result, invocations[1].result))
+    add(
+        _check_direction_is_not_reordered(
+            case, invocations[0].result, invocations[2].result
+        )
+    )
 
     return ConformanceReport(adapter_id=case.adapter_id, findings=tuple(findings))
 
@@ -449,7 +533,9 @@ def _check_no_absolute_paths(result, sandbox_root: Path) -> ConformanceFinding:
     )
 
 
-def _check_artifacts(result, artifact_directory: Path) -> ConformanceFinding:
+def _check_artifacts(
+    result, artifact_directory: Path, sandbox_root: Path
+) -> ConformanceFinding:
     """Every artefact is relative, contained, and hashes to what it claims."""
     problems: list[str] = []
     for reference in result.artifacts:
@@ -459,15 +545,25 @@ def _check_artifacts(result, artifact_directory: Path) -> ConformanceFinding:
             continue
         # The reference may be workspace-relative or artefact-relative; both are
         # resolvable from the artefact directory upwards.
-        candidates = [
-            artifact_directory / path,
-            artifact_directory.parent.parent.parent / path,
-        ]
-        found = next((item for item in candidates if item.is_file()), None)
+        candidates = [artifact_directory / path, sandbox_root / path]
+        found = next(
+            (
+                item
+                for item in candidates
+                if _is_exclusive_regular_file(item, sandbox_root)
+            ),
+            None,
+        )
         if found is None:
             problems.append(f"{reference.artifact_id}: not found")
             continue
-        payload = found.read_bytes()
+        try:
+            payload = found.read_bytes()
+        except OSError as exc:
+            problems.append(
+                f"{reference.artifact_id}: unreadable ({type(exc).__name__})"
+            )
+            continue
         if hashlib.sha256(payload).hexdigest() != reference.sha256:
             problems.append(f"{reference.artifact_id}: digest mismatch")
         elif len(payload) != reference.size_bytes:
@@ -484,10 +580,17 @@ def _check_inputs_unmodified(case, before) -> ConformanceFinding:
     adapter rewrote would silently change what every later run compares against
     (docs/adr/0033).
     """
-    now = {
-        "left": _file_identity(case.left_image.local_path),
-        "right": _file_identity(case.right_image.local_path),
-    }
+    try:
+        now = {
+            "left": _file_identity(case.left_image.local_path),
+            "right": _file_identity(case.right_image.local_path),
+        }
+    except OSError as exc:
+        return ConformanceFinding(
+            "compare_does_not_modify_its_inputs",
+            False,
+            f"an input is missing or unreadable ({type(exc).__name__})",
+        )
     changed = sorted(side for side in before if now[side] != before[side])
     return ConformanceFinding(
         "compare_does_not_modify_its_inputs",
@@ -516,14 +619,15 @@ def _check_containment(
     )
 
 
-def _check_determinism(adapter, case, context, first) -> ConformanceFinding:
+def _check_determinism(descriptor, first, second) -> ConformanceFinding:
     """A deterministic adapter repeats itself, or it is not deterministic."""
-    if not adapter.descriptor.deterministic:
+    if not descriptor.deterministic:
         return ConformanceFinding(
             "deterministic_adapter_repeats_itself", True, "not declared deterministic"
         )
-    second = adapter.compare(case.left_image, case.right_image, context)
-    ok = (
+    ok = isinstance(first, RawMatchResult) and isinstance(
+        second, RawMatchResult
+    ) and (
         second.status is first.status
         and second.raw_score == first.raw_score
     )
@@ -534,24 +638,33 @@ def _check_determinism(adapter, case, context, first) -> ConformanceFinding:
     )
 
 
-def _check_direction_is_not_reordered(
-    adapter, case, context, forward
-) -> ConformanceFinding:
+def _check_direction_is_not_reordered(case, forward, reversed_result) -> ConformanceFinding:
     """Reversing the sides must be a *different call*, not the same one.
 
     A symmetric algorithm may legitimately return the same score both ways, so
-    equality proves nothing and is not failed. What is checked is that the
-    reversed call is answered at all, and answered with the same shape — an
-    adapter that sorted its two inputs before comparing would be measuring
-    something the pair manifest does not describe (spec section 67).
+    equality proves nothing and is not failed. The generic check proves only
+    that the reversed call is answered in kind. Detecting silent input sorting
+    requires the optional adapter-specific directional golden.
     """
-    reversed_result = adapter.compare(case.right_image, case.left_image, context)
-    ok = isinstance(reversed_result, RawMatchResult) and (
+    ok = isinstance(forward, RawMatchResult) and isinstance(
+        reversed_result, RawMatchResult
+    ) and (
         reversed_result.score_direction is forward.score_direction
     )
     detail = "" if ok else "the reversed comparison was not answered in kind"
-    if ok and reversed_result.raw_score == forward.raw_score:
-        detail = "symmetric over these inputs, which the contract permits"
+    if ok and case.directional_golden is not None:
+        try:
+            ok = bool(case.directional_golden(forward, reversed_result))
+        except Exception as exc:  # noqa: BLE001 - reported as conformance data
+            ok = False
+            detail = f"directional golden raised {type(exc).__name__}: {exc}"
+        else:
+            detail = "" if ok else "the adapter-specific directional golden failed"
+    elif ok:
+        detail = (
+            "both orders were invoked; silent internal reordering requires an "
+            "adapter-specific directional golden"
+        )
     return ConformanceFinding("both_directions_are_separate_calls", ok, detail)
 
 
@@ -575,9 +688,111 @@ def _context(
 
 
 def _files_under(root: Path) -> set[Path]:
-    return {path for path in Path(root).rglob("*") if path.is_file()}
+    found: set[Path] = set()
+    for path in Path(root).rglob("*"):
+        try:
+            mode = path.lstat().st_mode
+        except OSError:
+            continue
+        if stat.S_ISREG(mode) or stat.S_ISLNK(mode):
+            found.add(path)
+    return found
 
 
 def _file_identity(path: Path) -> tuple[str, int]:
     payload = Path(path).read_bytes()
     return hashlib.sha256(payload).hexdigest(), len(payload)
+
+
+@dataclass(frozen=True, slots=True)
+class _Invocation:
+    label: str
+    result: object | None
+    exception: Exception | None
+    artifacts: ConformanceFinding
+    inputs: ConformanceFinding
+    containment: ConformanceFinding
+
+
+def _invoke_compare(
+    *,
+    label: str,
+    adapter: FingerprintAlgorithmAdapter,
+    case: AdapterConformanceCase,
+    left: PreparedImage,
+    right: PreparedImage,
+    working_directory: Path,
+    artifact_directory: Path,
+    sandbox_root: Path,
+) -> _Invocation:
+    before_files = _files_under(sandbox_root)
+    before_inputs = {
+        "left": _file_identity(case.left_image.local_path),
+        "right": _file_identity(case.right_image.local_path),
+    }
+    result: object | None = None
+    exception: Exception | None = None
+    try:
+        result = adapter.compare(
+            left,
+            right,
+            _context(working_directory, artifact_directory, case),
+        )
+    except Exception as exc:  # noqa: BLE001 - findings, never a stack trace
+        exception = exc
+    artifacts = (
+        _check_artifacts(result, artifact_directory, sandbox_root)
+        if isinstance(result, RawMatchResult)
+        else ConformanceFinding("artifacts_are_verifiable", False, f"{label}: no result")
+    )
+    return _Invocation(
+        label=label,
+        result=result,
+        exception=exception,
+        artifacts=_label_finding_raw(label, artifacts),
+        inputs=_label_finding_raw(label, _check_inputs_unmodified(case, before_inputs)),
+        containment=_label_finding_raw(
+            label,
+            _check_containment(
+                sandbox_root,
+                before_files,
+                working_directory,
+                artifact_directory,
+            ),
+        ),
+    )
+
+
+def _label_finding(
+    invocation: _Invocation, finding: ConformanceFinding
+) -> ConformanceFinding:
+    return _label_finding_raw(invocation.label, finding)
+
+
+def _label_finding_raw(label: str, finding: ConformanceFinding) -> ConformanceFinding:
+    detail = f"{label}: {finding.detail}" if finding.detail else label
+    return ConformanceFinding(finding.check, finding.passed, detail)
+
+
+def _merge_findings(
+    check: str, findings: list[ConformanceFinding]
+) -> ConformanceFinding:
+    failures = [item.detail for item in findings if not item.passed]
+    return ConformanceFinding(check, not failures, "; ".join(failures))
+
+
+def _is_exclusive_regular_file(path: Path, root: Path) -> bool:
+    try:
+        relative = path.relative_to(root)
+    except ValueError:
+        return False
+    current = root
+    for component in relative.parts:
+        current = current / component
+        try:
+            info = current.lstat()
+        except OSError:
+            return False
+        if stat.S_ISLNK(info.st_mode):
+            return False
+    return stat.S_ISREG(info.st_mode) and info.st_nlink == 1

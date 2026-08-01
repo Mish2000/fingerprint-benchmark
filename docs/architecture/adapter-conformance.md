@@ -39,6 +39,11 @@ is a stray write, and that is how the check finds one.
 are the answer; `require_clean()` is what turns them into a failure when you want
 one.
 
+The three calls use separate `forward-1`, `forward-2` and `reverse-1`
+subdirectories. An adapter may therefore publish immutable artifacts under the
+same fixed names on every call. Exceptions, input mutation, stray writes and
+artifact integrity are rechecked after each invocation.
+
 ## What it checks
 
 **Identity**
@@ -72,7 +77,8 @@ one.
   (docs/adr/0003, docs/adr/0010);
 - metadata holds no absolute path: a result that embeds one machine's layout is
   not portable evidence;
-- every artefact reference is relative, contained, and hashes to what it claims.
+- every artefact reference is relative, contained, hashes to what it claims, and
+  resolves without following a symlink or accepting a multi-link file.
 
 **Isolation**
 
@@ -84,9 +90,11 @@ one.
 ## On the reversed-sides check
 
 `compare(left, right)` fixes left as the probe and right as the candidate. A
-symmetric algorithm may legitimately return the same score both ways, so equality
-proves nothing and is not failed — the finding says "symmetric over these inputs,
-which the contract permits".
+symmetric algorithm may legitimately return the same score both ways, so
+equality proves nothing and is not failed. The generic check proves only that
+both orders were invoked and answered in kind. When direction affects an
+adapter, its case supplies `directional_golden(forward, reverse)` to prove the
+expected asymmetric behavior; a generic suite cannot detect silent sorting.
 
 What an adapter may **not** do is decide for itself: no automatic swap, no mean
 of the two directions, no maximum of the two. Asymmetry, if it is ever worth
@@ -96,10 +104,10 @@ inside a wrapper.
 ## Making sure the checks can fail
 
 A check that never fires is not a check.
-`tests/contract/test_adapter_conformance_suite.py` therefore includes two
-deliberately broken adapters — one that writes outside its directories, one that
-records a threshold and a decision — and asserts that the corresponding findings
-come back failed.
+`tests/contract/test_adapter_conformance_suite.py` therefore includes adapters
+that write outside their directories, record a forbidden decision, raise from
+`compare`, return a symlink artifact and mutate an input only on the second call.
+It also includes a conformant adapter that publishes a fixed artifact name.
 
 ## Where it runs
 

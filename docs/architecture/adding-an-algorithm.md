@@ -72,6 +72,10 @@ runtime_asset_roles = ("nbis_mindtct_executable",
 All of them reach the bundle fingerprint. A rebuild of any one of them is a
 different runtime and a different run (docs/adr/0042).
 
+The generic receipt records the complete role-to-digest mapping. Do not add a
+tool-specific digest field to core evidence; the integration id and its
+fingerprint are also bound automatically into the environment (docs/adr/0044).
+
 ## 4. Write the adapter
 
 Three methods, and only one of them does any matching.
@@ -170,6 +174,9 @@ report.require_clean()
 
 Findings, not a stack trace. Fix them before wiring anything else up; every one
 of them is something a 6,000-comparison run would otherwise discover for you.
+Each compare gets a fresh directory, and every invocation is checked for
+exceptions, input mutation, stray writes and non-regular artifacts. Supply a
+`directional_golden` when the route is intentionally asymmetric.
 
 ## 9. Smoke run
 

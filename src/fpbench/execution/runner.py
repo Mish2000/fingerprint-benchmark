@@ -53,6 +53,7 @@ from fpbench.core.errors import (
     ExecutionError,
     ImagePreparationError,
     PreflightError,
+    ProcessTreeTerminationError,
     ResultConflictError,
     RuntimeDriftError,
 )
@@ -306,12 +307,13 @@ class SingleJobRunner:
             try:
                 match_result = self._adapter.compare(left, right, context)
                 self._validate_adapter_result(match_result)
-            except RuntimeDriftError:
+            except (RuntimeDriftError, ProcessTreeTerminationError):
                 # Deliberately first, and deliberately re-raised. The pinned
-                # executable changed under the run: this is not a fact about
-                # this pair, and recording it as INTERNAL_ERROR would bury the
-                # one thing that invalidates everything else. No result is
-                # written for this job (docs/adr/0018).
+                # executable changed under the run, or the harness could not
+                # prove a timed-out process tree ended. Neither is a fact about
+                # this pair, and recording either as INTERNAL_ERROR would let an
+                # invalid run continue. No result is written for this job
+                # (docs/adr/0018, docs/adr/0045).
                 raise
             except TimeoutError as exc:
                 # Stage 3A does not cancel in-process work; it only records a

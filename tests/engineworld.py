@@ -28,6 +28,7 @@ from typing import Callable, Mapping, Sequence
 from fpbench.adapters.base import FingerprintAlgorithmAdapter
 from fpbench.core.enums import ExecutionStatus, ProtocolStage
 from fpbench.core.execution_models import ExecutionProfile
+from fpbench.core.run_state_models import IntegrityIssue
 from fpbench.core.serialization import stable_hash
 from fpbench.experiments.algorithm_research import AlgorithmResearchExperimentSpec
 from fpbench.experiments.research_integration import (
@@ -35,7 +36,6 @@ from fpbench.experiments.research_integration import (
     ResearchAdapterIntegration,
     ResearchValidationContext,
 )
-from fpbench.experiments.sourceafis_validation import SourceAfisValidationReport
 from support import build_release
 
 __all__ = [
@@ -212,7 +212,7 @@ def _git(root: Path, *arguments: str) -> str:
 
 def structural_result_validator(
     context: ResearchValidationContext,
-) -> SourceAfisValidationReport:
+) -> "StructuralValidationReport":
     """A validator that counts rather than judges.
 
     Every real algorithm brings its own, because which failure codes are
@@ -220,9 +220,9 @@ def structural_result_validator(
     nothing about a pipeline; it exists so the engine can be driven end to end by
     an adapter that has no pipeline to assert about.
 
-    It reuses ``SourceAfisValidationReport`` as a *shape*, which is exactly what
-    :class:`AlgorithmValidationReport` says a report has to be — and a test that
-    the protocol is satisfiable by something other than its first implementer.
+    Its local algorithm-neutral report satisfies ``AlgorithmValidationReport``
+    directly, proving the protocol is usable without importing or reusing the
+    first algorithm's validator model.
     """
     successes = 0
     total = 0
@@ -238,7 +238,7 @@ def structural_result_validator(
             code = record.failure.code.value
             failures[code] = failures.get(code, 0) + 1
 
-    return SourceAfisValidationReport(
+    return StructuralValidationReport(
         run_id=context.run.run_id,
         plan_id=context.plan.plan_id,
         total_results=total,
@@ -246,7 +246,7 @@ def structural_result_validator(
         algorithmic_failures=total - successes,
         blocking_failures=0,
         failure_counts=failures,
-        issues=(),
+        errors=(),
         validation_fingerprint=stable_hash(
             {
                 "schema": "structural_validation_v1",
@@ -260,6 +260,24 @@ def structural_result_validator(
         ),
         inspected_utc="2026-07-30T00:00:00+00:00",
     )
+
+
+@dataclass(frozen=True, slots=True)
+class StructuralValidationReport:
+    run_id: str
+    plan_id: str
+    total_results: int
+    successful_results: int
+    algorithmic_failures: int
+    blocking_failures: int
+    failure_counts: Mapping[str, int]
+    errors: tuple[IntegrityIssue, ...]
+    validation_fingerprint: str
+    inspected_utc: str
+
+    @property
+    def is_clean(self) -> bool:
+        return self.blocking_failures == 0 and not self.errors
 
 
 def structural_integration(

@@ -9,6 +9,7 @@ from somewhere else entirely (spec sections 33 and 34).
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 
 import pytest
@@ -117,6 +118,42 @@ def test_a_symlinked_subdirectory_does_not_become_a_way_out(workspace, tmp_path)
         workspace.work_path("escape/leak.txt")
 
 
+@pytest.mark.parametrize("points_inside", [True, False])
+def test_a_final_symlink_is_refused_even_when_it_points_inside(
+    workspace, tmp_path, points_inside
+):
+    target = (
+        workspace.work_path("ordinary.txt")
+        if points_inside
+        else tmp_path / "outside-final.txt"
+    )
+    target.write_bytes(b"target")
+    link = Path(workspace.working_directory) / "linked.txt"
+    try:
+        link.symlink_to(target)
+    except (OSError, NotImplementedError):  # pragma: no cover - platform policy
+        pytest.skip("this platform will not create symlinks")
+    with pytest.raises(WorkspaceContainmentError, match="symlink"):
+        workspace.work_path("linked.txt")
+
+
+@pytest.mark.parametrize("points_inside", [True, False])
+def test_an_intermediate_symlink_is_always_refused(workspace, tmp_path, points_inside):
+    target = (
+        Path(workspace.working_directory) / "real-directory"
+        if points_inside
+        else tmp_path / "outside-directory"
+    )
+    target.mkdir()
+    link = Path(workspace.working_directory) / "linked-directory"
+    try:
+        link.symlink_to(target, target_is_directory=True)
+    except (OSError, NotImplementedError):  # pragma: no cover - platform policy
+        pytest.skip("this platform will not create symlinks")
+    with pytest.raises(WorkspaceContainmentError, match="symlink"):
+        workspace.work_path("linked-directory/output.txt")
+
+
 # ----------------------------------------------------------------- artefacts
 
 
@@ -202,6 +239,51 @@ def test_a_missing_source_is_not_an_artefact(workspace):
             artifact_id="absent",
             kind="output",
             source=workspace.work_path("never-written.txt"),
+        )
+
+
+def test_an_artifact_source_symlink_is_refused(workspace):
+    target = workspace.work_path("real-output.txt")
+    target.write_bytes(b"output")
+    link = Path(workspace.working_directory) / "linked-output.txt"
+    try:
+        link.symlink_to(target)
+    except (OSError, NotImplementedError):  # pragma: no cover - platform policy
+        pytest.skip("this platform will not create symlinks")
+    with pytest.raises(WorkspaceContainmentError, match="symlink"):
+        workspace.publish_artifact(artifact_id="linked", kind="output", source=link)
+
+
+def test_an_artifact_target_symlink_is_refused(workspace, tmp_path):
+    source = workspace.work_path("output.txt")
+    source.write_bytes(b"output")
+    outside = tmp_path / "outside-target.txt"
+    outside.write_bytes(b"outside")
+    target = Path(workspace.artifact_directory) / "published.txt"
+    try:
+        target.symlink_to(outside)
+    except (OSError, NotImplementedError):  # pragma: no cover - platform policy
+        pytest.skip("this platform will not create symlinks")
+    with pytest.raises(WorkspaceContainmentError, match="symlink"):
+        workspace.publish_artifact(
+            artifact_id="output",
+            kind="output",
+            source=source,
+            relative_name="published.txt",
+        )
+
+
+def test_a_hardlinked_artifact_source_is_refused(workspace):
+    original = workspace.work_path("original.txt")
+    original.write_bytes(b"shared inode")
+    linked = workspace.work_path("linked.txt")
+    try:
+        os.link(original, linked)
+    except OSError:  # pragma: no cover - filesystem policy
+        pytest.skip("this filesystem will not create hard links")
+    with pytest.raises(WorkspaceContainmentError, match="hard links"):
+        workspace.publish_artifact(
+            artifact_id="linked", kind="output", source=linked
         )
 
 

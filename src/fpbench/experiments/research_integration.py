@@ -42,7 +42,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Mapping, Protocol, runtime_checkable
 
-from fpbench.adapters.base import FingerprintAlgorithmAdapter
+from fpbench.adapters.base import (
+    SUPPORTED_ADAPTER_CONTRACT_VERSIONS,
+    FingerprintAlgorithmAdapter,
+)
 from fpbench.core.errors import ConfigurationError, ResearchPreflightError
 from fpbench.core.execution_models import descriptor_fingerprint
 from fpbench.core.execution_plan_models import ExecutionPlan
@@ -52,6 +55,7 @@ from fpbench.core.provenance_models import SoftwareProvenance
 from fpbench.core.result_models import RunDefinition
 from fpbench.core.run_state_models import IntegrityIssue
 from fpbench.core.runtime_models import RunRuntimeReference, RuntimeBundleDefinition
+from fpbench.core.serialization import stable_hash
 from fpbench.experiments.prepared_input_validation import PreparedInputExpectations
 from fpbench.storage.result_store import ResultStore
 
@@ -291,6 +295,25 @@ class ResearchAdapterIntegration:
     def roles(self) -> frozenset[str]:
         return frozenset(self.runtime_asset_roles)
 
+    @property
+    def integration_fingerprint(self) -> str:
+        """Identity of the integration seam, independent of its callables.
+
+        Callable implementations are already bound by the fpbench source commit.
+        These durable declarations are the remaining choices that decide which
+        runtime is materialised and which validator is trusted.
+        """
+        return stable_hash(
+            {
+                "schema": "research_adapter_integration_v1",
+                "integration_id": self.integration_id,
+                "adapter_id": self.adapter_id,
+                "ordered_runtime_asset_roles": list(self.runtime_asset_roles),
+                "primary_runtime_asset_role": self.primary_runtime_asset_role,
+            },
+            length=64,
+        )
+
     # ------------------------------------------------------------- checking
 
     def require_development_runtime(
@@ -310,13 +333,47 @@ class ResearchAdapterIntegration:
                 f"{list(self.runtime_asset_roles)}, but the development runtime "
                 f"supplied missing={missing} extra={extra}"
             )
-        actual = development.adapter.descriptor.adapter_id
-        if actual != self.adapter_id:
+        self.require_adapter(
+            development.adapter, label="development runtime adapter"
+        )
+
+    def require_adapter(
+        self, adapter: object, *, label: str
+    ) -> FingerprintAlgorithmAdapter:
+        """Require a real, stable adapter implementing a supported contract."""
+        if not isinstance(adapter, FingerprintAlgorithmAdapter):
+            raise ResearchPreflightError(
+                f"integration {self.integration_id!r} {label} is "
+                f"{type(adapter).__name__}, not FingerprintAlgorithmAdapter"
+            )
+        first = adapter.descriptor
+        second = adapter.descriptor
+        if first != second or descriptor_fingerprint(first) != descriptor_fingerprint(
+            second
+        ):
+            raise ResearchPreflightError(
+                f"integration {self.integration_id!r} {label} has an unstable "
+                "descriptor"
+            )
+        if first.adapter_contract_version not in SUPPORTED_ADAPTER_CONTRACT_VERSIONS:
+            raise ResearchPreflightError(
+                f"integration {self.integration_id!r} {label} declares unsupported "
+                f"adapter contract version {first.adapter_contract_version!r}; "
+                f"supported versions are {sorted(SUPPORTED_ADAPTER_CONTRACT_VERSIONS)}"
+            )
+        if first.adapter_id != self.adapter_id:
+            if label == "development runtime adapter":
+                subject = "the development runtime built"
+            elif label == "pinned research adapter":
+                subject = "built a research adapter describing"
+            else:
+                subject = f"its {label} describes"
             raise ResearchPreflightError(
                 f"integration {self.integration_id!r} is for adapter "
-                f"{self.adapter_id!r}, but the development runtime built "
-                f"{actual!r}"
+                f"{self.adapter_id!r}, but {subject} "
+                f"{first.adapter_id!r}"
             )
+        return adapter
 
     def require_bundle_matches(self, bundle: RuntimeBundleDefinition) -> None:
         """A materialised bundle holds exactly this integration's assets.
@@ -361,6 +418,10 @@ class ResearchAdapterIntegration:
             ResearchPreflightError: the two descriptors disagree in any field
                 that reaches the fingerprint.
         """
+        development = self.require_adapter(
+            development, label="development runtime adapter"
+        )
+        research = self.require_adapter(research, label="pinned research adapter")
         left = development.descriptor
         right = research.descriptor
         for label, first, second in (

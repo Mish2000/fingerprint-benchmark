@@ -50,6 +50,8 @@ can be held to.
 | [0041](0041-intermediate-templates-remain-adapter-local.md) | Templates are the adapter's working files, not a core model | Accepted, implemented |
 | [0042](0042-runtime-bundles-support-multi-tool-pipelines.md) | A runtime bundle covers every tool that can change a score | Accepted, implemented |
 | [0043](0043-two-stage-synthetic-adapter-proves-extensibility.md) | A synthetic two-stage adapter proves the contract before a real one tests it | Accepted, implemented |
+| [0044](0044-research-evidence-is-algorithm-neutral-and-integration-bound.md) | Research evidence is algorithm-neutral and integration-bound | Accepted, implemented |
+| [0045](0045-adapter-tools-own-files-and-process-trees.md) | Adapter tools own regular files and complete process trees | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

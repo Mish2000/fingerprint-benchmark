@@ -48,6 +48,12 @@ pytestmark = [pytest.mark.dataset, pytest.mark.adapter_contract]
 REPO = Path(__file__).resolve().parents[2]
 WORKSPACE = REPO / "workspace"
 
+if not (WORKSPACE / "results").is_dir():
+    pytest.skip(
+        "no persisted results workspace is available",
+        allow_module_level=True,
+    )
+
 NATIVE_RUN = "run_7ac1cecc0bb3"
 NATIVE_RESULT_SET = "resultset_2bf3cacfd806"
 CANONICAL_RUN = "run_4c59fa02a6ab"
@@ -63,8 +69,9 @@ PAIRED_EVALUATION = "pairedeval_ee2e0fe7ddb6"
 
 
 def require_run(run_id: str) -> None:
-    if not (WORKSPACE / "results" / run_id).is_dir():
-        pytest.skip(f"no run {run_id} in this workspace")
+    assert (WORKSPACE / "results" / run_id).is_dir(), (
+        f"persisted workspace is missing required run {run_id}"
+    )
 
 
 # ------------------------------------------------------------------ the runs

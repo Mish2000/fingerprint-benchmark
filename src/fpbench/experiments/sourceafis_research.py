@@ -36,7 +36,7 @@ from fpbench.adapters.sourceafis_java.config import (
 )
 from fpbench.core.errors import ConfigurationError
 from fpbench.core.provenance_models import SoftwareProvenance
-from fpbench.core.research_models import ResearchRunReceipt, ResearchRunState
+from fpbench.core.research_models import ResearchReceipt, ResearchRunState
 from fpbench.core.runtime_models import RuntimeBundleDefinition
 from fpbench.experiments.algorithm_research import (
     REPOSITORY_ROOT,
@@ -266,7 +266,7 @@ def finalize_research_run(
     dataset_root: Path | None = None,
     repository_root: Path = REPOSITORY_ROOT,
     run_id: str | None = None,
-) -> ResearchRunReceipt:
+) -> ResearchReceipt:
     """Revalidate everything and publish one last immutable commit marker."""
     return finalize_algorithm_research_run(
         spec=spec,

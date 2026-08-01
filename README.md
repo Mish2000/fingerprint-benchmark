@@ -1166,13 +1166,17 @@ pipeline fails, and reaches `RESEARCH_READY` through the unmodified
 Runtime bundles now carry every tool that could change a score, and a rebuild of
 any one of them is drift
 ([ADR 0042](docs/adr/0042-runtime-bundles-support-multi-tool-pipelines.md)).
+New receipts and finalization markers are algorithm-neutral and bind the exact
+research integration into the environment and run identity, while the published
+SourceAFIS schemas remain readable without changing their identities
+([ADR 0044](docs/adr/0044-research-evidence-is-algorithm-neutral-and-integration-bound.md)).
 
 Four shared tools mean a new adapter reimplements none of this:
 
 | tool | what it takes off an adapter author |
 |---|---|
-| `AdapterJobWorkspace` | containment, artefact publication, meaningless file names |
-| `ExternalCommand` | no shell, absolute executable, bounded output, a timeout that kills |
+| `AdapterJobWorkspace` | non-following containment, owned artefacts, meaningless file names |
+| `ExternalCommand` | no shell, absolute executable, bounded output, whole-tree timeout termination |
 | `runtime_guard` | every pinned tool watched, by role |
 | `config_values` | strict YAML: `research_mode: "false"` is refused, not reinterpreted |
 

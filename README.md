@@ -108,7 +108,7 @@ other: the canonical path changes the whole preparation pipeline, not only the r
 | `fpbench.derivations` | built | derivation receipts, finalization markers, derivation status |
 | `fpbench.metrics` | built | metric policy, named denominators, counts, report, evaluation status |
 | `fpbench.paired` | built | alignment, the SD300A control, transitions, exact rate differences |
-| `fpbench.experiments` | built (six) | the SourceAFIS full run, the canonical image set, the canonical run, the shared decision and evaluation engines behind both chains, and the paired comparison |
+| `fpbench.experiments` | built (eight) | two full runs, the canonical image set, decisions and counts over each run, and the paired comparison — the two chains sharing one decision engine and one evaluation engine |
 | `fpbench.cli` | not yet | command-line entry points |
 
 Deliberate omissions, so they read as decisions rather than oversights:
@@ -1104,6 +1104,10 @@ on a score, never on a reconstructed key. The **SD300A exact control** is a hard
 acceptance condition: SD300A arrives at 500 ppi, so its canonical preparation is an
 identity, and all 2,000 of its comparisons must reproduce exactly. One mismatch aborts
 the derivation before any aggregate is written.
+
+It held. `pairedeval_1fcb2c55225d` records 2,000 of 2,000 equal scores, equal result
+statuses and equal decisions, with no rounding tolerance anywhere — which is the question
+stage 6A proved the pixels for and deliberately did not ask.
 
 Two mated FNMRs are published, and the difference between them is the point. The
 common-eligible one is conditioned on the 1,468 units both runs found eligible and is

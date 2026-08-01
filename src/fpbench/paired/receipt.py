@@ -19,6 +19,7 @@ from __future__ import annotations
 import datetime as _dt
 import json
 import os
+import re
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
@@ -83,8 +84,11 @@ FORBIDDEN_RECEIPT_KEYS: frozenset[str] = frozenset(
     }
 )
 
-#: Substrings that would mean an SD300 image or pair id had leaked in.
-_ID_MARKERS = ("_plain_", "_roll_", "sd300a_", "sd300b_", "sd300c_")
+#: What an SD300 image or pair id actually looks like: a release, then a subject
+#: number. Matched as a pattern rather than as the substring ``sd300a_``, because
+#: this project's own field names legitimately contain that — ``control_audit``
+#: reports ``planned_sd300a_pairs``, which is a count and not an inventory.
+_ID_PATTERN = re.compile(r"sd300[abc]_\d|_plain_f\d|_roll_f\d")
 
 
 def build_paired_receipt(
@@ -180,9 +184,9 @@ def require_sanitised_paired_receipt(receipt: PairedEvaluationReceipt) -> None:
             problems.append(f"carries a {key!r} field")
 
     rendered = json.dumps(payload, ensure_ascii=False).lower()
-    for marker in _ID_MARKERS:
-        if marker in rendered:
-            problems.append(f"contains {marker!r}, which is part of an SD300 id")
+    found = _ID_PATTERN.search(rendered)
+    if found:
+        problems.append(f"contains {found.group(0)!r}, which is part of an SD300 id")
 
     if problems:
         raise PairedEvaluationError(

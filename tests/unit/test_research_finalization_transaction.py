@@ -9,8 +9,8 @@ import pytest
 from fpbench.adapters.sourceafis_java.config import BRIDGE_JAR_ROLE
 from fpbench.core.enums import ResearchRunStatus
 from fpbench.execution.research import inspect_research_run
+from fpbench.experiments import algorithm_research
 from fpbench.experiments import sourceafis_native_full as experiment
-from fpbench.experiments import sourceafis_research
 from fpbench.experiments.research_receipt import EVIDENCE_DIRECTORY
 from runworld import build_world, structural_validation_report
 
@@ -24,11 +24,12 @@ def test_failure_after_each_intermediate_write_is_retryable_and_not_ready(
 ):
     """The chain is patched where it now lives: the shared orchestration.
 
-    Since stage 6A the native and canonical experiments are two thin wrappers
-    over one implementation, so the injection points moved from
-    ``sourceafis_native_full`` to ``sourceafis_research``. The property under
-    test is unchanged: a failure at any intermediate write leaves no
-    finalization marker, and the next attempt succeeds.
+    Stage 6A made the native and canonical experiments two thin wrappers over one
+    implementation; stage 7A moved that implementation to
+    ``fpbench.experiments.algorithm_research``, where it is shared between
+    algorithms rather than between two runs of one. The injection points followed
+    it. The property under test is unchanged: a failure at any intermediate write
+    leaves no finalization marker, and the next attempt succeeds.
     """
     world = build_world(tmp_path, research=True, asset_role=BRIDGE_JAR_ROLE)
     world.executor().execute(finalize=False)
@@ -56,14 +57,13 @@ def test_failure_after_each_intermediate_write_is_retryable_and_not_ready(
         result_set_store=world.result_set_store,
         bundle_store=world.bundle_store,
     )
-    monkeypatch.setattr(sourceafis_research, "_load_prepared", lambda **_: prepared)
+    monkeypatch.setattr(algorithm_research, "_load_prepared", lambda **_: prepared)
+    # The engine asks the integration; the integration is what a test replaces.
     monkeypatch.setattr(
-        sourceafis_research,
-        "validate_sourceafis_result_set",
-        lambda **_: structural_validation_report(world),
+        algorithm_research, "_validate", lambda _: structural_validation_report(world)
     )
     monkeypatch.setattr(
-        sourceafis_research, "write_evidence_copy", lambda *_, **__: None
+        algorithm_research, "write_evidence_copy", lambda *_, **__: None
     )
 
     calls = 0
@@ -93,9 +93,9 @@ def test_failure_after_each_intermediate_write_is_retryable_and_not_ready(
         )
     elif write_step == "summary":
         monkeypatch.setattr(
-            sourceafis_research,
+            algorithm_research,
             "write_operational_summary",
-            fail_once_after(sourceafis_research.write_operational_summary),
+            fail_once_after(algorithm_research.write_operational_summary),
         )
     else:
         monkeypatch.setattr(

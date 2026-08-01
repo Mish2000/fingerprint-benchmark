@@ -176,7 +176,7 @@ def test_a_missing_runtime_asset_invalidates_the_run(tmp_path):
 def test_broken_prepared_input_set_is_reported_as_invalid_not_raised(
     tmp_path, monkeypatch
 ):
-    from fpbench.experiments import sourceafis_research
+    from fpbench.experiments import algorithm_research, sourceafis_research
 
     world = build_world(tmp_path, research=True)
     world.result_store.ensure_run(world.run)
@@ -191,14 +191,12 @@ def test_broken_prepared_input_set_is_reported_as_invalid_not_raised(
         pairs=world.pair_index,
         verifier_software=world.software,
     )
-    monkeypatch.setattr(sourceafis_research, "_load_prepared", lambda **_: prepared)
+    monkeypatch.setattr(algorithm_research, "_load_prepared", lambda **_: prepared)
 
-    def must_not_validate(**_):  # pragma: no cover - the assertion is no call
+    def must_not_validate(*_, **__):  # pragma: no cover - the assertion is no call
         raise AssertionError("broken preparation must not request prepared entries")
 
-    monkeypatch.setattr(
-        sourceafis_research, "validate_sourceafis_result_set", must_not_validate
-    )
+    monkeypatch.setattr(algorithm_research, "_validate", must_not_validate)
     state = sourceafis_research.inspect_research_experiment(
         spec=None,
         preparer_factory=None,

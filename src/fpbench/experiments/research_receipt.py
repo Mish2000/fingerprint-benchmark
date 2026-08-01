@@ -40,8 +40,7 @@ from fpbench.core.result_set_models import ResultSetManifest
 from fpbench.core.run_state_models import RunAuditReport, RunCompletion
 from fpbench.core.runtime_models import RunRuntimeReference
 from fpbench.core.serialization import to_plain
-from fpbench.adapters.sourceafis_java.config import BRIDGE_JAR_ROLE
-from fpbench.experiments.sourceafis_validation import SourceAfisValidationReport
+from fpbench.experiments.research_integration import AlgorithmValidationReport
 
 __all__ = [
     "build_research_finalization_marker",
@@ -50,11 +49,19 @@ __all__ = [
     "verify_research_receipt",
     "write_evidence_copy",
     "EVIDENCE_DIRECTORY",
+    "LEGACY_PRIMARY_ASSET_ROLE",
 ]
 
 #: Where a committed copy lives, relative to the repository root. One file per
 #: run id, so two runs of the same experiment never overwrite each other.
 EVIDENCE_DIRECTORY = Path("evidence") / "sourceafis-native-full"
+
+#: The role the two finished runs' receipts were written against, before an
+#: integration declared its roles explicitly. A literal rather than an import
+#: from an adapter package: this module builds receipts for any algorithm, and
+#: it should not have to know that one of them ships a jar. Every current caller
+#: passes the role it means; this is what a caller written before they did gets.
+LEGACY_PRIMARY_ASSET_ROLE = "sourceafis_bridge_jar"
 
 
 def build_research_receipt(
@@ -66,11 +73,11 @@ def build_research_receipt(
     runtime_reference: RunRuntimeReference,
     result_set: ResultSetManifest,
     audit: RunAuditReport,
-    validation: SourceAfisValidationReport,
+    validation: AlgorithmValidationReport,
     completion: RunCompletion,
     dataset_id: str,
     preparation_manifest: PreparedImageSetManifest | None = None,
-    primary_asset_role: str = BRIDGE_JAR_ROLE,
+    primary_asset_role: str = LEGACY_PRIMARY_ASSET_ROLE,
     timing_summary: Mapping[str, str] | None = None,
     created_utc: str | None = None,
 ) -> ResearchRunReceipt:
@@ -165,11 +172,11 @@ def verify_research_receipt(
     runtime_reference: RunRuntimeReference,
     result_set: ResultSetManifest,
     current_audit: RunAuditReport,
-    current_algorithm_validation: SourceAfisValidationReport,
+    current_algorithm_validation: AlgorithmValidationReport,
     completion: RunCompletion,
     receipt: ResearchRunReceipt,
     preparation_manifest: PreparedImageSetManifest | None = None,
-    primary_asset_role: str = BRIDGE_JAR_ROLE,
+    primary_asset_role: str = LEGACY_PRIMARY_ASSET_ROLE,
 ) -> None:
     """Re-derive every load-bearing receipt claim from current evidence.
 
@@ -276,7 +283,7 @@ def build_research_finalization_marker(
     runtime_reference: RunRuntimeReference,
     result_set: ResultSetManifest,
     audit: RunAuditReport,
-    validation: SourceAfisValidationReport,
+    validation: AlgorithmValidationReport,
     completion: RunCompletion,
     receipt: ResearchRunReceipt,
     verifier_software: SoftwareProvenance,
@@ -323,7 +330,7 @@ def verify_research_finalization_marker(
     runtime_reference: RunRuntimeReference,
     result_set: ResultSetManifest,
     current_audit: RunAuditReport,
-    current_algorithm_validation: SourceAfisValidationReport,
+    current_algorithm_validation: AlgorithmValidationReport,
     completion: RunCompletion,
     receipt: ResearchRunReceipt,
 ) -> None:
@@ -473,7 +480,7 @@ def _require_consistent(
     runtime_reference: RunRuntimeReference,
     result_set: ResultSetManifest,
     audit: RunAuditReport,
-    validation: SourceAfisValidationReport,
+    validation: AlgorithmValidationReport,
     completion: RunCompletion,
 ) -> None:
     checks: list[tuple[str, Any, Any]] = [

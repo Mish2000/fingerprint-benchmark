@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Iterable, Mapping
 
 from fpbench.adapters.sourceafis_java.adapter import (
@@ -57,18 +57,25 @@ from fpbench.core.enums import (
 from fpbench.core.errors import ConfigurationError, StorageError
 from fpbench.core.execution_plan_models import ExecutionPlan
 from fpbench.core.identifiers import ImageId, PairId
-from fpbench.core.imaging_models import PreparedImageEntry
 from fpbench.core.models import ComparisonPair, ImageRecord
 from fpbench.core.result_models import RawResultRecord, RunDefinition
 from fpbench.core.run_state_models import IntegrityIssue
 from fpbench.core.runtime_models import RunRuntimeReference
 from fpbench.core.serialization import stable_hash
 from fpbench.datasets.sd300 import ppi_policy
+from fpbench.experiments.prepared_input_validation import (
+    CanonicalPreparationExpectations,
+    PreparedInputExpectations,
+)
 from fpbench.storage.result_store import ResultStore
 
 __all__ = [
     "SourceAfisValidationReport",
+    # Re-exported from fpbench.experiments.prepared_input_validation, where the
+    # model now lives: what a result must claim about the input set it names is
+    # the same question for every algorithm (spec section 25).
     "CanonicalPreparationExpectations",
+    "PreparedInputExpectations",
     "validate_sourceafis_result_set",
     "ALGORITHMIC_FAILURE_CODES",
     "BLOCKING_FAILURE_CODES",
@@ -129,57 +136,6 @@ _EXPECTED_METADATA = {
 }
 
 _EXPECTED_EXTRACTION_COUNT = "2"
-
-
-@dataclass(frozen=True, slots=True)
-class CanonicalPreparationExpectations:
-    """What every result of a run over a materialised input set must claim.
-
-    Present for a canonical run and ``None`` for the native one. That asymmetry
-    is deliberate rather than a gap: the identity preparer materialises nothing,
-    so there is no set for its results to be checked against, and inventing one
-    would make 6,000 already-stored native results fail a check they were never
-    subject to (spec section 61).
-
-    Holding the entry index here is what turns "the result says it used
-    canonical pixels" into "the result names an artefact that exists in this
-    exact set, with this width, this height, this file digest and this raster
-    digest" (spec section 75).
-    """
-
-    execution_profile_id: str
-    preparer_id: str
-    preparer_version: str
-    runner_metadata_schema: str
-
-    preparation_set_id: str
-    preparation_set_fingerprint: str
-
-    transform_profile_id: str
-    transform_profile_fingerprint: str
-    transform_runtime_fingerprint: str
-
-    target_ppi: int
-
-    entries: Mapping[ImageId, PreparedImageEntry]
-
-    #: Which source resolution each release is entitled to have been scaled
-    #: from. Empty disables the release-aware check, which is what a synthetic
-    #: world with invented release names wants.
-    expected_source_ppi: Mapping[str, int] = field(default_factory=dict)
-
-    def run_level_metadata(self) -> Mapping[str, str]:
-        """The runner-metadata keys that are the same for every comparison."""
-        return {
-            "preparer_id": self.preparer_id,
-            "preparer_version": self.preparer_version,
-            "runner_metadata_schema": self.runner_metadata_schema,
-            "preparation_set_id": self.preparation_set_id,
-            "preparation_set_fingerprint": self.preparation_set_fingerprint,
-            "transform_profile_id": self.transform_profile_id,
-            "transform_profile_fingerprint": self.transform_profile_fingerprint,
-            "transform_runtime_fingerprint": self.transform_runtime_fingerprint,
-        }
 
 
 @dataclass(frozen=True, slots=True)

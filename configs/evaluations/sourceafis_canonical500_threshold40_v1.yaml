@@ -1,0 +1,50 @@
+# Counting the 6,000 canonical 500 ppi SourceAFIS decisions.
+#
+# The same metric policy, the same fourteen metrics, the same numerators and the
+# same denominators the native evaluation used. Nothing is redefined because the
+# input is canonical: a metric whose denominator moved with the input would make
+# the two evaluations incommensurable, which is the opposite of the point
+# (spec section 22).
+#
+# It names one exact source — one run id and one decision-set id — and will not
+# fall back to "the latest". The decision-set id is filled in after the canonical
+# derivation has produced it, for the same reason the preparation-set id was
+# filled in after the images existed: it is derived from the decisions and cannot
+# be known before them.
+
+experiment:
+  experiment_id: sourceafis_canonical500_threshold40_evaluation_v1
+
+source:
+  # Stage 6A's canonical 6,000-comparison run, and the decisions stage 6B
+  # derived from it under the transferred threshold of 40.
+  run_id: run_4c59fa02a6ab
+  decision_set_id: "TO_BE_FILLED_AFTER_CANONICAL_DERIVATION"
+
+metric_policy:
+  # Identical to the native evaluation's. This is the file that makes the two
+  # sets of counts comparable at all.
+  ref: configs/metrics/plain_roll_biometric_metrics_v1.yaml
+
+report_profile:
+  profile_id: biometric_evaluation_markdown_en_v1
+
+expected_shape:
+  decisions: 6000
+  eligibility_units: 1500
+  rows_per_view: 1500
+  rows_per_release_per_view: 500
+
+  releases:
+    - SD300A
+    - SD300B
+    - SD300C
+
+limitations:
+  # Each of these is a claim this evaluation may not make, and the loader refuses
+  # the file if any is switched on. Canonical inputs change none of that: there
+  # is still no calibration manifest, still no bootstrap, and still no impostor
+  # design chosen for estimation.
+  confidence_intervals: false
+  threshold_calibration: false
+  general_fmr_claim: false

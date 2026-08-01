@@ -118,6 +118,7 @@ def load_decision_profile(
             calibration.get("test_cohort_used", False)
         ),
     }
+    metadata.update(_transfer_metadata(document, path))
     extra = document.get("metadata") or {}
     if isinstance(extra, Mapping):
         metadata.update({str(k): str(v) for k, v in extra.items()})
@@ -265,6 +266,78 @@ def require_profile_applies_to_run(
             "for images prepared one way does not transfer to images prepared "
             "another way"
         )
+
+
+#: Every field of a ``transfer`` block, and all of them are required once the
+#: block exists. A transfer that recorded only its source profile would leave
+#: the two questions that matter — was the number changed, and was anything
+#: calibrated — answered by whoever read it (spec section 10).
+_TRANSFER_FIELDS: tuple[str, ...] = (
+    "source_profile_id",
+    "threshold_unchanged",
+    "calibration_performed",
+    "test_cohort_used",
+    "interpretation",
+)
+
+
+def _transfer_metadata(
+    document: Mapping[str, Any], path: Path
+) -> Mapping[str, str]:
+    """Read a ``transfer`` block, if the profile has one.
+
+    A transferred profile is one whose threshold came from *another profile*
+    rather than from upstream documentation directly or from a calibration. The
+    canonical-500 profile is the first: 40 is SourceAFIS's documented number,
+    carried across unchanged so that the only thing that differs between the two
+    derivations is which images were compared.
+
+    Every field lands in ``metadata``, which is inside
+    :func:`decision_profile_fingerprint`. So a transfer that quietly started
+    claiming ``calibration_performed: true``, or pointed at a different source
+    profile, would be a different profile with a different fingerprint and could
+    not be mistaken for this one.
+
+    A profile without the block — the native one — gets nothing, so its
+    fingerprint is exactly what it was before this loader learned the word.
+    """
+    block = document.get("transfer")
+    if block is None:
+        return {}
+    if not isinstance(block, Mapping):
+        raise DecisionProfileError(f"{path}: malformed 'transfer' section")
+
+    missing = [name for name in _TRANSFER_FIELDS if name not in block]
+    if missing:
+        raise DecisionProfileError(
+            f"{path}: transfer is missing {', '.join(missing)}. A transferred "
+            "threshold has to say what it came from and what was left unchanged, "
+            "or it is indistinguishable from a threshold somebody chose"
+        )
+
+    if not bool(block["threshold_unchanged"]):
+        raise DecisionProfileError(
+            f"{path}: transfer.threshold_unchanged is false. A transfer that moved "
+            "the number is not a transfer; it is a new threshold, and a new "
+            "threshold needs an origin of its own"
+        )
+    for name in ("calibration_performed", "test_cohort_used"):
+        if bool(block[name]):
+            raise DecisionProfileError(
+                f"{path}: transfer.{name} may not be true. Nothing was calibrated "
+                "here and the TEST cohort was not used to choose anything; a "
+                "profile that claimed otherwise would be claiming work nobody did"
+            )
+
+    return {
+        f"transfer.{name}": _render_transfer(block[name]) for name in _TRANSFER_FIELDS
+    }
+
+
+def _render_transfer(value: Any) -> str:
+    if isinstance(value, bool):
+        return _flag(value)
+    return str(value)
 
 
 def _render(value: Any) -> str:

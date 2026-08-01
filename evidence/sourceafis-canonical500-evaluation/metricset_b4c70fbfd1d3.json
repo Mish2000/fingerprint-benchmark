@@ -1,0 +1,282 @@
+{
+  "schema_version": "1",
+  "run_id": "run_4c59fa02a6ab",
+  "result_set_id": "resultset_087b084fb8a8",
+  "decision_profile_id": "sourceafis_java_3_18_1_documented_40_canonical500_v1",
+  "decision_set_id": "decisionset_df0d584bdede",
+  "eligibility_set_id": "eligibilityset_d87d6591d517",
+  "metric_policy_id": "plain_roll_biometric_metrics_v1",
+  "metric_policy_fingerprint": "177c59880368cde201d6c95d1aa8686fed11c20ba51fd82cd933ed9fe868d6bf",
+  "metric_set_id": "metricset_b4c70fbfd1d3",
+  "metric_set_fingerprint": "b4c70fbfd1d374c5612f130a0fde04184ae0e76f3c2a635b5e954cc345e79dbf",
+  "metric_source_commit": "81f650a0519d591af40a6453dd4b9d873df8b8e6",
+  "metric_source_tree_clean": true,
+  "releases": [
+    "SD300A",
+    "SD300B",
+    "SD300C"
+  ],
+  "structural_counts": {
+    "conditional_rows": 1500,
+    "decisions": 6000,
+    "eligibility_units": 1500,
+    "negative_sanity_rows": 1500,
+    "unconditional_rows": 1500
+  },
+  "metrics": {
+    "plain_roll_mated_conditional_fnmr_decided": {
+      "SD300A": {
+        "denominator": 487,
+        "numerator": 151
+      },
+      "SD300B": {
+        "denominator": 493,
+        "numerator": 169
+      },
+      "SD300C": {
+        "denominator": 492,
+        "numerator": 173
+      },
+      "pooled": {
+        "denominator": 1472,
+        "numerator": 493
+      }
+    },
+    "plain_roll_mated_conditional_non_success_rate_attempt": {
+      "SD300A": {
+        "denominator": 487,
+        "numerator": 151
+      },
+      "SD300B": {
+        "denominator": 493,
+        "numerator": 169
+      },
+      "SD300C": {
+        "denominator": 492,
+        "numerator": 173
+      },
+      "pooled": {
+        "denominator": 1472,
+        "numerator": 493
+      }
+    },
+    "plain_roll_mated_conditional_selection_rate": {
+      "SD300A": {
+        "denominator": 500,
+        "numerator": 487
+      },
+      "SD300B": {
+        "denominator": 500,
+        "numerator": 493
+      },
+      "SD300C": {
+        "denominator": 500,
+        "numerator": 492
+      },
+      "pooled": {
+        "denominator": 1500,
+        "numerator": 1472
+      }
+    },
+    "plain_roll_mated_unconditional_fnmr_decided": {
+      "SD300A": {
+        "denominator": 500,
+        "numerator": 164
+      },
+      "SD300B": {
+        "denominator": 500,
+        "numerator": 176
+      },
+      "SD300C": {
+        "denominator": 500,
+        "numerator": 181
+      },
+      "pooled": {
+        "denominator": 1500,
+        "numerator": 521
+      }
+    },
+    "plain_roll_mated_unconditional_non_success_rate_attempt": {
+      "SD300A": {
+        "denominator": 500,
+        "numerator": 164
+      },
+      "SD300B": {
+        "denominator": 500,
+        "numerator": 176
+      },
+      "SD300C": {
+        "denominator": 500,
+        "numerator": 181
+      },
+      "pooled": {
+        "denominator": 1500,
+        "numerator": 521
+      }
+    },
+    "plain_roll_non_mated_sanity_match_rate_attempt": {
+      "SD300A": {
+        "denominator": 500,
+        "numerator": 0
+      },
+      "SD300B": {
+        "denominator": 500,
+        "numerator": 1
+      },
+      "SD300C": {
+        "denominator": 500,
+        "numerator": 0
+      },
+      "pooled": {
+        "denominator": 1500,
+        "numerator": 1
+      }
+    },
+    "plain_roll_non_mated_sanity_match_rate_decided": {
+      "SD300A": {
+        "denominator": 500,
+        "numerator": 0
+      },
+      "SD300B": {
+        "denominator": 500,
+        "numerator": 1
+      },
+      "SD300C": {
+        "denominator": 500,
+        "numerator": 0
+      },
+      "pooled": {
+        "denominator": 1500,
+        "numerator": 1
+      }
+    },
+    "plain_self_match_rate_attempt": {
+      "SD300A": {
+        "denominator": 500,
+        "numerator": 487
+      },
+      "SD300B": {
+        "denominator": 500,
+        "numerator": 493
+      },
+      "SD300C": {
+        "denominator": 500,
+        "numerator": 492
+      },
+      "pooled": {
+        "denominator": 1500,
+        "numerator": 1472
+      }
+    },
+    "plain_self_match_rate_decided": {
+      "SD300A": {
+        "denominator": 500,
+        "numerator": 487
+      },
+      "SD300B": {
+        "denominator": 500,
+        "numerator": 493
+      },
+      "SD300C": {
+        "denominator": 500,
+        "numerator": 492
+      },
+      "pooled": {
+        "denominator": 1500,
+        "numerator": 1472
+      }
+    },
+    "roll_self_match_rate_attempt": {
+      "SD300A": {
+        "denominator": 500,
+        "numerator": 500
+      },
+      "SD300B": {
+        "denominator": 500,
+        "numerator": 500
+      },
+      "SD300C": {
+        "denominator": 500,
+        "numerator": 500
+      },
+      "pooled": {
+        "denominator": 1500,
+        "numerator": 1500
+      }
+    },
+    "roll_self_match_rate_decided": {
+      "SD300A": {
+        "denominator": 500,
+        "numerator": 500
+      },
+      "SD300B": {
+        "denominator": 500,
+        "numerator": 500
+      },
+      "SD300C": {
+        "denominator": 500,
+        "numerator": 500
+      },
+      "pooled": {
+        "denominator": 1500,
+        "numerator": 1500
+      }
+    },
+    "self_eligibility_rate": {
+      "SD300A": {
+        "denominator": 500,
+        "numerator": 487
+      },
+      "SD300B": {
+        "denominator": 500,
+        "numerator": 493
+      },
+      "SD300C": {
+        "denominator": 500,
+        "numerator": 492
+      },
+      "pooled": {
+        "denominator": 1500,
+        "numerator": 1472
+      }
+    },
+    "self_ineligible_rate": {
+      "SD300A": {
+        "denominator": 500,
+        "numerator": 13
+      },
+      "SD300B": {
+        "denominator": 500,
+        "numerator": 7
+      },
+      "SD300C": {
+        "denominator": 500,
+        "numerator": 8
+      },
+      "pooled": {
+        "denominator": 1500,
+        "numerator": 28
+      }
+    },
+    "self_undetermined_rate": {
+      "SD300A": {
+        "denominator": 500,
+        "numerator": 0
+      },
+      "SD300B": {
+        "denominator": 500,
+        "numerator": 0
+      },
+      "SD300C": {
+        "denominator": 500,
+        "numerator": 0
+      },
+      "pooled": {
+        "denominator": 1500,
+        "numerator": 0
+      }
+    }
+  },
+  "statement": "These are observed counts under one documented threshold, over one closed cohort. The threshold was not calibrated. No confidence interval, significance test or population-level false-match rate is claimed, and the same-subject different-finger set is a negative sanity check rather than an impostor experiment.",
+  "created_utc": "2026-08-01T10:46:25.901550+00:00"
+}

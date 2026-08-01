@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "run_id": "run_4c59fa02a6ab",
+  "run_fingerprint": "4c59fa02a6ab0471bdd46e134c61d74a7b6463276bf7c1bb6bd2e217622ceb5a",
+  "result_set_id": "resultset_087b084fb8a8",
+  "result_set_fingerprint": "087b084fb8a8001eb92e20d4900dfc759dc5abbc9d5346144c83f5298f61e38b",
+  "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "decision_profile_id": "sourceafis_java_3_18_1_documented_40_canonical500_v1",
+  "decision_profile_fingerprint": "a9550e9dfd0ce54f6538d395a32c5e354db3bd4a9cbafff4cf0268e88fc78b75",
+  "decision_set_id": "decisionset_df0d584bdede",
+  "decision_set_fingerprint": "df0d584bdeded5a9097a00bc0854d33243747adbd1ee238826ce378d40d679c6",
+  "eligibility_set_id": "eligibilityset_d87d6591d517",
+  "eligibility_set_fingerprint": "d87d6591d517b7b800906d4e67aff414cefc6ff7999d8e1496201602201c24b0",
+  "unconditional_view_id": "view_plain_roll_mated_unconditional_v1_544800e5d997",
+  "unconditional_view_fingerprint": "544800e5d997fd663e9ea3fb28dc6ee62f2b1d15975c4619e6f6f351f04cd2df",
+  "conditional_view_id": "view_plain_roll_mated_both_self_match_v1_3a803ca97aa5",
+  "conditional_view_fingerprint": "3a803ca97aa50c4737c8d699618865be262ea1ad4b087cb44beacebf4a07d660",
+  "non_mated_view_id": "view_plain_roll_non_mated_same_subject_cyclic_v1_f8c058f18013",
+  "non_mated_view_fingerprint": "f8c058f1801362774e30a2e11d84cb0cd31b44adcefe6b7c971c0b7faf2673c3",
+  "derivation_source_commit": "91b759210146cc1041dda314436810dc57a947d4",
+  "derivation_source_tree_clean": true,
+  "total_decisions": 6000,
+  "decided_count": 6000,
+  "undecidable_count": 0,
+  "total_eligibility_units": 1500,
+  "view_total_rows": {
+    "plain_roll_mated_both_self_match_v1": 1500,
+    "plain_roll_mated_unconditional_v1": 1500,
+    "plain_roll_non_mated_same_subject_cyclic_v1": 1500
+  },
+  "statement": "This receipt proves deterministic decision and eligibility derivation. It contains no biometric performance metric or conclusion.",
+  "created_utc": "2026-08-01T10:42:02.926652+00:00"
+}

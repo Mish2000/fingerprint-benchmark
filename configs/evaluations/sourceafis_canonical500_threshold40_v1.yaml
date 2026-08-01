@@ -19,7 +19,7 @@ source:
   # Stage 6A's canonical 6,000-comparison run, and the decisions stage 6B
   # derived from it under the transferred threshold of 40.
   run_id: run_4c59fa02a6ab
-  decision_set_id: "TO_BE_FILLED_AFTER_CANONICAL_DERIVATION"
+  decision_set_id: decisionset_df0d584bdede
 
 metric_policy:
   # Identical to the native evaluation's. This is the file that makes the two

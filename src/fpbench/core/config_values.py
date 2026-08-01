@@ -108,11 +108,16 @@ def require_yaml_exact_int(
     minimum: int | None = None,
     maximum: int | None = None,
 ) -> int:
-    """A YAML integer. ``0.0``, ``"0"`` and ``true`` are all refused."""
+    """A YAML integer. ``0.0``, ``"0"`` and ``true`` are all refused.
+
+    The wording matches :func:`fpbench.core.serialization.require_exact_int`,
+    which enforces the same rule one layer down over already-parsed JSON. Two
+    phrasings for one rule would make the rule look like two.
+    """
     value = _fetch(document, key, default, where)
     if type(value) is not int:  # bool is an int subclass; type() excludes it
         raise ConfigurationError(
-            f"{_where(where, key)} must be a YAML integer, got "
+            f"{_where(where, key)} must be an exact integer, got "
             f"{_type_name(value)} {value!r}"
         )
     if minimum is not None and value < minimum:

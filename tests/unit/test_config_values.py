@@ -54,7 +54,7 @@ def test_an_exact_integer_is_accepted():
 
 @pytest.mark.parametrize("value", [0.0, "0", True, False, None])
 def test_a_number_that_is_not_an_integer_is_refused(value):
-    with pytest.raises(ConfigurationError, match="YAML integer"):
+    with pytest.raises(ConfigurationError, match="exact integer"):
         require_yaml_exact_int({"replicate_index": value}, "replicate_index")
 
 
@@ -134,3 +134,65 @@ def test_the_known_keys_pass_through():
 def test_the_error_names_where_it_came_from():
     with pytest.raises(ConfigurationError, match="sourceafis_java"):
         reject_unknown_keys({"nope": 1}, set(), where="sourceafis_java")
+
+
+# ------------------------------------------------- applied to the real configs
+#
+# The helpers are only worth having where the files are actually read. Each case
+# below is one of the five spellings spec section 47 names, applied to the
+# experiment config the stage 4B run is defined by.
+
+from pathlib import Path  # noqa: E402 - kept beside the tests that use it
+
+import yaml  # noqa: E402
+
+REPO = Path(__file__).resolve().parents[2]
+NATIVE_CONFIG = REPO / "configs" / "experiments" / "sourceafis_native_full_v1.yaml"
+
+
+def write_variant(tmp_path: Path, section: str, key: str, value) -> Path:
+    document = yaml.safe_load(NATIVE_CONFIG.read_text(encoding="utf-8"))
+    document[section][key] = value
+    path = tmp_path / "experiment.yaml"
+    path.write_text(yaml.safe_dump(document, sort_keys=False), encoding="utf-8")
+    return path
+
+
+def load(path: Path):
+    from fpbench.experiments.sourceafis_native_full import load_experiment_config
+
+    return load_experiment_config(path, repository_root=REPO)
+
+
+def test_the_real_config_still_loads():
+    """The point of the hardening is that valid files are unaffected."""
+    config = load(NATIVE_CONFIG)
+    assert config.experiment_id == "sourceafis_native_full_v1"
+    assert config.research_mode is True
+    assert config.replicate_index == 0
+    assert config.execution_profile.timeout_seconds == 60.0
+    assert config.execution_profile.parameters["resolution_mode"] == "native"
+
+
+@pytest.mark.parametrize(
+    "section,key,value,expected",
+    [
+        ("runtime", "research_mode", "false", "boolean"),
+        ("experiment", "replicate_index", 0.0, "exact integer"),
+        ("execution", "deterministic_seed", "0", "exact integer"),
+        ("execution", "timeout_seconds", "60", "number"),
+        ("dataset", "require_verified_checksums", "true", "boolean"),
+    ],
+)
+def test_a_coerced_value_is_refused_by_the_real_loader(
+    tmp_path, section, key, value, expected
+):
+    with pytest.raises(ConfigurationError, match=expected):
+        load(write_variant(tmp_path, section, key, value))
+
+
+def test_a_duration_may_still_be_written_either_way(tmp_path):
+    """60 and 60.0 are the same duration; "60" is not a duration."""
+    assert load(
+        write_variant(tmp_path, "execution", "timeout_seconds", 60.0)
+    ).execution_profile.timeout_seconds == 60.0

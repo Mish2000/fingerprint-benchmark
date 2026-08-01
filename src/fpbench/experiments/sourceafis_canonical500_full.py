@@ -56,6 +56,11 @@ from fpbench.core.execution_models import ExecutionProfile
 from fpbench.core.research_models import ResearchRunReceipt, ResearchRunState
 from fpbench.core.serialization import require_exact_int
 from fpbench.execution.batch_runner import RunExecutionSummary
+from fpbench.experiments.config_values import (
+    require_yaml_bool,
+    require_yaml_exact_int,
+    require_yaml_non_empty_str,
+)
 from fpbench.experiments.sd300_inputs import (
     EXPECTED_JOBS,
     EXPECTED_PARTICIPATING_IMAGES,
@@ -272,24 +277,40 @@ def load_canonical_experiment_config(
                 "a run may not straddle two input sets"
             )
 
+    # The scalars are read with type-checking helpers rather than coerced: a
+    # quoted boolean, a float where an integer belongs or a stringified number
+    # is a file saying one thing while the run does another (spec section 47).
     root = Path(repository_root)
     dataset = _section(document, "dataset", path)
     protocol = _section(document, "protocol", path)
     return CanonicalExperimentConfig(
-        experiment_id=str(experiment["id"]),
-        kind=str(experiment.get("kind", "full_raw_score_run")),
-        replicate_index=require_exact_int(
-            experiment.get("replicate_index", 0), "replicate_index"
+        experiment_id=require_yaml_non_empty_str(experiment, "id", where=path),
+        kind=require_yaml_non_empty_str(
+            experiment, "kind", where=path, default="full_raw_score_run"
         ),
-        dataset_config=(root / str(dataset["ref"])).resolve(),
-        protocol_config=(root / str(protocol["ref"])).resolve(),
-        algorithm_config=(root / str(algorithm["ref"])).resolve(),
-        require_verified_checksums=bool(
-            dataset.get("require_verified_checksums", True)
+        replicate_index=require_yaml_exact_int(
+            experiment, "replicate_index", where=path, default=0, minimum=0
         ),
-        research_mode=bool(runtime.get("research_mode", True)),
-        materialization_policy=str(
-            runtime.get("materialization_policy", "content_addressed_copy_v1")
+        dataset_config=(
+            root / require_yaml_non_empty_str(dataset, "ref", where=path)
+        ).resolve(),
+        protocol_config=(
+            root / require_yaml_non_empty_str(protocol, "ref", where=path)
+        ).resolve(),
+        algorithm_config=(
+            root / require_yaml_non_empty_str(algorithm, "ref", where=path)
+        ).resolve(),
+        require_verified_checksums=require_yaml_bool(
+            dataset, "require_verified_checksums", where=path, default=True
+        ),
+        research_mode=require_yaml_bool(
+            runtime, "research_mode", where=path, default=True
+        ),
+        materialization_policy=require_yaml_non_empty_str(
+            runtime,
+            "materialization_policy",
+            where=path,
+            default="content_addressed_copy_v1",
         ),
         execution_profile=profile,
         preparation_set_id=declared["preparation_set_id"],

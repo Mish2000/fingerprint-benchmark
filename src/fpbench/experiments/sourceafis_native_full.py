@@ -39,6 +39,13 @@ import yaml
 
 from fpbench.core.errors import ConfigurationError, ResearchPreflightError
 from fpbench.core.execution_models import ExecutionProfile
+from fpbench.experiments.config_values import (
+    require_yaml_bool,
+    require_yaml_exact_int,
+    require_yaml_non_empty_str,
+    require_yaml_positive_number,
+    require_yaml_string_mapping,
+)
 from fpbench.core.research_models import ResearchRunReceipt, ResearchRunState
 from fpbench.execution.batch_runner import RunExecutionSummary
 from fpbench.experiments.research_receipt import EVIDENCE_DIRECTORY
@@ -161,30 +168,59 @@ def load_experiment_config(
             "may rest on this stage"
         )
 
+    # Every scalar below is read with a type-checking helper rather than coerced.
+    # ``research_mode: "false"`` is true under ``bool()``, ``timeout_seconds: "60"``
+    # is 60.0 under ``float()``, and ``replicate_index: 0.0`` is 0 under ``int()``
+    # — three ways for a file to say one thing and a run to do another
+    # (spec section 47).
     root = Path(repository_root)
     return ExperimentConfig(
-        experiment_id=str(experiment["id"]),
-        kind=str(experiment.get("kind", "full_raw_score_run")),
-        replicate_index=int(experiment.get("replicate_index", 0)),
-        dataset_config=(root / str(dataset["ref"])).resolve(),
-        protocol_config=(root / str(protocol["ref"])).resolve(),
-        algorithm_config=(root / str(algorithm["ref"])).resolve(),
-        require_verified_checksums=bool(
-            dataset.get("require_verified_checksums", True)
+        experiment_id=require_yaml_non_empty_str(experiment, "id", where=path),
+        kind=require_yaml_non_empty_str(
+            experiment, "kind", where=path, default="full_raw_score_run"
         ),
-        research_mode=bool(runtime.get("research_mode", True)),
-        materialization_policy=str(
-            runtime.get("materialization_policy", "content_addressed_copy_v1")
+        replicate_index=require_yaml_exact_int(
+            experiment, "replicate_index", where=path, default=0, minimum=0
+        ),
+        dataset_config=(
+            root / require_yaml_non_empty_str(dataset, "ref", where=path)
+        ).resolve(),
+        protocol_config=(
+            root / require_yaml_non_empty_str(protocol, "ref", where=path)
+        ).resolve(),
+        algorithm_config=(
+            root / require_yaml_non_empty_str(algorithm, "ref", where=path)
+        ).resolve(),
+        require_verified_checksums=require_yaml_bool(
+            dataset, "require_verified_checksums", where=path, default=True
+        ),
+        research_mode=require_yaml_bool(
+            runtime, "research_mode", where=path, default=True
+        ),
+        materialization_policy=require_yaml_non_empty_str(
+            runtime,
+            "materialization_policy",
+            where=path,
+            default="content_addressed_copy_v1",
         ),
         execution_profile=ExecutionProfile(
-            profile_id=str(execution["profile_id"]),
-            preparer_id=str(execution["preparer_id"]),
-            timeout_seconds=float(execution["timeout_seconds"]),
-            deterministic_seed=int(execution.get("deterministic_seed", 0)),
-            parameters={
-                str(k): str(v)
-                for k, v in dict(execution.get("parameters") or {}).items()
-            },
+            profile_id=require_yaml_non_empty_str(execution, "profile_id", where=path),
+            preparer_id=require_yaml_non_empty_str(
+                execution, "preparer_id", where=path
+            ),
+            timeout_seconds=require_yaml_positive_number(
+                execution, "timeout_seconds", where=path
+            ),
+            deterministic_seed=require_yaml_exact_int(
+                execution, "deterministic_seed", where=path, default=0
+            ),
+            # Every parameter value is a string in the file, because the profile
+            # hash is taken over exactly those strings: a number written as an
+            # integer in one edit and as a string in the next would be a
+            # different execution profile for no reason at all.
+            parameters=require_yaml_string_mapping(
+                execution, "parameters", where=path, default={}
+            ),
         ),
     )
 

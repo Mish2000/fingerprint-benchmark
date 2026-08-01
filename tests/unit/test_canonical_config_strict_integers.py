@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from fpbench.core.errors import ConfigurationError
 from fpbench.experiments.sd300_canonical500_images import load_preparation_config
 from fpbench.experiments.sourceafis_canonical500_full import (
     load_canonical_experiment_config,
@@ -71,9 +72,17 @@ def test_preparation_source_ppi_requires_exact_integers(tmp_path, value):
 def test_canonical_run_counts_require_exact_integers(
     tmp_path, section, field, value
 ):
+    """One rule, two enforcers.
+
+    The shape counts go through ``require_exact_int`` over already-parsed JSON
+    and raise ``ValueError``; the experiment scalars go through the strict YAML
+    readers and raise ``ConfigurationError``, which is this project's word for a
+    malformed configuration file. Both say "exact integer", because it is the
+    same rule (spec section 47).
+    """
     document = _document(CANONICAL_RUN_CONFIG)
     document[section][field] = value
-    with pytest.raises(ValueError, match="exact integer"):
+    with pytest.raises((ValueError, ConfigurationError), match="exact integer"):
         load_canonical_experiment_config(
             _write(tmp_path, document),
             repository_root=REPO,

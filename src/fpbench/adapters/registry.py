@@ -14,7 +14,11 @@ from __future__ import annotations
 
 from typing import Callable, Mapping
 
-from fpbench.adapters.base import FingerprintAlgorithmAdapter
+from fpbench.adapters.base import (
+    SUPPORTED_ADAPTER_CONTRACT_VERSIONS,
+    FingerprintAlgorithmAdapter,
+)
+from fpbench.adapters.errors import AdapterContractViolation
 from fpbench.core.errors import ConfigurationError
 from fpbench.core.identifiers import validate_id
 
@@ -48,7 +52,24 @@ def register_adapter(adapter_id: str, factory: AdapterFactory) -> None:
 def create_adapter(
     adapter_id: str, config: Mapping[str, object] | None = None
 ) -> FingerprintAlgorithmAdapter:
-    """Build the adapter registered under ``adapter_id``."""
+    """Build the adapter registered under ``adapter_id``, and check it is it.
+
+    Three things are verified before the adapter is handed back, because each of
+    them would otherwise surface as a puzzle much later:
+
+    * the adapter's descriptor names the id it was looked up under. A factory
+      registered under the wrong key would produce a run whose manifest says one
+      algorithm and whose results say another;
+    * the contract version it declares is one this harness drives;
+    * the descriptor is the same object twice running. A descriptor rebuilt per
+      access — with a timestamp in it, say — would change the algorithm
+      fingerprint mid-run, and the failure would look like corrupt results.
+
+    Raises:
+        ConfigurationError: unknown id, or a factory that returned the wrong one.
+        AdapterContractViolation: an unsupported contract version, an unstable
+            descriptor, or something that is not an adapter at all.
+    """
     _ensure_builtin_adapters()
     try:
         factory = ADAPTERS[adapter_id]
@@ -56,7 +77,34 @@ def create_adapter(
         raise ConfigurationError(
             f"unknown adapter {adapter_id!r}; available: {sorted(ADAPTERS)}"
         ) from None
-    return factory(dict(config or {}))
+
+    adapter = factory(dict(config or {}))
+    if not isinstance(adapter, FingerprintAlgorithmAdapter):
+        raise AdapterContractViolation(
+            f"the factory for {adapter_id!r} returned "
+            f"{type(adapter).__name__}, not a FingerprintAlgorithmAdapter"
+        )
+
+    descriptor = adapter.descriptor
+    if descriptor.adapter_id != adapter_id:
+        raise ConfigurationError(
+            f"adapter {adapter_id!r} describes itself as "
+            f"{descriptor.adapter_id!r}; a run built from this registry would "
+            "record an algorithm it did not use"
+        )
+    if descriptor.adapter_contract_version not in SUPPORTED_ADAPTER_CONTRACT_VERSIONS:
+        raise AdapterContractViolation(
+            f"adapter {adapter_id!r} implements contract version "
+            f"{descriptor.adapter_contract_version!r}; this harness drives "
+            f"{sorted(SUPPORTED_ADAPTER_CONTRACT_VERSIONS)}"
+        )
+    if adapter.descriptor != descriptor:
+        raise AdapterContractViolation(
+            f"adapter {adapter_id!r} returns a different descriptor on each "
+            "access; an algorithm's identity must be stable for the lifetime of "
+            "the adapter"
+        )
+    return adapter
 
 
 def registered_adapters() -> tuple[str, ...]:

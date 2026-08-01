@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Mapping
 
 from fpbench.adapters.base import ADAPTER_CONTRACT_VERSION, FingerprintAlgorithmAdapter
+from fpbench.adapters.pipeline_metadata import AlgorithmPipelineMetadata
 from fpbench.adapters.sourceafis_java.bridge_client import (
     BridgeClient,
     BridgeProcessError,
@@ -71,36 +72,52 @@ __all__ = [
     "SourceAfisJavaAdapter",
     "ALGORITHM_ID",
     "ADAPTER_ID",
+    "PIPELINE",
     "PIPELINE_METADATA",
 ]
 
 ALGORITHM_ID = "sourceafis_java"
 ADAPTER_ID = "sourceafis_java_subprocess"
 
-#: Everything about the pipeline that could change a score. All of it reaches
-#: ``descriptor_fingerprint``, so bumping SourceAFIS, changing the bridge protocol,
-#: switching integration mode, or turning on a template cache each produce a
-#: different algorithm identity and therefore a different run.
-PIPELINE_METADATA: Mapping[str, str] = {
-    "family_id": "sourceafis",
-    "pipeline_kind": "end_to_end_image_matcher",
-    "extractor_id": "sourceafis_java",
-    "extractor_version": EXPECTED_SOURCEAFIS_VERSION,
-    "matcher_id": "sourceafis_java",
-    "matcher_version": EXPECTED_SOURCEAFIS_VERSION,
-    "upstream_artifact": (
-        f"com.machinezoo.sourceafis:sourceafis:{EXPECTED_SOURCEAFIS_VERSION}"
-    ),
-    "implementation_language": "java",
-    "integration_mode": "subprocess_per_comparison",
-    "bridge_protocol": EXPECTED_BRIDGE_PROTOCOL,
-    "input_mode": "encoded_image",
-    "dpi_policy": "explicit_effective_ppi",
-    "probe_side": "left",
-    "template_cache": "disabled",
-    "template_persistence": "disabled",
-    "seed_usage": "ignored_algorithm_has_no_seed",
-}
+#: Everything about the pipeline that could change a score, as the typed model
+#: every route now fills in (docs/adr/0014). SourceAFIS happens to extract and
+#: match with one implementation, so extractor and matcher carry the same id and
+#: version — but they are separate fields, because NBIS will not be so tidy.
+#:
+#: The two SourceAFIS-only keys live in ``extra``: the Maven coordinate the jar
+#: was built from, and the bridge protocol this adapter speaks. No other route
+#: has either, and inventing named fields for them would make every future
+#: adapter answer a question about a bridge it does not have.
+PIPELINE = AlgorithmPipelineMetadata(
+    family_id="sourceafis",
+    pipeline_kind="end_to_end_image_matcher",
+    extractor_id="sourceafis_java",
+    extractor_version=EXPECTED_SOURCEAFIS_VERSION,
+    matcher_id="sourceafis_java",
+    matcher_version=EXPECTED_SOURCEAFIS_VERSION,
+    implementation_language="java",
+    integration_mode="subprocess_per_comparison",
+    input_mode="encoded_image",
+    dpi_policy="explicit_effective_ppi",
+    probe_side="left",
+    template_cache="disabled",
+    template_persistence="disabled",
+    seed_usage="ignored_algorithm_has_no_seed",
+    extra={
+        "upstream_artifact": (
+            f"com.machinezoo.sourceafis:sourceafis:{EXPECTED_SOURCEAFIS_VERSION}"
+        ),
+        "bridge_protocol": EXPECTED_BRIDGE_PROTOCOL,
+    },
+)
+
+#: The same mapping this module has always exported, now derived rather than
+#: written twice. All of it reaches ``descriptor_fingerprint``, so bumping
+#: SourceAFIS, changing the bridge protocol, switching integration mode, or
+#: turning on a template cache each produce a different algorithm identity and
+#: therefore a different run — and moving from a dict literal to a typed model
+#: produces none of those, which tests/regression asserts (spec section 70).
+PIPELINE_METADATA: Mapping[str, str] = PIPELINE.as_descriptor_metadata()
 
 
 class SourceAfisJavaAdapter(FingerprintAlgorithmAdapter):

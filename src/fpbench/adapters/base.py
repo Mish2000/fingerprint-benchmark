@@ -38,11 +38,29 @@ from fpbench.core.execution_models import (
     RawMatchResult,
 )
 
-__all__ = ["FingerprintAlgorithmAdapter", "ADAPTER_CONTRACT_VERSION"]
+__all__ = [
+    "FingerprintAlgorithmAdapter",
+    "ADAPTER_CONTRACT_VERSION",
+    "SUPPORTED_ADAPTER_CONTRACT_VERSIONS",
+]
 
 #: The version of this contract. An adapter declares which one it implements,
 #: so a future breaking change is detectable rather than merely puzzling.
+#:
+#: Frozen at ``"1"`` for the second algorithm. A pipeline that extracts and then
+#: matches fits inside ``compare`` — that is what stage 7A set out to establish
+#: and what the synthetic two-stage adapter demonstrates — so there is nothing a
+#: version 2 would buy that is not already available (docs/adr/0039). Raising it
+#: needs its own ADR, a compatibility path for version 1, and proof that the
+#: existing runs stay readable.
 ADAPTER_CONTRACT_VERSION = "1"
+
+#: Which declared contract versions this harness can actually drive. A set, not
+#: a single value, so that the day version 2 exists the runner can keep executing
+#: version 1 adapters instead of every stored run becoming unreadable at once.
+SUPPORTED_ADAPTER_CONTRACT_VERSIONS: frozenset[str] = frozenset(
+    {ADAPTER_CONTRACT_VERSION}
+)
 
 
 class FingerprintAlgorithmAdapter(ABC):

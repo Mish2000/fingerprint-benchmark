@@ -28,6 +28,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+from fpbench.core.config_values import (
+    reject_unknown_keys,
+    require_yaml_bool,
+    require_yaml_exact_int,
+    require_yaml_non_empty_str,
+)
 from fpbench.core.errors import ConfigurationError
 
 __all__ = [
@@ -131,7 +137,14 @@ class SourceAfisJavaConfig:
             self, "bridge_jar", jar if jar.is_absolute() else (root / jar).resolve()
         )
 
-        object.__setattr__(self, "research_mode", bool(self.research_mode))
+        # Not ``bool(...)``: the string "false" is true under it, and a run that
+        # turned research mode on because somebody quoted a YAML boolean would be
+        # a run whose pins nothing enforces (spec section 47).
+        if type(self.research_mode) is not bool:
+            raise ConfigurationError(
+                "research_mode must be a boolean, got "
+                f"{type(self.research_mode).__name__}"
+            )
         self._validate_research_pins()
 
     def _validate_research_pins(self) -> None:
@@ -149,10 +162,16 @@ class SourceAfisJavaConfig:
                 )
             object.__setattr__(self, "expected_bridge_jar_sha256", digest)
         if self.expected_bridge_jar_size is not None:
-            size = int(self.expected_bridge_jar_size)
-            if size <= 0:
+            # Exact, not ``int(...)``: a size that arrived as "27183104" or
+            # 27183104.0 came from a file somebody edited by hand, and rounding
+            # it into place would hide that.
+            if type(self.expected_bridge_jar_size) is not int:
+                raise ConfigurationError(
+                    "expected_bridge_jar_size must be an exact integer, got "
+                    f"{type(self.expected_bridge_jar_size).__name__}"
+                )
+            if self.expected_bridge_jar_size <= 0:
                 raise ConfigurationError("expected_bridge_jar_size must be positive")
-            object.__setattr__(self, "expected_bridge_jar_size", size)
         if self.runtime_bundle_fingerprint is not None:
             fingerprint = str(self.runtime_bundle_fingerprint).strip().lower()
             if len(fingerprint) != 64 or not set(fingerprint) <= _HEX:
@@ -213,42 +232,63 @@ class SourceAfisJavaConfig:
             *RESEARCH_MODE_KEYS,
             "research_mode",
         }
-        unknown = sorted(set(config) - known)
-        if unknown:
-            raise ConfigurationError(
-                f"unknown sourceafis_java configuration keys: {unknown}"
-            )
+        reject_unknown_keys(config, known, where="sourceafis_java")
 
-        jvm_args = config.get("jvm_args")
+        where = "sourceafis_java"
         size = config.get("expected_bridge_jar_size")
         return cls(
-            java_executable=Path(str(config.get("java_executable", "java"))),
-            bridge_jar=Path(str(config.get("bridge_jar", DEFAULT_BRIDGE_JAR))),
-            expected_sourceafis_version=str(
-                config.get("expected_sourceafis_version", EXPECTED_SOURCEAFIS_VERSION)
+            java_executable=Path(
+                require_yaml_non_empty_str(
+                    config, "java_executable", where=where, default="java"
+                )
             ),
-            expected_bridge_version=str(
-                config.get("expected_bridge_version", EXPECTED_BRIDGE_VERSION)
+            bridge_jar=Path(
+                require_yaml_non_empty_str(
+                    config, "bridge_jar", where=where, default=str(DEFAULT_BRIDGE_JAR)
+                )
             ),
-            expected_bridge_protocol=str(
-                config.get("expected_bridge_protocol", EXPECTED_BRIDGE_PROTOCOL)
+            expected_sourceafis_version=require_yaml_non_empty_str(
+                config,
+                "expected_sourceafis_version",
+                where=where,
+                default=EXPECTED_SOURCEAFIS_VERSION,
             ),
-            jvm_args=tuple(str(a) for a in jvm_args) if jvm_args else DEFAULT_JVM_ARGS,
+            expected_bridge_version=require_yaml_non_empty_str(
+                config,
+                "expected_bridge_version",
+                where=where,
+                default=EXPECTED_BRIDGE_VERSION,
+            ),
+            expected_bridge_protocol=require_yaml_non_empty_str(
+                config,
+                "expected_bridge_protocol",
+                where=where,
+                default=EXPECTED_BRIDGE_PROTOCOL,
+            ),
+            jvm_args=_jvm_args(config),
             project_root=(
-                Path(str(config["project_root"])) if config.get("project_root") else None
+                Path(require_yaml_non_empty_str(config, "project_root", where=where))
+                if config.get("project_root") is not None
+                else None
             ),
-            runtime_bundle_id=_optional_text(config.get("runtime_bundle_id")),
+            runtime_bundle_id=_optional_text(config, "runtime_bundle_id"),
             runtime_bundle_fingerprint=_optional_text(
-                config.get("runtime_bundle_fingerprint")
+                config, "runtime_bundle_fingerprint"
             ),
             expected_bridge_jar_sha256=_optional_text(
-                config.get("expected_bridge_jar_sha256")
+                config, "expected_bridge_jar_sha256"
             ),
-            expected_bridge_jar_size=int(size) if size is not None else None,
-            fpbench_source_revision=_optional_text(
-                config.get("fpbench_source_revision")
+            expected_bridge_jar_size=(
+                require_yaml_exact_int(
+                    config, "expected_bridge_jar_size", where=where, minimum=1
+                )
+                if size is not None
+                else None
             ),
-            research_mode=bool(config.get("research_mode", False)),
+            fpbench_source_revision=_optional_text(config, "fpbench_source_revision"),
+            research_mode=require_yaml_bool(
+                config, "research_mode", where=where, default=False
+            ),
         )
 
     def pinned_to(
@@ -278,7 +318,7 @@ class SourceAfisJavaConfig:
             runtime_bundle_id=runtime_bundle_id,
             runtime_bundle_fingerprint=runtime_bundle_fingerprint,
             expected_bridge_jar_sha256=expected_bridge_jar_sha256,
-            expected_bridge_jar_size=int(expected_bridge_jar_size),
+            expected_bridge_jar_size=expected_bridge_jar_size,
             fpbench_source_revision=fpbench_source_revision,
             research_mode=True,
         )
@@ -289,11 +329,47 @@ class SourceAfisJavaConfig:
         return " ".join(self.jvm_args)
 
 
-def _optional_text(value: Any) -> str | None:
-    if value is None:
+def _jvm_args(config: Mapping[str, Any]) -> tuple[str, ...]:
+    """The JVM arguments, or the pinned defaults when the key is absent.
+
+    A present-but-empty list is refused rather than silently replaced by the
+    defaults: "run the JVM with no arguments" and "run it with this project's
+    arguments" are different experiments, and a file that says the first must
+    not get the second.
+    """
+    if "jvm_args" not in config:
+        return DEFAULT_JVM_ARGS
+    value = config["jvm_args"]
+    if not isinstance(value, (list, tuple)):
+        raise ConfigurationError(
+            f"sourceafis_java: jvm_args must be a list, got {type(value).__name__}"
+        )
+    if not value:
+        raise ConfigurationError(
+            "sourceafis_java: jvm_args is present but empty; omit the key to use "
+            "the pinned defaults"
+        )
+    arguments: list[str] = []
+    for item in value:
+        if not isinstance(item, str) or not item.strip():
+            raise ConfigurationError(
+                f"sourceafis_java: every jvm_args entry must be a non-empty "
+                f"string, got {type(item).__name__} {item!r}"
+            )
+        arguments.append(item.strip())
+    return tuple(arguments)
+
+
+def _optional_text(config: Mapping[str, Any], key: str) -> str | None:
+    """A research pin that may be absent, but may not be the wrong type.
+
+    ``None`` and an absent key both mean "not pinned". Anything else must be a
+    string: a digest read as a number, or a commit SHA YAML happened to parse as
+    an integer, is a pin nobody can check.
+    """
+    if config.get(key) is None:
         return None
-    text = str(value).strip()
-    return text or None
+    return require_yaml_non_empty_str(config, key, where="sourceafis_java")
 
 
 def _repository_root() -> Path:

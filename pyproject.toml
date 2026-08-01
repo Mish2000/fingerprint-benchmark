@@ -36,4 +36,5 @@ markers = [
     "imaging: the shared canonical image pipeline — geometry, pixels, PNG, prepared sets (no JVM, no dataset)",
     "canonical500: exercises the canonical_500 profile end to end (may also need dataset or sourceafis)",
     "paired_evaluation: comparing two finished derivations pair by pair (no JVM, no dataset)",
+    "adapter_contract: what a new algorithm must satisfy to be integrable — the contract suite, the shared adapter tools, the import boundaries (no JVM unless also marked sourceafis)",
 ]

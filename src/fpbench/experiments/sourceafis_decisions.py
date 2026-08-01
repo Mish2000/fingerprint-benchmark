@@ -101,7 +101,8 @@ from fpbench.storage.result_store import ResultStore
 __all__ = [
     "SourceAfisDecisionExperimentSpec",
     "PreparedDerivation",
-    "PreparationExpectationsFactory",
+    "PreparationBinding",
+    "PreparationBindingFactory",
     "load_non_mated_finger_shift",
     "load_decision_source",
     "prepare_decision_derivation",
@@ -122,12 +123,25 @@ VIEW_KINDS = (
     NON_MATED_SANITY_VIEW,
 )
 
-#: Builds the canonical-input expectations a validator checks each result
-#: against, given the workspace. ``None`` for a run whose images were passed
-#: through untouched — there is no input set to check against, and inventing one
-#: would fail 6,000 already-stored native results on a check they were never
-#: subject to (spec section 61 of stage 6A).
-PreparationExpectationsFactory = Any
+@dataclass(frozen=True, slots=True)
+class PreparationBinding:
+    """The verified prepared-image set a canonical derivation rests on.
+
+    Two facts, produced together because producing them separately would verify
+    3,000 artefacts twice: what every stored result must claim about the set, and
+    the set's own manifest, which the research-state check re-binds the run
+    receipt to.
+    """
+
+    expectations: CanonicalPreparationExpectations
+    manifest: Any
+
+
+#: Builds a :class:`PreparationBinding` from a workspace. ``None`` for a run
+#: whose images were passed through untouched — there is no input set to check
+#: against, and inventing one would fail 6,000 already-stored native results on a
+#: check they were never subject to.
+PreparationBindingFactory = Any
 
 
 @dataclass(frozen=True, slots=True)
@@ -157,9 +171,10 @@ class SourceAfisDecisionExperimentSpec:
 
     non_mated_finger_shift: int
 
-    #: Present only for a derivation over a canonical run. The engine passes it
-    #: straight to the SourceAFIS validator and never interprets it.
-    preparation_expectations: PreparationExpectationsFactory = None
+    #: Present only for a derivation over a canonical run. The engine passes its
+    #: two halves straight to the SourceAFIS validator and to the research-state
+    #: check, and never interprets either.
+    preparation_binding: PreparationBindingFactory = None
 
 
 def load_non_mated_finger_shift(protocol_config: Path) -> int:
@@ -664,6 +679,7 @@ def load_decision_source(
     # than taken on trust, because "research ready" is a claim about the current
     # files and this derivation is about to rest its entire weight on it.
     runtime_reference = result_store.read_runtime_reference(resolved_run)
+    binding = _preparation_binding(spec, workspace)
     validation = validate_sourceafis_result_set(
         run=run,
         plan=plan,
@@ -671,7 +687,7 @@ def load_decision_source(
         images=images,
         result_store=result_store,
         runtime_reference=runtime_reference,
-        preparation=_preparation_expectations(spec, workspace),
+        preparation=binding.expectations if binding else None,
     )
     research = inspect_research_run(
         run=run,
@@ -681,6 +697,7 @@ def load_decision_source(
         algorithm_validation=validation,
         primary_asset_role=BRIDGE_JAR_ROLE,
         verifier_software=software,
+        preparation_manifest=binding.manifest if binding else None,
     )
     if (
         require_expected_shape
@@ -777,10 +794,10 @@ def load_decision_source(
 # ----------------------------------------------------------------- internals
 
 
-def _preparation_expectations(
+def _preparation_binding(
     spec: SourceAfisDecisionExperimentSpec, workspace: Path
-) -> CanonicalPreparationExpectations | None:
-    factory = spec.preparation_expectations
+) -> PreparationBinding | None:
+    factory = spec.preparation_binding
     if factory is None:
         return None
     return factory(workspace)

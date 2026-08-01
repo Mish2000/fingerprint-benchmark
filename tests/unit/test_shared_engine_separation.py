@@ -195,5 +195,5 @@ def test_the_two_decision_specs_differ_only_in_data():
         native.non_mated_finger_shift == canonical.non_mated_finger_shift
     ), "the two derivations must be built over the same impostor strategy"
     # Only the canonical derivation checks results against a prepared-image set.
-    assert native.preparation_expectations is None
-    assert canonical.preparation_expectations is not None
+    assert native.preparation_binding is None
+    assert canonical.preparation_binding is not None

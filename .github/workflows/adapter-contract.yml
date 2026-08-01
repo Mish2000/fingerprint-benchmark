@@ -1,0 +1,132 @@
+name: adapter contract
+
+# What a new algorithm has to satisfy in order to be integrable at all, run on
+# every push, with no dataset and no JVM.
+#
+# This is the workflow that keeps stage 7A's claim true. It exercises the shared
+# adapter tools, the generic research engine, the import boundaries, and — the
+# part that matters most — a complete two-stage route that extracts a template
+# per side and runs a separate matcher, taken end to end through the unmodified
+# runner (docs/adr/0043).
+#
+# The SourceAFIS descriptor regression is here rather than in the SourceAFIS
+# workflow on purpose: the descriptor is built from constants and needs no JVM,
+# and the two finished runs are attributed to the digest it produces. A change to
+# it must turn every pull request red, not only the ones that touch Java.
+#
+# The SourceAFIS conformance case and the SourceAFIS engine run also carry this
+# marker. They skip here, where there is no bridge, and run in
+# sourceafis-adapter.yml, where there is one.
+
+on:
+  push:
+    paths:
+      - "src/fpbench/adapters/**"
+      - "src/fpbench/core/config_values.py"
+      - "src/fpbench/core/execution_models.py"
+      - "src/fpbench/core/runtime_models.py"
+      - "src/fpbench/execution/adapter_result_validation.py"
+      - "src/fpbench/execution/runner.py"
+      - "src/fpbench/execution/research.py"
+      - "src/fpbench/experiments/algorithm_research.py"
+      - "src/fpbench/experiments/research_integration.py"
+      - "src/fpbench/experiments/prepared_input_validation.py"
+      - "src/fpbench/experiments/config_values.py"
+      - "src/fpbench/experiments/sourceafis_research.py"
+      - "src/fpbench/storage/runtime_bundle_store.py"
+      - "tests/contract/**"
+      - "tests/fixtures/two_stage_cli/**"
+      - "tests/engineworld.py"
+      - "tests/unit/test_adapter_workspace.py"
+      - "tests/unit/test_external_process.py"
+      - "tests/unit/test_runtime_guard_assets.py"
+      - "tests/unit/test_config_values.py"
+      - "tests/unit/test_pipeline_metadata.py"
+      - "tests/unit/test_import_boundaries.py"
+      - "tests/unit/test_research_integration.py"
+      - "tests/unit/test_prepared_input_validation.py"
+      - "tests/unit/test_synthetic_two_stage_adapter.py"
+      - "tests/unit/test_sourceafis_research_wrapper.py"
+      - "tests/integration/test_algorithm_research_engine.py"
+      - "tests/regression/test_sourceafis_descriptor_identity.py"
+      - "pyproject.toml"
+      - ".github/workflows/adapter-contract.yml"
+  pull_request:
+    paths:
+      - "src/fpbench/adapters/**"
+      - "src/fpbench/core/config_values.py"
+      - "src/fpbench/core/execution_models.py"
+      - "src/fpbench/core/runtime_models.py"
+      - "src/fpbench/execution/adapter_result_validation.py"
+      - "src/fpbench/execution/runner.py"
+      - "src/fpbench/execution/research.py"
+      - "src/fpbench/experiments/algorithm_research.py"
+      - "src/fpbench/experiments/research_integration.py"
+      - "src/fpbench/experiments/prepared_input_validation.py"
+      - "src/fpbench/experiments/config_values.py"
+      - "src/fpbench/experiments/sourceafis_research.py"
+      - "src/fpbench/storage/runtime_bundle_store.py"
+      - "tests/contract/**"
+      - "tests/fixtures/two_stage_cli/**"
+      - "tests/engineworld.py"
+      - "tests/unit/test_adapter_workspace.py"
+      - "tests/unit/test_external_process.py"
+      - "tests/unit/test_runtime_guard_assets.py"
+      - "tests/unit/test_config_values.py"
+      - "tests/unit/test_pipeline_metadata.py"
+      - "tests/unit/test_import_boundaries.py"
+      - "tests/unit/test_research_integration.py"
+      - "tests/unit/test_prepared_input_validation.py"
+      - "tests/unit/test_synthetic_two_stage_adapter.py"
+      - "tests/unit/test_sourceafis_research_wrapper.py"
+      - "tests/integration/test_algorithm_research_engine.py"
+      - "tests/regression/test_sourceafis_descriptor_identity.py"
+      - "pyproject.toml"
+      - ".github/workflows/adapter-contract.yml"
+
+jobs:
+  adapter-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project and the pinned resampler
+        run: |
+          pip install -r requirements-imaging.lock
+          pip install -e ".[dev]"
+
+      # The generic research engine builds a throwaway git repository per
+      # experiment world and captures provenance from it, so git has to be able
+      # to commit. A runner with no identity configured would skip those tests
+      # silently, which is worse than failing.
+      - name: Give git an identity for the throwaway repositories
+        run: |
+          git config --global user.email "ci@example.invalid"
+          git config --global user.name "fpbench ci"
+
+      # Everything the marker covers:
+      #   * the shared adapter tools — workspace containment, external process,
+      #     timeouts, output limits, multi-asset runtime guard, strict YAML;
+      #   * the conformance suite over the dummy matcher and the two-stage route,
+      #     plus two deliberately broken adapters that prove it can fail;
+      #   * the generic research engine, driven to RESEARCH_READY by an adapter
+      #     it has no import of, once with a one-file runtime and once with a
+      #     two-executable one;
+      #   * the import boundaries, over the syntax tree;
+      #   * the SourceAFIS descriptor regression, which needs no JVM.
+      - name: Run the adapter contract suite
+        run: pytest -m "adapter_contract and not dataset" -q
+
+      # A marker nobody applied would make the job above vacuously green.
+      - name: Confirm the suite is not empty
+        run: |
+          pytest -m "adapter_contract and not dataset" --collect-only -q \
+            | tail -n 2 \
+            | grep -Eq '[0-9]+ tests? collected'

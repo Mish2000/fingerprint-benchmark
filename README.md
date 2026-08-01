@@ -1119,6 +1119,70 @@ different populations produces a number that describes nothing.
 resolution-superiority claim and no causal claim.** Details:
 [docs/experiments/sourceafis-native-vs-canonical500.md](docs/experiments/sourceafis-native-vs-canonical500.md).
 
+## Stage 7A: making room for the second algorithm
+
+Nothing in stage 7A produced a number. No run, no result set, no decision set, no
+metric set, no paired comparison — the deliverables are code, tests, ADRs and
+documentation, and the two finished runs are byte for byte where stage 6B left
+them.
+
+What it changed is what adding NBIS will cost. Before it, driving an algorithm
+through the research chain meant a module that imported that algorithm; after it,
+the orchestration lives in `fpbench.experiments.algorithm_research`, which
+imports none and branches on none, and everything algorithm-specific arrives
+through one injected record
+([ADR 0040](docs/adr/0040-research-orchestration-is-injected-not-algorithm-specific.md)):
+
+```python
+ResearchAdapterIntegration(
+    integration_id, adapter_id,
+    runtime_asset_roles, primary_runtime_asset_role,
+    create_development_runtime,   # build from a local build tree
+    create_research_delegate,     # build again, pinned to the bundle
+    validate_result_set,          # which failures are biometric, which are defects
+)
+```
+
+`sourceafis_research.py` is now the wrapper: it assembles that record, keeps its
+stage 4B names as aliases, and forwards. It materialises nothing, executes
+nothing and builds no receipt — checked structurally, by imports and calls,
+rather than by counting lines.
+
+**The contract did not move.** `ADAPTER_CONTRACT_VERSION` is still `"1"`, the
+mandatory surface is still `descriptor`, `validate_environment` and `compare`,
+and a route made of an extractor and a matcher is wrapped as one adapter with the
+stages private to it
+([ADR 0039](docs/adr/0039-adapter-contract-v1-remains-image-to-score.md)). There
+is no `TemplateStore` and no template cache, because there is not yet a second
+real algorithm to derive one from
+([ADR 0041](docs/adr/0041-intermediate-templates-remain-adapter-local.md)).
+
+That claim is demonstrated rather than asserted. A synthetic two-stage adapter —
+deliberately not registered, and not biometric — runs a separate extractor per
+side and a separate matcher over the two templates, maps every way a two-process
+pipeline fails, and reaches `RESEARCH_READY` through the unmodified
+`SingleJobRunner` and the unmodified engine
+([ADR 0043](docs/adr/0043-two-stage-synthetic-adapter-proves-extensibility.md)).
+Runtime bundles now carry every tool that could change a score, and a rebuild of
+any one of them is drift
+([ADR 0042](docs/adr/0042-runtime-bundles-support-multi-tool-pipelines.md)).
+
+Four shared tools mean a new adapter reimplements none of this:
+
+| tool | what it takes off an adapter author |
+|---|---|
+| `AdapterJobWorkspace` | containment, artefact publication, meaningless file names |
+| `ExternalCommand` | no shell, absolute executable, bounded output, a timeout that kills |
+| `runtime_guard` | every pinned tool watched, by role |
+| `config_values` | strict YAML: `research_mode: "false"` is refused, not reinterpreted |
+
+The recipe is in
+[docs/architecture/adding-an-algorithm.md](docs/architecture/adding-an-algorithm.md);
+the checks a new adapter must pass are in
+[docs/architecture/adapter-conformance.md](docs/architecture/adapter-conformance.md);
+the seam itself is in
+[docs/architecture/research-adapter-integration.md](docs/architecture/research-adapter-integration.md).
+
 ## Architecture note: where the models live
 
 Several containers sit in `core` rather than in the package that derives them:
@@ -1147,7 +1211,11 @@ one experiment, and it needs somewhere to live that is not the planner.
 3. failure analysis over the algorithmic failure codes the run recorded;
 4. NBIS as the second algorithm — `nbis_mindtct_bozorth3`, both halves named — which is
    the real test of whether the adapter contract holds, and the second consumer of the
-   runtime-bundle mechanism;
+   runtime-bundle mechanism. Stage 7A made room for it and demonstrated the shape with
+   a synthetic two-stage adapter; if the real integration needs a change to the runner,
+   a store, the result schema or the evidence chain, that is a failure of stage 7A and
+   is treated as one
+   ([ADR 0043](docs/adr/0043-two-stage-synthetic-adapter-proves-extensibility.md));
 5. the persistent-JVM decision, on the strength of the full run's operational summary
    rather than a guess ([ADR 0015](docs/adr/0015-sourceafis-uses-stateless-java-bridge.md));
 6. a better negative set, if a real false-match rate is ever wanted: cross-subject, and

@@ -14,6 +14,12 @@ name: sourceafis adapter
 # carrying the whole preparation provenance. That seam exists in the 6,000-comparison
 # run and needs no restricted data to exercise, so there is no reason to run 6,000
 # comparisons in public CI to test it (spec section 104).
+#
+# Since stage 7A it also runs SourceAFIS through the two things that were made
+# generic: the reusable conformance suite, and the shared research engine driven
+# by `sourceafis_research_integration()` alone. Forty comparisons through a real
+# JVM to RESEARCH_READY — enough to exercise every seam the 6,000-comparison run
+# has, and no reason to run 6,000 of them here (spec section 85).
 
 on:
   push:

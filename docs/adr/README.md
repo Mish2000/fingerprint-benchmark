@@ -45,6 +45,11 @@ can be held to.
 | [0036](0036-paired-comparison-is-a-third-artefact.md) | A paired comparison has its own identity, under neither run | Accepted, implemented |
 | [0037](0037-the-threshold-transfers-unchanged.md) | The documented threshold transfers to canonical inputs unchanged | Accepted, implemented |
 | [0038](0038-conditional-rates-over-different-populations-are-not-subtracted.md) | Two rates over different populations are reported, never subtracted | Accepted, implemented |
+| [0039](0039-adapter-contract-v1-remains-image-to-score.md) | The adapter contract stays two images to one score | Accepted, implemented |
+| [0040](0040-research-orchestration-is-injected-not-algorithm-specific.md) | The research orchestration imports no algorithm | Accepted, implemented |
+| [0041](0041-intermediate-templates-remain-adapter-local.md) | Templates are the adapter's working files, not a core model | Accepted, implemented |
+| [0042](0042-runtime-bundles-support-multi-tool-pipelines.md) | A runtime bundle covers every tool that can change a score | Accepted, implemented |
+| [0043](0043-two-stage-synthetic-adapter-proves-extensibility.md) | A synthetic two-stage adapter proves the contract before a real one tests it | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

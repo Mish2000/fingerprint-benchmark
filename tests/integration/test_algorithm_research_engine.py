@@ -19,6 +19,7 @@ eight PNGs and the matcher hashes their digests.
 from __future__ import annotations
 
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -179,6 +180,31 @@ def test_a_development_runtime_that_builds_another_algorithm_is_refused(tmp_path
         prepare_algorithm_research_run(
             spec=world.spec,
             integration=integration,
+            preparer_factory=identity_preparer,
+            workspace=world.workspace,
+            dataset_root=world.dataset_root,
+            repository_root=world.repository_root,
+        )
+
+
+def test_a_research_delegate_for_another_algorithm_is_refused(tmp_path):
+    """The pinned adapter has to be the one the integration declared.
+
+    The development side is checked before materialisation; this is the other
+    half, where a factory hands back an adapter for something else entirely.
+    """
+    from fakes import CountingAdapter
+
+    world = build_engine_world(tmp_path, subject_count=1, experiment_id="delegate_v1")
+    integration = dummy_integration(integration_id="dummy_research_v5")
+    wrong_delegate = replace(
+        integration,
+        create_research_delegate=lambda *_: CountingAdapter(),
+    )
+    with pytest.raises(ResearchPreflightError, match="built a research adapter"):
+        prepare_algorithm_research_run(
+            spec=world.spec,
+            integration=wrong_delegate,
             preparer_factory=identity_preparer,
             workspace=world.workspace,
             dataset_root=world.dataset_root,

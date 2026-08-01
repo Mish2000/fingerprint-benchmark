@@ -503,3 +503,47 @@ def test_the_adapter_is_not_in_the_public_registry():
     from fpbench.adapters.registry import registered_adapters
 
     assert ADAPTER_ID not in registered_adapters()
+
+
+# ------------------------------------------------------- drift through the runner
+
+
+def test_a_tool_replaced_mid_run_stops_the_run_and_writes_no_result(tmp_path):
+    """Section 65, at the level where it matters: the runner, not the adapter.
+
+    A comparison carried out after a pinned tool changed cannot be attributed, so
+    the exception travels out unrecorded. Recording it as a failed pair would
+    imply the rest of the run is sound, which is exactly what is no longer known.
+    """
+    from fpbench.core.errors import RuntimeDriftError as Drift
+    from runworld import build_world
+
+    fixtures_root = tmp_path / "runner"
+    fixtures_root.mkdir()
+    extractor, matcher = tools(fixtures_root)
+    instance = SyntheticTwoStageCliAdapter(
+        SyntheticTwoStageConfig(
+            extractor=extractor,
+            matcher=matcher,
+            interpreter=Path(sys.executable).resolve(),
+            research_mode=True,
+        )
+    )
+    world = build_world(tmp_path / "world", adapter=instance)
+
+    planned = list(world.plan.jobs)
+    runner = world.job_runner()
+
+    first = planned[0]
+    runner.execute(first.job, world.pair_index[first.job.pair_id])
+    assert world.result_store.has_raw_result(world.run.run_id, first.job.job_id)
+
+    matcher.write_bytes(matcher.read_bytes() + b"\n# rebuilt mid-run\n")
+
+    second = planned[1]
+    with pytest.raises(Drift):
+        runner.execute(second.job, world.pair_index[second.job.pair_id])
+
+    assert not world.result_store.has_raw_result(
+        world.run.run_id, second.job.job_id
+    ), "a result was written for a comparison that cannot be attributed"

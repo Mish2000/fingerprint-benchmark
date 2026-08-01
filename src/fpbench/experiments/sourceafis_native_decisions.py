@@ -132,7 +132,9 @@ def load_decision_experiment_config(
         expected_rows_per_view=EXPECTED_VIEW_ROWS,
         expected_units_per_release=EXPECTED_UNITS_PER_RELEASE,
         non_mated_finger_shift=load_non_mated_finger_shift(source.protocol_config),
-        preparation_expectations=None,
+        # The native run materialised nothing, so there is no input set for its
+        # results to be checked against.
+        preparation_binding=None,
     )
 
 

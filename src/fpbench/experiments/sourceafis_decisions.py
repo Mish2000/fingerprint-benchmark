@@ -57,7 +57,6 @@ from fpbench.core.provenance_models import (
     SoftwareProvenance,
     software_provenance_fingerprint,
 )
-from fpbench.core.serialization import read_json, write_json
 from fpbench.decisions import (
     DecisionProfile,
     apply_decision_profile,
@@ -280,6 +279,11 @@ def prepare_decision_derivation(
             f"{exc}; a different source, profile or commit is a different "
             "derivation and needs its own definition"
         ) from exc
+    # The pointer names the active definition. Stage 5A's native derivation gets
+    # away without one because its definition sits in the legacy flat file that
+    # `read_active` falls back to; a derivation with no such file — every new one
+    # — needs the pointer or nothing can find what it pinned.
+    store.write_pointer(prepared.run.run_id, definition_id=definition.definition_id)
     return prepared
 
 
@@ -419,8 +423,12 @@ def derive_decisions(
     for kind in VIEW_KINDS:
         prepared.view_store.read_view(prepared.run.run_id, set_id, kind)
 
-    write_decision_set_pointer(
-        workspace, spec.experiment_id, prepared.run.run_id, set_id
+    definition_store(workspace, spec.experiment_id).write_pointer(
+        prepared.run.run_id,
+        definition_id=(
+            prepared.definition.definition_id if prepared.definition else None
+        ),
+        decision_set_id=set_id,
     )
     return set_id
 
@@ -919,32 +927,18 @@ def definition_store(workspace: Path, experiment_id: str) -> DefinitionStore:
     )
 
 
-def _pointer_path(workspace: Path, experiment_id: str, run_id: str) -> Path:
-    return Path(workspace) / "derivations" / experiment_id / run_id / _POINTER_NAME
-
-
-def write_decision_set_pointer(
-    workspace: Path, experiment_id: str, run_id: str, decision_set_id: str
-) -> Path:
-    return write_json(
-        _pointer_path(workspace, experiment_id, run_id),
-        {
-            "experiment_id": experiment_id,
-            "run_id": run_id,
-            "decision_set_id": decision_set_id,
-            "derived_utc": _utc_now(),
-        },
-    )
-
-
 def read_decision_set_pointer(
     workspace: Path, experiment_id: str, run_id: str
 ) -> str | None:
-    path = _pointer_path(workspace, experiment_id, run_id)
-    if not path.is_file():
-        return None
-    payload = read_json(path)
-    return str(payload.get("decision_set_id") or "") or None
+    """Which decision set this workspace last derived. A bookmark, not evidence.
+
+    Every artefact it names carries its own identity, and every command
+    re-derives what it needs; the pointer only saves the caller from typing an
+    id.
+    """
+    return definition_store(workspace, experiment_id).read_pointer_value(
+        run_id, "decision_set_id"
+    )
 
 
 def _utc_now() -> str:

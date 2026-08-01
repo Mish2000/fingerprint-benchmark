@@ -1,0 +1,542 @@
+{
+  "schema_version": "2",
+  "paired_evaluation_id": "pairedeval_ba790ca1e900",
+  "paired_evaluation_fingerprint": "ba790ca1e9000bba804be80ba213e56f8839b3af564dd3bc3486dcb8baf60c3b",
+  "definition_fingerprint": "45cfc17010f9f60b05ab40eecf0aa19aaf68c566911538a64b8f793ebf6276d7",
+  "policy_id": "sourceafis_native_vs_canonical500_paired_v1",
+  "policy_fingerprint": "b3e45a8830ffce44567b42677984a07dc1519a82451a156c4f0da0c5fb039256",
+  "native_run_id": "run_7ac1cecc0bb3",
+  "native_result_set_id": "resultset_2bf3cacfd806",
+  "native_decision_set_id": "decisionset_0122544e71b1",
+  "native_eligibility_set_id": "eligibilityset_77dbf75cdc76",
+  "native_metric_set_id": "metricset_f6ffa71f3880",
+  "canonical_run_id": "run_4c59fa02a6ab",
+  "canonical_result_set_id": "resultset_087b084fb8a8",
+  "canonical_decision_set_id": "decisionset_df0d584bdede",
+  "canonical_eligibility_set_id": "eligibilityset_d87d6591d517",
+  "canonical_metric_set_id": "metricset_b4c70fbfd1d3",
+  "canonical_preparation_set_id": "prepset_be560e047991",
+  "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "source_commit": "d000fb1d9f0f23ed3a96fe5ec7e89e3fc41aa13a",
+  "source_tree_clean": true,
+  "total_paired_comparisons": 6000,
+  "total_eligibility_units": 1500,
+  "total_common_eligible_rows": 1468,
+  "control_audit": {
+    "compared_scores": 2000,
+    "equal_decisions": 2000,
+    "equal_result_statuses": 2000,
+    "equal_scores": 2000,
+    "planned_sd300a_pairs": 2000
+  },
+  "transition_counts": {
+    "eligibility.SD300A": {
+      "eligible_to_eligible": 487,
+      "eligible_to_ineligible": 0,
+      "eligible_to_undetermined": 0,
+      "ineligible_to_eligible": 0,
+      "ineligible_to_ineligible": 13,
+      "ineligible_to_undetermined": 0,
+      "undetermined_to_eligible": 0,
+      "undetermined_to_ineligible": 0,
+      "undetermined_to_undetermined": 0
+    },
+    "eligibility.SD300B": {
+      "eligible_to_eligible": 490,
+      "eligible_to_ineligible": 0,
+      "eligible_to_undetermined": 0,
+      "ineligible_to_eligible": 3,
+      "ineligible_to_ineligible": 7,
+      "ineligible_to_undetermined": 0,
+      "undetermined_to_eligible": 0,
+      "undetermined_to_ineligible": 0,
+      "undetermined_to_undetermined": 0
+    },
+    "eligibility.SD300C": {
+      "eligible_to_eligible": 491,
+      "eligible_to_ineligible": 0,
+      "eligible_to_undetermined": 0,
+      "ineligible_to_eligible": 1,
+      "ineligible_to_ineligible": 8,
+      "ineligible_to_undetermined": 0,
+      "undetermined_to_eligible": 0,
+      "undetermined_to_ineligible": 0,
+      "undetermined_to_undetermined": 0
+    },
+    "eligibility.pooled": {
+      "eligible_to_eligible": 1468,
+      "eligible_to_ineligible": 0,
+      "eligible_to_undetermined": 0,
+      "ineligible_to_eligible": 4,
+      "ineligible_to_ineligible": 28,
+      "ineligible_to_undetermined": 0,
+      "undetermined_to_eligible": 0,
+      "undetermined_to_ineligible": 0,
+      "undetermined_to_undetermined": 0
+    },
+    "mated_common_eligible.SD300A": {
+      "match_to_match": 336,
+      "match_to_non_match": 0,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 0,
+      "non_match_to_non_match": 151,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "mated_common_eligible.SD300B": {
+      "match_to_match": 300,
+      "match_to_non_match": 43,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 24,
+      "non_match_to_non_match": 123,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "mated_common_eligible.SD300C": {
+      "match_to_match": 291,
+      "match_to_non_match": 38,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 28,
+      "non_match_to_non_match": 134,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "mated_common_eligible.pooled": {
+      "match_to_match": 927,
+      "match_to_non_match": 81,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 52,
+      "non_match_to_non_match": 408,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "mated_unconditional.SD300A": {
+      "match_to_match": 336,
+      "match_to_non_match": 0,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 0,
+      "non_match_to_non_match": 164,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "mated_unconditional.SD300B": {
+      "match_to_match": 300,
+      "match_to_non_match": 43,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 24,
+      "non_match_to_non_match": 133,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "mated_unconditional.SD300C": {
+      "match_to_match": 291,
+      "match_to_non_match": 38,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 28,
+      "non_match_to_non_match": 143,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "mated_unconditional.pooled": {
+      "match_to_match": 927,
+      "match_to_non_match": 81,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 52,
+      "non_match_to_non_match": 440,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "negative_sanity.SD300A": {
+      "match_to_match": 0,
+      "match_to_non_match": 0,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 0,
+      "non_match_to_non_match": 500,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "negative_sanity.SD300B": {
+      "match_to_match": 1,
+      "match_to_non_match": 0,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 0,
+      "non_match_to_non_match": 499,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "negative_sanity.SD300C": {
+      "match_to_match": 0,
+      "match_to_non_match": 1,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 0,
+      "non_match_to_non_match": 499,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "negative_sanity.pooled": {
+      "match_to_match": 1,
+      "match_to_non_match": 1,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 0,
+      "non_match_to_non_match": 1498,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "plain_self.SD300A": {
+      "match_to_match": 487,
+      "match_to_non_match": 0,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 0,
+      "non_match_to_non_match": 13,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "plain_self.SD300B": {
+      "match_to_match": 490,
+      "match_to_non_match": 0,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 3,
+      "non_match_to_non_match": 7,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "plain_self.SD300C": {
+      "match_to_match": 491,
+      "match_to_non_match": 0,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 1,
+      "non_match_to_non_match": 8,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "plain_self.pooled": {
+      "match_to_match": 1468,
+      "match_to_non_match": 0,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 4,
+      "non_match_to_non_match": 28,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "roll_self.SD300A": {
+      "match_to_match": 500,
+      "match_to_non_match": 0,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 0,
+      "non_match_to_non_match": 0,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "roll_self.SD300B": {
+      "match_to_match": 500,
+      "match_to_non_match": 0,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 0,
+      "non_match_to_non_match": 0,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "roll_self.SD300C": {
+      "match_to_match": 500,
+      "match_to_non_match": 0,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 0,
+      "non_match_to_non_match": 0,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    },
+    "roll_self.pooled": {
+      "match_to_match": 1500,
+      "match_to_non_match": 0,
+      "match_to_undecidable": 0,
+      "non_match_to_match": 0,
+      "non_match_to_non_match": 0,
+      "non_match_to_undecidable": 0,
+      "undecidable_to_match": 0,
+      "undecidable_to_non_match": 0,
+      "undecidable_to_undecidable": 0
+    }
+  },
+  "rate_observations": {
+    "common_eligible_mated_attempt_non_success_fraction.SD300A": {
+      "canonical": "151/487",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "151/487"
+    },
+    "common_eligible_mated_attempt_non_success_fraction.SD300B": {
+      "canonical": "166/490",
+      "comparability": "directly_comparable",
+      "difference": "19/490",
+      "native": "147/490"
+    },
+    "common_eligible_mated_attempt_non_success_fraction.SD300C": {
+      "canonical": "172/491",
+      "comparability": "directly_comparable",
+      "difference": "10/491",
+      "native": "162/491"
+    },
+    "common_eligible_mated_attempt_non_success_fraction.pooled": {
+      "canonical": "489/1468",
+      "comparability": "directly_comparable",
+      "difference": "29/1468",
+      "native": "460/1468"
+    },
+    "common_eligible_mated_decision_fnmr.SD300A": {
+      "canonical": "151/487",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "151/487"
+    },
+    "common_eligible_mated_decision_fnmr.SD300B": {
+      "canonical": "166/490",
+      "comparability": "directly_comparable",
+      "difference": "19/490",
+      "native": "147/490"
+    },
+    "common_eligible_mated_decision_fnmr.SD300C": {
+      "canonical": "172/491",
+      "comparability": "directly_comparable",
+      "difference": "10/491",
+      "native": "162/491"
+    },
+    "common_eligible_mated_decision_fnmr.pooled": {
+      "canonical": "489/1468",
+      "comparability": "directly_comparable",
+      "difference": "29/1468",
+      "native": "460/1468"
+    },
+    "common_eligible_selection_fraction.SD300A": {
+      "canonical": "487/500",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "487/500"
+    },
+    "common_eligible_selection_fraction.SD300B": {
+      "canonical": "490/500",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "490/500"
+    },
+    "common_eligible_selection_fraction.SD300C": {
+      "canonical": "491/500",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "491/500"
+    },
+    "common_eligible_selection_fraction.pooled": {
+      "canonical": "1468/1500",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "1468/1500"
+    },
+    "mated_unconditional_attempt_non_success_fraction.SD300A": {
+      "canonical": "164/500",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "164/500"
+    },
+    "mated_unconditional_attempt_non_success_fraction.SD300B": {
+      "canonical": "176/500",
+      "comparability": "directly_comparable",
+      "difference": "19/500",
+      "native": "157/500"
+    },
+    "mated_unconditional_attempt_non_success_fraction.SD300C": {
+      "canonical": "181/500",
+      "comparability": "directly_comparable",
+      "difference": "1/50",
+      "native": "171/500"
+    },
+    "mated_unconditional_attempt_non_success_fraction.pooled": {
+      "canonical": "521/1500",
+      "comparability": "directly_comparable",
+      "difference": "29/1500",
+      "native": "492/1500"
+    },
+    "mated_unconditional_decision_fnmr.SD300A": {
+      "canonical": "164/500",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "164/500"
+    },
+    "mated_unconditional_decision_fnmr.SD300B": {
+      "canonical": "176/500",
+      "comparability": "directly_comparable",
+      "difference": "19/500",
+      "native": "157/500"
+    },
+    "mated_unconditional_decision_fnmr.SD300C": {
+      "canonical": "181/500",
+      "comparability": "directly_comparable",
+      "difference": "1/50",
+      "native": "171/500"
+    },
+    "mated_unconditional_decision_fnmr.pooled": {
+      "canonical": "521/1500",
+      "comparability": "directly_comparable",
+      "difference": "29/1500",
+      "native": "492/1500"
+    },
+    "negative_sanity_attempt_match_fraction.SD300A": {
+      "canonical": "0/500",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "0/500"
+    },
+    "negative_sanity_attempt_match_fraction.SD300B": {
+      "canonical": "1/500",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "1/500"
+    },
+    "negative_sanity_attempt_match_fraction.SD300C": {
+      "canonical": "0/500",
+      "comparability": "directly_comparable",
+      "difference": "-1/500",
+      "native": "1/500"
+    },
+    "negative_sanity_attempt_match_fraction.pooled": {
+      "canonical": "1/1500",
+      "comparability": "directly_comparable",
+      "difference": "-1/1500",
+      "native": "2/1500"
+    },
+    "per_run_conditional_mated_decision_fnmr.SD300A": {
+      "canonical": "151/487",
+      "comparability": "different_selection",
+      "difference": "not_comparable",
+      "native": "151/487"
+    },
+    "per_run_conditional_mated_decision_fnmr.SD300B": {
+      "canonical": "169/493",
+      "comparability": "different_selection",
+      "difference": "not_comparable",
+      "native": "147/490"
+    },
+    "per_run_conditional_mated_decision_fnmr.SD300C": {
+      "canonical": "173/492",
+      "comparability": "different_selection",
+      "difference": "not_comparable",
+      "native": "162/491"
+    },
+    "per_run_conditional_mated_decision_fnmr.pooled": {
+      "canonical": "493/1472",
+      "comparability": "different_selection",
+      "difference": "not_comparable",
+      "native": "460/1468"
+    },
+    "plain_self_attempt_match_fraction.SD300A": {
+      "canonical": "487/500",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "487/500"
+    },
+    "plain_self_attempt_match_fraction.SD300B": {
+      "canonical": "493/500",
+      "comparability": "directly_comparable",
+      "difference": "3/500",
+      "native": "490/500"
+    },
+    "plain_self_attempt_match_fraction.SD300C": {
+      "canonical": "492/500",
+      "comparability": "directly_comparable",
+      "difference": "1/500",
+      "native": "491/500"
+    },
+    "plain_self_attempt_match_fraction.pooled": {
+      "canonical": "1472/1500",
+      "comparability": "directly_comparable",
+      "difference": "1/375",
+      "native": "1468/1500"
+    },
+    "roll_self_attempt_match_fraction.SD300A": {
+      "canonical": "500/500",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "500/500"
+    },
+    "roll_self_attempt_match_fraction.SD300B": {
+      "canonical": "500/500",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "500/500"
+    },
+    "roll_self_attempt_match_fraction.SD300C": {
+      "canonical": "500/500",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "500/500"
+    },
+    "roll_self_attempt_match_fraction.pooled": {
+      "canonical": "1500/1500",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "1500/1500"
+    },
+    "self_eligibility_fraction.SD300A": {
+      "canonical": "487/500",
+      "comparability": "directly_comparable",
+      "difference": "0/1",
+      "native": "487/500"
+    },
+    "self_eligibility_fraction.SD300B": {
+      "canonical": "493/500",
+      "comparability": "directly_comparable",
+      "difference": "3/500",
+      "native": "490/500"
+    },
+    "self_eligibility_fraction.SD300C": {
+      "canonical": "492/500",
+      "comparability": "directly_comparable",
+      "difference": "1/500",
+      "native": "491/500"
+    },
+    "self_eligibility_fraction.pooled": {
+      "canonical": "1472/1500",
+      "comparability": "directly_comparable",
+      "difference": "1/375",
+      "native": "1468/1500"
+    }
+  },
+  "statement": "This comparison records what changed between two runs that differed in one thing: the image preparation path. It establishes no resolution superiority, no causal claim, no general false-match rate, and no statistical significance.",
+  "created_utc": "2026-08-01T14:19:34.729042+00:00"
+}

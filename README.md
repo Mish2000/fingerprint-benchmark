@@ -1105,7 +1105,7 @@ acceptance condition: SD300A arrives at 500 ppi, so its canonical preparation is
 identity, and all 2,000 of its comparisons must reproduce exactly. One mismatch aborts
 the derivation before any aggregate is written.
 
-It held. `pairedeval_1fcb2c55225d` records 2,000 of 2,000 equal scores, equal result
+It held. `pairedeval_ba790ca1e900` records 2,000 of 2,000 equal scores, equal result
 statuses and equal decisions, with no rounding tolerance anywhere — which is the question
 stage 6A proved the pixels for and deliberately did not ask.
 

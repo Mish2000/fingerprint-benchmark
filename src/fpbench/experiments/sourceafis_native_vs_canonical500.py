@@ -233,16 +233,21 @@ def prepare_paired_evaluation(
     definition_software = definition_software or verifier_software
     policy = load_paired_policy(config.policy_config)
 
-    from fpbench.experiments.sourceafis_canonical500_decisions import (
-        load_canonical_decision_spec,
+    from fpbench.experiments.sourceafis_canonical500_evaluation import (
+        canonical_evaluation_spec,
     )
-    from fpbench.experiments.sourceafis_native_decisions import (
-        load_decision_experiment_config,
+    from fpbench.experiments.sourceafis_native_evaluation import (
+        native_evaluation_spec,
     )
 
+    native_evaluation = native_evaluation_spec(repository_root=repository_root)
+    canonical_evaluation = canonical_evaluation_spec(
+        repository_root=repository_root
+    )
     native = load_paired_side(
         label="native",
-        spec=load_decision_experiment_config(repository_root=repository_root),
+        spec=native_evaluation.decision_spec,
+        evaluation_spec=native_evaluation,
         workspace=workspace,
         repository_root=repository_root,
         run_id=config.native["run_id"],
@@ -252,7 +257,8 @@ def prepare_paired_evaluation(
     )
     canonical = load_paired_side(
         label="canonical",
-        spec=load_canonical_decision_spec(repository_root=repository_root),
+        spec=canonical_evaluation.decision_spec,
+        evaluation_spec=canonical_evaluation,
         workspace=workspace,
         repository_root=repository_root,
         run_id=config.canonical["run_id"],

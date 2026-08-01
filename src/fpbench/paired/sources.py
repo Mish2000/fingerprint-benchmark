@@ -32,6 +32,10 @@ from fpbench.experiments.sourceafis_decisions import (
     SourceAfisDecisionExperimentSpec,
     load_decision_source,
 )
+from fpbench.experiments.sourceafis_evaluation import (
+    SourceAfisEvaluationExperimentSpec,
+    inspect_evaluation_experiment,
+)
 from fpbench.storage.decision_set_store import DecisionSetStore
 from fpbench.storage.eligibility_set_store import EligibilitySetStore
 from fpbench.storage.evaluation_view_store import EvaluationViewStore
@@ -107,6 +111,7 @@ def load_paired_side(
     *,
     label: str,
     spec: SourceAfisDecisionExperimentSpec,
+    evaluation_spec: SourceAfisEvaluationExperimentSpec,
     workspace: Path,
     repository_root: Path,
     run_id: str,
@@ -188,7 +193,9 @@ def load_paired_side(
 
     _require_evaluation_ready(
         label=label,
+        spec=evaluation_spec,
         workspace=workspace,
+        repository_root=repository_root,
         run_id=run_id,
         metric_set_id=metric_set_id,
     )
@@ -226,22 +233,37 @@ def load_paired_side(
 
 
 def _require_evaluation_ready(
-    *, label: str, workspace: Path, run_id: str, metric_set_id: str
+    *,
+    label: str,
+    spec: SourceAfisEvaluationExperimentSpec,
+    workspace: Path,
+    repository_root: Path,
+    run_id: str,
+    metric_set_id: str,
 ) -> None:
-    """The metric set must carry a finalization marker of its own."""
-    store = MetricSetStore(workspace)
-    if not store.has_finalization(run_id, metric_set_id):
+    """Require the source evaluation's complete, freshly rebuilt ready state."""
+    state = inspect_evaluation_experiment(
+        spec=spec,
+        workspace=workspace,
+        repository_root=repository_root,
+        metric_set_id_override=metric_set_id,
+    )
+    if state.run_id != run_id:
         raise PairedSourceMismatchError(
-            f"{label}: metric set {metric_set_id} has no finalization marker; a "
-            "paired comparison cannot outrank the evaluations beneath it"
+            f"{label}: evaluation spec resolved run {state.run_id}, not the pinned "
+            f"source run {run_id}"
         )
-    if not store.has_receipt(run_id, metric_set_id):
+    if state.metric_set_id != metric_set_id:
         raise PairedSourceMismatchError(
-            f"{label}: metric set {metric_set_id} has no receipt"
+            f"{label}: evaluation spec resolved metric set {state.metric_set_id}, "
+            f"not the pinned source metric set {metric_set_id}"
         )
-    # verify_metric_set over the source chain happens in the evaluation layer;
-    # here the storage-level re-check is enough to catch a rewritten table.
-    store.verify_metric_set(run_id, metric_set_id)
+    if not state.is_evaluation_ready:
+        raise PairedSourceMismatchError(
+            f"{label}: source evaluation {metric_set_id} is "
+            f"{state.status.value}, not evaluation_ready "
+            f"{list(state.issues)[:3]}"
+        )
 
 
 def require_comparable_runs(

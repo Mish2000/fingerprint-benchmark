@@ -322,10 +322,15 @@ class SyntheticTwoStageCliAdapter(FingerprintAlgorithmAdapter):
     ) -> Path:
         """Copy the prepared image into the job's own directory.
 
-        A stand-in for the format conversion a real tool needs — MINDTCT wants a
-        PGM, not a PNG. It is a *copy*: the adapter must never write into a
-        dataset file or a prepared artefact, and the conformance suite checks the
-        source bytes afterwards.
+        A stand-in for whatever a real tool needs done to its input before it can
+        read it. It is deliberately a *copy* and nothing more: the adapter must
+        never write into a dataset file or a prepared artefact, and the
+        conformance suite checks the source bytes afterwards.
+
+        This used to say MINDTCT needs a PGM. It does not: the NBIS 5.0.0
+        certification route hands MINDTCT the prepared 8-bit greyscale PNG byte
+        for byte, and stage 7B verified direct PNG input on the official build
+        before relying on it (docs/adr/0048, spec section 21).
         """
         target = workspace.work_path(name)
         try:

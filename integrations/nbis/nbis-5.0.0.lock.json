@@ -1,0 +1,17 @@
+{
+  "schema_version": "1",
+  "release": {
+    "version": "5.0.0",
+    "source": "official_nist_nigos",
+    "url": null,
+    "sha256": null,
+    "size_bytes": 0
+  },
+  "tests": {
+    "version": "5.0.0",
+    "source": "official_nist_nigos",
+    "url": null,
+    "sha256": null,
+    "size_bytes": 0
+  }
+}

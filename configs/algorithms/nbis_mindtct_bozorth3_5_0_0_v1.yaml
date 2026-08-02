@@ -1,0 +1,94 @@
+# NIST NBIS 5.0.0 — MINDTCT into BOZORTH3, as one algorithm identity.
+#
+# The name describes the whole route. MINDTCT decides what a minutia is, where it
+# is and how reliable it is; BOZORTH3 only compares the two lists it is handed.
+# A descriptor labelled `bozorth3` would let two runs against different MINDTCT
+# builds share an identity they are not entitled to (docs/adr/0046).
+#
+# Everything here is either an identity that must not drift or a statement about
+# what is deliberately *not* passed. The adapter derives all of it itself, so a
+# mistake in this file cannot change what runs — it can only disagree with it,
+# and a test says so.
+#
+# There is no threshold in this file and there will not be one. BOZORTH3's `-T`
+# filters which scores are printed at all, so a run under it is not a raw-score
+# run; deciding what a score means happens later, over stored scores
+# (docs/adr/0003, docs/adr/0049).
+
+algorithm:
+  id: nbis_mindtct_bozorth3
+  display_name: NBIS MINDTCT + BOZORTH3
+  adapter_id: nbis_mindtct_bozorth3_subprocess
+
+  # For reference only.
+  implementation_version: "5.0.0"
+  upstream_artifact: NIST NBIS Release 5.0.0 (with NBIS Test 5.0.0)
+  license: public domain (NIST software, see the distribution's own notice)
+  score_direction: higher_is_better
+
+pipeline:
+  family_id: nbis
+  pipeline_kind: extract_then_match
+
+  extractor_id: mindtct
+  extractor_version: "5.0.0"
+
+  matcher_id: bozorth3
+  matcher_version: "5.0.0"
+
+  implementation_language: c
+  integration_mode: subprocess_per_stage
+
+  # The prepared PNG is copied byte for byte and handed to MINDTCT unchanged.
+  # No re-encoding, no PGM, no WSQ, no resize, no contrast change
+  # (docs/adr/0048).
+  input_mode: direct_gray8_png_byte_copy
+
+  # Measured on the certified build rather than assumed: three PNGs with
+  # identical pixels and different pHYs chunks produce identical XYT output, so
+  # the declared resolution is ignored and NBIS's 500 ppi default applies.
+  # This route runs on canonical 500 ppi input only (docs/adr/0047).
+  dpi_policy: png_ppi_undefined_nbis_default_500
+
+  probe_side: left
+
+  template_cache: disabled
+  template_persistence: disabled
+  seed_usage: ignored_algorithm_has_no_seed
+
+# The options this route does not pass. Each one is part of the identity, and
+# passing any of them later is a different algorithm rather than a setting of
+# this one (docs/adr/0049). None of them is readable from configuration: there
+# is deliberately no `boost`, `m1`, `threshold`, `max_minutiae`, `min_minutiae`,
+# `reverse_match`, `average_directions`, `cache_templates` or
+# `persist_templates` key anywhere in v1.
+tool_options:
+  mindtct_contrast_boost: disabled     # no -b
+  mindtct_m1: disabled                 # no -m1
+
+  bozorth3_m1: disabled
+  bozorth3_threshold: none             # no -T; every score is stored
+  bozorth3_max_minutiae: default_150   # BOZORTH3's own default, never passed
+  bozorth3_min_minutiae: default_10    # BOZORTH3's own default, never passed
+
+  score_type: nonnegative_integer_similarity
+  input_effective_ppi: 500
+
+# The adapter is given three absolute paths and nothing else. They are not in
+# this file because they are facts about a machine: a research run gets them
+# from its materialised runtime bundle, and a development run from a certified
+# build directory under build/nbis-5.0.0/<build-id>/.
+#
+#   nbis_mindtct_executable   bin/mindtct
+#   nbis_bozorth3_executable  bin/bozorth3
+#   nbis_build_manifest       nbis-build-manifest.json
+#
+# There is no PATH lookup and no default name. See integrations/nbis/README.md.
+adapter:
+  runtime_asset_roles:
+    - nbis_mindtct_executable
+    - nbis_bozorth3_executable
+    - nbis_build_manifest
+  primary_runtime_asset_role: nbis_mindtct_executable
+  supported_targets:
+    - linux/x86_64

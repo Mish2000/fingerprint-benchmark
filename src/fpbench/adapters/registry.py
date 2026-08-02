@@ -135,3 +135,15 @@ def _ensure_builtin_adapters() -> None:
         register_adapter(
             "sourceafis_java_subprocess", SourceAfisJavaAdapter.from_config
         )
+
+    if "nbis_mindtct_bozorth3_subprocess" not in ADAPTERS:
+        # Registering it does not require NBIS, and importing the package costs
+        # nothing. Unlike the two above, this adapter has no default paths at
+        # all: it must be told where its two executables and its build manifest
+        # are, because a bare ``mindtct`` would mean whatever this machine's PATH
+        # happens to say (docs/adr/0048). Building it from an empty configuration
+        # therefore raises, which is the correct answer to "run NBIS from
+        # nowhere".
+        from fpbench.adapters.nbis.adapter import NbisAdapter
+
+        register_adapter("nbis_mindtct_bozorth3_subprocess", NbisAdapter.from_config)

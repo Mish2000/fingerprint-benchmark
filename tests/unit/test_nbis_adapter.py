@@ -601,14 +601,21 @@ def test_the_working_directory_is_empty_afterwards(
 ):
     """Section 32: the runner does not clear it, so the adapter must."""
     working, artifacts = directories
-    compare(
-        adapter,
-        directories,
-        image(tmp_path, "left", 1, case=left_case),
-        image(tmp_path, "right", 6, case=right_case),
+    left = image(tmp_path, "left", 1, case=left_case)
+    right = image(tmp_path, "right", 6, case=right_case)
+    before = (
+        Path(left.local_path).read_bytes(),
+        Path(right.local_path).read_bytes(),
     )
+    compare(adapter, directories, left, right)
     assert files_in(working) == [], label
     assert files_in(artifacts) == [], label
+    # The inputs are read, never edited — on the failure paths too, where a
+    # half-finished tool is most likely to have left something behind.
+    assert (
+        Path(left.local_path).read_bytes(),
+        Path(right.local_path).read_bytes(),
+    ) == before, label
 
 
 @pytest.mark.parametrize("case", ["mindtct-hang", "bozorth3-hang"])

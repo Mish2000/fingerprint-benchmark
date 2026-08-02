@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Obtain, verify, build and certify NIST NBIS 5.0.0 — and nothing else.
+"""Obtain, verify, build and certify NIST NBIS 5.0.0, and nothing else.
 
 Five commands, and each of them refuses to do the next one's job:
 

@@ -652,6 +652,105 @@ def test_cleanup_leaves_a_neighbour_alone(adapter, directories, tmp_path):
     assert bystander.read_text(encoding="utf-8") == "not mine"
 
 
+def test_a_cleanup_that_cannot_finish_is_not_a_success(
+    adapter, directories, tmp_path, monkeypatch
+):
+    """Section 32: a stored success may not sit on top of a surviving template.
+
+    The removal is made to fail the way a real one would — a locked file, a
+    permission the process does not have — and the comparison must then refuse to
+    report a score. Swallowing it would publish an intermediate and call the run
+    clean.
+    """
+    from fpbench.adapters.nbis.adapter import NbisCleanupError
+
+    real_unlink = Path.unlink
+
+    def refuse(self, *args, **kwargs):
+        if self.name.startswith(("left-nbis", "right-nbis")):
+            raise PermissionError(13, "in use by another process")
+        return real_unlink(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", refuse)
+    with pytest.raises(NbisCleanupError, match="left"):
+        compare(
+            adapter, directories, image(tmp_path, "left", 1), image(tmp_path, "right", 6)
+        )
+
+
+def test_a_cleanup_failure_beats_a_stage_failure(
+    adapter, directories, tmp_path, monkeypatch
+):
+    """Even when the comparison had already failed, nothing may be left behind."""
+    from fpbench.adapters.nbis.adapter import NbisCleanupError
+
+    real_unlink = Path.unlink
+
+    def refuse(self, *args, **kwargs):
+        if self.name.startswith("left-nbis"):
+            raise PermissionError(13, "in use by another process")
+        return real_unlink(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", refuse)
+    with pytest.raises(NbisCleanupError):
+        compare(
+            adapter,
+            directories,
+            image(tmp_path, "left", 1, case="bozorth3-fail"),
+            image(tmp_path, "right", 6),
+        )
+
+
+def test_an_unreadable_working_directory_is_not_a_success(
+    adapter, directories, tmp_path, monkeypatch
+):
+    from fpbench.adapters.nbis.adapter import NbisCleanupError
+
+    real_iterdir = Path.iterdir
+    working, _artifacts = directories
+
+    def refuse(self):
+        if self == working.resolve():
+            raise PermissionError(13, "cannot list")
+        return real_iterdir(self)
+
+    monkeypatch.setattr(Path, "iterdir", refuse)
+    with pytest.raises(NbisCleanupError, match="could not be read"):
+        compare(
+            adapter, directories, image(tmp_path, "left", 1), image(tmp_path, "right", 6)
+        )
+
+
+def test_the_runner_records_a_failed_cleanup_rather_than_a_score(
+    tmp_path, build, monkeypatch
+):
+    """The raised error reaches the runner, which stores a blocking defect.
+
+    Not a success with a missing file, and not a lost run: an
+    ``INTERNAL_ERROR`` result, which the NBIS validator counts as blocking.
+    """
+    from fpbench.core.enums import ExecutionStatus as Status
+    from fpbench.core.enums import FailureCode as Code
+    from runworld import build_world
+
+    certify_host(monkeypatch)
+
+    class LeavingAdapter(NbisAdapter):
+        def _cleanup(self, workspace):
+            from fpbench.adapters.nbis.adapter import NbisCleanupError
+
+            raise NbisCleanupError("left ['left-nbis.xyt'] behind")
+
+    world = build_world(tmp_path, adapter=LeavingAdapter(build.config()))
+    planned = world.plan.jobs[0]
+    outcome = world.job_runner().execute(
+        planned.job, world.pair_index[planned.job.pair_id]
+    )
+    assert outcome.result.status is Status.FAILURE
+    assert outcome.result.failure.code is Code.INTERNAL_ERROR
+    assert outcome.result.raw_score is None
+
+
 def test_the_inputs_are_not_modified(adapter, directories, tmp_path):
     left, right = image(tmp_path, "left", 1), image(tmp_path, "right", 6)
     before = (

@@ -24,6 +24,7 @@ import importlib.util
 import io
 import json
 import os
+import shutil
 import struct
 import sys
 import tarfile
@@ -297,13 +298,11 @@ def test_sealing_something_that_is_not_an_archive_is_refused(
 # ------------------------------------------------------------------ policy
 
 
-def test_the_build_flags_contain_nothing_machine_specific(build_module):
+def test_a_forbidden_flag_is_refused_wherever_it_comes_from(build_module):
     """Section 9: no -march=native, no -ffast-math, no LTO, no PGO."""
-    flags = " ".join(
-        [build_module.CFLAGS, build_module.CPPFLAGS, build_module.LDFLAGS]
-    )
     for fragment in build_module.FORBIDDEN_FLAG_FRAGMENTS:
-        assert fragment not in flags
+        with pytest.raises(build_module.BuildError, match="depend on"):
+            build_module.require_acceptable_flags(**{"the build's CFLAGS": f"-O2 {fragment}"})
 
 
 def test_a_forbidden_flag_in_the_environment_stops_the_build(
@@ -311,7 +310,263 @@ def test_a_forbidden_flag_in_the_environment_stops_the_build(
 ):
     monkeypatch.setenv("CFLAGS", "-O3 -march=native")
     with pytest.raises(build_module.BuildError, match="march=native"):
-        build_module._require_acceptable_flags()
+        build_module._require_acceptable_environment_flags()
+
+
+def test_acceptable_flags_pass(build_module):
+    build_module.require_acceptable_flags(
+        **{"the build's CFLAGS": "-O2 -w -ansi -D_POSIX_SOURCE -D__NBIS_PNG__ -m64"}
+    )
+
+
+# ------------------------------------------------------- compiler provenance
+#
+# The compiler that is probed, the compiler that is invoked and the compiler that
+# is recorded have to be one compiler. NBIS makes that harder than it sounds:
+# ``setup.sh`` compiles its endianness probe with a literal ``gcc``, and
+# ``rules.mak`` assigns ``CC := $(shell which gcc)``. Overriding ``CC`` on the
+# make command line alone leaves both of those free to pick something else.
+
+
+def stand_in_compiler(directory: Path, name: str, log: Path) -> Path:
+    """A fake compiler that says who it is and records every invocation."""
+    directory.mkdir(parents=True, exist_ok=True)
+    tool = directory / f"{name}.py"
+    tool.write_text(
+        "import sys, pathlib\n"
+        f"log = pathlib.Path(r'{log}')\n"
+        "log.parent.mkdir(parents=True, exist_ok=True)\n"
+        f"log.open('a').write('{name} ' + ' '.join(sys.argv[1:]) + chr(10))\n"
+        "argv = sys.argv[1:]\n"
+        "if '--version' in argv:\n"
+        f"    print('cc ({name}) 1.2.3')\n"
+        "elif '-dumpmachine' in argv:\n"
+        f"    print('{name}-unknown-linux-gnu')\n"
+        "else:\n"
+        "    out = argv[argv.index('-o') + 1] if '-o' in argv else 'a.out'\n"
+        "    pathlib.Path(out).write_text('linked')\n"
+        "sys.exit(0)\n",
+        encoding="ascii",
+    )
+    if os.name == "nt":
+        launcher = directory / f"{name}.bat"
+        launcher.write_text(
+            '@echo off\r\n"%s" "%s" %%*\r\n' % (sys.executable, tool), encoding="ascii"
+        )
+        return launcher
+    launcher = directory / name
+    launcher.write_text(
+        f'#!/bin/sh\nexec "{sys.executable}" "{tool}" "$@"\n', encoding="ascii"
+    )
+    launcher.chmod(0o755)
+    return launcher
+
+
+def test_the_compiler_probed_is_the_one_cc_names(build_module, tmp_path, monkeypatch):
+    alpha_log, beta_log = tmp_path / "alpha.log", tmp_path / "beta.log"
+    stand_in_compiler(tmp_path / "bin", "alpha", alpha_log)
+    beta = stand_in_compiler(tmp_path / "bin", "beta", beta_log)
+
+    monkeypatch.setenv("CC", str(beta))
+    compiler = build_module.resolve_compiler()
+
+    assert compiler.executable == beta.resolve()
+    assert compiler.version == "cc (beta) 1.2.3"
+    assert compiler.target == "beta-unknown-linux-gnu"
+    assert compiler.identity == "gcc"
+    assert beta_log.is_file()
+    assert not alpha_log.exists(), "the compiler that was not chosen was invoked"
+
+
+def test_a_bare_cc_name_is_resolved_on_path(build_module, tmp_path, monkeypatch):
+    log = tmp_path / "beta.log"
+    beta = stand_in_compiler(tmp_path / "bin", "beta", log)
+    monkeypatch.setenv("PATH", str(tmp_path / "bin") + os.pathsep + os.environ["PATH"])
+    monkeypatch.setenv("CC", beta.stem if os.name == "nt" else "beta")
+    compiler = build_module.resolve_compiler()
+    assert compiler.executable == beta.resolve()
+
+
+def test_a_cc_that_does_not_exist_is_refused(build_module, tmp_path, monkeypatch):
+    monkeypatch.setenv("CC", str(tmp_path / "no-such-compiler"))
+    with pytest.raises(build_module.BuildError, match="not an executable"):
+        build_module.resolve_compiler()
+
+
+def test_a_cc_that_is_not_on_path_is_refused(build_module, monkeypatch):
+    monkeypatch.setenv("CC", "definitely-not-a-compiler-fpbench")
+    with pytest.raises(build_module.BuildError, match="not on PATH"):
+        build_module.resolve_compiler()
+
+
+def test_make_is_told_the_compiler_and_never_the_flags(build_module, tmp_path):
+    """Section 10: ``CFLAGS=`` on the command line would replace NBIS's own line.
+
+    ``rules.mak`` builds ``CFLAGS`` out of feature macros including
+    ``-D__NBIS_PNG__``. Overriding it would build an NBIS without the one thing
+    this route cannot do without, and nothing would say so.
+    """
+    compiler = build_module.Compiler(
+        executable=Path("/usr/bin/gcc-9").resolve() if os.name != "nt" else Path("C:/gcc"),
+        identity="gcc",
+        version="gcc 9.5.0",
+        target="x86_64-linux-gnu",
+        extra_flags=("-fcommon",),
+    )
+    argv = build_module.make_command("it", compiler)
+    assert argv[:2] == ["make", "it"]
+    assert argv[2] == f"CC={compiler.command}"
+    assert "-fcommon" in argv[2]
+    joined = " ".join(argv)
+    assert "CFLAGS=" not in joined
+    assert "LDFLAGS=" not in joined
+    assert "CPPFLAGS=" not in joined
+
+
+@pytest.mark.skipif(
+    os.name == "nt", reason="the compiler shim is a POSIX shell stub"
+)
+def test_the_shim_makes_a_bare_gcc_the_chosen_compiler(
+    build_module, tmp_path, monkeypatch
+):
+    """``setup.sh`` and ``rules.mak`` both resolve a bare name; the shim settles it."""
+    alpha_log, beta_log = tmp_path / "alpha.log", tmp_path / "beta.log"
+    alpha = stand_in_compiler(tmp_path / "bin", "alpha", alpha_log)
+    beta = stand_in_compiler(tmp_path / "bin", "beta", beta_log)
+    # alpha is what a bare name would otherwise find.
+    (tmp_path / "bin" / "gcc").symlink_to(alpha)
+    monkeypatch.setenv("PATH", str(tmp_path / "bin") + os.pathsep + os.environ["PATH"])
+    monkeypatch.setenv("CC", str(beta))
+
+    compiler = build_module.resolve_compiler()
+    alpha_log.unlink(missing_ok=True)
+    beta_log.unlink(missing_ok=True)
+
+    shim = build_module.compiler_shim(tmp_path / "shim", compiler)
+    for name in ("gcc", "cc"):
+        build_module.run([name, "--version"], cwd=tmp_path, extra_path=shim)
+    assert beta_log.is_file()
+    assert not alpha_log.exists(), "a bare name still reached the wrong compiler"
+
+
+@pytest.mark.skipif(
+    os.name == "nt", reason="NBIS's build is driven by sh and make"
+)
+def test_probed_invoked_and_recorded_are_one_compiler(
+    build_module, tmp_path, monkeypatch
+):
+    """The whole claim, over a source tree shaped like NBIS's.
+
+    ``setup.sh`` compiles with a literal ``gcc`` exactly as NBIS's does, the
+    makefile records ``$(CC)`` exactly as NBIS's rules do, and a second compiler
+    sits on PATH ready to be picked by mistake. Only one of them may appear in the
+    log, and it has to be the one the manifest will name.
+    """
+    if shutil.which("make") is None:
+        pytest.skip("make is not installed")
+
+    alpha_log, beta_log = tmp_path / "alpha.log", tmp_path / "beta.log"
+    alpha = stand_in_compiler(tmp_path / "bin", "alpha", alpha_log)
+    stand_in_compiler(tmp_path / "bin", "beta", beta_log)
+    (tmp_path / "bin" / "gcc").symlink_to(alpha)
+    monkeypatch.setenv("PATH", str(tmp_path / "bin") + os.pathsep + os.environ["PATH"])
+    monkeypatch.setenv("CC", str(tmp_path / "bin" / "beta"))
+
+    source = tmp_path / "source"
+    source.mkdir()
+    # NBIS's own shape: setup.sh uses a literal gcc for its endianness probe and
+    # writes rules.mak; rules.mak assigns CC from `which gcc`.
+    (source / "setup.sh").write_text(
+        "#!/bin/sh\n"
+        "CC=gcc\n"
+        "$CC am_big_endian.c -o am_big_endian\n"
+        "printf 'CC := $(shell which gcc)\\n"
+        "CFLAGS := -O2 -w -ansi -D_POSIX_SOURCE -D__NBIS_PNG__ -m64\\n"
+        "CDEFS :=\\n"
+        "LDFLAGS := -m64\\n' > rules.mak\n",
+        encoding="ascii",
+    )
+    (source / "setup.sh").chmod(0o755)
+    (source / "am_big_endian.c").write_text("int main(void){return 0;}\n")
+    (source / "Makefile").write_text(
+        "include rules.mak\n"
+        "config it install:\n"
+        "\t@$(CC) -c compiling-$@\n",
+        encoding="ascii",
+    )
+
+    compiler = build_module.resolve_compiler()
+    alpha_log.unlink(missing_ok=True)
+    beta_log.unlink(missing_ok=True)
+
+    flags = build_module.compile_nbis(
+        source_root=source,
+        install_root=tmp_path / "install",
+        compiler=compiler,
+        shim=build_module.compiler_shim(tmp_path / "shim", compiler),
+    )
+
+    assert not alpha_log.exists(), (
+        f"the wrong compiler was invoked: {alpha_log.read_text()}"
+    )
+    invoked = beta_log.read_text(encoding="ascii")
+    assert "am_big_endian.c" in invoked, "setup.sh used a different compiler"
+    for target in ("config", "it", "install"):
+        assert f"compiling-{target}" in invoked, f"make {target} used another compiler"
+
+    # And what would be recorded is that same compiler, with NBIS's own flags.
+    inputs = build_module.collect_build_inputs(_sealed_lock(build_module), compiler)
+    assert inputs.compiler_version == compiler.version == "cc (beta) 1.2.3"
+    assert inputs.compiler_target == "beta-unknown-linux-gnu"
+    assert "-D__NBIS_PNG__" in flags["CFLAGS"], (
+        "the feature macro NBIS's own rules.mak defines was lost"
+    )
+
+
+def _sealed_lock(build_module):
+    from fpbench.adapters.nbis.build_manifest import NbisArchiveLock, NbisSourceLock
+
+    archive = NbisArchiveLock(
+        version="5.0.0",
+        source="official_nist_nigos",
+        url="https://example.invalid/x.zip",
+        sha256="a" * 64,
+        size_bytes=1,
+    )
+    return NbisSourceLock(schema_version="1", release=archive, tests=archive)
+
+
+def test_the_build_id_covers_the_compiler(build_module):
+    """A different compiler is a different build, in a different directory."""
+    lock = _sealed_lock(build_module)
+    first = build_module.collect_build_inputs(
+        lock,
+        build_module.Compiler(Path("/a"), "gcc", "gcc 9.5.0", "x86_64-linux-gnu"),
+    )
+    second = build_module.collect_build_inputs(
+        lock,
+        build_module.Compiler(Path("/a"), "gcc", "gcc 13.3.0", "x86_64-linux-gnu"),
+    )
+    third = build_module.collect_build_inputs(
+        lock,
+        build_module.Compiler(
+            Path("/a"), "gcc", "gcc 9.5.0", "x86_64-linux-gnu", ("-fcommon",)
+        ),
+    )
+    assert len({first.build_id, second.build_id, third.build_id}) == 3
+
+
+def test_the_build_id_does_not_cover_the_compiler_path(build_module):
+    """Where a machine keeps its compiler is not part of what a build is."""
+    lock = _sealed_lock(build_module)
+    here = build_module.collect_build_inputs(
+        lock, build_module.Compiler(Path("/usr/bin/gcc"), "gcc", "v", "t")
+    )
+    there = build_module.collect_build_inputs(
+        lock, build_module.Compiler(Path("/opt/tools/gcc"), "gcc", "v", "t")
+    )
+    assert here.build_id == there.build_id
+    assert "/usr/bin" not in json.dumps(here.as_plain())
 
 
 def test_a_non_empty_patch_series_stops_the_build(build_module, monkeypatch, tmp_path):

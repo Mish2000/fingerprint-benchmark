@@ -52,6 +52,7 @@ from time import perf_counter_ns
 from typing import Mapping
 
 from fpbench.adapters.base import ADAPTER_CONTRACT_VERSION, FingerprintAlgorithmAdapter
+from fpbench.adapters.errors import AdapterError
 from fpbench.adapters.nbis.build_manifest import (
     EXPECTED_NBIS_VERSION,
     SUPPORTED_TARGETS,
@@ -135,6 +136,7 @@ __all__ = [
     "RIGHT_OUTPUT_ROOT",
     "VERSION_PROBES",
     "version_probe",
+    "NbisCleanupError",
 ]
 
 #: The route, not the matcher. Renaming it would be renaming the experiment.
@@ -243,6 +245,17 @@ _MINIMUM_BUDGET_SECONDS = 0.001
 _VERSION_PROBE_TIMEOUT_SECONDS = 60.0
 
 _READ_CHUNK = 1 << 20
+
+
+class NbisCleanupError(AdapterError):
+    """A comparison could not remove what it wrote.
+
+    Deliberately raised rather than recorded. Every other trouble this adapter
+    meets is an outcome of *this* comparison and becomes a stored failure; a
+    working directory that will not empty is a fact about the machine, and the
+    one thing that must not happen is a result stored as a success while a
+    template it wrote is still on disk (spec section 32).
+    """
 
 
 class _StageFailure(Exception):
@@ -695,7 +708,7 @@ class NbisAdapter(FingerprintAlgorithmAdapter):
         """Remove everything this comparison wrote, on every path out.
 
         The runner does not empty the working directory between jobs, so an
-        adapter that left its templates behind would accumulate two files per
+        adapter that left its templates behind would accumulate eighteen files per
         comparison for six thousand comparisons — and would be publishing
         intermediate biometric data by accident (spec section 32).
 
@@ -703,23 +716,62 @@ class NbisAdapter(FingerprintAlgorithmAdapter):
         name is one of the two known output roots or begins with it. That catches
         an output the official build writes and this list does not name, without
         ever touching a file outside the two roots.
+
+        **A cleanup that does not finish is not a comparison that succeeded.**
+        Every removal is attempted, and then the directory is re-read and the
+        survivors are counted; if anything of this adapter's is still there, this
+        raises. Swallowing the error would let a result be stored as a success
+        while a template sat on disk — which is both a false success and a
+        published intermediate. The runner records the raised error as an
+        ``INTERNAL_ERROR``, which the validator treats as a blocking defect, and
+        that is the correct outcome: something is wrong with the machine, not with
+        the fingerprints.
+
+        Raises:
+            NbisCleanupError: a file this comparison wrote is still there.
         """
         directory = workspace.working_directory
         prefixes = tuple(f"{root}." for root in (LEFT_OUTPUT_ROOT, RIGHT_OUTPUT_ROOT))
         exact = {LEFT_INPUT, RIGHT_INPUT, LEFT_OUTPUT_ROOT, RIGHT_OUTPUT_ROOT}
+
+        def mine(name: str) -> bool:
+            return name in exact or name.startswith(prefixes)
+
         try:
-            entries = list(directory.iterdir())
-        except OSError:  # pragma: no cover - the runner created it
-            return
+            entries = [entry for entry in directory.iterdir() if mine(entry.name)]
+        except OSError as exc:
+            raise NbisCleanupError(
+                "the job's working directory could not be read to clean it up "
+                f"({type(exc).__name__}); this comparison cannot be reported as a "
+                "success while its intermediates may still exist"
+            ) from exc
+
+        # Every one is attempted before anything is reported, so a single locked
+        # file does not leave the rest behind as well.
+        problems: list[str] = []
         for entry in entries:
-            name = entry.name
-            if name not in exact and not name.startswith(prefixes):
-                continue
             try:
                 if entry.is_symlink() or entry.is_file():
                     entry.unlink()
-            except OSError:  # pragma: no cover - nothing else holds these
-                continue
+                else:  # pragma: no cover - the tools write no directories
+                    shutil.rmtree(entry)
+            except OSError as exc:
+                problems.append(f"{entry.name}: {type(exc).__name__}")
+
+        try:
+            survivors = sorted(
+                entry.name for entry in directory.iterdir() if mine(entry.name)
+            )
+        except OSError as exc:  # pragma: no cover - it was readable a moment ago
+            raise NbisCleanupError(
+                f"the working directory became unreadable ({type(exc).__name__})"
+            ) from exc
+        if survivors:
+            raise NbisCleanupError(
+                f"this comparison left {survivors} in its working directory; a "
+                "result is not stored over an intermediate that is still there "
+                f"({problems or 'no removal reported an error'})"
+            )
 
     # ------------------------------------------------------------- helpers
 

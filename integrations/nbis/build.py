@@ -130,13 +130,27 @@ RELEVANT_TEST_TOOLS: tuple[str, ...] = (
     "imgtools",
 )
 
-#: Build flags. Every one of them is about where things go or how they link.
-#: ``-fcommon`` is here because GCC 10 changed its default and NBIS 5.0.0 predates
-#: it; without it the link fails on a duplicate common symbol, which is a
-#: toolchain fact and not a decision about fingerprints (spec section 7).
-CFLAGS = "-O2 -fcommon -fno-strict-aliasing"
-CPPFLAGS = ""
-LDFLAGS = "-static-libgcc"
+#: The compiler flags are **NBIS's own**, read back out of the ``rules.mak`` its
+#: ``setup.sh`` generates, and recorded in the manifest as the build actually used
+#: them (spec section 10).
+#:
+#: They are deliberately not supplied by this project. ``rules.mak`` defines
+#:
+#:     CFLAGS := -O2 -w -ansi -D_POSIX_SOURCE $(ENDIAN_FLAG) $(NBIS_JASPER_FLAG) \
+#:               $(NBIS_OPENJP2_FLAG) $(NBIS_PNG_FLAG) $(ARCH_FLAG)
+#:
+#: so passing ``CFLAGS=`` on the make command line would *replace* the whole
+#: line — silently dropping ``-D__NBIS_PNG__`` and building the one thing this
+#: route cannot do without. The only variable this project overrides is ``CC``,
+#: which ``rules.mak`` assigns with ``:=`` and no ``override``, so a command-line
+#: value wins cleanly.
+#:
+#: ``-fcommon`` is the one flag that may be added, and only when the compiler
+#: needs it: GCC 10 changed its default to ``-fno-common`` and NBIS 5.0.0 predates
+#: that. Whether it is needed is *measured* on the compiler rather than assumed
+#: from a version number, and it rides on ``CC`` so that ``CFLAGS`` stays NBIS's
+#: (spec section 7).
+FCOMMON_FLAG = "-fcommon"
 
 #: Flags that would make the build depend on the machine it was built on, or on
 #: a floating-point contraction nobody chose. Refused rather than merely omitted,
@@ -183,7 +197,14 @@ def run(
     check: bool = True,
     timeout: float = TIMEOUT_SECONDS,
 ) -> CommandResult:
-    """Run one command with a named environment and a real timeout."""
+    """Run one command with a named environment and a real timeout.
+
+    ``extra_path`` goes in front of ``PATH``. That is how the chosen compiler
+    reaches the parts of NBIS's build that resolve a bare name: ``setup.sh``
+    compiles its endianness probe with a literal ``gcc``, and ``rules.mak``
+    assigns ``CC := $(shell which gcc)``. A shim directory holding ``gcc`` and
+    ``cc`` makes both of those the compiler this script probed and recorded.
+    """
     environment = {
         "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
         "HOME": os.environ.get("HOME", str(Path.home())),
@@ -191,6 +212,14 @@ def run(
         "LC_ALL": "C",
         "TZ": "UTC",
     }
+    # Named, not inherited. Windows cannot start a process without these, so they
+    # are listed here rather than picked up wholesale — which keeps "what reaches
+    # the build" answerable by reading this file. The certified target is Linux;
+    # this exists so the script's own tests can run anywhere.
+    for name in ("SystemRoot", "windir", "COMSPEC", "PATHEXT"):
+        value = os.environ.get(name)
+        if value is not None:
+            environment[name] = value
     if extra_path is not None:
         environment["PATH"] = f"{extra_path}{os.pathsep}{environment['PATH']}"
     try:
@@ -467,7 +496,13 @@ def command_fetch(arguments: argparse.Namespace) -> int:
 
 @dataclass(frozen=True, slots=True)
 class BuildInputs:
-    """Everything that decides what a build *is*, before it has run."""
+    """Everything that decides what a build *is*, before it has run.
+
+    The compiler flags are absent on purpose. They are not an input: ``setup.sh``
+    derives them from the archive, the setup options and the platform, all three
+    of which are here. They are read back afterwards and recorded in the manifest
+    as the build actually used them (spec section 10).
+    """
 
     source_archive_sha256: str
     source_archive_size_bytes: int
@@ -480,9 +515,8 @@ class BuildInputs:
     compiler_id: str
     compiler_version: str
     compiler_target: str
-    cflags: str
-    cppflags: str
-    ldflags: str
+    compiler_extra_flags: str
+    setup_options: str
 
     @property
     def build_id(self) -> str:
@@ -502,29 +536,212 @@ class BuildInputs:
         return {name: getattr(self, name) for name in self.__slots__}
 
 
-def probe_compiler() -> tuple[str, str, str]:
-    compiler = os.environ.get("CC") or "cc"
-    version = run([compiler, "--version"], cwd=HERE).stdout.strip().splitlines()
-    machine = run([compiler, "-dumpmachine"], cwd=HERE).stdout.strip()
-    banner = version[0] if version else ""
+@dataclass(frozen=True, slots=True)
+class Compiler:
+    """The one compiler that is probed, invoked and recorded.
+
+    ``executable`` is an absolute path and is deliberately **never** written into
+    the manifest: where a machine keeps its compiler is a fact about the machine
+    (spec section 10). What is recorded is what the compiler *is* — its identity,
+    its version banner and its own ``-dumpmachine`` target — and the whole point
+    of resolving it to an absolute path here is that the thing recorded and the
+    thing invoked cannot come apart.
+    """
+
+    executable: Path
+    identity: str
+    version: str
+    target: str
+    extra_flags: tuple[str, ...] = ()
+
+    @property
+    def command(self) -> str:
+        """What ``CC`` is set to: the compiler, plus any flag it needs."""
+        return " ".join([str(self.executable), *self.extra_flags])
+
+
+def resolve_compiler() -> Compiler:
+    """Decide which compiler builds, and prove it answers for itself.
+
+    ``CC`` chooses; ``cc`` is the default. Either way the name is resolved to an
+    absolute path *before* it is probed, so that the version banner recorded in
+    the manifest came from the same file that will be handed to ``setup.sh`` and
+    to ``make``. Resolving after probing, or probing a bare name while building
+    with another, is the provenance gap this exists to close.
+    """
+    requested = (os.environ.get("CC") or "cc").strip()
+    if not requested:
+        raise BuildError("CC is set but empty; unset it or name a compiler")
+    if os.sep in requested or (os.altsep and os.altsep in requested):
+        executable = Path(requested).expanduser().resolve()
+        if not executable.is_file() or not os.access(executable, os.X_OK):
+            raise BuildError(f"CC names {requested!r}, which is not an executable file")
+    else:
+        found = shutil.which(requested)
+        if found is None:
+            raise BuildError(
+                f"CC names {requested!r}, which is not on PATH. Name an absolute "
+                "path, or install it"
+            )
+        executable = Path(found).resolve()
+
+    banner = (
+        run([executable, "--version"], cwd=HERE).stdout.strip().splitlines() or [""]
+    )[0]
+    target = run([executable, "-dumpmachine"], cwd=HERE).stdout.strip()
+    if not target:
+        raise BuildError(f"{executable.name} does not answer -dumpmachine")
     identity = "clang" if "clang" in banner.lower() else "gcc"
-    return identity, banner, machine
+    extra = _tentative_definition_flags(executable)
+    return Compiler(
+        executable=executable,
+        identity=identity,
+        version=banner,
+        target=target,
+        extra_flags=extra,
+    )
 
 
-def _require_acceptable_flags() -> None:
-    for label, flags in (
-        ("CFLAGS", CFLAGS),
-        ("CPPFLAGS", CPPFLAGS),
-        ("LDFLAGS", LDFLAGS),
-        ("the environment's CFLAGS", os.environ.get("CFLAGS", "")),
-        ("the environment's LDFLAGS", os.environ.get("LDFLAGS", "")),
-    ):
+def _tentative_definition_flags(executable: Path) -> tuple[str, ...]:
+    """Does this compiler need ``-fcommon``? Measured, not inferred from a version.
+
+    NBIS 5.0.0 declares the same variable at file scope in more than one
+    translation unit. GCC 9 and earlier merged those; GCC 10 changed the default
+    to ``-fno-common`` and the link fails. Compiling the two-file case is a
+    smaller and more reliable question than parsing a version string, and the
+    answer is recorded rather than assumed (spec section 7).
+    """
+    probe = Path(tempfile.mkdtemp(prefix="fpbench-nbis-cc-"))
+    try:
+        (probe / "a.c").write_text("int fpbench_probe;\nint main(void){return 0;}\n")
+        (probe / "b.c").write_text("int fpbench_probe;\n")
+        without = run(
+            [executable, "a.c", "b.c", "-o", "probe"],
+            cwd=probe,
+            check=False,
+            timeout=120.0,
+        )
+        if without.exit_code == 0:
+            return ()
+        with_flag = run(
+            [executable, FCOMMON_FLAG, "a.c", "b.c", "-o", "probe"],
+            cwd=probe,
+            check=False,
+            timeout=120.0,
+        )
+        if with_flag.exit_code == 0:
+            return (FCOMMON_FLAG,)
+        raise BuildError(
+            f"{executable.name} links neither with nor without {FCOMMON_FLAG}; "
+            "this toolchain cannot build NBIS 5.0.0 unchanged, and changing its C "
+            "is not something this stage does (spec section 7)"
+        )
+    finally:
+        shutil.rmtree(probe, ignore_errors=True)
+
+
+def compiler_shim(directory: Path, compiler: Compiler) -> Path:
+    """A directory holding ``gcc`` and ``cc``, both this compiler.
+
+    NBIS resolves a bare name in two places — ``setup.sh``'s endianness probe and
+    ``rules.mak``'s ``CC := $(shell which gcc)`` — so overriding ``CC`` on the
+    make command line alone would still leave part of the build using whatever is
+    first on PATH. With this directory in front, every one of them is the
+    compiler that was probed.
+    """
+    shim = _ensure(Path(directory))
+    for name in ("gcc", "cc"):
+        path = shim / name
+        path.write_text(
+            "#!/bin/sh\n"
+            f'exec "{compiler.executable}" {" ".join(compiler.extra_flags)} "$@"\n',
+            encoding="ascii",
+        )
+        path.chmod(0o755)
+    return shim
+
+
+def make_command(target: str, compiler: Compiler) -> list[str]:
+    """``make <target> CC=<the compiler>`` and nothing else.
+
+    ``CFLAGS`` and ``LDFLAGS`` are deliberately absent: ``rules.mak`` builds
+    ``CFLAGS`` out of NBIS's own feature macros, and a command-line value would
+    replace the whole line — taking ``-D__NBIS_PNG__`` with it.
+    """
+    return ["make", target, f"CC={compiler.command}"]
+
+
+def read_build_flags(source_root: Path, compiler: Compiler) -> dict[str, str]:
+    """The flags NBIS's generated ``rules.mak`` actually uses, expanded by make.
+
+    Asked of make rather than parsed out of the file, because the values are
+    composed from half a dozen variables ``setup.sh`` substitutes; a regex would
+    record something that looks like the flags rather than the flags.
+    """
+    probe = Path(source_root) / "fpbench-print-flags.mak"
+    probe.write_text(
+        "include rules.mak\n"
+        "fpbench-print-flags:\n"
+        "\t@echo CFLAGS=$(CFLAGS)\n"
+        "\t@echo CDEFS=$(CDEFS)\n"
+        "\t@echo LDFLAGS=$(LDFLAGS)\n",
+        encoding="ascii",
+    )
+    try:
+        result = run(
+            ["make", "-f", probe.name, "fpbench-print-flags", f"CC={compiler.command}"],
+            cwd=Path(source_root),
+            check=False,
+            timeout=300.0,
+        )
+    finally:
+        probe.unlink(missing_ok=True)
+    if result.exit_code != 0:
+        raise BuildError(
+            "could not read the flags out of the generated rules.mak: "
+            f"{result.stderr[-500:]}"
+        )
+    flags: dict[str, str] = {}
+    for line in result.stdout.splitlines():
+        name, _, value = line.partition("=")
+        if name in ("CFLAGS", "CDEFS", "LDFLAGS"):
+            flags[name] = " ".join(value.split())
+    missing = sorted({"CFLAGS", "CDEFS", "LDFLAGS"} - set(flags))
+    if missing:
+        raise BuildError(f"rules.mak defines no {missing}")
+    # The flags this project added ride on CC rather than on CFLAGS, so they are
+    # folded in here: the manifest records what the compiler received.
+    if compiler.extra_flags:
+        flags["CFLAGS"] = " ".join([*compiler.extra_flags, flags["CFLAGS"]])
+    return flags
+
+
+def require_acceptable_flags(**flags: str) -> None:
+    """Refuse a flag that ties the build to the machine that made it.
+
+    Applied to the environment before the build, and to the flags NBIS's own
+    ``rules.mak`` turns out to use afterwards. The environment check matters even
+    though ``rules.mak`` assigns ``CFLAGS`` with ``:=`` and therefore ignores it:
+    an operator who exported one of these meant it to take effect, and refusing is
+    the only outcome that does not quietly disappoint them (spec section 9).
+    """
+    for label, value in flags.items():
         for fragment in FORBIDDEN_FLAG_FRAGMENTS:
-            if fragment in flags:
+            if fragment in (value or ""):
                 raise BuildError(
                     f"{label} contains {fragment!r}, which makes the build depend on "
                     "the machine it was built on (spec section 9)"
                 )
+
+
+def _require_acceptable_environment_flags() -> None:
+    require_acceptable_flags(
+        **{
+            "the environment's CFLAGS": os.environ.get("CFLAGS", ""),
+            "the environment's CPPFLAGS": os.environ.get("CPPFLAGS", ""),
+            "the environment's LDFLAGS": os.environ.get("LDFLAGS", ""),
+        }
+    )
 
 
 def _require_no_patches_touch_behaviour() -> None:
@@ -539,10 +756,22 @@ def _require_no_patches_touch_behaviour() -> None:
         )
 
 
-def collect_build_inputs(lock: NbisSourceLock) -> BuildInputs:
-    _require_acceptable_flags()
+def setup_options(target_architecture: str) -> list[str]:
+    """NBIS's own configure switches. Part of what a build id covers.
+
+    ``--without-X11`` because nothing this route uses needs it and it drags in a
+    dependency that is a property of the machine. ``--64`` on x86_64 because
+    NBIS's default is a 32-bit build on a cross-capable toolchain.
+    """
+    options = ["--without-X11"]
+    if target_architecture == "x86_64":
+        options.append("--64")
+    return options
+
+
+def collect_build_inputs(lock: NbisSourceLock, compiler: Compiler) -> BuildInputs:
+    _require_acceptable_environment_flags()
     _require_no_patches_touch_behaviour()
-    compiler_id, compiler_version, compiler_target = probe_compiler()
     target_os, target_architecture = host_target()
     return BuildInputs(
         source_archive_sha256=str(lock.release.sha256),
@@ -553,13 +782,41 @@ def collect_build_inputs(lock: NbisSourceLock) -> BuildInputs:
         build_script_fingerprint=build_script_fingerprint(HERE),
         target_os=target_os,
         target_architecture=target_architecture,
-        compiler_id=compiler_id,
-        compiler_version=compiler_version,
-        compiler_target=compiler_target,
-        cflags=CFLAGS,
-        cppflags=CPPFLAGS,
-        ldflags=LDFLAGS,
+        compiler_id=compiler.identity,
+        compiler_version=compiler.version,
+        compiler_target=compiler.target,
+        compiler_extra_flags=" ".join(compiler.extra_flags),
+        setup_options=" ".join(setup_options(target_architecture)),
     )
+
+
+def compile_nbis(
+    *, source_root: Path, install_root: Path, compiler: Compiler, shim: Path
+) -> dict[str, str]:
+    """Run NBIS's own build, with one compiler reaching every part of it.
+
+    Three places would otherwise choose their own: ``setup.sh`` compiles its
+    endianness probe with a literal ``gcc``, ``rules.mak`` assigns
+    ``CC := $(shell which gcc)``, and ``make`` would inherit whichever of those
+    won. The shim directory settles the first two and the command-line ``CC=``
+    settles the third, so the compiler this script probed is the compiler that
+    builds — which is the whole of the provenance claim.
+
+    Returns the flags the build actually used.
+    """
+    architecture = host_target()[1]
+    run(
+        ["./setup.sh", str(install_root), *setup_options(architecture)],
+        cwd=source_root,
+        extra_path=shim,
+    )
+    for target in ("config", "it", "install"):
+        run(make_command(target, compiler), cwd=source_root, extra_path=shim)
+    flags = read_build_flags(source_root, compiler)
+    require_acceptable_flags(
+        **{f"the build's {name}": value for name, value in flags.items()}
+    )
+    return flags
 
 
 def _find_source_root(extracted: Path) -> Path:
@@ -579,14 +836,15 @@ def command_build(arguments: argparse.Namespace) -> int:
     cache = Path(arguments.cache)
     _require_outside_repository(cache)
     archives = verify_cached_archives(lock, cache)
-    inputs = collect_build_inputs(lock)
+    compiler = resolve_compiler()
+    inputs = collect_build_inputs(lock, compiler)
 
     output = BUILD_ROOT / inputs.build_id
     if output.exists() and not arguments.force:
         raise BuildError(
             f"{output.name} already exists. A build id covers the sources, the patch "
-            "series, the build script, the compiler and the flags, so an existing "
-            "one is the same build; pass --force to replace it deliberately"
+            "series, the build script, the compiler and the setup options, so an "
+            "existing one is the same build; pass --force to replace it deliberately"
         )
     if output.exists():
         shutil.rmtree(output)
@@ -601,18 +859,18 @@ def command_build(arguments: argparse.Namespace) -> int:
             safe_extract(archives["release"], workspace / "release")
         )
         install_root = _ensure(workspace / "install")
+        shim = compiler_shim(workspace / "compiler", compiler)
 
-        print(f"building NBIS {EXPECTED_NBIS_VERSION} ({inputs.build_id})")
-        setup = ["./setup.sh", str(install_root), "--without-X11"]
-        if inputs.target_architecture == "x86_64":
-            setup.append("--64")
-        run(setup, cwd=source_root)
-        for target in ("config", "it", "install"):
-            run(
-                ["make", target, f"CFLAGS={CFLAGS}", f"LDFLAGS={LDFLAGS}"]
-                + ([f"CPPFLAGS={CPPFLAGS}"] if CPPFLAGS else []),
-                cwd=source_root,
-            )
+        print(
+            f"building NBIS {EXPECTED_NBIS_VERSION} ({inputs.build_id}) "
+            f"with {compiler.identity} {compiler.target}"
+        )
+        flags = compile_nbis(
+            source_root=source_root,
+            install_root=install_root,
+            compiler=compiler,
+            shim=shim,
+        )
 
         binaries = _ensure(output / "bin")
         for tool in TOOLS:
@@ -628,6 +886,11 @@ def command_build(arguments: argparse.Namespace) -> int:
                 "nbis_version": EXPECTED_NBIS_VERSION,
                 "build_id": inputs.build_id,
                 **inputs.as_plain(),
+                # What the build actually used, read back out of the generated
+                # rules.mak rather than declared in advance (spec section 10).
+                "cflags": flags["CFLAGS"],
+                "cppflags": flags["CDEFS"],
+                "ldflags": flags["LDFLAGS"],
             },
         )
     finally:
@@ -637,6 +900,41 @@ def command_build(arguments: argparse.Namespace) -> int:
     print(f"built into {output}")
     print("run 'build.py test' to certify it; until then it has no build manifest")
     return 0
+
+
+def _read_build_inputs(output: Path, inputs: BuildInputs) -> dict[str, str]:
+    """What ``build`` wrote down about itself, and that it is still this build.
+
+    The build id already covers the sources, the patch series, the build script,
+    the compiler and the setup options, so a directory found under that id was
+    produced from these inputs. This re-reads it anyway and compares, because the
+    manifest about to be signed says so and a signature over an assumption is not
+    a signature.
+    """
+    path = Path(output) / "build-inputs.json"
+    if not path.is_file():
+        raise BuildError(
+            f"{output.name} holds no build-inputs.json; rebuild it with "
+            "'build.py build'"
+        )
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise BuildError(f"{path.name} is unreadable: {type(exc).__name__}") from exc
+
+    for name, expected in inputs.as_plain().items():
+        if payload.get(name) != expected:
+            raise BuildError(
+                f"{path.name} records {name}={payload.get(name)!r}, but this "
+                f"invocation resolves {expected!r}. Rebuild before certifying"
+            )
+    flags = {name: payload.get(name) for name in ("cflags", "cppflags", "ldflags")}
+    if any(value is None for value in flags.values()):
+        raise BuildError(f"{path.name} records no build flags; rebuild it")
+    require_acceptable_flags(
+        **{f"the recorded {name}": str(value) for name, value in flags.items()}
+    )
+    return {name: str(value) for name, value in flags.items()}
 
 
 def _locate_tool(install_root: Path, tool: str) -> Path:
@@ -658,11 +956,16 @@ def command_test(arguments: argparse.Namespace) -> int:
     lock = require_sealed_lock()
     cache = Path(arguments.cache)
     archives = verify_cached_archives(lock, cache)
-    inputs = collect_build_inputs(lock)
+    compiler = resolve_compiler()
+    inputs = collect_build_inputs(lock, compiler)
     output = BUILD_ROOT / inputs.build_id
     binaries = output / "bin"
     if not (binaries / "mindtct").is_file():
         raise BuildError(f"there is no build at {output.name}; run 'build.py build'")
+    # The flags are read from what ``build`` recorded rather than re-derived: the
+    # manifest has to describe the build that happened, not the one this
+    # invocation would produce (spec section 10).
+    recorded = _read_build_inputs(output, inputs)
 
     workspace = Path(tempfile.mkdtemp(prefix="nbis-test-", dir=_ensure(cache / "work")))
     try:
@@ -718,9 +1021,9 @@ def command_test(arguments: argparse.Namespace) -> int:
             compiler_id=inputs.compiler_id,
             compiler_version=inputs.compiler_version,
             compiler_target=inputs.compiler_target,
-            cflags=inputs.cflags,
-            cppflags=inputs.cppflags,
-            ldflags=inputs.ldflags,
+            cflags=recorded["cflags"],
+            cppflags=recorded["cppflags"],
+            ldflags=recorded["ldflags"],
             mindtct_version_output=versions["mindtct"],
             bozorth3_version_output=versions["bozorth3"],
             png_support_compiled=png_supported,

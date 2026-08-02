@@ -52,6 +52,11 @@ can be held to.
 | [0043](0043-two-stage-synthetic-adapter-proves-extensibility.md) | A synthetic two-stage adapter proves the contract before a real one tests it | Accepted, implemented |
 | [0044](0044-research-evidence-is-algorithm-neutral-and-integration-bound.md) | Research evidence is algorithm-neutral and integration-bound | Accepted, implemented |
 | [0045](0045-adapter-tools-own-files-and-process-trees.md) | Adapter tools own regular files and complete process trees | Accepted, implemented |
+| [0046](0046-nbis-route-is-mindtct-plus-bozorth3.md) | The NBIS algorithm identity is MINDTCT and BOZORTH3 together | Accepted, implemented |
+| [0047](0047-nbis-v1-runs-only-on-canonical-500ppi.md) | The NBIS route runs on canonical 500 ppi input only | Accepted, implemented |
+| [0048](0048-nbis-input-is-direct-gray8-png.md) | MINDTCT is handed the prepared PNG, byte for byte | Accepted, implemented |
+| [0049](0049-nbis-default-tool-options-are-part-of-identity.md) | The tool options this route does not pass are part of its identity | Accepted, implemented |
+| [0050](0050-nbis-templates-remain-ephemeral.md) | NBIS templates live for one comparison and are then gone | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

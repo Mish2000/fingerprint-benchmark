@@ -61,6 +61,17 @@ counted it, then answered the question 6A deliberately refused to ask. SD300A's 
 identical pixels did produce identical scores: all 2,000 of its comparisons reproduced
 exactly, with no rounding tolerance anywhere.
 
+Phase 7A made **room for a second algorithm**: the research orchestration became
+algorithm-agnostic, the shared adapter tools arrived, and a synthetic two-stage route
+proved the contract holds for an extract-then-match pipeline — all without producing a
+single number.
+
+Phase 7B integrated the **second algorithm**: NIST NBIS 5.0.0, MINDTCT into BOZORTH3,
+as one identity. Source pinned to NIST's own archives, built from them with no
+behavioural patch, certified by NIST's own test suite, and driven to `RESEARCH_READY`
+through the unmodified engine. It also produced no biometric number — the 6,000
+comparisons are stage 7C's.
+
 ```
 VERIFIED SOURCE IMAGES
         ↓
@@ -1187,6 +1198,83 @@ the checks a new adapter must pass are in
 the seam itself is in
 [docs/architecture/research-adapter-integration.md](docs/architecture/research-adapter-integration.md).
 
+## Stage 7B: NBIS, and what it cost
+
+Stage 7B produced no number either. No SD300 run, no result set, no decision set,
+no metric set, no paired comparison — the deliverables are a source lock, a build
+chain, an adapter, a validator, an integration, tests, five ADRs and three
+documents. All seven existing artefacts are byte for byte where 6B left them, and
+a regression test says so.
+
+What it proves is that stage 7A's claim was true. Adding NBIS meant writing:
+
+```
+integrations/nbis/          lock, build, verify, patch series (empty), README
+adapters/nbis/              config, PNG contract, XYT parser, score parser,
+                            failure mapping, build manifest, adapter
+experiments/nbis_validation.py     which failures are data, which are defects
+experiments/nbis_research.py       four forwards and one integration record
+configs/algorithms/…​.yaml          the identity, written down
+```
+
+and **nothing** in `execution`, `storage`, `core`, `imaging`, `decisions`,
+`eligibility`, `metrics` or `paired`. `ADAPTER_CONTRACT_VERSION` is still `"1"`,
+`RESULT_SCHEMA_VERSION` is still `"1"`, and `SingleJobRunner.__init__` takes the
+same eight parameters it took before.
+
+**The identity is the whole route.** `nbis_mindtct_bozorth3`, not `bozorth3`:
+MINDTCT makes almost every decision that could move a score, and a descriptor
+named after the matcher would let two runs against different extractor builds
+share an identity
+([ADR 0046](docs/adr/0046-nbis-route-is-mindtct-plus-bozorth3.md)). The runtime
+bundle carries three files — both executables and the build manifest — because
+all three decide what a score is.
+
+**Two things were measured rather than assumed.** The certified build accepts an
+8-bit greyscale PNG directly, so the prepared artefact is copied byte for byte
+with no WSQ, no PGM and no re-encoding
+([ADR 0048](docs/adr/0048-nbis-input-is-direct-gray8-png.md)). And three images
+with identical pixels and different `pHYs` chunks extract to identical XYT, so the
+declared resolution is ignored and NBIS's 500 ppi default applies — which is why
+this route runs on the canonical 500 ppi set only, and why the stage stops
+outright if that measurement ever comes out differently
+([ADR 0047](docs/adr/0047-nbis-v1-runs-only-on-canonical-500ppi.md)).
+
+**No tool option is configurable.** MINDTCT runs with no flags and BOZORTH3 with
+none at all, so its documented defaults of 150 maximum and 10 minimum minutiae
+apply — and those defaults are recorded in the identity rather than passed on a
+command line. `bozorth3 -T` in particular is refused outright: it filters which
+scores are printed, so a run under it is not a raw-score run
+([ADR 0049](docs/adr/0049-nbis-default-tool-options-are-part-of-identity.md)).
+A score of 0 is an ordinary success, including for a template with no minutiae at
+all.
+
+**Nothing survives a comparison.** Two staged inputs, two XYT files and fourteen
+map files are removed in a `finally` on every path out; there is no template
+cache, no template store and no published XYT
+([ADR 0050](docs/adr/0050-nbis-templates-remain-ephemeral.md)).
+
+The build chain is deliberately five commands, because obtaining a source,
+verifying it, compiling it and certifying it fail for different reasons:
+
+```bash
+python integrations/nbis/build.py seal --release … --tests …   # once, by a person
+python integrations/nbis/build.py fetch                        # verified or nothing
+python integrations/nbis/build.py build                        # no network at all
+python integrations/nbis/build.py test                         # NIST's own suite
+python integrations/nbis/verify_build.py build/nbis-5.0.0/…    # after every cache restore
+```
+
+The lock ships **unsealed**: NIST distributes NBIS behind an acknowledgement, and
+the digest is computed from the bytes a person obtained rather than copied from a
+page. Until it is sealed, no NBIS research run can be prepared — and that is
+tested.
+
+Details:
+[docs/algorithms/nbis-mindtct-bozorth3.md](docs/algorithms/nbis-mindtct-bozorth3.md),
+[docs/architecture/nbis-input-and-ppi-policy.md](docs/architecture/nbis-input-and-ppi-policy.md),
+[docs/architecture/nbis-build-provenance.md](docs/architecture/nbis-build-provenance.md).
+
 ## Architecture note: where the models live
 
 Several containers sit in `core` rather than in the package that derives them:
@@ -1213,13 +1301,11 @@ one experiment, and it needs somewhere to live that is not the planner.
    becomes possible without touching the 50 test subjects
    ([ADR 0021](docs/adr/0021-decision-profiles-are-immutable-and-external.md));
 3. failure analysis over the algorithmic failure codes the run recorded;
-4. NBIS as the second algorithm — `nbis_mindtct_bozorth3`, both halves named — which is
-   the real test of whether the adapter contract holds, and the second consumer of the
-   runtime-bundle mechanism. Stage 7A made room for it and demonstrated the shape with
-   a synthetic two-stage adapter; if the real integration needs a change to the runner,
-   a store, the result schema or the evidence chain, that is a failure of stage 7A and
-   is treated as one
-   ([ADR 0043](docs/adr/0043-two-stage-synthetic-adapter-proves-extensibility.md));
+4. **stage 7C** — the same 6,000 pair ids under `nbis_mindtct_bozorth3`, over the
+   canonical 500 ppi set, raw scores only. The route is certified and the harness is
+   unchanged; what is left is to seal the source lock with NIST's archives, build,
+   and run it. No threshold and no metric belongs to that stage either
+   ([ADR 0047](docs/adr/0047-nbis-v1-runs-only-on-canonical-500ppi.md));
 5. the persistent-JVM decision, on the strength of the full run's operational summary
    rather than a guess ([ADR 0015](docs/adr/0015-sourceafis-uses-stateless-java-bridge.md));
 6. a better negative set, if a real false-match rate is ever wanted: cross-subject, and

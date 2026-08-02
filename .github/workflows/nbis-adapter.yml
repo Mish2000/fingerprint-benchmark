@@ -1,0 +1,239 @@
+name: nbis adapter
+
+# Two jobs, because they answer to completely different failures.
+#
+# `nbis-contract` is what a pull request has to keep green. It downloads nothing,
+# builds nothing and needs no NIST archive: the tools underneath are stand-ins
+# with a faithful command line, and what is under test is the adapter's own
+# contract — the parsers, the failure mapping, the cleanup, the shared timeout,
+# the stored metadata, the command construction and the runtime guard.
+#
+# `nbis-upstream` is what a claim about NBIS has to keep green. It obtains NIST's
+# two archives, verifies them against the committed lock, builds NBIS, runs NIST's
+# own Test 5.0.0 suite, re-measures PNG support and the PPI policy, runs the
+# conformance suite against the real adapter and takes a small research run to
+# RESEARCH_READY. It cannot run without the archives, so it is manual and
+# scheduled rather than per-push.
+#
+# The upstream job is a no-op until somebody seals the source lock with the
+# digests of the archives obtained from NIST. Until then it says so and stops,
+# which is the correct behaviour: an unsealed lock verifies nothing.
+
+on:
+  push:
+    paths:
+      - "src/fpbench/adapters/nbis/**"
+      - "src/fpbench/experiments/nbis_validation.py"
+      - "src/fpbench/experiments/nbis_research.py"
+      - "src/fpbench/adapters/registry.py"
+      - "integrations/nbis/**"
+      - "configs/algorithms/nbis_mindtct_bozorth3_5_0_0_v1.yaml"
+      - "tests/nbisworld.py"
+      - "tests/fixtures/nbis_cli/**"
+      - "tests/unit/test_nbis_*.py"
+      - "tests/contract/test_nbis_conformance.py"
+      - "tests/integration/test_nbis_*.py"
+      - "tests/regression/test_sourceafis_unmoved_after_nbis.py"
+      - "pyproject.toml"
+      - ".github/workflows/nbis-adapter.yml"
+  pull_request:
+    paths:
+      - "src/fpbench/adapters/nbis/**"
+      - "src/fpbench/experiments/nbis_validation.py"
+      - "src/fpbench/experiments/nbis_research.py"
+      - "src/fpbench/adapters/registry.py"
+      - "integrations/nbis/**"
+      - "configs/algorithms/nbis_mindtct_bozorth3_5_0_0_v1.yaml"
+      - "tests/nbisworld.py"
+      - "tests/fixtures/nbis_cli/**"
+      - "tests/unit/test_nbis_*.py"
+      - "tests/contract/test_nbis_conformance.py"
+      - "tests/integration/test_nbis_*.py"
+      - "tests/regression/test_sourceafis_unmoved_after_nbis.py"
+      - "pyproject.toml"
+      - ".github/workflows/nbis-adapter.yml"
+  workflow_dispatch:
+  schedule:
+    # Weekly, so that a toolchain change in the runner image surfaces on its own
+    # rather than during the next stage.
+    - cron: "23 4 * * 1"
+
+jobs:
+  nbis-contract:
+    name: nbis contract (no NBIS, no network)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project and the pinned resampler
+        run: |
+          pip install -r requirements-imaging.lock
+          pip install -e ".[dev]"
+
+      # The generic research engine builds a throwaway git repository per
+      # experiment world and captures provenance from it, so git has to be able
+      # to commit. A runner with no identity configured would skip those tests
+      # silently, which is worse than failing.
+      - name: Give git an identity for the throwaway repositories
+        run: |
+          git config --global user.email "ci@example.invalid"
+          git config --global user.name "fpbench ci"
+
+      - name: Run the NBIS contract suite
+        run: pytest -m "nbis_contract and not upstream and not dataset" -q
+
+      # A marker nobody applied would make the job above vacuously green.
+      - name: Confirm the suite is not empty
+        run: |
+          pytest -m "nbis_contract and not upstream and not dataset" --collect-only -q \
+            | tail -n 2 \
+            | grep -Eq '[0-9]+ tests? collected'
+
+      # The upstream tests must be *collectable* without NBIS even though they
+      # cannot run: an import error in them would otherwise stay hidden until the
+      # day somebody has a build.
+      - name: Confirm the upstream suite still imports
+        run: pytest -m "nbis_upstream" --collect-only -q > /dev/null
+
+      - name: Confirm the source lock and the patch series still read
+        run: python integrations/nbis/build.py inspect
+
+  nbis-upstream:
+    name: nbis upstream (NIST archives, real build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project and the pinned resampler
+        run: |
+          pip install -r requirements-imaging.lock
+          pip install -e ".[dev]"
+
+      - name: Give git an identity for the throwaway repositories
+        run: |
+          git config --global user.email "ci@example.invalid"
+          git config --global user.name "fpbench ci"
+
+      - name: Confirm this runner is a target stage 7B certified
+        run: |
+          test "$(uname -s)" = "Linux"
+          test "$(uname -m)" = "x86_64"
+
+      # An unsealed lock means nobody has recorded the digests of the archives
+      # NIST published. Nothing can be verified against it, so nothing is
+      # attempted: the job says so and stops.
+      - name: Require a sealed source lock
+        run: |
+          python - <<'PY'
+          import json, sys
+          lock = json.load(open("integrations/nbis/nbis-5.0.0.lock.json"))
+          missing = [name for name in ("release", "tests") if not lock[name]["sha256"]]
+          if missing:
+              sys.exit(
+                  "the NBIS source lock is unsealed for "
+                  f"{missing}. Obtain NIST's archives and run "
+                  "'python integrations/nbis/build.py seal ...', then commit the lock "
+                  "(integrations/nbis/README.md)"
+              )
+          PY
+
+      # The cache key covers everything that decides what a build *is*: both
+      # archive digests, the patch series, the build script, the compiler and the
+      # target. Anything less would restore a build that no longer matches the
+      # inputs (spec section 53).
+      - name: Compute the build identity
+        id: identity
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import hashlib, json, subprocess, sys
+          sys.path.insert(0, "src")
+          from pathlib import Path
+          from fpbench.adapters.nbis.build_manifest import (
+              build_script_fingerprint, patchset_fingerprint, read_source_lock,
+          )
+          integration = Path("integrations/nbis")
+          lock = read_source_lock(integration / "nbis-5.0.0.lock.json")
+          compiler = subprocess.run(
+              ["cc", "--version"], capture_output=True, text=True, check=True
+          ).stdout.splitlines()[0]
+          target = subprocess.run(
+              ["cc", "-dumpmachine"], capture_output=True, text=True, check=True
+          ).stdout.strip()
+          key = hashlib.sha256(
+              json.dumps(
+                  {
+                      "release": lock.release.sha256,
+                      "tests": lock.tests.sha256,
+                      "patchset": patchset_fingerprint(integration / "patches" / "series.json"),
+                      "build_script": build_script_fingerprint(integration),
+                      "compiler": compiler,
+                      "target": target,
+                  },
+                  sort_keys=True,
+              ).encode()
+          ).hexdigest()[:16]
+          print(f"key={key}")
+          PY
+
+      - name: Restore the verified archives and the build
+        id: restore
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/fpbench/nbis/archives
+            build/nbis-5.0.0
+          key: nbis-5.0.0-${{ steps.identity.outputs.key }}
+
+      - name: Fetch the locked archives
+        run: python integrations/nbis/build.py fetch
+
+      - name: Build NBIS from the verified sources
+        run: python integrations/nbis/build.py build --force
+
+      - name: Run NIST's own test suite and the PNG/PPI probes
+        run: python integrations/nbis/build.py test
+
+      # A cache is somebody else's copy, so the manifest and both digests are
+      # re-verified whether or not the cache was hit.
+      - name: Re-verify the build against the lock and this repository
+        run: |
+          BUILD_DIR="$(python - <<'PY'
+          from pathlib import Path
+          root = Path("build/nbis-5.0.0")
+          builds = sorted(
+              path for path in root.iterdir()
+              if (path / "nbis-build-manifest.json").is_file()
+          )
+          assert len(builds) == 1, [p.name for p in builds]
+          print(builds[0])
+          PY
+          )"
+          echo "FPBENCH_NBIS_BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
+          python integrations/nbis/verify_build.py "$BUILD_DIR"
+
+      - name: Run the upstream suite against the real build
+        run: pytest -m "nbis_upstream" -q
+
+      - name: Confirm the upstream suite actually ran
+        run: |
+          pytest -m "nbis_upstream" --collect-only -q \
+            | tail -n 2 \
+            | grep -Eq '[0-9]+ tests? collected'
+
+      - name: Run the contract suite against the same checkout
+        run: pytest -m "nbis_contract and not upstream and not dataset" -q

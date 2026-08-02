@@ -6,6 +6,8 @@ POM := integrations/sourceafis-java/pom.xml
 BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
 
 .PHONY: help test test-all full-run adapter-contract \
+        nbis-inspect nbis-seal nbis-fetch nbis-build nbis-certify nbis-verify \
+        nbis-contract nbis-upstream \
         sourceafis-build sourceafis-java-test sourceafis-python-test \
         sourceafis-test sourceafis-sd300-smoke \
         research-prepare research-execute research-status research-finalize \
@@ -28,6 +30,15 @@ help:
 	@echo "sourceafis-python-test  Python SourceAFIS tests, excluding the dataset"
 	@echo "sourceafis-test         build + Java tests + Python tests"
 	@echo "sourceafis-sd300-smoke  the 24-job real-SD300 pilot (needs FPBENCH_SD300_ROOT)"
+	@echo ""
+	@echo "nbis-inspect            where the NBIS lock, cache and builds stand"
+	@echo "nbis-seal               record the digests of NIST's two archives, once"
+	@echo "nbis-fetch              download and verify exactly the locked archives"
+	@echo "nbis-build              compile them (no network, no substitute archive)"
+	@echo "nbis-certify            NIST's own tests + PNG/PPI probes, then the manifest"
+	@echo "nbis-verify             re-check a build against the lock and this repository"
+	@echo "nbis-contract           the NBIS route's own contract (no NBIS, no network)"
+	@echo "nbis-upstream           the claims only a real certified build can settle"
 	@echo ""
 	@echo "research-prepare        pin the runtime and plan the 6,000-comparison run"
 	@echo "research-execute        execute it, resumably (JOBS=n for a slice)"
@@ -74,6 +85,50 @@ full-run:
 # SourceAFIS descriptor regression. Needs no dataset and no JVM.
 adapter-contract:
 	pytest -m "adapter_contract and not dataset" -q
+
+# ------------------------------------------------------------------------- NBIS
+
+# NIST NBIS 5.0.0 — MINDTCT into BOZORTH3, as one algorithm identity
+# (docs/adr/0046). Five build commands rather than one, because obtaining a
+# source, verifying it, compiling it and certifying it fail for entirely
+# different reasons and must stop at different points
+# (integrations/nbis/README.md).
+NBIS := python integrations/nbis/build.py
+
+nbis-inspect:
+	$(NBIS) inspect
+
+# Run once, by a person, with the archives NIST distributes. RELEASE= and TESTS=
+# are the local paths; RELEASE_URL= and TESTS_URL= are the URLs they came from.
+nbis-seal:
+	$(NBIS) seal --release "$(RELEASE)" --release-url "$(RELEASE_URL)" \
+	             --tests "$(TESTS)" --tests-url "$(TESTS_URL)"
+
+nbis-fetch:
+	$(NBIS) fetch
+
+nbis-build:
+	$(NBIS) build
+
+# The step that produces the build manifest. Until it passes there is no
+# certified build, and the adapter has no way to use one.
+nbis-certify:
+	$(NBIS) test
+
+# BUILD=build/nbis-5.0.0/<build-id>. CI runs this after every cache restore.
+nbis-verify:
+	python integrations/nbis/verify_build.py "$(BUILD)"
+
+# The parsers, the failure mapping, the cleanup, the shared timeout, the stored
+# metadata, the command construction and the runtime guard. No NBIS, no network.
+nbis-contract:
+	pytest -m "nbis_contract and not upstream and not dataset" -q
+
+# PNG support, the PPI policy, determinism, the score of zero, NIST's own suite,
+# the real conformance run and a research smoke run. Needs FPBENCH_NBIS_BUILD_DIR
+# or exactly one certified build under build/nbis-5.0.0/.
+nbis-upstream:
+	pytest -m nbis_upstream -q
 
 # ------------------------------------------------------------------- SourceAFIS
 

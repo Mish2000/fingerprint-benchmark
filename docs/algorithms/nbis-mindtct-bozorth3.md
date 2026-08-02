@@ -46,9 +46,9 @@ two scales — it is two analyses of two rasters.
 
 And the certified build **ignores the PNG's declared resolution**: three images
 with identical pixels and `pHYs` chunks saying 500, 1000 and nothing at all
-extract to byte-identical XYT. That is measured by `build.py test` and re-measured
-by the upstream test suite; if it ever comes out differently the stage stops
-rather than the policy being written from memory (docs/adr/0047).
+extract to byte-identical XYT. Measured by `build.py test` and re-measured by the
+upstream suite; if it ever comes out differently the stage stops rather than the
+policy being written from memory (docs/adr/0047).
 
 Native SD300B and SD300C are therefore **not supported by this route in v1**. The
 comparison this project can make is over the shared canonical 500 ppi input set,
@@ -67,6 +67,12 @@ So the prepared artefact is copied byte for byte into the job's own directory an
 handed to MINDTCT unchanged, and the staged copy's digest is checked against the
 prepared image's before it is used. **There is no WSQ fallback**: a build without
 PNG support is not certified (docs/adr/0048).
+
+The certification also found that the build accepts **16-bit and indexed-colour**
+PNGs — libpng converts them — where this project had expected a refusal. That is
+recorded in the build manifest, and the adapter is what refuses them: the input
+contract is enforced in Python, before any subprocess, and tested from both
+sides.
 
 ## Why there is no `-b`, no `-m1` and no `-T`
 

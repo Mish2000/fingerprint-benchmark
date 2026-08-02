@@ -31,10 +31,25 @@ file's digest and size must equal the prepared image's own.
 
 **PNG support is an acceptance condition of the build, not a hope about it.**
 `build.py test` runs MINDTCT over a gray8 PNG and over a 16-bit, an RGB, an
-indexed-colour and a corrupt one, and refuses the build unless the first is
-accepted and the rest are not. The verdicts are recorded in the build manifest as
-`png_support_compiled` and `direct_gray8_png_verified`, and the adapter refuses a
-manifest that does not carry both.
+indexed-colour and a corrupt one, and records what happened. The verdicts are in
+the build manifest as `png_support_compiled`, `direct_gray8_png_verified` and
+`png_formats_refused_by_build`, and the adapter refuses a manifest without them.
+
+Running that probe corrected an assumption. **The certified build accepts 16-bit
+and indexed-colour PNGs**: NBIS 5.0.0 hands PNG to libpng, which down-converts a
+16-bit raster and expands a palette. This project had expected MINDTCT to refuse
+them, and wrote a build script that would have refused the build for accepting
+them — an expectation, enforced as a rule, that the software contradicted.
+
+So the rule was corrected rather than the measurement. What the build tolerates is
+*recorded*; what makes the route safe is the adapter, which refuses anything that
+is not 8-bit greyscale before a subprocess exists. Two acceptance conditions
+remain, because those two would change the pixels being compared rather than
+merely convert their representation:
+
+    rgb8      a truecolour image silently flattened is not the image prepared
+    corrupt   an unreadable file that produced a template produced it from
+              somewhere other than the input
 
 **There is no WSQ fallback.** A build without PNG support is not certified, and
 the correct response is to fix the build rather than to introduce a lossy encode
@@ -62,6 +77,11 @@ argument.
 If a future NBIS build turns out not to read PNG, this stage stops. It does not
 fall back to WSQ, and it does not introduce a conversion step whose parameters
 nobody has argued for.
+
+The adapter is now load-bearing in a way it would not have been if the build had
+matched the expectation: it is the only thing standing between a 16-bit PNG and
+MINDTCT. Its input contract is tested from both sides — the build accepts,
+the adapter refuses — so a change to either is visible.
 
 ## Alternatives considered
 

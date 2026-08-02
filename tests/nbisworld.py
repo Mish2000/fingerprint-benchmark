@@ -126,6 +126,7 @@ def build_stand_in(
     png_ppi_policy: str = EXPECTED_PNG_PPI_POLICY,
     png_support_compiled: bool = True,
     direct_gray8_png_verified: bool = True,
+    png_formats_refused_by_build: str = "corrupt,rgb8",
     failed_tests: int = 0,
     discovered_tests: int = 12,
     executed_tests: int | None = None,
@@ -180,6 +181,9 @@ def build_stand_in(
         bozorth3_version_output=version_probe(bozorth3, VERSION_PROBES["bozorth3"]) or "",
         png_support_compiled=png_support_compiled,
         direct_gray8_png_verified=direct_gray8_png_verified,
+        # What the real certified build was measured to refuse: libpng
+        # down-converts 16-bit and indexed, so only these two are refused.
+        png_formats_refused_by_build=png_formats_refused_by_build,
         png_ppi_policy=png_ppi_policy,
         mindtct_sha256=mindtct_digest,
         mindtct_size_bytes=mindtct_size,

@@ -60,6 +60,13 @@ the whole bundle.
 
 ## Consequences
 
+The identity means something because the build was checked against NIST's own
+reference output. On the certified build, MINDTCT reproduces NIST's golden
+`.xyt`, `.min` and five map files byte for byte across all ten test images, and
+BOZORTH3 reproduces NIST's golden score logs for all seven of its invocations.
+One field is masked and named: the ANSI/NIST capture date MINDTCT stamps with
+today's date (`integrations/nbis/README.md`).
+
 Rebuilding either tool produces a different bundle id, a different environment
 fingerprint and therefore a different run. That is the intended cost: a score
 attributed to "NBIS 5.0.0" without saying which build produced it is not

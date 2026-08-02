@@ -89,19 +89,30 @@ def test_the_development_runtime_pins_all_three_files(tmp_path, certified):
     nbis_research_integration().require_development_runtime(runtime)
 
 
-def test_an_unsealed_source_lock_stops_a_research_run(tmp_path):
-    """The repository's own lock is unsealed until the archives are recorded."""
-    build = build_stand_in(tmp_path / "build")
-    from fpbench.adapters.nbis.build_manifest import read_source_lock
-    from nbisworld import NBIS_INTEGRATION_DIRECTORY
+def test_an_unsealed_source_lock_stops_a_research_run(tmp_path, certified):
+    """No research run can be prepared until the archives have been recorded.
 
-    if read_source_lock(NBIS_INTEGRATION_DIRECTORY / "nbis-5.0.0.lock.json").is_sealed:
-        pytest.skip("the lock has been sealed in this checkout")
-    with pytest.raises(ResearchPreflightError, match="not certified"):
+    Built as its own checkout rather than read from this one, so the rule is
+    tested whether or not the repository's lock has been sealed yet.
+    """
+    from fpbench.core.serialization import write_json
+
+    build = build_stand_in(tmp_path / "build", real_names=True)
+    repository = sealed_repository(tmp_path / "repo", build.manifest())
+    entry = {
+        "version": "5.0.0",
+        "source": "official_nist_nigos",
+        "url": None,
+        "sha256": None,
+        "size_bytes": 0,
+    }
+    write_json(
+        repository / "integrations" / "nbis" / "nbis-5.0.0.lock.json",
+        {"schema_version": "1", "release": dict(entry), "tests": dict(entry)},
+    )
+    with pytest.raises(ResearchPreflightError, match="never been sealed"):
         nbis_research._development_runtime(
-            Path(__file__).resolve().parents[2],
-            tmp_path / "algorithm.yaml",
-            {"build_directory": build.directory},
+            repository, tmp_path / "algorithm.yaml", {"build_directory": build.directory}
         )
 
 

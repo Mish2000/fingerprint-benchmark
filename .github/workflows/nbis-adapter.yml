@@ -15,9 +15,9 @@ name: nbis adapter
 # RESEARCH_READY. It cannot run without the archives, so it is manual and
 # scheduled rather than per-push.
 #
-# The upstream job is a no-op until somebody seals the source lock with the
-# digests of the archives obtained from NIST. Until then it says so and stops,
-# which is the correct behaviour: an unsealed lock verifies nothing.
+# The lock is sealed, so the upstream job can actually run. It stays manual and
+# scheduled rather than per-push because it downloads 450 MB from NIST and builds
+# a C project; the contract job is what every pull request has to keep green.
 
 on:
   push:
@@ -202,10 +202,21 @@ jobs:
       - name: Fetch the locked archives
         run: python integrations/nbis/build.py fetch
 
+      # GCC 9 predates the -fno-common default change NBIS 5.0.0 was written
+      # before. The build script measures whether -fcommon is needed rather than
+      # assuming it, so a newer compiler also works — this pins the one the
+      # certified build used.
+      - name: Install the compiler the certified build used
+        run: sudo apt-get update && sudo apt-get install -y gcc-9
+
       - name: Build NBIS from the verified sources
+        env:
+          CC: /usr/bin/gcc-9
         run: python integrations/nbis/build.py build --force
 
       - name: Run NIST's own test suite and the PNG/PPI probes
+        env:
+          CC: /usr/bin/gcc-9
         run: python integrations/nbis/build.py test
 
       # A cache is somebody else's copy, so the manifest and both digests are
@@ -226,7 +237,11 @@ jobs:
           echo "FPBENCH_NBIS_BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
           python integrations/nbis/verify_build.py "$BUILD_DIR"
 
+      # FPBENCH_REQUIRE_NBIS turns a skip into a failure, so an absent build
+      # cannot make this job quietly green.
       - name: Run the upstream suite against the real build
+        env:
+          FPBENCH_REQUIRE_NBIS: "1"
         run: pytest -m "nbis_upstream" -q
 
       - name: Confirm the upstream suite actually ran

@@ -95,6 +95,39 @@ def test_a_clean_archive_extracts(build_module, tmp_path):
     assert (root / "nbis" / "setup.sh").is_file()
 
 
+@pytest.mark.skipif(os.name == "nt", reason="Windows has no executable bit")
+def test_extraction_keeps_the_executable_bit_an_archive_stored(build_module, tmp_path):
+    """NBIS runs ``./setup.sh``; an archive that lost its mode is unbuildable."""
+    archive = tmp_path / "modes.zip"
+    with zipfile.ZipFile(archive, "w") as bundle:
+        script = zipfile.ZipInfo("nbis/setup.sh")
+        script.external_attr = (0o100755 << 16)
+        bundle.writestr(script, "#!/bin/sh\nexit 0\n")
+        plain = zipfile.ZipInfo("nbis/README")
+        plain.external_attr = (0o100644 << 16)
+        bundle.writestr(plain, "hello\n")
+    root = build_module.safe_extract(archive, tmp_path / "out")
+    assert os.access(root / "nbis" / "setup.sh", os.X_OK)
+    assert not os.access(root / "nbis" / "README", os.X_OK)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows has no executable bit")
+def test_extraction_never_takes_setuid_from_an_archive(build_module, tmp_path):
+    """An archive may decide permissions; it may not decide privilege."""
+    import stat as stat_module
+
+    archive = tmp_path / "setuid.zip"
+    with zipfile.ZipFile(archive, "w") as bundle:
+        info = zipfile.ZipInfo("nbis/setup.sh")
+        info.external_attr = (0o104755 << 16)
+        bundle.writestr(info, "#!/bin/sh\nexit 0\n")
+    root = build_module.safe_extract(archive, tmp_path / "out")
+    mode = (root / "nbis" / "setup.sh").stat().st_mode
+    assert not mode & stat_module.S_ISUID
+    assert not mode & stat_module.S_ISGID
+    assert os.access(root / "nbis" / "setup.sh", os.X_OK)
+
+
 def test_extraction_refuses_a_directory_that_already_exists(build_module, tmp_path):
     archive = clean_zip(tmp_path / "clean.zip")
     (tmp_path / "out").mkdir()
@@ -184,33 +217,49 @@ def temporary_lock(build_module, monkeypatch, tmp_path, payload) -> Path:
     return path
 
 
-def unsealed() -> dict:
+def committed_lock() -> dict:
     return json.loads(
         (NBIS_INTEGRATION_DIRECTORY / "nbis-5.0.0.lock.json").read_text("utf-8")
     )
 
 
-def test_the_committed_lock_is_unsealed_until_somebody_records_the_archives():
-    payload = unsealed()
+def unsealed() -> dict:
+    """A lock in the state one ships in, whatever the committed one is now.
+
+    Constructed rather than read, so that the sealing rules are tested against a
+    known starting point instead of against whichever state this checkout's lock
+    happens to be in.
+    """
+    entry = {
+        "version": "5.0.0",
+        "source": "official_nist_nigos",
+        "url": None,
+        "sha256": None,
+        "size_bytes": 0,
+    }
+    return {"schema_version": "1", "release": dict(entry), "tests": dict(entry)}
+
+
+def test_the_committed_lock_names_the_official_nist_archives():
+    """Section 4: sealed, from NIST's own distribution, for 5.0.0."""
+    payload = committed_lock()
     for name in ("release", "tests"):
-        assert payload[name]["version"] == "5.0.0"
-        assert payload[name]["source"] == "official_nist_nigos"
-    assert (payload["release"]["sha256"] is None) == (
-        payload["tests"]["sha256"] is None
-    )
+        entry = payload[name]
+        assert entry["version"] == "5.0.0"
+        assert entry["source"] == "official_nist_nigos"
+        assert entry["url"].startswith("https://nigos.nist.gov/nist/nbis/")
+        assert len(entry["sha256"]) == 64
+        assert entry["size_bytes"] > 0
+    assert payload["release"]["sha256"] != payload["tests"]["sha256"]
 
 
 def test_fetch_refuses_an_unsealed_lock(build_module, monkeypatch, tmp_path, capsys):
-    if unsealed()["release"]["sha256"] is not None:  # pragma: no cover
-        pytest.skip("the lock has been sealed in this checkout")
     temporary_lock(build_module, monkeypatch, tmp_path, unsealed())
     assert build_module.main(["--cache", str(tmp_path / "cache"), "fetch"]) == 2
     assert "never been sealed" in capsys.readouterr().err
 
 
 def test_build_refuses_an_unsealed_lock(build_module, monkeypatch, tmp_path, capsys):
-    if unsealed()["release"]["sha256"] is not None:  # pragma: no cover
-        pytest.skip("the lock has been sealed in this checkout")
     temporary_lock(build_module, monkeypatch, tmp_path, unsealed())
     assert build_module.main(["--cache", str(tmp_path / "cache"), "build"]) == 2
     assert "never been sealed" in capsys.readouterr().err

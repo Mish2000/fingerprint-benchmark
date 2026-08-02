@@ -45,6 +45,11 @@ PNGs with byte-identical pixel data and three different `pHYs` declarations — 
 The adapter refuses to run against a manifest claiming any other policy, and the
 same probe is re-run against the real build in the upstream test suite.
 
+**Measured, on the certified build: the output is identical.** All three PNGs
+extract to byte-identical XYT, so the declared resolution is ignored and NBIS's
+500 ppi default applies. `png_ppi_policy` is `metadata_ignored_default_500`, and
+the route as designed exists.
+
 Because the metadata is ignored, the adapter deliberately **does not read the
 `pHYs` chunk** either. A check there would quietly reintroduce the dependency the
 measurement removed.

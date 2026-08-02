@@ -206,6 +206,35 @@ def test_a_different_ppi_policy_is_refused(tmp_path):
     assert EXPECTED_PNG_PPI_POLICY == "metadata_ignored_default_500"
 
 
+@pytest.mark.parametrize("tolerated", ["rgb8", "corrupt"])
+def test_a_build_that_accepts_a_pixel_changing_png_is_refused(tmp_path, tolerated):
+    """Section 41: truecolour flattened, or unreadable turned into a template.
+
+    16-bit and indexed are deliberately not here — the certified build accepts
+    both, because libpng converts them, and the adapter is what refuses them
+    (docs/adr/0048).
+    """
+    remaining = ",".join(sorted({"corrupt", "rgb8"} - {tolerated}))
+    build = build_stand_in(
+        tmp_path / "build", png_formats_refused_by_build=remaining
+    )
+    with pytest.raises(NbisBuildManifestError, match="the build accepts"):
+        verify_build_manifest(
+            build.manifest(), mindtct=build.mindtct, bozorth3=build.bozorth3
+        )
+
+
+def test_the_measured_tolerances_are_recorded_rather_than_refused(tmp_path):
+    """A build that tolerates 16-bit and indexed is still certifiable."""
+    build = build_stand_in(
+        tmp_path / "build", png_formats_refused_by_build="corrupt,rgb8"
+    )
+    verify_build_manifest(
+        build.manifest(), mindtct=build.mindtct, bozorth3=build.bozorth3
+    )
+    assert build.manifest().png_formats_refused_by_build == "corrupt,rgb8"
+
+
 def test_a_failing_official_test_is_refused(tmp_path):
     build = build_stand_in(tmp_path / "build", failed_tests=1)
     with pytest.raises(NbisBuildManifestError, match="official NIST tests"):
@@ -293,12 +322,30 @@ def test_the_committed_lock_reads_and_is_for_5_0_0():
 
 def test_an_unsealed_lock_verifies_nothing(tmp_path):
     """It is a promise to check, not a check (spec section 4)."""
-    lock = read_source_lock(NBIS_INTEGRATION_DIRECTORY / LOCK_FILENAME)
+    path = tmp_path / LOCK_FILENAME
+    entry = {
+        "version": "5.0.0",
+        "source": "official_nist_nigos",
+        "url": None,
+        "sha256": None,
+        "size_bytes": 0,
+    }
+    write_json(
+        path,
+        {"schema_version": "1", "release": dict(entry), "tests": dict(entry)},
+    )
     build = build_stand_in(tmp_path / "build")
-    if lock.is_sealed:  # pragma: no cover - only once the archives are recorded
-        pytest.skip("the lock has been sealed in this checkout")
     with pytest.raises(NbisBuildManifestError, match="never been sealed"):
-        verify_against_source_lock(build.manifest(), lock)
+        verify_against_source_lock(build.manifest(), read_source_lock(path))
+
+
+def test_the_committed_lock_is_sealed_to_the_official_archives():
+    """Section 59: both archives' digests and sizes are pinned."""
+    lock = read_source_lock(NBIS_INTEGRATION_DIRECTORY / LOCK_FILENAME)
+    assert lock.is_sealed
+    for entry in (lock.release, lock.tests):
+        assert entry.url.startswith("https://nigos.nist.gov/nist/nbis/")
+        assert entry.size_bytes > 0
 
 
 def test_a_sealed_lock_must_agree_with_the_manifest(tmp_path):

@@ -47,12 +47,17 @@ from fpbench.adapters.nbis.adapter import (
 from fpbench.adapters.nbis.build_manifest import (
     BUILD_MANIFEST_FILENAME,
     EXPECTED_PNG_PPI_POLICY,
+    REQUIRED_PNG_REFUSALS,
     SUPPORTED_TARGETS,
     host_target,
     read_build_manifest,
     verify_build_manifest,
 )
 from fpbench.adapters.nbis.config import NbisConfig
+from fpbench.adapters.nbis.png_input import (
+    NbisInputRejected,
+    require_gray8_500ppi_png,
+)
 from fpbench.adapters.nbis.xyt import (
     QUALITY_MAX,
     QUALITY_MIN,
@@ -266,27 +271,67 @@ def test_a_png_without_a_phys_chunk_is_accepted(mindtct, tmp_path):
     extract(mindtct, image, tmp_path / "out")
 
 
-@pytest.mark.parametrize(
-    "name,payload_factory",
-    [
-        ("gray16", lambda: png(256, 256, 16, 0)),
-        ("rgb8", lambda: png(256, 256, 8, 2)),
-        ("indexed8", lambda: png(256, 256, 8, 3, plte=True)),
-        ("corrupt", lambda: b"\x89PNG\r\n\x1a\nnot a valid PNG body"),
-    ],
-)
-def test_a_png_this_route_forbids_is_refused_by_the_build(
-    mindtct, tmp_path, name, payload_factory
-):
-    """The adapter refuses these before the subprocess; so does the build."""
+PROBE_PNGS = {
+    "gray16": lambda: png(256, 256, 16, 0),
+    "rgb8": lambda: png(256, 256, 8, 2),
+    "indexed8": lambda: png(256, 256, 8, 3, plte=True),
+    "corrupt": lambda: b"\x89PNG\r\n\x1a\nnot a valid PNG body",
+}
+
+
+def build_accepts(mindtct: Path, tmp_path: Path, name: str) -> bool:
     image = tmp_path / f"{name}.png"
-    image.write_bytes(payload_factory())
+    image.write_bytes(PROBE_PNGS[name]())
     root = tmp_path / f"out-{name}"
     result = run_tool([mindtct, image, root], tmp_path)
-    produced = root.with_name(f"{root.name}.xyt").is_file()
-    assert not (result.exit_code == 0 and produced), (
-        f"the build accepted a {name} PNG, which the input contract forbids"
+    return result.exit_code == 0 and root.with_name(f"{root.name}.xyt").is_file()
+
+
+@pytest.mark.parametrize("name", sorted(REQUIRED_PNG_REFUSALS))
+def test_the_build_refuses_a_png_that_would_change_the_pixels(
+    mindtct, tmp_path, name
+):
+    """Truecolour and unreadable must not become a template (spec section 41).
+
+    These two are different in kind from the rest: a truecolour image silently
+    flattened would mean the pixels compared were not the pixels prepared, and an
+    unreadable one becoming a template would mean the template came from
+    somewhere else entirely.
+    """
+    assert not build_accepts(mindtct, tmp_path, name)
+
+
+@pytest.mark.parametrize("name", ["gray16", "indexed8"])
+def test_the_build_tolerates_what_the_adapter_refuses(mindtct, tmp_path, name):
+    """The measured surprise of stage 7B, asserted from both sides.
+
+    NBIS 5.0.0 hands PNG to libpng, which down-converts a 16-bit raster and
+    expands a palette — so the *build* accepts both, and this project's earlier
+    expectation that it would not was wrong. What makes the route safe is not the
+    build: it is the adapter, which refuses anything that is not 8-bit greyscale
+    before a subprocess exists (docs/adr/0048).
+
+    Both halves are asserted here, because either one alone would be misleading.
+    """
+    assert build_accepts(mindtct, tmp_path, name), (
+        "this build now refuses what it used to accept; the manifest's "
+        "png_formats_refused_by_build records what was measured, and a change "
+        "means the certification needs re-reading"
     )
+
+    image = prepared_image(tmp_path / "inputs" / f"{name}.png", PROBE_PNGS[name]())
+    with pytest.raises(NbisInputRejected):
+        require_gray8_500ppi_png(image)
+
+
+def test_the_manifest_records_what_the_build_refused(manifest):
+    refused = {
+        item.strip()
+        for item in manifest.png_formats_refused_by_build.split(",")
+        if item.strip()
+    }
+    assert REQUIRED_PNG_REFUSALS <= refused
+    assert "gray16" not in refused and "indexed8" not in refused
 
 
 def test_the_extractor_does_not_modify_its_input(mindtct, tmp_path):

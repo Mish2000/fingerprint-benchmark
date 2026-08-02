@@ -3,15 +3,15 @@
   "release": {
     "version": "5.0.0",
     "source": "official_nist_nigos",
-    "url": null,
-    "sha256": null,
-    "size_bytes": 0
+    "url": "https://nigos.nist.gov/nist/nbis/nbis_v5_0_0.zip",
+    "sha256": "0adf8ab0f6b0e4208de50ca00ba21d3d77112ecd66288757ddfed21f6bee92c3",
+    "size_bytes": 52595795
   },
   "tests": {
     "version": "5.0.0",
     "source": "official_nist_nigos",
-    "url": null,
-    "sha256": null,
-    "size_bytes": 0
+    "url": "https://nigos.nist.gov/nist/nbis/test_v5_0_0.zip",
+    "sha256": "5a1e0f7cb06ecb3ab7936e39bde97802a364f1398e37054ed195bff052b9ff00",
+    "size_bytes": 400099537
   }
 }

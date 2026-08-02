@@ -53,6 +53,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -64,7 +65,7 @@ import zlib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Iterable, Mapping, Sequence
 
 HERE = Path(__file__).resolve().parent
 REPOSITORY_ROOT = HERE.parents[1]
@@ -114,21 +115,36 @@ BUILD_ROOT = Path(
 #: The two tools this stage certifies. Nothing else is copied out of the build.
 TOOLS = ("mindtct", "bozorth3")
 
-#: Which of NIST's own test directories are relevant to MINDTCT, to BOZORTH3 and
-#: to the image formats they depend on. Confirmed against the real Test 5.0.0
-#: package on first run: discovery *fails loudly* when none of these exists,
-#: rather than reporting zero tests and calling that a pass (spec section 40).
-RELEVANT_TEST_TOOLS: tuple[str, ...] = (
-    "mindtct",
-    "bozorth3",
-    "png",
-    "jpegl",
-    "jpegb",
-    "wsq",
-    "ihead",
-    "an2k",
-    "imgtools",
-)
+#: Which of NIST's own test packages are relevant to this route. Confirmed
+#: against the real Test 5.0.0 package, whose layout is
+#:
+#:     Test_5.0.0/<package>/execs/<program>/<program>_test.sh
+#:     Test_5.0.0/<package>/execs/<program>/<name>_nist.<ext>   <- NIST's golden
+#:
+#: ``mindtct`` and ``bozorth3`` *are* the route, and their goldens are the
+#: strongest check that exists: NIST ships a reference ``.xyt``, ``.min`` and five
+#: reference map files per image, and a reference score log per BOZORTH3
+#: invocation.
+#:
+#: The other packages test formats **this route never feeds to MINDTCT**. The
+#: adapter refuses anything that is not an 8-bit greyscale PNG before a
+#: subprocess exists (docs/adr/0048), so WSQ, JPEG, JPEG 2000 and ANSI/NIST are
+#: not "the image formats they depend on" here. PNG is, and NIST ships no PNG
+#: test package — which is exactly why this build's PNG capability and PPI
+#: behaviour are separate acceptance conditions of their own (spec sections 22
+#: and 41).
+#:
+#: What running the wider set showed, on the certified build, is written down in
+#: integrations/nbis/README.md: MINDTCT and BOZORTH3 reproduce every golden, and
+#: the other packages' differences are NIST's own goldens embedding their build
+#: machine's absolute paths, prose transcripts, or WSQ codec output. None of
+#: them is on a path this route takes.
+RELEVANT_TEST_PACKAGES: tuple[str, ...] = ("mindtct", "bozorth3")
+
+#: Programs whose tests must actually be among those discovered. Without this, a
+#: build that produced no ``mindtct`` at all would discover no mindtct tests and
+#: satisfy "everything discovered passed" by discovering nothing.
+REQUIRED_TEST_PROGRAMS: tuple[str, ...] = ("mindtct", "bozorth3")
 
 #: The compiler flags are **NBIS's own**, read back out of the ``rules.mak`` its
 #: ``setup.sh`` generates, and recorded in the manifest as the build actually used
@@ -194,6 +210,7 @@ def run(
     *,
     cwd: Path,
     extra_path: Path | None = None,
+    environment_extra: Mapping[str, str] | None = None,
     check: bool = True,
     timeout: float = TIMEOUT_SECONDS,
 ) -> CommandResult:
@@ -222,6 +239,7 @@ def run(
             environment[name] = value
     if extra_path is not None:
         environment["PATH"] = f"{extra_path}{os.pathsep}{environment['PATH']}"
+    environment.update(dict(environment_extra or {}))
     try:
         completed = subprocess.run(  # noqa: S603 - argv list, shell=False
             [str(item) for item in argv],
@@ -319,6 +337,7 @@ def safe_extract(archive: Path, destination: Path) -> Path:
                     )
                 _reject_escape(destination, info.filename)
             bundle.extractall(destination)
+            _restore_zip_modes(bundle, members, destination)
     else:
         mode = "r:gz" if kind == "tar.gz" else "r:"
         with tarfile.open(archive, mode) as bundle:
@@ -341,6 +360,41 @@ def safe_extract(archive: Path, destination: Path) -> Path:
         if path.is_symlink():  # pragma: no cover - the checks above prevent it
             raise BuildError(f"{path.name} was extracted as a symlink")
     return destination
+
+
+#: The nine permission bits. Never set-user-id, set-group-id or sticky.
+_EXTRACTED_MODE_MASK = 0o777
+
+#: The only bits taken from an archive, and only ever added.
+_EXECUTE_BITS = 0o111
+
+
+def _restore_zip_modes(
+    bundle: zipfile.ZipFile, members: Sequence[zipfile.ZipInfo], destination: Path
+) -> None:
+    """Give back the *execute* bits ``extractall`` drops.
+
+    ``ZipFile.extractall`` ignores the Unix mode a zip stores, so every extracted
+    file comes out non-executable. NBIS's own build depends on those bits —
+    ``setup.sh`` is run as a program, and ``make`` runs several helper scripts —
+    so dropping them turns a correct archive into a build that cannot start.
+
+    Strictly **additive**, and only the three execute bits. An archive gets to say
+    "this is a program"; it does not get to say "this is set-user-id", and it does
+    not get to make a directory unwritable or a file read-only — a zlib that ships
+    its own ``zconf.h`` mode 0444 would otherwise stop its own ``configure`` from
+    rewriting it.
+    """
+    if os.name == "nt":  # pragma: no cover - the certified target is Linux
+        return
+    for info in members:
+        executable = (info.external_attr >> 16) & _EXECUTE_BITS
+        if not executable:
+            continue
+        target = destination / info.filename.replace("\\", "/")
+        if not target.is_file() or target.is_symlink():
+            continue
+        target.chmod((target.stat().st_mode & _EXTRACTED_MODE_MASK) | executable)
 
 
 # ---------------------------------------------------------------------- lock
@@ -759,11 +813,29 @@ def _require_no_patches_touch_behaviour() -> None:
 def setup_options(target_architecture: str) -> list[str]:
     """NBIS's own configure switches. Part of what a build id covers.
 
-    ``--without-X11`` because nothing this route uses needs it and it drags in a
-    dependency that is a property of the machine. ``--64`` on x86_64 because
-    NBIS's default is a 32-bit build on a cross-capable toolchain.
+    Each one decides what is *included* or *where things go*, never what MINDTCT
+    decides about a ridge — which is the line spec section 7 draws.
+
+    ``--without-X11``
+        Only ``pcasys``'s viewer uses it. It is a dependency on whatever X the
+        machine happens to have, and nothing on this route touches it.
+
+    ``--without-OPENJP2``
+        JPEG 2000 input support, which needs ``cmake`` to build. This route reads
+        one format — 8-bit greyscale PNG, byte for byte (docs/adr/0048) — and a
+        codec it never calls is not worth a build tool that has nothing to do
+        with fingerprints. ``NBIS_PNG_FLAG`` is separate and untouched, and the
+        PNG capability probe in ``test`` refuses the build if that ever stops
+        being true.
+
+    ``--64``
+        NBIS defaults to a 32-bit build on a cross-capable toolchain; the
+        certified target is x86_64.
+
+    All three reach the build id and the manifest, so a build made with different
+    switches is a different build and says so.
     """
-    options = ["--without-X11"]
+    options = ["--without-X11", "--without-OPENJP2"]
     if target_architecture == "x86_64":
         options.append("--64")
     return options
@@ -879,6 +951,7 @@ def command_build(arguments: argparse.Namespace) -> int:
             shutil.copyfile(built, target)
             target.chmod(0o755)
 
+
         _write_json_atomically(
             output / "build-inputs.json",
             {
@@ -979,7 +1052,7 @@ def command_test(arguments: argparse.Namespace) -> int:
                 "Golden output is never edited to make a test pass"
             )
 
-        png_supported, gray8_verified = probe_png_capability(
+        png_supported, gray8_verified, png_refused = probe_png_capability(
             binaries, _ensure(workspace / "png")
         )
         if not (png_supported and gray8_verified):
@@ -1028,6 +1101,7 @@ def command_test(arguments: argparse.Namespace) -> int:
             bozorth3_version_output=versions["bozorth3"],
             png_support_compiled=png_supported,
             direct_gray8_png_verified=gray8_verified,
+            png_formats_refused_by_build=png_refused,
             png_ppi_policy=ppi_policy,
             mindtct_sha256=digests["mindtct"][0],
             mindtct_size_bytes=digests["mindtct"][1],
@@ -1051,70 +1125,201 @@ def command_test(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def _test_suite_root(tests_root: Path) -> Path:
+    """The directory holding NIST's test packages, wherever the archive put it."""
+    candidates = sorted(tests_root.rglob("master_test.sh"))
+    if not candidates:
+        listing = sorted({path.name for path in tests_root.rglob("*") if path.is_dir()})
+        raise BuildError(
+            "the extracted NBIS test package has no master_test.sh; this is not the "
+            f"NIST Test 5.0.0 layout. It holds {listing[:40]}"
+        )
+    return min(candidates, key=lambda path: len(path.parts)).parent
+
+
+def discover_official_tests(
+    suite_root: Path, binaries: Path
+) -> list[tuple[str, Path]]:
+    """The relevant test scripts NIST published, for programs this build has.
+
+    Relevance is decided twice, and both halves are facts rather than judgements:
+    the package has to be one MINDTCT or BOZORTH3 depends on, and the program the
+    script exercises has to exist in this build. A test for ``dpyimage`` or
+    ``cjp2k`` is not a test this build failed — it is a test for something this
+    build deliberately does not contain (``--without-X11``,
+    ``--without-OPENJP2``), and counting it as discovered-but-not-executed would
+    make the acceptance condition unsatisfiable for a reason that has nothing to
+    do with fingerprints.
+
+    Raises:
+        BuildError: the layout is unrecognised, a relevant package is missing, or
+            MINDTCT's and BOZORTH3's own tests are not among those found.
+    """
+    discovered: list[tuple[str, Path]] = []
+    for package in RELEVANT_TEST_PACKAGES:
+        execs = suite_root / package / "execs"
+        if not execs.is_dir():
+            raise BuildError(
+                f"the NIST test package holds no {package}/execs; expected the "
+                f"5.0.0 layout <package>/execs/<program>/<program>_test.sh"
+            )
+        scripts = sorted(execs.glob("*/*_test.sh"))
+        if not scripts:
+            raise BuildError(
+                f"the {package!r} test package holds no *_test.sh; refusing to "
+                "report it as passing"
+            )
+        for script in scripts:
+            program = script.parent.name
+            if not (binaries / program).is_file():
+                print(f"  not built, so not a test of this build: {package}/{program}")
+                continue
+            discovered.append((program, script))
+
+    programs = {program for program, _ in discovered}
+    missing = sorted(set(REQUIRED_TEST_PROGRAMS) - programs)
+    if missing:
+        raise BuildError(
+            f"no official test was discovered for {missing}; a suite that does not "
+            "cover the two tools this route runs proves nothing about it"
+        )
+    return discovered
+
+
+#: The one field in NIST's own reference output that cannot be reproduced by
+#: anybody, on any machine, ever: the ANSI/NIST Type-14 *capture date*, which
+#: MINDTCT stamps with today's date when it writes an ANSI/NIST container. NIST's
+#: golden ``.mdt`` says ``14.005:20040930`` because that is the day they made it.
+#:
+#: It is masked on both sides — named, narrow, and nothing else is touched. The
+#: minutiae inside the same file, and every other byte of it, are still compared.
+#: Excluding a value the format defines as "now" is not weakening the check;
+#: comparing it would make the check impossible rather than strict.
+_ANSI_NIST_CAPTURE_DATE = re.compile(rb"(14\.005:)\d{8}")
+
+
+def _mask_volatile(payload: bytes) -> bytes:
+    return _ANSI_NIST_CAPTURE_DATE.sub(rb"\1<capture-date>", payload)
+
+
+def _produced_name(golden: Path) -> str:
+    """``g006t6u_nist.xyt`` -> ``g006t6u.xyt``; ``1to1_1_nist.log`` -> ``1to1_1.log``."""
+    stem, _, suffix = golden.name.rpartition(".")
+    return f"{stem[: -len('_nist')]}.{suffix}"
+
+
+def compare_golden_output(
+    test_directory: Path, package_root: Path, stdout: str
+) -> list[str]:
+    """Everything NIST shipped as a reference, against what the run produced.
+
+    This is the actual test. NIST's scripts run a tool and write its output; they
+    do **not** compare anything themselves, so an exit status alone would pass
+    whatever the tool produced. The reference is shipped beside the script as
+    ``<name>_nist.<ext>`` — for MINDTCT that is a golden ``.xyt`` and seven golden
+    map files per image, which is as direct a check of the extractor as exists.
+
+    Where the produced file is found, in order: beside the golden, then anywhere
+    under the package (``histogen`` writes into the package's ``data``), and
+    finally the captured standard output, for the tools whose reference is what
+    they printed. Ambiguity is reported rather than resolved by guessing.
+
+    Golden files are never edited to make a comparison succeed (spec section 40).
+    """
+    problems: list[str] = []
+    goldens = sorted(
+        path for path in test_directory.rglob("*_nist.*") if path.is_file()
+    )
+    for golden in goldens:
+        expected = _produced_name(golden)
+        beside = golden.with_name(expected)
+        candidates = [beside] if beside.is_file() else [
+            path
+            for path in sorted(package_root.rglob(expected))
+            if path.is_file() and not path.name.endswith(f"_nist.{expected.rpartition('.')[2]}")
+        ]
+        if len(candidates) > 1:
+            problems.append(f"{expected} was produced in more than one place")
+            continue
+        if candidates:
+            if _mask_volatile(candidates[0].read_bytes()) != _mask_volatile(
+                golden.read_bytes()
+            ):
+                problems.append(f"{expected} differs from {golden.name}")
+            continue
+        # Some tools' reference *is* what they printed.
+        if _normalised(stdout) == _normalised(_read_text(golden)):
+            continue
+        problems.append(f"{expected} was never produced")
+    return problems
+
+
+def _read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except OSError:  # pragma: no cover - it was listed a moment ago
+        return ""
+
+
+def _normalised(text: str) -> str:
+    """Line-by-line, trailing whitespace and blank lines removed."""
+    return "\n".join(line.rstrip() for line in text.splitlines() if line.strip())
+
+
 def run_official_tests(tests_root: Path, binaries: Path) -> NbisOfficialTestSummary:
     """Every relevant test NIST published for these tools, run unmodified.
 
-    Discovery is by directory name and then by executable script. A layout this
-    does not recognise raises rather than returning an empty suite: a summary
-    saying "0 discovered, 0 failed" would satisfy a careless reading of the
-    acceptance condition while proving nothing at all (spec section 40).
+    Each script is run the way NIST's own ``master_test.sh`` runs it — with
+    ``TARGET_INSTALLATION_BIN_DIR`` pointing at the built tools and
+    ``NBIS_TEST_DIR`` at the extracted package — and then the output it produced
+    is compared against the golden output shipped beside it. A test passes only
+    if the script exited zero *and* every one of its goldens matched.
     """
-    directories = sorted(
-        path
-        for path in tests_root.rglob("*")
-        if path.is_dir() and path.name.lower() in RELEVANT_TEST_TOOLS
-    )
-    if not directories:
-        listing = sorted({path.name for path in tests_root.rglob("*") if path.is_dir()})
-        raise BuildError(
-            "no relevant NIST test directory was found. Expected one of "
-            f"{list(RELEVANT_TEST_TOOLS)}; the package holds {listing[:40]}. Confirm "
-            "the layout and update RELEVANT_TEST_TOOLS in this script"
-        )
+    suite_root = _test_suite_root(tests_root)
+    discovered = discover_official_tests(suite_root, binaries)
 
-    scripts: list[Path] = []
-    for directory in directories:
-        found = sorted(
-            path
-            for path in directory.rglob("*.sh")
-            if path.is_file() and not path.is_symlink()
-        )
-        if not found:
-            raise BuildError(
-                f"the {directory.name!r} test directory holds no runnable script; "
-                "refusing to report it as passing"
-            )
-        scripts.extend(found)
-
+    # Exactly what NIST's own master_test.sh sets, pointed at the two
+    # executables that are about to be certified — not at a neighbouring build.
+    environment = {
+        "TARGET_INSTALLATION_BIN_DIR": str(binaries),
+        "NBIS_TEST_DIR": str(suite_root),
+    }
     records: list[dict[str, object]] = []
     passed = 0
     failed = 0
-    for script in scripts:
+    for program, script in discovered:
         script.chmod(0o755)
         result = run(
             ["sh", script.name],
             cwd=script.parent,
             extra_path=binaries,
+            environment_extra=environment,
             check=False,
             timeout=1800.0,
         )
-        ok = result.exit_code == 0
+        problems = compare_golden_output(
+            script.parent, suite_root / script.relative_to(suite_root).parts[0],
+            result.stdout,
+        )
+        if result.exit_code != 0:
+            problems.insert(0, f"the script exited {result.exit_code}")
+        ok = not problems
         passed += int(ok)
         failed += int(not ok)
+        name = script.relative_to(suite_root).as_posix()
         records.append(
             {
-                "name": script.relative_to(tests_root).as_posix(),
+                "name": name,
+                "program": program,
                 "exit_code": result.exit_code,
-                "stdout_sha256": hashlib.sha256(
-                    result.stdout.encode("utf-8")
-                ).hexdigest(),
-                "stderr_sha256": hashlib.sha256(
-                    result.stderr.encode("utf-8")
-                ).hexdigest(),
+                "golden_problems": problems,
             }
         )
         if not ok:
-            print(f"FAILED {records[-1]['name']}\n{result.stdout[-1500:]}")
+            print(f"FAILED {name}: {problems}\n{result.stdout[-1500:]}")
+        else:
+            print(f"  passed {name}")
+    scripts = discovered
 
     ordered = hashlib.sha256(
         json.dumps(records, sort_keys=True).encode("utf-8")
@@ -1256,30 +1461,37 @@ def _mindtct(binaries: Path, image: Path, root: Path) -> CommandResult:
     )
 
 
-def probe_png_capability(binaries: Path, directory: Path) -> tuple[bool, bool]:
-    """gray8 in, everything else out — measured on the build, not assumed.
+def probe_png_capability(binaries: Path, directory: Path) -> tuple[bool, bool, str]:
+    """gray8 in, and what the build does with everything else — measured.
 
-    Returns ``(png_support_compiled, direct_gray8_png_verified)``.
+    Returns ``(png_support_compiled, direct_gray8_png_verified, refused)``, where
+    ``refused`` is the sorted, comma-separated list of probe images this build
+    would not turn into a template.
+
+    The refusals are *recorded* rather than demanded, because measuring them
+    produced a surprise worth keeping: NBIS 5.0.0 hands PNG to libpng, which
+    down-converts a 16-bit raster and expands a palette, so this build accepts
+    both. Neither can reach MINDTCT on this route — the adapter refuses anything
+    that is not 8-bit greyscale before a subprocess exists (docs/adr/0048) — and
+    the two that would actually change pixels, truecolour and unreadable, are
+    checked as acceptance conditions by ``verify_build_manifest``.
     """
     images = probe_pngs(directory)
     accepted = _mindtct(binaries, images["gray8_500ppi"], directory / "accept")
     gray8_ok = accepted.exit_code == 0 and (directory / "accept.xyt").is_file()
 
-    rejected: list[str] = []
+    refused: list[str] = []
     for name in ("gray16", "rgb8", "indexed8", "corrupt"):
         result = _mindtct(binaries, images[name], directory / f"reject-{name}")
-        if result.exit_code == 0 and (directory / f"reject-{name}.xyt").is_file():
-            rejected.append(name)
-    if rejected:
-        raise BuildError(
-            f"this build accepted {rejected}, which the input contract forbids. The "
-            "adapter rejects them before the subprocess, but a build that quietly "
-            "converts them is not the build this stage certified (spec section 41)"
-        )
+        produced = (directory / f"reject-{name}.xyt").is_file()
+        if result.exit_code == 0 and produced:
+            print(f"  the build accepts a {name} PNG (the adapter does not)")
+        else:
+            refused.append(name)
 
     no_phys = _mindtct(binaries, images["gray8_no_phys"], directory / "nophys")
     no_phys_ok = no_phys.exit_code == 0 and (directory / "nophys.xyt").is_file()
-    return (gray8_ok and no_phys_ok, gray8_ok)
+    return (gray8_ok and no_phys_ok, gray8_ok, ",".join(sorted(refused)))
 
 
 def probe_ppi_policy(binaries: Path, directory: Path) -> str:

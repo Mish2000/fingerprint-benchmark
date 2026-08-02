@@ -67,9 +67,9 @@ proved the contract holds for an extract-then-match pipeline — all without pro
 single number.
 
 Phase 7B integrated the **second algorithm**: NIST NBIS 5.0.0, MINDTCT into BOZORTH3,
-as one identity. Source pinned to NIST's own archives, built from them with no
-behavioural patch, certified by NIST's own test suite, and driven to `RESEARCH_READY`
-through the unmodified engine. It also produced no biometric number — the 6,000
+as one identity. The source is pinned to NIST's own two archives by digest, built from
+them with no behavioural patch, and certified against NIST's own reference output —
+which it reproduces byte for byte. It also produced no biometric number: the 6,000
 comparisons are stage 7C's.
 
 ```
@@ -1265,10 +1265,30 @@ python integrations/nbis/build.py test                         # NIST's own suit
 python integrations/nbis/verify_build.py build/nbis-5.0.0/…    # after every cache restore
 ```
 
-The lock ships **unsealed**: NIST distributes NBIS behind an acknowledgement, and
-the digest is computed from the bytes a person obtained rather than copied from a
-page. Until it is sealed, no NBIS research run can be prepared — and that is
-tested.
+The lock is **sealed** to the two archives NIST publishes at `nigos.nist.gov`, by
+digests computed from their bytes rather than copied from a page. Until a lock is
+sealed no NBIS research run can be prepared at all, and that is tested.
+
+**The certification found three things worth knowing**, two of which contradicted
+what this project expected:
+
+*MINDTCT and BOZORTH3 reproduce NIST's own reference output exactly.* Golden
+`.xyt`, `.min` and five map files per image, across all ten of NIST's test images;
+golden score logs for all seven BOZORTH3 invocations. Byte for byte, with one
+named exception: the ANSI/NIST capture date MINDTCT stamps with today's date.
+
+*The declared resolution really is ignored.* Three PNGs with identical pixels and
+`pHYs` chunks saying 500, 1000 and nothing extract to identical XYT — so the
+500-ppi-only route rests on a measurement rather than on an expectation
+([ADR 0047](docs/adr/0047-nbis-v1-runs-only-on-canonical-500ppi.md)).
+
+*The build accepts 16-bit and indexed-colour PNGs.* NBIS hands PNG to libpng,
+which down-converts both. The build script had been written to refuse a build for
+that — an assumption enforced as a rule — and the rule was corrected rather than
+the measurement. What the build tolerates is now recorded in its manifest; what
+keeps the route safe is the adapter, which refuses anything that is not 8-bit
+greyscale before a subprocess exists, and which is tested from both sides
+([ADR 0048](docs/adr/0048-nbis-input-is-direct-gray8-png.md)).
 
 Details:
 [docs/algorithms/nbis-mindtct-bozorth3.md](docs/algorithms/nbis-mindtct-bozorth3.md),
@@ -1302,9 +1322,9 @@ one experiment, and it needs somewhere to live that is not the planner.
    ([ADR 0021](docs/adr/0021-decision-profiles-are-immutable-and-external.md));
 3. failure analysis over the algorithmic failure codes the run recorded;
 4. **stage 7C** — the same 6,000 pair ids under `nbis_mindtct_bozorth3`, over the
-   canonical 500 ppi set, raw scores only. The route is certified and the harness is
-   unchanged; what is left is to seal the source lock with NIST's archives, build,
-   and run it. No threshold and no metric belongs to that stage either
+   canonical 500 ppi set, raw scores only. The route is certified, the source is
+   sealed and the harness is unchanged; what is left is to run it. No threshold and
+   no metric belongs to that stage either
    ([ADR 0047](docs/adr/0047-nbis-v1-runs-only-on-canonical-500ppi.md));
 5. the persistent-JVM decision, on the strength of the full run's operational summary
    rather than a guess ([ADR 0015](docs/adr/0015-sourceafis-uses-stateless-java-bridge.md));

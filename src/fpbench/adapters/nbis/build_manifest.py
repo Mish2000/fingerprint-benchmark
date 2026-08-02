@@ -46,6 +46,7 @@ __all__ = [
     "BUILD_MANIFEST_FILENAME",
     "EXPECTED_NBIS_VERSION",
     "EXPECTED_PNG_PPI_POLICY",
+    "REQUIRED_PNG_REFUSALS",
     "SUPPORTED_TARGETS",
     "FORBIDDEN_DYNAMIC_DEPENDENCIES",
     "BUILD_SCRIPT_FILES",
@@ -76,6 +77,15 @@ BUILD_MANIFEST_FILENAME = "nbis-build-manifest.json"
 #: The one release stage 7B certifies. Not configurable: a different NBIS is a
 #: different algorithm identity and needs its own stage (docs/adr/0046).
 EXPECTED_NBIS_VERSION = "5.0.0"
+
+#: The probe images the build itself must refuse. 16-bit and indexed-colour are
+#: deliberately *not* here: NBIS 5.0.0 passes PNG to libpng, which down-converts
+#: both, and that was measured rather than assumed. Neither can reach MINDTCT on
+#: this route, because the adapter refuses them before a subprocess exists. A
+#: truecolour or unreadable PNG is different in kind — silently flattening one
+#: would change the pixels being compared — so those two stay acceptance
+#: conditions (docs/adr/0048, spec section 41).
+REQUIRED_PNG_REFUSALS: frozenset[str] = frozenset({"rgb8", "corrupt"})
 
 #: What the PPI capability probe must have concluded. Written by the build after
 #: running MINDTCT over three PNGs with identical pixels and different ``pHYs``
@@ -138,6 +148,7 @@ _FINGERPRINTED_FIELDS: tuple[str, ...] = (
     "bozorth3_version_output",
     "png_support_compiled",
     "direct_gray8_png_verified",
+    "png_formats_refused_by_build",
     "png_ppi_policy",
     "mindtct_sha256",
     "mindtct_size_bytes",
@@ -337,6 +348,17 @@ class NbisBuildManifest:
 
     png_support_compiled: bool
     direct_gray8_png_verified: bool
+
+    #: Which of the probe images the build itself refused, sorted and comma
+    #: separated. Measured, and recorded because the answer surprised this
+    #: project: NBIS 5.0.0 hands PNG to libpng, which happily down-converts a
+    #: 16-bit raster and expands a palette, so the build *accepts* those two.
+    #: The route is unaffected — the adapter refuses anything that is not 8-bit
+    #: greyscale before a subprocess exists (docs/adr/0048) — but a build that
+    #: silently converted a *truecolour* image would be changing pixels, so
+    #: ``rgb8`` and ``corrupt`` remain acceptance conditions.
+    png_formats_refused_by_build: str
+
     png_ppi_policy: str
 
     mindtct_sha256: str
@@ -412,6 +434,15 @@ class NbisBuildManifest:
             )
         for name in ("png_support_compiled", "direct_gray8_png_verified"):
             object.__setattr__(self, name, _require_bool(getattr(self, name), name))
+        object.__setattr__(
+            self,
+            "png_formats_refused_by_build",
+            _require_text(
+                self.png_formats_refused_by_build,
+                "png_formats_refused_by_build",
+                allow_empty=True,
+            ),
+        )
 
         dependencies: dict[str, tuple[str, ...]] = {}
         for tool, libraries in dict(self.dynamic_dependencies).items():
@@ -793,6 +824,18 @@ def _manifest_problems(
         yield "the build reports no PNG support; there is no WSQ fallback"
     if not manifest.direct_gray8_png_verified:
         yield "direct 8-bit greyscale PNG input was never verified on this build"
+    refused = {
+        item.strip()
+        for item in manifest.png_formats_refused_by_build.split(",")
+        if item.strip()
+    }
+    tolerated = sorted(REQUIRED_PNG_REFUSALS - refused)
+    if tolerated:
+        yield (
+            f"the build accepts {tolerated}; a truecolour or unreadable PNG that "
+            "produced a template would mean the pixels compared were not the "
+            "pixels prepared (spec section 41)"
+        )
     if manifest.png_ppi_policy != EXPECTED_PNG_PPI_POLICY:
         yield (
             f"png_ppi_policy is {manifest.png_ppi_policy!r}, expected "

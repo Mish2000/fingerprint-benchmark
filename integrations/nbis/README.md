@@ -23,26 +23,32 @@ a third-party Docker image, not a binary from anywhere else. Third-party
 packaging is useful for *reading* — it is often the clearest explanation of how
 the upstream build works — and it is never the source a result is attributed to.
 
-## First-time setup
+## The lock, and what is in it
 
-NIST distributes NBIS behind an acknowledgement, so the first acquisition is done
-by a person rather than by a script. Obtain both archives, then record what you
-obtained:
+The lock is **sealed**. Both archives were obtained from NIST's own distribution
+index (`https://www.nist.gov/itl/iad/ig/nigos.cfm`), which links them from
+`nigos.nist.gov/nist/nbis/`:
+
+| | url | sha256 | size |
+|---|---|---|---|
+| release | `.../nbis_v5_0_0.zip` | `0adf8ab0…92c3` | 52,595,795 |
+| tests | `.../test_v5_0_0.zip` | `5a1e0f7c…ff00` | 400,099,537 |
+
+`seal` computed both digests **from the bytes on disk**. It never copies a digest
+from a web page, a package index or a mirror, and it refuses to touch an entry
+that is already sealed — so re-running it cannot quietly change what a manifest
+was issued against.
+
+Changing a URL without changing the bytes is a separate, documented update.
+Changing the bytes is a new review.
+
+To seal a fresh checkout (only needed if the lock is ever reset):
 
 ```bash
 python integrations/nbis/build.py seal \
-    --release /path/to/nbis-release-5.0.0.zip --release-url "<the URL you used>" \
-    --tests   /path/to/nbis-tests-5.0.0.zip   --tests-url   "<the URL you used>"
+    --release /path/to/nbis_v5_0_0.zip --release-url "<the URL you used>" \
+    --tests   /path/to/test_v5_0_0.zip --tests-url   "<the URL you used>"
 ```
-
-`seal` computes SHA-256 and size **from the bytes on disk**. It never copies a
-digest from a web page, a package index or a mirror, and it refuses to touch an
-entry that is already sealed. Commit `nbis-5.0.0.lock.json` afterwards: from that
-point on every fetch, every build and every stored result is checked against it.
-
-Changing a URL without changing the bytes is a separate, documented update.
-Changing the bytes is a new review — it is never waved through by re-running
-`seal`.
 
 ## Building
 
@@ -61,6 +67,12 @@ never into `integrations/`, never into the working tree. Every archive entry is
 inspected first: an absolute path, a `..`, a symlink, a hard link, a device node
 or a FIFO refuses the whole archive.
 
+The **execute bits** an archive stores are restored, because `ZipFile.extractall`
+drops them and NBIS's build runs `./setup.sh` as a program. Strictly additive,
+and only the three execute bits: an archive gets to say "this is a program",
+never "this is set-user-id", and never "this file is read-only" — which would
+stop zlib's own `configure` from rewriting its own header.
+
 The result is a self-contained directory:
 
 ```
@@ -74,8 +86,46 @@ build/nbis-5.0.0/<build-id>/
 
 Nothing is installed to `/usr/bin`, `/usr/local/bin` or `PATH`, and the adapter is
 never given a bare command name. `<build-id>` is a digest over the two archives,
-the patch series, this build script, the compiler and the flags, so the same
-inputs always land in the same directory and different inputs never collide.
+the patch series, this build script, the compiler and the setup options, so the
+same inputs always land in the same directory and different inputs never collide.
+
+## The compiler, and the flags
+
+**One compiler, probed, invoked and recorded.** `CC` chooses it and `cc` is the
+default; either way the name is resolved to an absolute path *before* it is
+probed, so the version banner in the manifest came from the file that built.
+NBIS makes that harder than it sounds — `setup.sh` compiles its endianness probe
+with a literal `gcc`, and `rules.mak` assigns `CC := $(shell which gcc)` — so a
+shim directory holding `gcc` and `cc` goes in front of `PATH` *and* `CC=` is
+passed to every `make`. All three then resolve to the same compiler.
+
+**The flags are NBIS's own.** `rules.mak` defines
+
+```
+CFLAGS := -O2 -w -ansi -D_POSIX_SOURCE $(ENDIAN_FLAG) $(NBIS_JASPER_FLAG) \
+          $(NBIS_OPENJP2_FLAG) $(NBIS_PNG_FLAG) $(ARCH_FLAG)
+```
+
+so passing `CFLAGS=` on the make command line would **replace that whole line**,
+silently dropping `-D__NBIS_PNG__` and building the one thing this route cannot
+do without. This script therefore overrides `CC` and nothing else, and reads the
+flags back out of the generated `rules.mak` — by asking make, not with a regex —
+so the manifest records what the compiler actually received.
+
+`-fcommon` is the one flag that may be added, and only when the compiler needs
+it: GCC 10 changed its default to `-fno-common` and NBIS 5.0.0 predates that.
+Whether it is needed is **measured** — two translation units with the same
+tentative definition, linked — rather than inferred from a version number. The
+certified build used GCC 9, which did not need it.
+
+Three `setup.sh` switches, all in the build id, all about what is *included*
+rather than about what MINDTCT decides:
+
+| switch | why |
+|---|---|
+| `--without-X11` | only `pcasys`'s viewer uses it, and it is a dependency on whatever X the machine has |
+| `--without-OPENJP2` | JPEG 2000 input support, which needs `cmake` to build. This route reads PNG only, and a codec it never calls is not worth a build tool that has nothing to do with fingerprints. `NBIS_PNG_FLAG` is separate and untouched — and the PNG capability probe refuses the build if that ever stops being true |
+| `--64` | NBIS defaults to a 32-bit build on a cross-capable toolchain |
 
 ### Why `test` writes the manifest
 
@@ -134,11 +184,76 @@ Re-checks the manifest signature, both executables' digests and sizes, the locke
 archive digests, the patch series and this build script. CI runs it after every
 cache restore, because a cache is somewhere else's copy.
 
-## What is confirmed on first run
+## What the first real certification found
 
-`RELEVANT_TEST_TOOLS` in `build.py` names the directories of NIST's Test 5.0.0
-package that cover MINDTCT, BOZORTH3 and the image formats they depend on. The
-discovery **fails loudly** when it finds none of them and prints the package's
-actual layout, rather than reporting an empty suite as a pass. Confirm the list
-against the real package the first time the suite runs, and change it in that one
-place.
+The build has been done. What follows is what running it actually showed, because
+several of these contradicted what this project expected beforehand, and an
+expectation that survives only because nobody measured it is not evidence.
+
+### MINDTCT and BOZORTH3 reproduce NIST's own reference output
+
+NIST's Test 5.0.0 ships, per image, a reference `.xyt`, `.min` and five reference
+map files, and per BOZORTH3 invocation a reference score log. On the certified
+build, **every one of them matches byte for byte**, across all ten test images and
+all seven BOZORTH3 invocations.
+
+That is the strongest statement stage 7B can make, and it is what makes the route
+citable: this MINDTCT finds the minutiae NIST's MINDTCT found, and this BOZORTH3
+computes the scores NIST's BOZORTH3 computed.
+
+One field is masked, named in code: the ANSI/NIST `.mdt` container carries field
+`14.005`, the **capture date**, which MINDTCT stamps with today's date. NIST's
+golden says `20040930`. The five differing bytes are that date and nothing else;
+the minutiae inside the same file are identical. Masking a field the format
+defines as "now" is not weakening the comparison — comparing it would make the
+comparison impossible rather than strict.
+
+### The build accepts 16-bit and indexed-colour PNGs
+
+This project expected MINDTCT to refuse them. It does not: NBIS 5.0.0 hands PNG
+to libpng, which down-converts a 16-bit raster and expands a palette. Truecolour
+and unreadable PNGs *are* refused.
+
+The route is unaffected, and not by luck: the **adapter** refuses anything that is
+not 8-bit greyscale before a subprocess exists (docs/adr/0048), and there are
+tests on both sides of that. What the build tolerates is recorded in the manifest
+as `png_formats_refused_by_build`, so the fact is attached to the build rather
+than to somebody's memory. `rgb8` and `corrupt` remain acceptance conditions,
+because those two would change the pixels being compared.
+
+### The PPI probe came out as designed
+
+Three PNGs with byte-identical pixels and `pHYs` chunks saying 500, 1000 and
+nothing at all extract to byte-identical XYT. The declared resolution is ignored
+and NBIS's 500 ppi default applies, so `png_ppi_policy` is
+`metadata_ignored_default_500` (docs/adr/0047).
+
+### Which official tests count
+
+`RELEVANT_TEST_PACKAGES` is `mindtct` and `bozorth3`. The wider set was run during
+certification and is not part of the acceptance condition, for reasons that are
+about NIST's package rather than about this build:
+
+| package | what running it showed |
+|---|---|
+| `imgtools` | 11 of 16 pass. `cwsq`, `dwsq`, `dwsq14`, `sd_rfmt`, `diffbyts` differ — WSQ codec output, a format this route never feeds to MINDTCT |
+| `ijg` | all 5 pass |
+| `an2k` | 6 of 9 pass. `histogen`'s golden embeds NIST's own build machine's paths (`c:/srcp4/projects/NBIS/…`) and is unreproducible anywhere; `chkan2k` and `rdimgwh` ship prose transcripts rather than comparable output |
+| `jpeg2k` | not built (`--without-OPENJP2`) |
+
+The route reads one format — 8-bit greyscale PNG, byte for byte — so WSQ, JPEG,
+JPEG 2000 and ANSI/NIST are not "the image formats it depends on". PNG is, and
+NIST ships no PNG test package, which is exactly why this build's PNG capability
+and PPI behaviour are separate acceptance conditions.
+
+### The version probes
+
+`mindtct -version` prints `NBIS Non-Export Control Software Version: Release
+5.0.0`. `bozorth3 -V` is not a flag BOZORTH3 has, so it prints a usage message —
+which is still a perfectly stable identity probe, and that is all the check
+claims: the binary answers the recorded question the recorded way.
+
+### Linking
+
+Both tools link only `libc`, `libm`, the dynamic loader and the vDSO. No libpng,
+no zlib, no NBIS shared library. `-D__NBIS_PNG__` is in the recorded `cflags`.

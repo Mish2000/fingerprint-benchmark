@@ -165,7 +165,8 @@ def test_no_receipt_was_upgraded_to_a_newer_schema():
 
 
 @pytest.mark.dataset
-def test_the_native_research_run_is_still_research_ready():
+def test_the_native_research_run_is_still_research_ready(sd300_root):
+    """Needs the delivery: a research status re-reads the pair manifest."""
     require_workspace()
     require_clean_tree()
     from fpbench.experiments.sourceafis_native_full import inspect_sourceafis_native_run
@@ -176,7 +177,7 @@ def test_the_native_research_run_is_still_research_ready():
 
 
 @pytest.mark.dataset
-def test_the_canonical_research_run_is_still_research_ready():
+def test_the_canonical_research_run_is_still_research_ready(sd300_root):
     require_workspace()
     require_clean_tree()
     from fpbench.experiments.sourceafis_canonical500_full import (

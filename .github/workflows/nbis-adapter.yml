@@ -202,21 +202,17 @@ jobs:
       - name: Fetch the locked archives
         run: python integrations/nbis/build.py fetch
 
-      # GCC 9 predates the -fno-common default change NBIS 5.0.0 was written
-      # before. The build script measures whether -fcommon is needed rather than
-      # assuming it, so a newer compiler also works — this pins the one the
-      # certified build used.
-      - name: Install the compiler the certified build used
-        run: sudo apt-get update && sudo apt-get install -y gcc-9
-
+      # The runner's own compiler. NBIS 5.0.0 predates GCC 10's switch to
+      # -fno-common, and the build script *measures* whether -fcommon is needed
+      # rather than inferring it from a version — so a modern runner works
+      # without pinning anything. Both GCC 9 and GCC 13 have been shown to
+      # reproduce NIST's reference output byte for byte, which is the point:
+      # the build id covers the compiler, so a different one is a different
+      # build and says so.
       - name: Build NBIS from the verified sources
-        env:
-          CC: /usr/bin/gcc-9
         run: python integrations/nbis/build.py build --force
 
       - name: Run NIST's own test suite and the PNG/PPI probes
-        env:
-          CC: /usr/bin/gcc-9
         run: python integrations/nbis/build.py test
 
       # A cache is somebody else's copy, so the manifest and both digests are

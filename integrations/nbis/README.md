@@ -115,8 +115,18 @@ so the manifest records what the compiler actually received.
 `-fcommon` is the one flag that may be added, and only when the compiler needs
 it: GCC 10 changed its default to `-fno-common` and NBIS 5.0.0 predates that.
 Whether it is needed is **measured** — two translation units with the same
-tentative definition, linked — rather than inferred from a version number. The
-certified build used GCC 9, which did not need it.
+tentative definition, linked — rather than inferred from a version number.
+
+Both compilers on hand have been built and certified, and both reproduce NIST's
+reference output byte for byte:
+
+| compiler | `-fcommon` added | build id |
+|---|---|---|
+| GCC 9.5.0 | no | `371409be18a6` |
+| GCC 13.3.0 | yes, by measurement | `658f9f54a8f2` |
+
+That is why CI does not pin a compiler: the measurement handles it, and the build
+id covers the compiler, so a different one is a different build and says so.
 
 Three `setup.sh` switches, all in the build id, all about what is *included*
 rather than about what MINDTCT decides:

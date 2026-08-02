@@ -32,25 +32,32 @@ from fpbench.core.execution_models import (
     descriptor_fingerprint,
 )
 from fpbench.core.identifiers import validate_id
-from fakes import StrayWriteAdapter, sha256_of
+from fakes import StrayWriteAdapter, registry_configuration, sha256_of
 from synthetic_ridges import whorl_png
 
 ADAPTER_IDS = registered_adapters()
 
-#: Adapters that need external tooling carry their own marker, so the ordinary CI
-#: run can exclude them while they still take part in exactly this suite. An adapter
-#: joins the suite by being registered; it opts into a marker by appearing here.
-_EXTERNAL_TOOLING_MARKERS = {
-    "sourceafis_java_subprocess": pytest.mark.sourceafis,
+#: Adapters that need external tooling carry their own markers, so the ordinary CI
+#: run can exclude them while they still take part in exactly this suite, and an
+#: environment variable that turns a skip into a failure where the tooling is
+#: supposed to be present. An adapter joins the suite by being registered; it opts
+#: into markers by appearing here.
+_EXTERNAL_TOOLING = {
+    "sourceafis_java_subprocess": (
+        (pytest.mark.sourceafis,),
+        "FPBENCH_REQUIRE_SOURCEAFIS",
+    ),
+    "nbis_mindtct_bozorth3_subprocess": (
+        (pytest.mark.nbis_upstream, pytest.mark.upstream),
+        "FPBENCH_REQUIRE_NBIS",
+    ),
 }
 
 ADAPTER_PARAMS = [
     pytest.param(
         adapter_id,
         id=adapter_id,
-        marks=[_EXTERNAL_TOOLING_MARKERS[adapter_id]]
-        if adapter_id in _EXTERNAL_TOOLING_MARKERS
-        else [],
+        marks=list(_EXTERNAL_TOOLING.get(adapter_id, ((),))[0]),
     )
     for adapter_id in ADAPTER_IDS
 ]
@@ -61,18 +68,21 @@ def adapter(request) -> FingerprintAlgorithmAdapter:
     """A registered adapter whose environment is usable.
 
     An adapter that reports UNAVAILABLE is skipped rather than failed — a machine
-    without a JDK should still be able to run the suite — unless
-    ``FPBENCH_REQUIRE_SOURCEAFIS=1`` is set, which CI does so that a broken build
-    turns the run red instead of quietly green.
-    """
-    instance = create_adapter(request.param)
-    if request.param in _EXTERNAL_TOOLING_MARKERS:
-        from sourceafis_support import REQUIRE_ENV_VAR
+    without a JDK, or without a certified NBIS build, should still be able to run
+    the suite — unless the adapter's own ``FPBENCH_REQUIRE_…=1`` is set, which CI
+    does so that a broken build turns the run red instead of quietly green.
 
+    Configuration comes from :func:`registry_configuration`, because an adapter
+    with no defaults cannot be built from nothing and that is deliberate: a bare
+    tool name means whatever a machine's PATH happens to say (docs/adr/0048).
+    """
+    instance = create_adapter(request.param, registry_configuration(request.param))
+    if request.param in _EXTERNAL_TOOLING:
+        _markers, require = _EXTERNAL_TOOLING[request.param]
         report = instance.validate_environment()
         if report.status is not EnvironmentStatus.READY:
             reason = f"{request.param} is unavailable: {report.message}"
-            if os.environ.get(REQUIRE_ENV_VAR) == "1":
+            if os.environ.get(require) == "1":
                 pytest.fail(reason)
             pytest.skip(reason)
     return instance

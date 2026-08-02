@@ -62,6 +62,7 @@ def build_release(
     directory: str | None = None,
     declared_ppi: int | None = None,
     omit: set[tuple[str, str, int]] | None = None,
+    payload_factory=None,
 ) -> Path:
     """Create a synthetic SD300-shaped release on disk.
 
@@ -70,6 +71,10 @@ def build_release(
             ``ppi``. Used to reproduce the SD300C metadata defect.
         omit: ``(subject, impression, frgp)`` triples to leave out, so that
             incomplete subjects can be exercised.
+        payload_factory: ``(subject, impression, frgp) -> bytes``. The default
+            eight-by-eight header is enough for a harness that never decodes a
+            pixel; an adapter that actually reads its input needs a real raster,
+            and passing one in is how it gets one without a second builder.
     """
     omit = omit or set()
     directory = directory or release.lower()
@@ -87,7 +92,11 @@ def build_release(
                 if (subject, impression.value, frgp) in omit:
                     continue
                 name = f"{subject}_{impression.value}_{ppi}_{frgp:02d}.png"
-                payload = make_png(ppi=declared_ppi or ppi)
+                payload = (
+                    payload_factory(subject, impression.value, frgp)
+                    if payload_factory is not None
+                    else make_png(ppi=declared_ppi or ppi)
+                )
                 (target / name).write_bytes(payload)
                 rows.append(f"{_sha256(payload)},{name}")
         (images / checksum_filename(ppi, impression)).write_text(

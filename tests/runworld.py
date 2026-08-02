@@ -101,11 +101,21 @@ def research_provenance(
     )
 
 
-def write_fake_asset(directory: Path, payload: bytes = b"not really a jar") -> Path:
-    """A file to materialise into a bundle when the content does not matter."""
+def write_fake_asset(
+    directory: Path,
+    payload: bytes = b"not really a jar",
+    *,
+    name: str = "fpbench-test-runtime.jar",
+) -> Path:
+    """A file to materialise into a bundle when the content does not matter.
+
+    ``name`` matters as soon as a route has more than one role: a bundle stores
+    each asset under its own file name, and two roles cannot occupy one path
+    (docs/adr/0042).
+    """
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
-    path = directory / "fpbench-test-runtime.jar"
+    path = directory / name
     path.write_bytes(payload)
     return path
 
@@ -226,6 +236,7 @@ def build_world(
     research: bool = False,
     software: SoftwareProvenance | None = None,
     asset_role: str = FAKE_ASSET_ROLE,
+    assets: Mapping[str, Path] | None = None,
     execution_profile=None,
     image_index: Mapping[ImageId, ImageRecord] | None = None,
     pairs: Sequence[ComparisonPair] | None = None,
@@ -267,7 +278,12 @@ def build_world(
         software = software or research_provenance()
         bundle = RuntimeBundleStore(workspace).materialize(
             adapter_id=adapter.descriptor.adapter_id,
-            assets={asset_role: write_fake_asset(tmp_path / "build")},
+            # A route made of several files brings its own mapping. A single
+            # stand-in remains the default, because most adapters under test
+            # have nothing of their own to pin (docs/adr/0042).
+            assets=dict(assets)
+            if assets
+            else {asset_role: write_fake_asset(tmp_path / "build")},
         )
         adapter = ResearchModeAdapter(
             delegate=adapter, software=software, runtime_bundle=bundle

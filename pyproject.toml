@@ -37,4 +37,7 @@ markers = [
     "canonical500: exercises the canonical_500 profile end to end (may also need dataset or sourceafis)",
     "paired_evaluation: comparing two finished derivations pair by pair (no JVM, no dataset)",
     "adapter_contract: what a new algorithm must satisfy to be integrable — the contract suite, the shared adapter tools, the import boundaries (no JVM unless also marked sourceafis)",
+    "nbis_contract: the NBIS route's own contract — parsers, failure mapping, cleanup, timeouts, metadata, command construction, runtime drift (no NBIS, no network, no dataset)",
+    "nbis_upstream: needs NIST's NBIS 5.0.0 archives or a certified build of them (set FPBENCH_NBIS_BUILD_DIR)",
+    "upstream: needs a third-party source archive or a build of one; excluded from every no-network suite",
 ]

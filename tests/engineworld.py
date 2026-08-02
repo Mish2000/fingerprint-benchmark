@@ -41,6 +41,7 @@ from support import build_release
 __all__ = [
     "EngineWorld",
     "build_engine_world",
+    "commit_repository",
     "structural_integration",
     "structural_result_validator",
     "git_available",
@@ -90,14 +91,27 @@ def build_engine_world(
     *,
     subject_count: int = 3,
     experiment_id: str = "engine_smoke_v1",
+    payload_factory=None,
+    prepare_repository=None,
 ) -> EngineWorld:
-    """Everything the engine reads, written to disk and committed."""
+    """Everything the engine reads, written to disk and committed.
+
+    Args:
+        payload_factory: ``(subject, impression, frgp) -> bytes`` for the release
+            images. The default is an eight-by-eight header, which is all a
+            harness that never decodes a pixel needs; an adapter that really
+            reads its input passes a real raster.
+        prepare_repository: Called with the repository root before the single
+            commit, for an integration that needs files of its own in the tree —
+            a source lock, say. Adding them afterwards would leave the tree dirty
+            and every research command would refuse to run.
+    """
     repository_root = Path(root) / "repo"
     dataset_root = Path(root) / "delivery"
     workspace = Path(root) / "workspace"
 
     subjects = [f"{1000 + index:08d}" for index in range(subject_count)]
-    build_release(dataset_root, RELEASE, PPI, subjects)
+    build_release(dataset_root, RELEASE, PPI, subjects, payload_factory=payload_factory)
 
     configs = repository_root / "configs"
     (configs / "datasets").mkdir(parents=True, exist_ok=True)
@@ -193,8 +207,13 @@ def _commit_everything(repository_root: Path) -> None:
     _git(repository_root, "init", "--quiet")
     _git(repository_root, "config", "user.email", "tests@example.invalid")
     _git(repository_root, "config", "user.name", "fpbench tests")
+    commit_repository(repository_root, "engine world")
+
+
+def commit_repository(repository_root: Path, message: str = "update") -> None:
+    """Stage and commit everything. A research command refuses a dirty tree."""
     _git(repository_root, "add", ".")
-    _git(repository_root, "commit", "--quiet", "-m", "engine world")
+    _git(repository_root, "commit", "--quiet", "-m", message)
 
 
 def _git(root: Path, *arguments: str) -> str:

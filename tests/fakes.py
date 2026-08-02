@@ -41,6 +41,7 @@ from fpbench.imaging.base import ImagePreparer
 from fpbench.imaging.identity import IdentityImagePreparer
 
 __all__ = [
+    "registry_configuration",
     "sha256_of",
     "image_record",
     "comparison_pair",
@@ -60,6 +61,33 @@ __all__ = [
 ]
 
 FIXED_SCORE = 42.5
+
+
+def registry_configuration(adapter_id: str) -> dict[str, object]:
+    """The smallest configuration under which ``adapter_id`` can be constructed.
+
+    Most adapters need nothing: the dummy matcher has no dependency, and
+    SourceAFIS defaults to the jar Maven builds. NBIS deliberately has **no**
+    defaults at all — a bare ``mindtct`` would mean whatever a machine's PATH
+    happens to say, so the three paths must be supplied (docs/adr/0048).
+
+    A registry-driven suite is about the registry, not about whether a tool is
+    installed, so an absent build is answered with paths that do not exist. The
+    adapter then reports ``UNAVAILABLE`` rather than raising, which is exactly
+    the behaviour the contract requires — and the suite skips.
+    """
+    if adapter_id != "nbis_mindtct_bozorth3_subprocess":
+        return {}
+    from nbisworld import certified_build_directory
+
+    build = certified_build_directory()
+    if build is None:
+        build = Path.home().resolve() / ".fpbench-no-such-nbis-build"
+    return {
+        "mindtct_executable": str(build / "bin" / "mindtct"),
+        "bozorth3_executable": str(build / "bin" / "bozorth3"),
+        "build_manifest": str(build / "nbis-build-manifest.json"),
+    }
 
 
 def sha256_of(payload: bytes | str) -> str:

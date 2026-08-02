@@ -12,7 +12,7 @@ from fpbench.adapters.base import (
 from fpbench.adapters.errors import AdapterContractViolation
 from fpbench.core.errors import ConfigurationError
 from fpbench.core.identifiers import InvalidIdentifierError
-from fakes import CountingAdapter, fake_descriptor
+from fakes import CountingAdapter, fake_descriptor, registry_configuration
 
 
 @pytest.fixture
@@ -125,7 +125,7 @@ def test_something_that_is_not_an_adapter_at_all_is_refused(isolated_registry):
 @pytest.mark.adapter_contract
 def test_every_registered_adapter_declares_a_supported_contract_version():
     for adapter_id in registry.registered_adapters():
-        adapter = registry.create_adapter(adapter_id)
+        adapter = registry.create_adapter(adapter_id, registry_configuration(adapter_id))
         assert (
             adapter.descriptor.adapter_contract_version
             in SUPPORTED_ADAPTER_CONTRACT_VERSIONS

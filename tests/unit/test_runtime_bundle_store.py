@@ -124,6 +124,17 @@ def test_the_asset_is_made_read_only_where_the_filesystem_allows_it(store, sourc
     assert not os.access(copy, os.W_OK)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="Windows has no executable mode bits")
+def test_an_executable_asset_remains_executable_after_it_is_pinned(store, source):
+    executable = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+    source.chmod(source.stat().st_mode | executable)
+
+    bundle = store.materialize(adapter_id=ADAPTER, assets={ROLE: source})
+    copy = store.asset_path(bundle.bundle_id, ROLE)
+
+    assert copy.stat().st_mode & executable == executable
+
+
 def test_no_temporary_file_is_left_behind(store, source):
     bundle = store.materialize(adapter_id=ADAPTER, assets={ROLE: source})
     assert list(store.assets_dir(bundle.bundle_id).glob("*.tmp")) == []

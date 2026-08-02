@@ -361,6 +361,7 @@ class RuntimeBundleStore:
         finally:
             tmp.unlink(missing_ok=True)
 
+        _preserve_executable_bits(source, target)
         _make_read_only(target)
         return target
 
@@ -387,6 +388,15 @@ def _make_read_only(path: Path) -> None:
         path.chmod(mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
     except OSError:  # pragma: no cover - platform dependent
         pass
+
+
+def _preserve_executable_bits(source: Path, target: Path) -> None:
+    """Keep a copied native tool launchable without copying writable modes."""
+    executable = source.stat().st_mode & (
+        stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+    )
+    if executable:
+        target.chmod(target.stat().st_mode | executable)
 
 
 def _utc_now() -> str:

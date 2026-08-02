@@ -19,6 +19,7 @@ eight PNGs and the matcher hashes their digests.
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -48,6 +49,28 @@ pytestmark = [
 
 def identity_preparer(workspace: Path, spec):
     return IdentityImagePreparer()
+
+
+def test_repository_preparation_runs_before_the_engine_world_commit(tmp_path):
+    def prepare(repository_root: Path) -> None:
+        (repository_root / "integration.lock").write_text(
+            "sealed\n", encoding="utf-8"
+        )
+
+    local = build_engine_world(
+        tmp_path,
+        subject_count=1,
+        experiment_id="prepared_repository_v1",
+        prepare_repository=prepare,
+    )
+
+    tracked = subprocess.run(
+        ["git", "-C", str(local.repository_root), "ls-files", "integration.lock"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert tracked.stdout.strip() == "integration.lock"
 
 
 def dummy_integration(**overrides):

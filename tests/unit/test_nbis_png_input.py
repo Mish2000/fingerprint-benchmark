@@ -196,7 +196,7 @@ def test_a_symlinked_input_is_refused(tmp_path):
     from dataclasses import replace
 
     with pytest.raises(NbisInputRejected, match="symlink"):
-        require_gray8_500ppi_png(replace(image, local_path=link.resolve()))
+        require_gray8_500ppi_png(replace(image, local_path=link))
 
 
 # ------------------------------------------------------------------- drift

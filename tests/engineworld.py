@@ -161,6 +161,8 @@ def build_engine_world(
     algorithm_config = configs / "algorithms" / "synthetic.yaml"
     algorithm_config.write_text("algorithm:\n  id: synthetic\n", encoding="utf-8")
 
+    if prepare_repository is not None:
+        prepare_repository(repository_root)
     _commit_everything(repository_root)
 
     per_stage = subject_count * FINGERS

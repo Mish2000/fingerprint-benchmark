@@ -101,6 +101,9 @@ __all__ = [
     "EVIDENCE_DIRECTORY",
     "ALIGNMENT_REPORT_NAME",
     "FORBIDDEN_CONFIG_KEYS",
+    # Re-exported so a caller needs one import: the shape this experiment is,
+    # and the sizes ``is_clean`` is measured against.
+    "SD300_CANONICAL_EXPECTATIONS",
     "NbisCanonical500ExperimentConfig",
     "NbisCanonical500ExperimentState",
     "load_nbis_canonical500_config",

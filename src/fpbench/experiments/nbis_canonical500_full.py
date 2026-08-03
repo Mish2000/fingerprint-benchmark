@@ -863,12 +863,19 @@ def publish_nbis_canonical500_evidence(
     config: NbisCanonical500ExperimentConfig | None = None,
     run_id: str | None = None,
 ) -> tuple[Path, ...]:
-    """Copy the four committable artefacts out of the workspace.
+    """Copy the committable artefacts out of the workspace.
 
     Copies; it does not compose. The receipt, the marker, the alignment report
     and the operational summary are already written, already sanitised and
     already fingerprinted — building a second version of any of them here would
     be publishing something no check has ever seen (spec sections 22 and 38).
+
+    The one file assembled here is ``runtime-provenance.json``, and it is an
+    index rather than a claim: every value in it is copied out of the stored run
+    definition, the stored runtime reference and the stored alignment report, so
+    that a reader can see the three runtime digests and the NBIS build manifest
+    fingerprint without opening a workspace. It carries no score, no threshold
+    and no path (spec section 39).
 
     ``README.md`` is written by hand beside them, because a human has to say
     what the run was for.
@@ -882,6 +889,7 @@ def publish_nbis_canonical500_evidence(
 
     result_store = ResultStore(workspace)
     directory = repository_root / EVIDENCE_DIRECTORY
+    alignment = read_json(result_store.derived_path(resolved, ALIGNMENT_REPORT_NAME))
     written: list[Path] = []
     for name, value in (
         ("research-receipt.json", result_store.read_research_receipt(resolved)),
@@ -889,17 +897,109 @@ def publish_nbis_canonical500_evidence(
             "research-finalization.json",
             result_store.read_research_finalization(resolved),
         ),
-        (
-            "alignment-report.json",
-            read_json(result_store.derived_path(resolved, ALIGNMENT_REPORT_NAME)),
-        ),
+        ("alignment-report.json", alignment),
         (
             "operational-summary.json",
             read_json(result_store.derived_path(resolved, OPERATIONAL_SUMMARY_NAME)),
         ),
+        (
+            "runtime-provenance.json",
+            _runtime_provenance(
+                workspace=workspace,
+                run_id=resolved,
+                config=config,
+                alignment=alignment,
+            ),
+        ),
     ):
         written.append(write_json(directory / name, value))
     return tuple(written)
+
+
+def _runtime_provenance(
+    *,
+    workspace: Path,
+    run_id: str,
+    config: NbisCanonical500ExperimentConfig,
+    alignment: Mapping[str, Any],
+) -> dict[str, Any]:
+    """What ran, what it ran on, and what it was aligned against.
+
+    Every field is read out of an artefact that is already stored and already
+    verified. Nothing is recomputed and nothing is inferred.
+    """
+    from fpbench.core.research_models import NO_CONCLUSION_STATEMENT
+
+    result_store = ResultStore(workspace)
+    run = result_store.read_run(run_id)
+    reference = result_store.read_runtime_reference(run_id)
+    dependencies = dict(run.environment.dependencies)
+    return {
+        "schema_version": "1",
+        "kind": "stage_7c_runtime_provenance",
+        "statement": NO_CONCLUSION_STATEMENT,
+        "experiment_id": config.experiment_id,
+        "source_commit": run.environment.runtime.get("fpbench.source.revision"),
+        "run_id": run.run_id,
+        "run_fingerprint": run.run_fingerprint,
+        "algorithm": {
+            "algorithm_id": run.algorithm.algorithm_id,
+            "adapter_id": run.algorithm.adapter_id,
+            "adapter_version": run.algorithm.adapter_version,
+            "adapter_contract_version": run.algorithm.adapter_contract_version,
+            "implementation_version": run.algorithm.implementation_version,
+            "score_direction": run.algorithm.score_direction.value,
+            "descriptor_fingerprint": run.algorithm_fingerprint,
+        },
+        "integration": {
+            "integration_id": run.environment.runtime.get("fpbench.integration.id"),
+            "integration_fingerprint": run.environment.runtime.get(
+                "fpbench.integration.fingerprint"
+            ),
+        },
+        "runtime": {
+            "bundle_id": reference.bundle_id,
+            "bundle_fingerprint": reference.bundle_fingerprint,
+            "asset_sha256s": dict(sorted(dict(reference.asset_sha256s).items())),
+            "nbis_build_manifest_fingerprint": dependencies.get(
+                "nbis.build_manifest_fingerprint"
+            ),
+            "nbis_version": dependencies.get("nbis.version"),
+            "nbis_png_ppi_policy": dependencies.get("nbis.png_ppi_policy"),
+            "nbis_official_tests_passed": dependencies.get(
+                "nbis.official_tests.passed"
+            ),
+            "nbis_official_tests_suite": dependencies.get("nbis.official_tests.suite"),
+            "nbis_target": "/".join(
+                str(run.environment.runtime.get(key) or "")
+                for key in ("nbis.target_os", "nbis.target_architecture")
+            ),
+            "nbis_compiler_id": run.environment.runtime.get("nbis.compiler_id"),
+        },
+        "execution_profile": {
+            "profile_id": run.execution_profile.profile_id,
+            "profile_hash": run.execution_profile_hash,
+            "preparer_id": run.execution_profile.preparer_id,
+            "timeout_seconds": str(run.execution_profile.timeout_seconds),
+            "deterministic_seed": str(run.execution_profile.deterministic_seed),
+            "replicate_index": str(run.replicate_index),
+        },
+        "inputs": {
+            "protocol_id": run.protocol_id,
+            "cohort_id": str(run.cohort_id),
+            "pair_manifest_hash": run.pair_manifest_hash,
+            "preparation_set_id": config.preparation_set_id,
+            "preparation_set_fingerprint": config.preparation_set_fingerprint,
+            "transform_profile_id": config.transform_profile_id,
+            "transform_profile_fingerprint": config.transform_profile_fingerprint,
+        },
+        "reference": {
+            "run_id": config.reference.run_id,
+            "plan_id": config.reference.plan_id,
+            "result_set_id": config.reference.result_set_id,
+        },
+        "alignment_fingerprint": alignment.get("alignment_fingerprint"),
+    }
 
 
 # ----------------------------------------------------------------- internals

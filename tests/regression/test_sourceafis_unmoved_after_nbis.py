@@ -243,9 +243,29 @@ def test_the_paired_comparison_is_still_paired_evaluation_ready():
 
 
 @pytest.mark.dataset
-def test_stage_7b_created_no_new_run(tmp_path):
-    """Section 2: no SD300 run, no decision set, no metric set."""
+def test_the_only_new_run_is_the_one_stage_7c_prepared(tmp_path):
+    """Stage 7B added no run. Stage 7C adds exactly one, and says which.
+
+    The original form of this test asserted that the workspace held only the two
+    SourceAFIS runs, which was stage 7B's whole point. Stage 7C's point is the
+    opposite — it runs NBIS over the same 6,000 comparisons — so what is checked
+    now is that the two originals are untouched and that any third run is the one
+    the Stage 7C experiment pointer names. An unexplained fourth run in a
+    workspace that publishes receipts is still a failure.
+    """
     if not WORKSPACE.is_dir():
         pytest.skip("no workspace in this checkout")
-    runs = sorted(path.name for path in (WORKSPACE / "results").iterdir() if path.is_dir())
-    assert runs == sorted([NATIVE_RUN_ID, CANONICAL_RUN_ID]), runs
+    runs = {path.name for path in (WORKSPACE / "results").iterdir() if path.is_dir()}
+    assert {NATIVE_RUN_ID, CANONICAL_RUN_ID} <= runs, sorted(runs)
+
+    from fpbench.core.errors import ResearchPreflightError
+    from fpbench.experiments.algorithm_research import read_run_pointer
+    from fpbench.experiments.nbis_canonical500_full import EXPERIMENT_ID
+
+    try:
+        nbis_run = {read_run_pointer(WORKSPACE, EXPERIMENT_ID)}
+    except ResearchPreflightError:
+        nbis_run = set()
+    assert runs - {NATIVE_RUN_ID, CANONICAL_RUN_ID} <= nbis_run, sorted(
+        runs - {NATIVE_RUN_ID, CANONICAL_RUN_ID} - nbis_run
+    )

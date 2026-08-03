@@ -1,0 +1,61 @@
+{
+  "schema_version": "3",
+  "source_commit": "05e55f8c1241fdb20d96c7e3547d8c64d170b4da",
+  "source_tree_clean": true,
+  "dataset_id": "sd300",
+  "cohort_id": "sd300_50_subjects_test_22f8d52a7478",
+  "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "run_id": "run_f0468f28ffba",
+  "run_fingerprint": "f0468f28ffba544fc7f2df0d4e9844cc0c6f0ed8e5359fd338d49ab6e8022c9f",
+  "plan_id": "plan_db1a526f2a81",
+  "plan_fingerprint": "db1a526f2a8135e6f479d028bd6b337a346314d8caea48a8b415c564fd129f43",
+  "environment_fingerprint": "38566dfce254dc14afdf2718487e2ed5cc3e247dd6fbf009ce52daed65614624",
+  "integration_id": "nbis_mindtct_bozorth3_research_v1",
+  "integration_fingerprint": "d60ed05a2ce61c82543ee0ac611cda4a31815c5f9e5862a1544a0dd0054aa753",
+  "runtime_bundle_id": "runtime_a17449a50443",
+  "runtime_bundle_fingerprint": "a17449a50443577fe6c1c1c6030cee4453d4fc8273d58ad158940a415f3a3dca",
+  "runtime_asset_sha256s": {
+    "nbis_bozorth3_executable": "fe5822ff2559832bbf0b3397143d51215546e338f6c3e5343ca96936f648afab",
+    "nbis_build_manifest": "dcb44c0b9a341c159dc43a713e99d63bb20fb2c28f64cc0a7241bd13eadcde5f",
+    "nbis_mindtct_executable": "9ccbcaae35f446b35e9c94f177b9cd1d26854a0aed5ded8e8bbbdd5ce371e847"
+  },
+  "result_set_id": "resultset_73a9d93a8528",
+  "result_set_fingerprint": "73a9d93a8528e95322b69c64af416a234e7bd100cbb6556e66f1ae8c1cdd7fff",
+  "audit_fingerprint": "e810ec2b3adb2b25417b0c77c758a2fc54bfe2a87bd17b1277751390e5a096ca",
+  "algorithm_validation_fingerprint": "e312de12b24d652b1d082d1b173efb7ed806bb932a62c0f8467418374fbce7c3",
+  "completion_id": "completion_44a1b53d5bb8",
+  "completion_fingerprint": "44a1b53d5bb8fea985acceb071ed199c0c3ef951c5d916f5ec33a4550a599fbc",
+  "planned_jobs": 6000,
+  "stored_results": 6000,
+  "success_count": 6000,
+  "algorithmic_failure_count": 0,
+  "blocking_failure_count": 0,
+  "preparation_set_id": "prepset_be560e047991",
+  "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+  "transform_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+  "transform_profile_fingerprint": "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373",
+  "transform_runtime_fingerprint": "31a0a4346a3dd07843513cc1de5b167d8f2795b230a82bac709913032b74579c",
+  "failure_counts": {},
+  "release_counts": {
+    "SD300A": 2000,
+    "SD300B": 2000,
+    "SD300C": 2000
+  },
+  "stage_counts": {
+    "plain_roll_mated": 1500,
+    "plain_roll_non_mated": 1500,
+    "plain_self": 1500,
+    "roll_self": 1500
+  },
+  "timing_summary": {
+    "adapter_ms.count": "6000",
+    "adapter_ms.min": "208.976",
+    "adapter_ms.median": "432.034",
+    "adapter_ms.p95": "951.016",
+    "adapter_ms.p99": "1060.821",
+    "adapter_ms.max": "2072.464",
+    "wall_clock_span_seconds": "3824.98"
+  },
+  "statement": "This receipt proves execution completeness and provenance. It contains no biometric performance conclusion.",
+  "created_utc": "2026-08-03T12:11:39.301083+00:00"
+}

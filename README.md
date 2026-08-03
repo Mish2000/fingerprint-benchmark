@@ -74,8 +74,9 @@ comparisons are stage 7C's.
 
 Phase 7C ran **those 6,000 comparisons under NBIS** — the same pair ids, in the same
 order, over the same canonical 500 ppi images, proved row by row rather than assumed —
-and published the raw scores and the failure codes. No threshold, no decision, no metric,
-no paired comparison and no SourceAFIS score was read.
+and published the raw scores and the failure codes: 6,000 scored, no algorithmic failure
+and no blocking failure. No threshold, no decision, no metric, no paired comparison, and
+no SourceAFIS score was read.
 
 ```
 VERIFIED SOURCE IMAGES
@@ -1347,7 +1348,20 @@ files, proves the alignment, and hands a spec plus the NBIS integration to
 loop, opens a raw result, builds a bundle, a result set, a receipt or a marker, or names
 the first algorithm outside the one function that reads the reference run's readiness.
 
-Details: [docs/experiments/nbis-canonical500-raw.md](docs/experiments/nbis-canonical500-raw.md).
+**The run happened.** `run_f0468f28ffba` / `plan_db1a526f2a81` /
+`resultset_73a9d93a8528`, from commit `05e55f8`, on the certified Linux x86_64 build
+`658f9f54a8f2`: 6,000 planned, 6,000 stored, **6,000 scored, zero algorithmic failures and
+zero blocking failures**, 2,000 comparisons per release and 1,500 per stage. 12,000 MINDTCT
+invocations and 6,000 BOZORTH3 invocations, sequential, no retries, 64 minutes of wall
+clock. Median adapter time 432 ms — 45 ms staging, 84 ms and 119 ms for the two
+extractions, 21 ms matching, 59 ms cleanup — and every working directory empty afterwards.
+
+The alignment came out at 6,000/6,000 pair ids, 6,000/6,000 pair semantics and 3,000/3,000
+prepared entries, with no issue, fingerprinted `12aa8180…`. No decision set, no eligibility
+set, no metric set and no paired evaluation was produced, and no SourceAFIS score was read.
+
+Details: [docs/experiments/nbis-canonical500-raw.md](docs/experiments/nbis-canonical500-raw.md);
+evidence under [evidence/nbis-canonical500-raw/](evidence/nbis-canonical500-raw/).
 
 ## Architecture note: where the models live
 

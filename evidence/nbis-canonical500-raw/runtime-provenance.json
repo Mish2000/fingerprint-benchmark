@@ -1,0 +1,61 @@
+{
+  "schema_version": "1",
+  "kind": "stage_7c_runtime_provenance",
+  "statement": "This receipt proves execution completeness and provenance. It contains no biometric performance conclusion.",
+  "experiment_id": "nbis_canonical500_full_v1",
+  "source_commit": "05e55f8c1241fdb20d96c7e3547d8c64d170b4da",
+  "run_id": "run_f0468f28ffba",
+  "run_fingerprint": "f0468f28ffba544fc7f2df0d4e9844cc0c6f0ed8e5359fd338d49ab6e8022c9f",
+  "algorithm": {
+    "algorithm_id": "nbis_mindtct_bozorth3",
+    "adapter_id": "nbis_mindtct_bozorth3_subprocess",
+    "adapter_version": "1",
+    "adapter_contract_version": "1",
+    "implementation_version": "5.0.0",
+    "score_direction": "higher_is_better",
+    "descriptor_fingerprint": "41ebe6eeda877e959d58df40d007daab74a8a1a560462984a6f58a444dbfebc5"
+  },
+  "integration": {
+    "integration_id": "nbis_mindtct_bozorth3_research_v1",
+    "integration_fingerprint": "d60ed05a2ce61c82543ee0ac611cda4a31815c5f9e5862a1544a0dd0054aa753"
+  },
+  "runtime": {
+    "bundle_id": "runtime_a17449a50443",
+    "bundle_fingerprint": "a17449a50443577fe6c1c1c6030cee4453d4fc8273d58ad158940a415f3a3dca",
+    "asset_sha256s": {
+      "nbis_bozorth3_executable": "fe5822ff2559832bbf0b3397143d51215546e338f6c3e5343ca96936f648afab",
+      "nbis_build_manifest": "dcb44c0b9a341c159dc43a713e99d63bb20fb2c28f64cc0a7241bd13eadcde5f",
+      "nbis_mindtct_executable": "9ccbcaae35f446b35e9c94f177b9cd1d26854a0aed5ded8e8bbbdd5ce371e847"
+    },
+    "nbis_build_manifest_fingerprint": "7eea6cba3046adfc0b5696b4c54fad4e5a2f7e1177369202da28a3f4c71b2272",
+    "nbis_version": "5.0.0",
+    "nbis_png_ppi_policy": "metadata_ignored_default_500",
+    "nbis_official_tests_passed": "2",
+    "nbis_official_tests_suite": "1b95f7cd1c378823a7cf27f940a00844a618823c718556d704de362065cb825a",
+    "nbis_target": "linux/x86_64",
+    "nbis_compiler_id": "gcc"
+  },
+  "execution_profile": {
+    "profile_id": "canonical_500_lanczos3_60s_v1",
+    "profile_hash": "d160f6d4c07b73585e7a61bb65175267a5bc9a720b95ed8e550d25b16940bcc6",
+    "preparer_id": "canonical_500_png",
+    "timeout_seconds": "60.0",
+    "deterministic_seed": "0",
+    "replicate_index": "0"
+  },
+  "inputs": {
+    "protocol_id": "sd300_50_subjects",
+    "cohort_id": "sd300_50_subjects_test_22f8d52a7478",
+    "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+    "preparation_set_id": "prepset_be560e047991",
+    "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+    "transform_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+    "transform_profile_fingerprint": "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373"
+  },
+  "reference": {
+    "run_id": "run_4c59fa02a6ab",
+    "plan_id": "plan_b4ae66e91923",
+    "result_set_id": "resultset_087b084fb8a8"
+  },
+  "alignment_fingerprint": "12aa8180713abc5b4a0a702400abb5be44829c6d9f3ad08c26e45f466d9b4bad"
+}

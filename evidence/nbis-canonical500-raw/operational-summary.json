@@ -1,0 +1,119 @@
+{
+  "schema_version": "2",
+  "kind": "operational_summary",
+  "statement": "This receipt proves execution completeness and provenance. It contains no biometric performance conclusion.",
+  "run_id": "run_f0468f28ffba",
+  "plan_id": "plan_db1a526f2a81",
+  "result_set_id": "resultset_73a9d93a8528",
+  "runtime_bundle_id": "runtime_a17449a50443",
+  "counts": {
+    "planned_jobs": 6000,
+    "stored_results": 6000,
+    "missing_results": 0,
+    "success_count": 6000,
+    "failure_count": 0
+  },
+  "failure_counts": {},
+  "failure_counts_by_failure_stage": {},
+  "failure_counts_by_detail": {},
+  "failure_counts_by_release": {},
+  "failure_counts_by_protocol_stage": {},
+  "release_counts": {
+    "SD300A": 2000,
+    "SD300B": 2000,
+    "SD300C": 2000
+  },
+  "stage_counts": {
+    "plain_roll_mated": 1500,
+    "plain_roll_non_mated": 1500,
+    "plain_self": 1500,
+    "roll_self": 1500
+  },
+  "timings_ms": {
+    "adapter": {
+      "count": 6000,
+      "min": 208.976,
+      "median": 432.034,
+      "p95": 951.016,
+      "p99": 1060.821,
+      "max": 2072.464,
+      "sum": 3103674.609
+    },
+    "job_total": {
+      "count": 6000,
+      "min": 220.118,
+      "median": 446.912,
+      "p95": 992.002,
+      "p99": 1103.432,
+      "max": 2107.478,
+      "sum": 3238006.364
+    },
+    "bridge_total": {
+      "count": 0
+    },
+    "cleanup": {
+      "count": 6000,
+      "min": 38.203,
+      "median": 59.353,
+      "p95": 169.954,
+      "p99": 208.726,
+      "max": 492.697,
+      "sum": 495708.249
+    },
+    "input_staging": {
+      "count": 6000,
+      "min": 26.474,
+      "median": 44.591,
+      "p95": 127.298,
+      "p99": 153.715,
+      "max": 271.077,
+      "sum": 369580.782
+    },
+    "left_extraction": {
+      "count": 6000,
+      "min": 35.113,
+      "median": 84.365,
+      "p95": 161.122,
+      "p99": 190.188,
+      "max": 487.059,
+      "sum": 553621.087
+    },
+    "left_input_read": {
+      "count": 0
+    },
+    "left_template_extraction": {
+      "count": 0
+    },
+    "matcher_initialization": {
+      "count": 0
+    },
+    "matching": {
+      "count": 6000,
+      "min": 7.406,
+      "median": 20.672,
+      "p95": 49.91,
+      "p99": 89.64,
+      "max": 318.958,
+      "sum": 149458.842
+    },
+    "right_extraction": {
+      "count": 6000,
+      "min": 34.656,
+      "median": 119.093,
+      "p95": 231.213,
+      "p99": 281.897,
+      "max": 809.31,
+      "sum": 784307.865
+    },
+    "right_input_read": {
+      "count": 0
+    },
+    "right_template_extraction": {
+      "count": 0
+    }
+  },
+  "first_started_utc": "2026-08-03T09:32:33.538792+00:00",
+  "last_finished_utc": "2026-08-03T10:36:18.519117+00:00",
+  "wall_clock_span_seconds": 3824.98,
+  "generated_utc": "2026-08-03T12:11:39.299082+00:00"
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": "4",
+  "finalization_id": "finalization_8d3c5263590a",
+  "finalization_fingerprint": "8d3c5263590a26d753b2917dca72746996e63cd841ef18551bbdafe6a546b74c",
+  "run_id": "run_f0468f28ffba",
+  "run_fingerprint": "f0468f28ffba544fc7f2df0d4e9844cc0c6f0ed8e5359fd338d49ab6e8022c9f",
+  "plan_id": "plan_db1a526f2a81",
+  "plan_fingerprint": "db1a526f2a8135e6f479d028bd6b337a346314d8caea48a8b415c564fd129f43",
+  "environment_fingerprint": "38566dfce254dc14afdf2718487e2ed5cc3e247dd6fbf009ce52daed65614624",
+  "integration_id": "nbis_mindtct_bozorth3_research_v1",
+  "integration_fingerprint": "d60ed05a2ce61c82543ee0ac611cda4a31815c5f9e5862a1544a0dd0054aa753",
+  "runtime_reference_fingerprint": "946ea11d0f044866078712a12fb3fbaea4e8883f78493ca77790d19c4df1311c",
+  "result_set_fingerprint": "73a9d93a8528e95322b69c64af416a234e7bd100cbb6556e66f1ae8c1cdd7fff",
+  "audit_fingerprint": "e810ec2b3adb2b25417b0c77c758a2fc54bfe2a87bd17b1277751390e5a096ca",
+  "algorithm_validation_fingerprint": "e312de12b24d652b1d082d1b173efb7ed806bb932a62c0f8467418374fbce7c3",
+  "completion_fingerprint": "44a1b53d5bb8fea985acceb071ed199c0c3ef951c5d916f5ec33a4550a599fbc",
+  "receipt_fingerprint": "19bef175066a406dd4e3e57e4d1705cabf4d8d935edec78d610f456fd5ab8c27",
+  "receipt_content_hash": "50b127936836465caa2441c1c572ea8acc0cfbf549b584b0093716393abacdb2",
+  "verifier_source_commit": "05e55f8c1241fdb20d96c7e3547d8c64d170b4da",
+  "verifier_source_tree_clean": true,
+  "created_utc": "2026-08-03T12:11:59.669188+00:00"
+}

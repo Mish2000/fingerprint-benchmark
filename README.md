@@ -1345,11 +1345,12 @@ SourceAFIS's documented 40 is a number about a different scale and does not tran
 The orchestration is stage 7A's, untouched: `nbis_canonical500_full.py` loads two config
 files, proves the alignment, and hands a spec plus the NBIS integration to
 `algorithm_research`. A structural test walks its syntax tree and fails if it grows a job
-loop, opens a raw result, builds a bundle, a result set, a receipt or a marker, or names
-the first algorithm outside the one function that reads the reference run's readiness.
+loop, opens a raw result, or builds the general runtime/result/receipt chain. The wrapper
+adds only the Stage 7C finalization marker that makes its alignment claim authoritative.
 
 **The run happened.** `run_f0468f28ffba` / `plan_db1a526f2a81` /
-`resultset_73a9d93a8528`, from commit `05e55f8`, on the certified Linux x86_64 build
+`resultset_73a9d93a8528`, from commit `05e55f8` (published as
+`stage7c-run-source`), on the certified Linux x86_64 build
 `658f9f54a8f2`: 6,000 planned, 6,000 stored, **6,000 scored, zero algorithmic failures and
 zero blocking failures**, 2,000 comparisons per release and 1,500 per stage. 12,000 MINDTCT
 invocations and 6,000 BOZORTH3 invocations, sequential, no retries, 64 minutes of wall
@@ -1357,8 +1358,10 @@ clock. Median adapter time 432 ms — 45 ms staging, 84 ms and 119 ms for the tw
 extractions, 21 ms matching, 59 ms cleanup — and every working directory empty afterwards.
 
 The alignment came out at 6,000/6,000 pair ids, 6,000/6,000 pair semantics and 3,000/3,000
-prepared entries, with no issue, fingerprinted `12aa8180…`. No decision set, no eligibility
-set, no metric set and no paired evaluation was produced, and no SourceAFIS score was read.
+prepared entries, with no issue, fingerprinted `d25b5215…`. The Stage 7C finalization
+fingerprint is `76a678ad…`, binding the alignment to the research chain. No decision set,
+no eligibility set, no metric set and no paired evaluation was produced, and no SourceAFIS
+score was read ([ADR 0054](docs/adr/0054-stage-7c-alignment-is-completion-authority.md)).
 
 Details: [docs/experiments/nbis-canonical500-raw.md](docs/experiments/nbis-canonical500-raw.md);
 evidence under [evidence/nbis-canonical500-raw/](evidence/nbis-canonical500-raw/).

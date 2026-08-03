@@ -12,7 +12,9 @@ SourceAFIS run `run_4c59fa02a6ab` was given.
 | --- | --- |
 | `research-receipt.json` | the sanitised proof of execution completeness and provenance |
 | `research-finalization.json` | the immutable marker that the whole chain was re-verified |
+| `stage-7c-finalization.json` | the last-written marker binding alignment to the research chain |
 | `alignment-report.json` | the row-by-row proof that the inputs were the reference run's |
+| `runtime-provenance.json` | the pinned runtime assets, build identity and reference chain |
 | `operational-summary.json` | timings, counts and failure codes — no score statistic |
 | `<run_id>.json` | the receipt again, under the name the engine publishes it by |
 
@@ -33,6 +35,13 @@ The alignment report is the part that is new at this stage. It compares:
 `is_clean` is true only at 6,000/6,000 pair ids, 6,000/6,000 pair semantics and
 3,000/3,000 prepared entries with no issue. An alignment of all but one is a
 failure (docs/adr/0051).
+
+The complete expected experiment shape is inside alignment fingerprint
+`d25b52159d251c2998bc55577d2e40f7a287d869b134dbe6aabbd3a3baa91686`.
+`stage-7c-finalization.json` binds that fingerprint and the complete report
+content hash to the run, result set, research receipt, research finalization and
+reference identities. Its verifier commit is on `main`; the code that produced
+the raw run remains reachable as Git ref `stage7c-run-source`.
 
 ## What the evidence deliberately does not contain
 

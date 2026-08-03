@@ -1,0 +1,20 @@
+{
+  "schema_version": "1",
+  "kind": "stage_7c_finalization",
+  "run_id": "run_f0468f28ffba",
+  "run_fingerprint": "f0468f28ffba544fc7f2df0d4e9844cc0c6f0ed8e5359fd338d49ab6e8022c9f",
+  "result_set_id": "resultset_73a9d93a8528",
+  "result_set_fingerprint": "73a9d93a8528e95322b69c64af416a234e7bd100cbb6556e66f1ae8c1cdd7fff",
+  "research_receipt_fingerprint": "19bef175066a406dd4e3e57e4d1705cabf4d8d935edec78d610f456fd5ab8c27",
+  "research_receipt_content_hash": "50b127936836465caa2441c1c572ea8acc0cfbf549b584b0093716393abacdb2",
+  "research_finalization_fingerprint": "8d3c5263590a26d753b2917dca72746996e63cd841ef18551bbdafe6a546b74c",
+  "reference_run_id": "run_4c59fa02a6ab",
+  "reference_plan_id": "plan_b4ae66e91923",
+  "reference_result_set_id": "resultset_087b084fb8a8",
+  "alignment_fingerprint": "d25b52159d251c2998bc55577d2e40f7a287d869b134dbe6aabbd3a3baa91686",
+  "alignment_report_content_hash": "37873e5b2cc137e55dca167541d25168ee0c3db46204c4b1ed1a3e6e2c18e981",
+  "verifier_source_commit": "809d8023becd58e26bb4d2f3025780e9f885aeef",
+  "verifier_source_tree_clean": true,
+  "stage_7c_finalization_fingerprint": "76a678adefef2c070161d15ccae1e1689ac85cefcbc83700fdbd36e7d906fb7e",
+  "created_utc": "2026-08-03T16:49:28.204768+00:00"
+}

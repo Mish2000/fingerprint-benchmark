@@ -231,11 +231,31 @@ def test_the_paired_comparison_is_still_paired_evaluation_ready():
 # ------------------------------------------------------------ nothing new
 
 
-def test_stage_7a_produced_no_new_run():
-    """Section 87: the deliverables are code, tests, ADRs and documentation."""
-    stored = sorted(
+def test_stage_7a_produced_no_run_of_its_own():
+    """Section 87: stage 7A's deliverables are code, tests, ADRs and docs.
+
+    Written originally as "the workspace holds exactly these two runs", which is
+    what that claim looked like when stage 7A was the newest thing here. Stage 7C
+    then ran NBIS over the same 6,000 comparisons, so the claim is now the one it
+    always meant: the two SourceAFIS runs are present and untouched, and every
+    other run in the workspace was produced by a later stage that says which run
+    is its own. An unexplained run in a workspace that publishes receipts is
+    still a failure.
+    """
+    stored = {
         path.name
         for path in (WORKSPACE / "results").iterdir()
         if path.is_dir() and path.name.startswith("run_")
-    )
-    assert stored == sorted([NATIVE_RUN, CANONICAL_RUN]), stored
+    }
+    assert {NATIVE_RUN, CANONICAL_RUN} <= stored, sorted(stored)
+
+    from fpbench.core.errors import ResearchPreflightError
+    from fpbench.experiments.algorithm_research import read_run_pointer
+    from fpbench.experiments.nbis_canonical500_full import EXPERIMENT_ID
+
+    try:
+        accounted = {read_run_pointer(WORKSPACE, EXPERIMENT_ID)}
+    except ResearchPreflightError:
+        accounted = set()
+    unexplained = stored - {NATIVE_RUN, CANONICAL_RUN} - accounted
+    assert unexplained == set(), sorted(unexplained)

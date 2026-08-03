@@ -634,6 +634,93 @@ def test_the_wrapper_defines_no_command_line_entry_point():
     )
 
 
+def test_finalization_does_not_re_inspect_the_tree_it_just_wrote_into():
+    """The engine's last act is writing the receipt into ``evidence/``.
+
+    A combined check that re-captured software provenance after that would
+    refuse the working tree finalization had just modified — on every successful
+    run, at the very last step, with the whole chain already on disk. So the
+    readiness statement finalization makes is assembled from the checks it has
+    already performed, and the independent re-reading is
+    ``inspect_nbis_canonical500_experiment``, run once the evidence is committed.
+    """
+    module = tree()
+    function = next(
+        node
+        for node in module.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "finalize_nbis_canonical500_run"
+    )
+    called = called_names(ast.Module(body=[function], type_ignores=[]))
+    assert "inspect_nbis_canonical500_experiment" not in called
+    assert "capture_research_provenance" not in called
+    # It still has to say something about readiness rather than nothing.
+    assert "_check_no_derivations" in called
+    assert "require_clean_alignment" in called
+    assert "_compare_stored_alignment" in called
+
+
+def test_finalization_forwards_to_the_engine_and_adds_the_alignment(monkeypatch):
+    """The order matters: nothing is finalised over an unproved alignment."""
+    calls: list[str] = []
+
+    monkeypatch.setattr(
+        wrapper,
+        "_load_alignment_context",
+        lambda **kwargs: calls.append("alignment") or _context(),
+    )
+    monkeypatch.setattr(
+        wrapper,
+        "require_clean_alignment",
+        lambda report: calls.append("require-clean"),
+    )
+    monkeypatch.setattr(
+        wrapper,
+        "require_execution_controls_equal",
+        lambda *args, **kwargs: calls.append("controls"),
+    )
+    monkeypatch.setattr(
+        wrapper,
+        "_compare_stored_alignment",
+        lambda *args: calls.append("stored") or [],
+    )
+    monkeypatch.setattr(
+        wrapper,
+        "finalize_nbis_research_run",
+        lambda **kwargs: calls.append("engine") or "the-receipt",
+    )
+    monkeypatch.setattr(
+        wrapper, "_check_no_derivations", lambda *args: calls.append("derivations") or []
+    )
+    monkeypatch.setattr(wrapper, "read_run_pointer", lambda *args: "run_111111111111")
+
+    receipt = wrapper.finalize_nbis_canonical500_run(
+        workspace=Path("/w"), config=wrapper.load_nbis_canonical500_config(CONFIG_PATH)
+    )
+    assert receipt == "the-receipt"
+    assert calls == [
+        "alignment",
+        "require-clean",
+        "controls",
+        "stored",
+        "engine",
+        "derivations",
+    ]
+
+
+def _context():
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        report=_clean_report(),
+        reference_run=reference_run(),
+        reference_materialization_policy="content_addressed_copy_v1",
+        inputs=None,
+        prepared_entries={},
+        reference_side=None,
+    )
+
+
 def test_every_documented_export_exists():
     for name in (
         "build_nbis_canonical500_spec",

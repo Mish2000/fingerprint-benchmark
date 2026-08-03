@@ -151,10 +151,21 @@ def test_the_committed_evidence_still_names_the_same_artefacts():
         assert payload[key] == path.stem, path
 
 
-def test_no_receipt_was_upgraded_to_a_newer_schema():
-    """Section 51: the old receipts stay exactly as they were issued."""
-    for directory in sorted((EVIDENCE).iterdir()):
-        if not directory.is_dir():
+#: Stage 7C's own evidence, which is *about* NBIS and says so. Every other
+#: directory under evidence/ predates the second algorithm and must not have
+#: acquired a word of its vocabulary.
+NBIS_EVIDENCE_DIRECTORY = "nbis-canonical500-raw"
+
+
+def test_no_earlier_receipt_was_upgraded_to_a_newer_schema():
+    """Section 51: the receipts issued before NBIS stay exactly as they were.
+
+    A receipt that had been rewritten by a later stage would carry that stage's
+    vocabulary, so the check is for the word rather than for a schema number:
+    it catches a re-issue, a re-render and a silent upgrade alike.
+    """
+    for directory in sorted(EVIDENCE.iterdir()):
+        if not directory.is_dir() or directory.name == NBIS_EVIDENCE_DIRECTORY:
             continue
         for path in sorted(directory.glob("*.json")):
             payload = json.loads(path.read_text(encoding="utf-8"))

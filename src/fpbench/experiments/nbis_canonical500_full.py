@@ -796,10 +796,21 @@ def finalize_nbis_canonical500_run(
     """Revalidate everything, publish the receipt, and prove the alignment held.
 
     The engine does the audit, the result set, the NBIS validation, the receipt
-    and the marker. What this function adds is the half the engine has no
-    business knowing about: the alignment is re-derived from the manifests, it
-    is compared with the one preparation stored, and finalization does not
-    happen unless both are clean and identical (spec section 35).
+    and the marker — and it raises unless the run reaches ``RESEARCH_READY``, so
+    by the time it returns, that half of Stage 7C readiness is established. What
+    this function adds is the half the engine has no business knowing about: the
+    alignment is re-derived from the manifests, it is compared with the one
+    preparation stored, and finalization does not happen unless both are clean
+    and identical (spec section 35).
+
+    **Why the combined check is not a second full inspection.** The engine's last
+    act is writing the committable receipt into ``evidence/``. A check that
+    re-captured software provenance afterwards would refuse the working tree
+    finalization had just modified, and would do so on every successful run. The
+    independent combined reading is
+    :func:`inspect_nbis_canonical500_experiment`, run once the evidence has been
+    committed — which is the documented sequence and the one the workspace gate
+    exercises (spec sections 45 and 48, docs/adr/0017).
     """
     workspace = Path(workspace)
     repository_root = Path(repository_root)
@@ -836,19 +847,15 @@ def finalize_nbis_canonical500_run(
         expected_input_set=SD300_CANONICAL500_INPUT_SET,
     )
 
-    state = inspect_nbis_canonical500_experiment(
-        workspace=workspace,
-        dataset_root=dataset_root,
-        config=config,
-        repository_root=repository_root,
-        run_id=resolved,
-    )
-    if not state.is_ready:
+    # The other half of readiness, over the artefacts the engine has just
+    # written. Nothing downstream of a raw score may exist for this run
+    # (docs/adr/0052).
+    remaining = tuple(_check_no_derivations(workspace, resolved))
+    if remaining or not context.report.is_clean:
         raise ResearchPreflightError(
-            f"run {resolved} finalised but Stage 7C is not ready: "
-            f"{state.research_state.status.value}, alignment "
-            f"{'clean' if state.alignment_report.is_clean else 'not clean'}, "
-            f"issues {[issue.message for issue in state.issues][:2]}"
+            f"run {resolved} finalised but Stage 7C is not ready: alignment "
+            f"{'clean' if context.report.is_clean else 'not clean'}, "
+            f"issues {[issue.message for issue in remaining][:2]}"
         )
     return receipt
 

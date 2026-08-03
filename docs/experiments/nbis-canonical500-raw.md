@@ -182,8 +182,16 @@ No raw result is written by `prepare`.
 
 A full audit of the 6,000 stored results, the result set, the `NbisValidationReport`,
 the alignment re-derived from the manifests and compared with the one preparation
-stored, the research receipt, the finalization marker, `RESEARCH_READY`, and last
-the combined Stage 7C state — research-ready **and** aligned **and** no issue.
+stored, the research receipt, the finalization marker, and `RESEARCH_READY` — which
+the engine raises on rather than returns, so a receipt coming back at all is that
+half of the statement. Finalization then adds its own half: the alignment is clean
+and nothing downstream of a raw score exists for this run.
+
+The *combined* reading — research-ready **and** aligned **and** no issue — is
+`inspect_nbis_canonical500_experiment`, and it is run after the evidence is
+committed. Finalization's last act is writing the committable receipt into
+`evidence/`, so a check that re-captured software provenance immediately afterwards
+would refuse the working tree finalization had just modified.
 
 `blocking_failures` must be 0. `TEMPLATE_EXTRACTION_FAILED` and `TIMEOUT` are
 biometric outcomes and are kept as failures with no score; they are never replaced

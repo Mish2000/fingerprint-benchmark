@@ -39,12 +39,21 @@ __all__ = [
     "write_operational_summary",
 ]
 
+#: Kept under its historical name. It is the file name of a regenerable derived
+#: artefact, and renaming it would move — or worse, duplicate — the summary of
+#: five runs that already exist and whose directories may not be written to
+#: (spec section 46). The contents have never been algorithm-specific.
 OPERATIONAL_SUMMARY_NAME = "sourceafis-native-operational-summary.json"
-OPERATIONAL_SUMMARY_SCHEMA_VERSION = "1"
+OPERATIONAL_SUMMARY_SCHEMA_VERSION = "2"
 
-#: The bridge's own segments, in the order a reader thinks about them. Named
-#: explicitly so that a timing the bridge stops reporting shows up as an empty
-#: series rather than silently disappearing from the summary.
+#: The first algorithm's own segments, in the order a reader thinks about them.
+#: Named explicitly so that a timing the bridge stops reporting shows up as an
+#: empty series rather than silently disappearing from the summary.
+#:
+#: They are no longer the *only* series reported. Every component name a stored
+#: result actually carries is summarised as well, so a two-stage route's input
+#: staging, its two extractions, its matching and its cleanup appear without
+#: this module knowing that such a route exists (docs/adr/0040, docs/adr/0007).
 TIMING_COMPONENTS: tuple[str, ...] = (
     "bridge_total",
     "left_input_read",
@@ -71,6 +80,10 @@ def build_operational_summary(
     components: dict[str, list[float]] = {name: [] for name in TIMING_COMPONENTS}
 
     failure_counts: dict[str, int] = {}
+    failure_stage_counts: dict[str, int] = {}
+    failure_detail_counts: dict[str, int] = {}
+    failure_release_counts: dict[str, int] = {}
+    failure_protocol_stage_counts: dict[str, int] = {}
     release_counts: dict[str, int] = {}
     stage_counts: dict[str, int] = {}
 
@@ -86,16 +99,37 @@ def build_operational_summary(
             continue
         record = result_store.read_raw_result(run.run_id, job_id)
         stored += 1
+        pair = pairs.get(planned.job.pair_id)
 
         if record.status is ExecutionStatus.SUCCESS:
             successes += 1
         else:
             failures += 1
-            if record.failure is not None:
-                code = record.failure.code.value
+            failure = record.failure
+            if failure is not None:
+                code = failure.code.value
                 failure_counts[code] = failure_counts.get(code, 0) + 1
+                failure_stage_counts[failure.stage.value] = (
+                    failure_stage_counts.get(failure.stage.value, 0) + 1
+                )
+                # Every detail the adapter attached, as ``key=value``. Generic on
+                # purpose: which detail keys exist is the algorithm's business,
+                # and a summary that only understood one route's vocabulary would
+                # be silent about the next one (docs/adr/0040).
+                for key, value in sorted(dict(failure.details).items()):
+                    label = f"{key}={value}"
+                    failure_detail_counts[label] = (
+                        failure_detail_counts.get(label, 0) + 1
+                    )
+                if pair is not None:
+                    failure_release_counts[pair.release] = (
+                        failure_release_counts.get(pair.release, 0) + 1
+                    )
+                    failed_stage = pair.protocol_stage.value
+                    failure_protocol_stage_counts[failed_stage] = (
+                        failure_protocol_stage_counts.get(failed_stage, 0) + 1
+                    )
 
-        pair = pairs.get(planned.job.pair_id)
         if pair is not None:
             release_counts[pair.release] = release_counts.get(pair.release, 0) + 1
             stage = pair.protocol_stage.value
@@ -103,10 +137,8 @@ def build_operational_summary(
 
         adapter_ms.append(record.timings.adapter_ms)
         total_ms.append(record.timings.total_ms)
-        for name in TIMING_COMPONENTS:
-            value = record.timings.adapter_components_ms.get(name)
-            if value is not None:
-                components[name].append(float(value))
+        for name, value in record.timings.adapter_components_ms.items():
+            components.setdefault(str(name), []).append(float(value))
 
         started.append(record.started_utc)
         finished.append(record.finished_utc)
@@ -130,12 +162,21 @@ def build_operational_summary(
             "failure_count": failures,
         },
         "failure_counts": dict(sorted(failure_counts.items())),
+        "failure_counts_by_failure_stage": dict(sorted(failure_stage_counts.items())),
+        "failure_counts_by_detail": dict(sorted(failure_detail_counts.items())),
+        "failure_counts_by_release": dict(sorted(failure_release_counts.items())),
+        "failure_counts_by_protocol_stage": dict(
+            sorted(failure_protocol_stage_counts.items())
+        ),
         "release_counts": dict(sorted(release_counts.items())),
         "stage_counts": dict(sorted(stage_counts.items())),
         "timings_ms": {
             "adapter": _distribution(adapter_ms),
             "job_total": _distribution(total_ms),
-            **{name: _distribution(components[name]) for name in TIMING_COMPONENTS},
+            **{
+                name: _distribution(values)
+                for name, values in sorted(components.items())
+            },
         },
         "first_started_utc": min(started) if started else None,
         "last_finished_utc": max(finished) if finished else None,

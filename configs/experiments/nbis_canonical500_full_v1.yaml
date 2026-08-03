@@ -1,0 +1,89 @@
+# Stage 7C: NBIS 5.0.0 over the canonical SD300 comparisons SourceAFIS already ran.
+#
+# This file selects nothing. Every identifier in it names something that already
+# exists and was produced by an earlier, finalised stage: the reference run, its
+# plan, its result set, and the immutable 500 ppi input set all three were built
+# from. No cohort is chosen here, no pair is generated here, and no new prepared
+# image is materialised here — Stage 7C reuses the pair manifest of
+# run_4c59fa02a6ab, row for row, in its order (docs/adr/0051).
+#
+# There is no threshold in this file and there will not be one. BOZORTH3 scores
+# and SourceAFIS scores are numbers on two unrelated scales; a threshold is a
+# statement about one scale, and the one SourceAFIS documents means nothing here.
+# What Stage 7C publishes is 6,000 raw scores and the failures beside them
+# (docs/adr/0052, docs/adr/0003).
+#
+# The execution controls are not restated. They are the reference run's, read out
+# of configs/execution/canonical_500_lanczos3_60s_v1.yaml — the same file the
+# canonical SourceAFIS run used, unchanged — so that the two runs differ in the
+# algorithm and in nothing else, and so that a check can say so rather than a
+# comment (spec section 19).
+
+experiment_id: nbis_canonical500_full_v1
+kind: research
+replicate_index: 0
+
+dataset_config: configs/datasets/sd300.yaml
+protocol_config: configs/protocols/sd300_50_subjects.yaml
+algorithm_config: configs/algorithms/nbis_mindtct_bozorth3_5_0_0_v1.yaml
+
+# Every participating image must carry VERIFIED checksum evidence, exactly as
+# the reference run required.
+require_verified_checksums: true
+
+reference:
+  run_id: run_4c59fa02a6ab
+  plan_id: plan_b4ae66e91923
+  result_set_id: resultset_087b084fb8a8
+
+preparation:
+  set_id: prepset_be560e047991
+  set_fingerprint: be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f
+  transform_profile_id: canonical_gray8_500ppi_lanczos3_v1
+  transform_profile_fingerprint: 28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373
+  target_ppi: 500
+
+expected:
+  jobs: 6000
+  pairs_per_release_stage: 500
+  pairs_per_release: 2000
+  pairs_per_stage: 1500
+  releases: [SD300A, SD300B, SD300C]
+  subjects: 50
+  participating_images: 3000
+
+  # Which resolution each release's artefacts were scaled *from*. Checked
+  # through the preparation entries, because by the time NBIS opens a file it is
+  # already 500 ppi and the source resolution is no longer inferable from
+  # anything the adapter records (docs/adr/0032).
+  source_ppi:
+    SD300A: 500
+    SD300B: 1000
+    SD300C: 2000
+
+execution:
+  # Reused verbatim, not copied. Loading the reference run's own profile is what
+  # makes "same timeout, same seed, same preparer, same input set" a fact rather
+  # than a claim about two files that could drift apart.
+  profile_config: configs/execution/canonical_500_lanczos3_60s_v1.yaml
+  profile_id: canonical_500_lanczos3_60s_v1
+  sequential: true
+  retries: 0
+
+runtime:
+  materialization_policy: content_addressed_copy_v1
+  research_mode: true
+
+build:
+  # One certified build, named. There is no automatic selection: not the newest,
+  # not the first in lexicographic order, and no fallback to the gcc-9 build
+  # 371409be18a6 that certified the route in stage 7B. The directory is passed
+  # explicitly at prepare time and is checked against this id
+  # (docs/adr/0053, spec section 12).
+  nbis_build_id: 658f9f54a8f2
+  build_root: build/nbis-5.0.0
+
+reporting:
+  biometric_metrics: false   # no FMR, no FNMR, no EER, no accuracy claim
+  operational_summary: true  # timings, counts and failure codes only
+  score_statistics: false    # no mean, no median, no distribution of scores

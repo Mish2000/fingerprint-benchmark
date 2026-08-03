@@ -326,9 +326,9 @@ class CanonicalRunAlignmentReport:
     #: Excluded from the fingerprint on purpose; see the class docstring.
     inspected_utc: str = ""
 
-    #: The sizes the comparison was carried out against. Excluded from the
-    #: fingerprint for the same reason the reference ids are not: they identify
-    #: the question, and they are re-supplied by whoever re-derives the report.
+    #: The complete shape the comparison was carried out against. This is a
+    #: claim, not caller context: changing the expected population changes what
+    #: ``is_clean`` means and therefore must change the report fingerprint.
     expectations: AlignmentExpectations = SD300_CANONICAL_EXPECTATIONS
 
     def __post_init__(self) -> None:
@@ -367,6 +367,7 @@ class CanonicalRunAlignmentReport:
             pair_semantics_sha256=self.pair_semantics_sha256,
             prepared_entries_sha256=self.prepared_entries_sha256,
             issues=self.issues,
+            expectations=self.expectations,
         )
         if self.alignment_fingerprint != expected:
             raise ValueError(
@@ -433,6 +434,7 @@ def canonical_run_alignment_fingerprint(
     pair_semantics_sha256: str,
     prepared_entries_sha256: str,
     issues: Sequence[IntegrityIssue],
+    expectations: AlignmentExpectations,
 ) -> str:
     """The digest behind an alignment report, over every field that is a claim.
 
@@ -443,7 +445,7 @@ def canonical_run_alignment_fingerprint(
     """
     return stable_hash(
         {
-            "schema": "canonical_run_alignment_v1",
+            "schema": "canonical_run_alignment_v2",
             "reference": {
                 "run_id": reference_run_id,
                 "plan_id": reference_plan_id,
@@ -471,6 +473,15 @@ def canonical_run_alignment_fingerprint(
                 "pair_id_sequence_sha256": pair_id_sequence_sha256,
                 "pair_semantics_sha256": pair_semantics_sha256,
                 "prepared_entries_sha256": prepared_entries_sha256,
+            },
+            "expectations": {
+                "pair_count": expectations.pair_count,
+                "prepared_entry_count": expectations.prepared_entry_count,
+                "pairs_per_release_stage": expectations.pairs_per_release_stage,
+                "prepared_entries_per_release": (
+                    expectations.prepared_entries_per_release
+                ),
+                "releases": list(expectations.releases),
             },
             "issues": [
                 {
@@ -542,7 +553,9 @@ def build_canonical_run_alignment_report(
     }
     return CanonicalRunAlignmentReport(
         **fields,
-        alignment_fingerprint=canonical_run_alignment_fingerprint(**fields),
+        alignment_fingerprint=canonical_run_alignment_fingerprint(
+            **fields, expectations=expectations
+        ),
         inspected_utc=_utc_now(),
         expectations=expectations,
     )

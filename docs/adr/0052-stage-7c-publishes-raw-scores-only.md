@@ -39,9 +39,11 @@ so already, and it does not stop being true because a second algorithm ran.
 **Stage 7C stores raw scores and failure codes. That is the whole product.**
 
 * No `DecisionSet`, no `EligibilitySet`, no `MetricSet`, no `PairedEvaluation`
-  over the NBIS run. The experiment module imports none of those packages and a
-  test enforces it; `inspect_nbis_canonical500_experiment` raises an issue if a
-  `decisions/`, `metrics/` or `eligibility/` directory appears under the run.
+  over the NBIS run. The experiment module imports none of those execution
+  packages and a test enforces it. `inspect_nbis_canonical500_experiment` reads
+  decision and metric definitions plus paired definitions/receipts through the
+  real models and stores under `derivations/` and `paired-evaluations/`; it also
+  retains the local run-directory guard for malformed legacy output.
 * No threshold anywhere in the configuration. `threshold`, `decision_profile`,
   `match_threshold`, `acceptance_threshold` and `calibration` are refused at any
   depth of the experiment YAML.

@@ -173,24 +173,46 @@ def test_the_alignment_is_derivable_and_clean(config, dataset_root):
     assert report.is_clean, [issue.message for issue in report.issues]
 
 
-def test_the_pinned_build_is_present_and_certified(config):
-    from fpbench.core.errors import ConfigurationError
+def test_the_pinned_runtime_is_present_and_certified(config):
+    """Before a run the external build is mandatory; afterwards its bundle is."""
+    from fpbench.adapters.nbis.build_manifest import read_build_manifest
     from fpbench.experiments.nbis_canonical500_full import require_pinned_build
+    from fpbench.storage.result_store import ResultStore
+    from fpbench.storage.runtime_bundle_store import RuntimeBundleStore
 
-    directory = REPOSITORY_ROOT / config.build_root / config.nbis_build_id
-    if not directory.is_dir():
-        pytest.skip(
-            f"NBIS build {config.nbis_build_id} is not built on this machine; "
-            "build it with 'python integrations/nbis/build.py build' and certify "
-            "it with '... test' on a certified target"
-        )
-    try:
+    run_id = nbis_run_id()
+    if run_id is None:
+        directory = REPOSITORY_ROOT / config.build_root / config.nbis_build_id
+        if not directory.is_dir():
+            pytest.fail(
+                f"preflight requires pinned NBIS build {config.nbis_build_id}; "
+                "a missing build is a failure before any run is prepared"
+            )
         resolved = require_pinned_build(
             directory, config=config, repository_root=REPOSITORY_ROOT
         )
-    except ConfigurationError as exc:  # pragma: no cover - a real misconfiguration
-        pytest.fail(str(exc))
-    assert resolved.name == config.nbis_build_id
+        assert resolved.name == config.nbis_build_id
+        return
+
+    result_store = ResultStore(WORKSPACE)
+    run = result_store.read_run(run_id)
+    reference = result_store.read_runtime_reference(run_id)
+    bundle_store = RuntimeBundleStore(WORKSPACE)
+    verification = bundle_store.require_valid(reference.bundle_id)
+    bundle = bundle_store.read_bundle(reference.bundle_id)
+    assert verification.bundle_fingerprint == reference.bundle_fingerprint
+    assert bundle.bundle_fingerprint == reference.bundle_fingerprint
+    assert {asset.role for asset in bundle.assets} == {
+        "nbis_mindtct_executable",
+        "nbis_bozorth3_executable",
+        "nbis_build_manifest",
+    }
+    manifest = read_build_manifest(
+        bundle_store.asset_path(reference.bundle_id, "nbis_build_manifest")
+    )
+    assert manifest.manifest_fingerprint == run.environment.dependencies[
+        "nbis.build_manifest_fingerprint"
+    ]
 
 
 # -------------------------------------------------------------------- after

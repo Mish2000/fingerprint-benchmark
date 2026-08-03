@@ -111,6 +111,7 @@ from fpbench.experiments.nbis_canonical500_full import (
     execute_nbis_canonical500_run,
     inspect_nbis_canonical500_experiment,
     finalize_nbis_canonical500_run,
+    refresh_nbis_canonical500_stage_finalization,
 )
 
 build = Path("build/nbis-5.0.0/658f9f54a8f2")
@@ -153,6 +154,11 @@ assert state.is_ready
 necessary. A stored result is verified and skipped, never re-executed and never
 overwritten.
 
+If verifier code changes after a completed run, commit that code first and call
+`refresh_nbis_canonical500_stage_finalization(...)`. It re-verifies the research
+chain, re-derives the alignment report and rewrites only the regenerable
+alignment and Stage 7C marker. It never executes MINDTCT or BOZORTH3.
+
 There is **no command-line entry point**, on purpose. The run takes hours, it may
 not be resumed under a different commit than it was prepared under, and a
 convenient `execute` verb is how that happens by accident.
@@ -169,7 +175,8 @@ convenient `execute` verb is how that happens by accident.
 4. the canonical SourceAFIS run is `RESEARCH_READY`;
 5. its result set is `resultset_087b084fb8a8`;
 6. the pair manifest is *loaded*, with `allow_creation=False`;
-7. the alignment report is derived;
+7. the alignment report is derived, including the complete expected experiment
+   shape in its fingerprint;
 8. it is clean, or nothing further happens;
 9. the shared engine creates the run;
 10. the engine plans 6,000 jobs;
@@ -184,8 +191,16 @@ A full audit of the 6,000 stored results, the result set, the `NbisValidationRep
 the alignment re-derived from the manifests and compared with the one preparation
 stored, the research receipt, the finalization marker, and `RESEARCH_READY` — which
 the engine raises on rather than returns, so a receipt coming back at all is that
-half of the statement. Finalization then adds its own half: the alignment is clean
-and nothing downstream of a raw score exists for this run.
+half of the statement. Finalization then adds its own half: the alignment is clean,
+nothing downstream of a raw score exists for this run, and
+`stage-7c-finalization.json` binds the run, result set, research receipt, research
+finalization, reference identities, alignment fingerprint and complete alignment
+report content hash into one last-written marker (docs/adr/0054).
+
+The downstream check reads real decision and metric derivation definitions and
+paired-evaluation definitions/receipts through their models and stores. It checks
+`workspace/derivations/` and `workspace/paired-evaluations/`; a directory-name
+convention or a text search is not treated as evidence.
 
 The *combined* reading — research-ready **and** aligned **and** no issue — is
 `inspect_nbis_canonical500_experiment`, and it is run after the evidence is
@@ -205,9 +220,14 @@ Committed under `evidence/nbis-canonical500-raw/`:
 README.md
 research-receipt.json
 research-finalization.json
+stage-7c-finalization.json
 alignment-report.json
 operational-summary.json
+runtime-provenance.json
 ```
+
+The run's source revision is published as the Git ref `stage7c-run-source`, which
+resolves to the exact `source_commit` named by the research receipt.
 
 Not committed: raw results, runtime binaries, prepared PNGs, XYT templates and
 SD300 imagery.

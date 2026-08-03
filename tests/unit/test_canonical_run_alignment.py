@@ -417,6 +417,16 @@ def test_dropping_an_issue_no_longer_fingerprints(world):
         dataclasses.replace(report, issues=())
 
 
+def test_changing_the_expectations_no_longer_fingerprints(world):
+    report = align(world)
+    other_expectations = dataclasses.replace(
+        report.expectations,
+        releases=("OTHER_A", "OTHER_B", "OTHER_C"),
+    )
+    with pytest.raises(ValueError, match="alignment_fingerprint"):
+        dataclasses.replace(report, expectations=other_expectations)
+
+
 def test_a_different_experiment_fingerprints_differently(world):
     first = align(world)
     other = build_alignment_world(per_cell=3)
@@ -446,6 +456,7 @@ def test_the_fingerprint_helper_is_the_one_the_report_uses(world):
         pair_semantics_sha256=report.pair_semantics_sha256,
         prepared_entries_sha256=report.prepared_entries_sha256,
         issues=report.issues,
+        expectations=report.expectations,
     )
 
 

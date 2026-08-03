@@ -97,5 +97,7 @@ therefore carries the three asset digests and the build manifest fingerprint
 rather than the files, which is the same rule docs/adr/0018 applies to every
 external runtime.
 
-Running stage 7C on a machine without that build is impossible rather than
-approximate, and the error says which build to make.
+Preparing stage 7C on a machine without that build is impossible rather than
+approximate, and the error says which build to make. Once a run exists, status
+and finalization verify the content-addressed runtime bundle attached to the run;
+they do not require the external build directory to remain on that machine.

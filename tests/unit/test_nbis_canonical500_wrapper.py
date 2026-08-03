@@ -485,6 +485,136 @@ def _unclean_report():
     )
 
 
+def test_stored_alignment_expectations_are_load_bearing(tmp_path):
+    from fpbench.core.serialization import read_json, write_json
+
+    report = _clean_report()
+    run_id = "run_111111111111"
+    wrapper._write_alignment_report(tmp_path, run_id, report)
+    path = wrapper.ResultStore(tmp_path).derived_path(
+        run_id, wrapper.ALIGNMENT_REPORT_NAME
+    )
+    stored = read_json(path)
+    stored["expectations"]["releases"] = ["OTHER_A", "OTHER_B", "OTHER_C"]
+    write_json(path, stored)
+
+    issues = wrapper._compare_stored_alignment(tmp_path, run_id, report)
+    assert issues
+    assert "fingerprint" in issues[0].message
+
+
+def test_a_real_decision_derivation_blocks_readiness(tmp_path):
+    from decisionworld import build_decision_world, derivation_definition_for
+    from fpbench.experiments.sourceafis_decisions import definition_store
+
+    world = build_decision_world(tmp_path)
+    definition_store(world.run_world.workspace, "test_decisions_v1").write(
+        world.run.run_id, derivation_definition_for(world)
+    )
+
+    issues = wrapper._check_no_derivations(
+        world.run_world.workspace, world.run.run_id
+    )
+    assert any("decision/eligibility definition" in issue.message for issue in issues)
+    assert not wrapper.NbisCanonical500ExperimentState(
+        research_state=SimpleNamespace(
+            is_research_ready=True, run_id=world.run.run_id
+        ),
+        alignment_report=_clean_report(),
+        issues=tuple(issues),
+    ).is_ready
+
+
+def test_a_real_metric_derivation_blocks_readiness(tmp_path):
+    from fpbench.core.evaluation_models import MetricDerivationDefinition
+    from fpbench.storage.definition_store import DefinitionStore
+    from metricworld import SPEC_EXAMPLE_SCRIPT, build_metric_world
+
+    world = build_metric_world({"SD300A": SPEC_EXAMPLE_SCRIPT})
+    store = DefinitionStore(
+        tmp_path,
+        experiment_id="test_metrics_v1",
+        loader=lambda payload: MetricDerivationDefinition(**payload),
+        pointer_name="current-metric-set.json",
+    )
+    store.write(world.run_id, world.definition())
+
+    issues = wrapper._check_no_derivations(tmp_path, world.run_id)
+    assert any("metric definition" in issue.message for issue in issues)
+    assert not wrapper.NbisCanonical500ExperimentState(
+        research_state=SimpleNamespace(is_research_ready=True, run_id=world.run_id),
+        alignment_report=_clean_report(),
+        issues=tuple(issues),
+    ).is_ready
+
+
+def test_a_real_paired_definition_blocks_readiness(tmp_path):
+    from fpbench.core.paired_models import (
+        PAIRED_EVALUATION_ID_LENGTH,
+        PAIRED_SCHEMA_VERSION,
+        PairedEvaluationDefinition,
+        paired_evaluation_definition_fingerprint,
+    )
+    from fpbench.core.provenance_models import software_provenance_fingerprint
+    from fpbench.core.serialization import read_json, stable_hash, write_json
+    from fpbench.storage.paired_evaluation_store import PairedEvaluationStore
+    from fpbench.storage.result_store import ResultStore
+    from runworld import build_world, research_provenance
+
+    world = build_world(tmp_path, research=True)
+    ResultStore(world.workspace).ensure_run(world.run)
+    software = research_provenance()
+    digest = lambda label: stable_hash({"test": label}, length=64)
+    claims = {
+        "native_run_fingerprint": world.run.run_fingerprint,
+        "canonical_run_fingerprint": digest("other-run"),
+        "native_result_set_fingerprint": digest("native-result-set"),
+        "canonical_result_set_fingerprint": digest("canonical-result-set"),
+        "native_decision_set_fingerprint": digest("native-decisions"),
+        "canonical_decision_set_fingerprint": digest("canonical-decisions"),
+        "native_eligibility_set_fingerprint": digest("native-eligibility"),
+        "canonical_eligibility_set_fingerprint": digest("canonical-eligibility"),
+        "native_metric_set_fingerprint": digest("native-metrics"),
+        "canonical_metric_set_fingerprint": digest("canonical-metrics"),
+        "pair_manifest_hash": world.run.pair_manifest_hash,
+        "policy_fingerprint": digest("policy"),
+        "derivation_software_fingerprint": software_provenance_fingerprint(software),
+    }
+    fingerprint = paired_evaluation_definition_fingerprint(
+        {"paired_schema_version": PAIRED_SCHEMA_VERSION, **claims}
+    )
+    definition = PairedEvaluationDefinition(
+        **claims,
+        definition_id=f"paireddef_{fingerprint[:PAIRED_EVALUATION_ID_LENGTH]}",
+        definition_fingerprint=fingerprint,
+        derivation_software=software,
+        created_utc="2026-08-03T00:00:00+00:00",
+    )
+    PairedEvaluationStore(world.workspace).ensure_definition(
+        "pairedeval_111111111111", definition
+    )
+
+    issues = wrapper._check_no_derivations(world.workspace, world.run.run_id)
+    assert any("paired evaluation" in issue.message for issue in issues)
+    assert not wrapper.NbisCanonical500ExperimentState(
+        research_state=SimpleNamespace(
+            is_research_ready=True, run_id=world.run.run_id
+        ),
+        alignment_report=_clean_report(),
+        issues=tuple(issues),
+    ).is_ready
+
+    store = PairedEvaluationStore(world.workspace)
+    path = store.definition_path("pairedeval_111111111111")
+    legacy = read_json(path)
+    legacy["definition_fingerprint"] = digest("legacy-definition-schema")
+    write_json(path, legacy)
+    legacy_issues = wrapper._check_no_derivations(
+        world.workspace, world.run.run_id
+    )
+    assert any("paired evaluation" in issue.message for issue in legacy_issues)
+
+
 # ------------------------------------------------------- structural isolation
 
 
@@ -637,11 +767,11 @@ def test_the_wrapper_defines_no_command_line_entry_point():
 def test_finalization_does_not_re_inspect_the_tree_it_just_wrote_into():
     """The engine's last act is writing the receipt into ``evidence/``.
 
-    A combined check that re-captured software provenance after that would
-    refuse the working tree finalization had just modified — on every successful
-    run, at the very last step, with the whole chain already on disk. So the
-    readiness statement finalization makes is assembled from the checks it has
-    already performed, and the independent re-reading is
+    Provenance is captured before the engine writes that evidence. A combined
+    check that captured it afterwards would refuse the working tree finalization
+    had just modified — on every successful run, at the very last step. So the
+    readiness statement finalization makes is assembled from checks already
+    performed, and the independent re-reading is
     ``inspect_nbis_canonical500_experiment``, run once the evidence is committed.
     """
     module = tree()
@@ -653,16 +783,35 @@ def test_finalization_does_not_re_inspect_the_tree_it_just_wrote_into():
     )
     called = called_names(ast.Module(body=[function], type_ignores=[]))
     assert "inspect_nbis_canonical500_experiment" not in called
-    assert "capture_research_provenance" not in called
+    assert "capture_research_provenance" in called
     # It still has to say something about readiness rather than nothing.
     assert "_check_no_derivations" in called
     assert "require_clean_alignment" in called
     assert "_compare_stored_alignment" in called
 
 
+def test_inspection_requires_the_stage_7c_finalization_marker():
+    module = tree()
+    function = next(
+        node
+        for node in module.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "inspect_nbis_canonical500_experiment"
+    )
+    called = called_names(ast.Module(body=[function], type_ignores=[]))
+    assert "_compare_stage_7c_finalization" in called
+
+
 def test_finalization_forwards_to_the_engine_and_adds_the_alignment(monkeypatch):
     """The order matters: nothing is finalised over an unproved alignment."""
     calls: list[str] = []
+
+    monkeypatch.setattr(
+        wrapper,
+        "capture_research_provenance",
+        lambda *args: calls.append("provenance")
+        or SimpleNamespace(source_revision="a" * 40, source_tree_clean=True),
+    )
 
     monkeypatch.setattr(
         wrapper,
@@ -692,6 +841,16 @@ def test_finalization_forwards_to_the_engine_and_adds_the_alignment(monkeypatch)
     monkeypatch.setattr(
         wrapper, "_check_no_derivations", lambda *args: calls.append("derivations") or []
     )
+    monkeypatch.setattr(
+        wrapper,
+        "_build_stage_7c_finalization",
+        lambda **kwargs: calls.append("stage-marker") or "the-marker",
+    )
+    monkeypatch.setattr(
+        wrapper,
+        "_write_stage_7c_finalization",
+        lambda *args: calls.append("write-stage-marker"),
+    )
     monkeypatch.setattr(wrapper, "read_run_pointer", lambda *args: "run_111111111111")
 
     receipt = wrapper.finalize_nbis_canonical500_run(
@@ -699,12 +858,15 @@ def test_finalization_forwards_to_the_engine_and_adds_the_alignment(monkeypatch)
     )
     assert receipt == "the-receipt"
     assert calls == [
+        "provenance",
         "alignment",
         "require-clean",
         "controls",
         "stored",
         "engine",
         "derivations",
+        "stage-marker",
+        "write-stage-marker",
     ]
 
 

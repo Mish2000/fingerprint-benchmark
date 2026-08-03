@@ -40,6 +40,7 @@ be started under a different commit than it was prepared under, and a convenient
 
 from __future__ import annotations
 
+import datetime as _dt
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -52,9 +53,14 @@ from fpbench.core.errors import ConfigurationError, ResearchPreflightError
 from fpbench.core.execution_models import ExecutionProfile
 from fpbench.core.identifiers import validate_id
 from fpbench.core.imaging_models import PreparedImageEntry
-from fpbench.core.research_models import ResearchReceipt, ResearchRunState
+from fpbench.core.research_models import (
+    ResearchReceipt,
+    ResearchRunState,
+    research_receipt_content_hash,
+    research_receipt_fingerprint,
+)
 from fpbench.core.run_state_models import IntegrityIssue
-from fpbench.core.serialization import read_json, write_json
+from fpbench.core.serialization import read_json, to_plain, write_json
 from fpbench.execution.batch_runner import RunExecutionSummary
 from fpbench.experiments.algorithm_research import (
     REPOSITORY_ROOT,
@@ -91,15 +97,24 @@ from fpbench.experiments.nbis_research import (
 )
 from fpbench.experiments.nbis_validation import SD300_CANONICAL500_INPUT_SET
 from fpbench.experiments.sd300_inputs import SD300Inputs, load_sd300_inputs
+from fpbench.experiments.stage7c_finalization import (
+    STAGE_7C_FINALIZATION_KIND,
+    STAGE_7C_FINALIZATION_SCHEMA_VERSION,
+    Stage7CFinalization,
+    alignment_report_content_hash,
+    stage_7c_finalization_fingerprint,
+)
 from fpbench.imaging.canonical500 import Canonical500ImagePreparer
 from fpbench.storage.prepared_image_set_store import PreparedImageSetStore
 from fpbench.storage.result_store import ResultStore
+from fpbench.storage.result_set_store import ResultSetStore
 from fpbench.storage.runtime_bundle_store import RuntimeBundleStore
 
 __all__ = [
     "EXPERIMENT_ID",
     "EVIDENCE_DIRECTORY",
     "ALIGNMENT_REPORT_NAME",
+    "STAGE_7C_FINALIZATION_NAME",
     "FORBIDDEN_CONFIG_KEYS",
     # Re-exported so a caller needs one import: the shape this experiment is,
     # and the sizes ``is_clean`` is measured against.
@@ -113,6 +128,7 @@ __all__ = [
     "execute_nbis_canonical500_run",
     "inspect_nbis_canonical500_experiment",
     "finalize_nbis_canonical500_run",
+    "refresh_nbis_canonical500_stage_finalization",
     "publish_nbis_canonical500_evidence",
     "require_pinned_build",
 ]
@@ -126,6 +142,10 @@ EVIDENCE_DIRECTORY = Path("evidence") / "nbis-canonical500-raw"
 #: every ``derived/`` file it is regenerable and is never trusted: finalization
 #: re-derives it from the manifests and compares (docs/adr/0012).
 ALIGNMENT_REPORT_NAME = "canonical-run-alignment.json"
+
+#: The last-written authority that binds the alignment to the general research
+#: receipt and finalization chain.
+STAGE_7C_FINALIZATION_NAME = "stage-7c-finalization.json"
 
 DEFAULT_EXPERIMENT_CONFIG = (
     REPOSITORY_ROOT / "configs" / "experiments" / f"{EXPERIMENT_ID}.yaml"
@@ -778,6 +798,14 @@ def inspect_nbis_canonical500_experiment(
         _compare_stored_alignment(workspace, research_state.run_id, report)
     )
     issues.extend(_check_no_derivations(workspace, research_state.run_id))
+    issues.extend(
+        _compare_stage_7c_finalization(
+            workspace=workspace,
+            run_id=research_state.run_id,
+            config=config,
+            derived_alignment=report,
+        )
+    )
     return NbisCanonical500ExperimentState(
         research_state=research_state,
         alignment_report=report,
@@ -816,6 +844,7 @@ def finalize_nbis_canonical500_run(
     repository_root = Path(repository_root)
     config = config or load_nbis_canonical500_config(repository_root=repository_root)
     resolved = run_id or read_run_pointer(workspace, config.experiment_id)
+    verifier_software = capture_research_provenance(repository_root)
 
     context = _load_alignment_context(
         workspace=workspace,
@@ -857,7 +886,80 @@ def finalize_nbis_canonical500_run(
             f"{'clean' if context.report.is_clean else 'not clean'}, "
             f"issues {[issue.message for issue in remaining][:2]}"
         )
+    marker = _build_stage_7c_finalization(
+        workspace=workspace,
+        run_id=resolved,
+        config=config,
+        derived_alignment=context.report,
+        verifier_source_commit=verifier_software.source_revision,
+        verifier_source_tree_clean=verifier_software.source_tree_clean,
+        created_utc=_utc_now(),
+    )
+    _write_stage_7c_finalization(workspace, resolved, marker)
     return receipt
+
+
+def refresh_nbis_canonical500_stage_finalization(
+    *,
+    workspace: Path = DEFAULT_WORKSPACE,
+    dataset_root: Path | None = None,
+    config: NbisCanonical500ExperimentConfig | None = None,
+    repository_root: Path = REPOSITORY_ROOT,
+    run_id: str | None = None,
+) -> Stage7CFinalization:
+    """Re-derive alignment and its Stage 7C marker without rerunning NBIS.
+
+    This is the migration path when verifier code changes after a completed run.
+    It requires a clean committed verifier tree, rechecks the general research
+    chain and every alignment source, rewrites only regenerable Stage 7C
+    artefacts, and never opens or executes a raw comparison job.
+    """
+    workspace = Path(workspace)
+    repository_root = Path(repository_root)
+    config = config or load_nbis_canonical500_config(repository_root=repository_root)
+    resolved = run_id or read_run_pointer(workspace, config.experiment_id)
+    verifier_software = capture_research_provenance(repository_root)
+
+    research_state = inspect_nbis_research_experiment(
+        spec=build_nbis_canonical500_spec(config),
+        preparer_factory=_preparer_factory,
+        workspace=workspace,
+        dataset_root=dataset_root,
+        repository_root=repository_root,
+        run_id=resolved,
+        expected_input_set=SD300_CANONICAL500_INPUT_SET,
+    )
+    if not research_state.is_research_ready:
+        raise ResearchPreflightError(
+            f"run {resolved} is not RESEARCH_READY: {list(research_state.issues)[:3]}"
+        )
+    report = verify_nbis_canonical500_alignment(
+        workspace=workspace,
+        dataset_root=dataset_root,
+        config=config,
+        repository_root=repository_root,
+        run_id=resolved,
+        require_clean=True,
+    )
+    downstream = tuple(_check_no_derivations(workspace, resolved))
+    if downstream:
+        raise ResearchPreflightError(
+            f"run {resolved} has downstream derivations: "
+            f"{[issue.message for issue in downstream][:2]}"
+        )
+
+    _write_alignment_report(workspace, resolved, report)
+    marker = _build_stage_7c_finalization(
+        workspace=workspace,
+        run_id=resolved,
+        config=config,
+        derived_alignment=report,
+        verifier_source_commit=verifier_software.source_revision,
+        verifier_source_tree_clean=verifier_software.source_tree_clean,
+        created_utc=_utc_now(),
+    )
+    _write_stage_7c_finalization(workspace, resolved, marker)
+    return marker
 
 
 # ------------------------------------------------------------------- evidence
@@ -903,6 +1005,10 @@ def publish_nbis_canonical500_evidence(
         (
             "research-finalization.json",
             result_store.read_research_finalization(resolved),
+        ),
+        (
+            STAGE_7C_FINALIZATION_NAME,
+            _read_stage_7c_finalization(workspace, resolved),
         ),
         ("alignment-report.json", alignment),
         (
@@ -1211,6 +1317,140 @@ def _write_alignment_report(
     )
 
 
+def _build_stage_7c_finalization(
+    *,
+    workspace: Path,
+    run_id: str,
+    config: NbisCanonical500ExperimentConfig,
+    derived_alignment: CanonicalRunAlignmentReport,
+    verifier_source_commit: str,
+    verifier_source_tree_clean: bool,
+    created_utc: str,
+) -> Stage7CFinalization:
+    result_store = ResultStore(workspace)
+    alignment_path = result_store.derived_path(run_id, ALIGNMENT_REPORT_NAME)
+    stored_alignment = read_json(alignment_path)
+    if stored_alignment.get("alignment_fingerprint") != (
+        derived_alignment.alignment_fingerprint
+    ):
+        raise ResearchPreflightError(
+            "the stored alignment report is not the report being finalised"
+        )
+
+    run = result_store.read_run(run_id)
+    result_set = ResultSetStore(workspace).verify_result_set(run_id)
+    receipt = result_store.read_research_receipt(run_id)
+    research_finalization = result_store.read_research_finalization(run_id)
+    claims = {
+        "schema_version": STAGE_7C_FINALIZATION_SCHEMA_VERSION,
+        "kind": STAGE_7C_FINALIZATION_KIND,
+        "run_id": run.run_id,
+        "run_fingerprint": run.run_fingerprint,
+        "result_set_id": result_set.result_set_id,
+        "result_set_fingerprint": result_set.result_set_fingerprint,
+        "research_receipt_fingerprint": research_receipt_fingerprint(receipt),
+        "research_receipt_content_hash": research_receipt_content_hash(receipt),
+        "research_finalization_fingerprint": (
+            research_finalization.finalization_fingerprint
+        ),
+        "reference_run_id": config.reference.run_id,
+        "reference_plan_id": config.reference.plan_id,
+        "reference_result_set_id": config.reference.result_set_id,
+        "alignment_fingerprint": derived_alignment.alignment_fingerprint,
+        "alignment_report_content_hash": alignment_report_content_hash(
+            stored_alignment
+        ),
+        "verifier_source_commit": verifier_source_commit,
+        "verifier_source_tree_clean": verifier_source_tree_clean,
+    }
+    fingerprint = stage_7c_finalization_fingerprint(claims)
+    return Stage7CFinalization(
+        **claims,
+        stage_7c_finalization_fingerprint=fingerprint,
+        created_utc=created_utc,
+    )
+
+
+def _write_stage_7c_finalization(
+    workspace: Path, run_id: str, marker: Stage7CFinalization
+) -> Path:
+    return write_json(
+        ResultStore(workspace).derived_path(run_id, STAGE_7C_FINALIZATION_NAME),
+        marker,
+    )
+
+
+def _read_stage_7c_finalization(
+    workspace: Path, run_id: str
+) -> Stage7CFinalization:
+    from fpbench.core.errors import StorageError
+
+    path = ResultStore(workspace).derived_path(run_id, STAGE_7C_FINALIZATION_NAME)
+    if not path.is_file():
+        raise StorageError(f"Stage 7C finalization not found: {path}")
+    try:
+        return Stage7CFinalization(**read_json(path))
+    except (KeyError, TypeError, ValueError) as exc:
+        raise StorageError(f"{path}: unreadable Stage 7C finalization ({exc})") from exc
+
+
+def _compare_stage_7c_finalization(
+    *,
+    workspace: Path,
+    run_id: str,
+    config: NbisCanonical500ExperimentConfig,
+    derived_alignment: CanonicalRunAlignmentReport,
+) -> list[IntegrityIssue]:
+    from fpbench.core.enums import IntegrityIssueCode, IntegritySeverity
+    from fpbench.core.errors import StorageError
+
+    path = ResultStore(workspace).derived_path(run_id, STAGE_7C_FINALIZATION_NAME)
+    relative = path.relative_to(workspace).as_posix()
+    try:
+        stored = _read_stage_7c_finalization(workspace, run_id)
+    except StorageError as exc:
+        return [
+            IntegrityIssue(
+                code=IntegrityIssueCode.PLAN_CONFLICT,
+                severity=IntegritySeverity.ERROR,
+                message=str(exc),
+                relative_path=relative,
+            )
+        ]
+    try:
+        expected = _build_stage_7c_finalization(
+            workspace=workspace,
+            run_id=run_id,
+            config=config,
+            derived_alignment=derived_alignment,
+            verifier_source_commit=stored.verifier_source_commit,
+            verifier_source_tree_clean=stored.verifier_source_tree_clean,
+            created_utc=stored.created_utc,
+        )
+    except (OSError, ResearchPreflightError, StorageError, ValueError) as exc:
+        return [
+            IntegrityIssue(
+                code=IntegrityIssueCode.PLAN_CONFLICT,
+                severity=IntegritySeverity.ERROR,
+                message=f"cannot re-derive Stage 7C finalization: {exc}",
+                relative_path=relative,
+            )
+        ]
+    if to_plain(stored) == to_plain(expected):
+        return []
+    return [
+        IntegrityIssue(
+            code=IntegrityIssueCode.PLAN_CONFLICT,
+            severity=IntegritySeverity.ERROR,
+            message=(
+                "the stored Stage 7C finalization is not the complete chain "
+                "this workspace now derives"
+            ),
+            relative_path=relative,
+        )
+    ]
+
+
 def _compare_stored_alignment(
     workspace: Path, run_id: str, derived: CanonicalRunAlignmentReport
 ) -> list[IntegrityIssue]:
@@ -1231,6 +1471,17 @@ def _compare_stored_alignment(
         ]
     stored = read_json(path)
     issues: list[IntegrityIssue] = []
+    try:
+        expectations = _alignment_expectations_from_plain(stored.get("expectations"))
+    except (KeyError, TypeError, ValueError) as exc:
+        return [
+            IntegrityIssue(
+                code=IntegrityIssueCode.PLAN_CONFLICT,
+                severity=IntegritySeverity.ERROR,
+                message=f"the stored alignment expectations are invalid: {exc}",
+                relative_path=str(path.relative_to(workspace)),
+            )
+        ]
     recomputed = canonical_run_alignment_fingerprint(
         reference_run_id=str(stored.get("reference_run_id")),
         reference_plan_id=str(stored.get("reference_plan_id")),
@@ -1251,6 +1502,7 @@ def _compare_stored_alignment(
         pair_semantics_sha256=str(stored.get("pair_semantics_sha256")),
         prepared_entries_sha256=str(stored.get("prepared_entries_sha256")),
         issues=_issues_from_plain(stored.get("issues") or []),
+        expectations=expectations,
     )
     if recomputed != stored.get("alignment_fingerprint"):
         issues.append(
@@ -1261,6 +1513,18 @@ def _compare_stored_alignment(
                     "the stored alignment report does not fingerprint to what it "
                     "carries; it has been edited since it was written"
                 ),
+            )
+        )
+    if expectations != derived.expectations:
+        issues.append(
+            IntegrityIssue(
+                code=IntegrityIssueCode.PLAN_CONFLICT,
+                severity=IntegritySeverity.ERROR,
+                message=(
+                    "the stored alignment expectations are not the experiment "
+                    "shape this workspace now derives"
+                ),
+                relative_path=str(path.relative_to(workspace)),
             )
         )
     if stored.get("alignment_fingerprint") != derived.alignment_fingerprint:
@@ -1276,6 +1540,18 @@ def _compare_stored_alignment(
             )
         )
     return issues
+
+
+def _alignment_expectations_from_plain(value: Any) -> AlignmentExpectations:
+    if not isinstance(value, Mapping):
+        raise TypeError("expectations must be an object")
+    return AlignmentExpectations(
+        pair_count=int(value["pair_count"]),
+        prepared_entry_count=int(value["prepared_entry_count"]),
+        pairs_per_release_stage=int(value["pairs_per_release_stage"]),
+        prepared_entries_per_release=int(value["prepared_entries_per_release"]),
+        releases=tuple(value["releases"]),
+    )
 
 
 def _issues_from_plain(items: Any) -> tuple[IntegrityIssue, ...]:
@@ -1304,7 +1580,12 @@ def _check_no_derivations(workspace: Path, run_id: str) -> list[IntegrityIssue]:
     is no such threshold to choose yet (spec sections 45 and 51,
     docs/adr/0052).
     """
+    from fpbench.core.derivation_models import DerivationDefinition
     from fpbench.core.enums import IntegrityIssueCode, IntegritySeverity
+    from fpbench.core.evaluation_models import MetricDerivationDefinition
+    from fpbench.core.errors import StorageError
+    from fpbench.storage import layout
+    from fpbench.storage.paired_evaluation_store import PairedEvaluationStore
 
     issues: list[IntegrityIssue] = []
     run_directory = ResultStore(workspace).run_dir(run_id)
@@ -1323,7 +1604,155 @@ def _check_no_derivations(workspace: Path, run_id: str) -> list[IntegrityIssue]:
                     relative_path=f"results/{run_id}/{name}",
                 )
             )
+
+    derivations_root = layout.derivations_root(workspace)
+    if derivations_root.is_dir():
+        for path in sorted(derivations_root.rglob("definition.json")):
+            try:
+                payload = read_json(path)
+                definition = _load_downstream_definition(
+                    payload,
+                    decision_model=DerivationDefinition,
+                    metric_model=MetricDerivationDefinition,
+                )
+            except (OSError, StorageError, TypeError, ValueError) as exc:
+                issues.append(
+                    IntegrityIssue(
+                        code=IntegrityIssueCode.PLAN_CONFLICT,
+                        severity=IntegritySeverity.ERROR,
+                        message=f"unreadable downstream definition: {exc}",
+                        relative_path=path.relative_to(workspace).as_posix(),
+                    )
+                )
+                continue
+            if definition.run_id == run_id:
+                kind = (
+                    "decision/eligibility"
+                    if isinstance(definition, DerivationDefinition)
+                    else "metric"
+                )
+                issues.append(
+                    IntegrityIssue(
+                        code=IntegrityIssueCode.PLAN_CONFLICT,
+                        severity=IntegritySeverity.ERROR,
+                        message=(
+                            f"{kind} definition {definition.definition_id} derives "
+                            f"from run {run_id}; Stage 7C publishes raw scores only"
+                        ),
+                        relative_path=path.relative_to(workspace).as_posix(),
+                    )
+                )
+
+    paired_store = PairedEvaluationStore(workspace)
+    if paired_store.paired_root.is_dir():
+        try:
+            run_fingerprint = ResultStore(workspace).read_run(run_id).run_fingerprint
+        except StorageError as exc:
+            issues.append(
+                IntegrityIssue(
+                    code=IntegrityIssueCode.PLAN_CONFLICT,
+                    severity=IntegritySeverity.ERROR,
+                    message=f"cannot identify run {run_id} for paired checks: {exc}",
+                )
+            )
+            return issues
+        for directory in sorted(paired_store.paired_root.iterdir()):
+            paired_id = directory.name
+            if not paired_store.definition_path(paired_id).is_file():
+                continue
+            relative = paired_store.definition_path(paired_id).relative_to(
+                workspace
+            ).as_posix()
+            if paired_store.has_receipt(paired_id):
+                try:
+                    receipt = paired_store.read_receipt(paired_id)
+                except StorageError as exc:
+                    issues.append(
+                        IntegrityIssue(
+                            code=IntegrityIssueCode.PLAN_CONFLICT,
+                            severity=IntegritySeverity.ERROR,
+                            message=f"unreadable paired receipt: {exc}",
+                            relative_path=paired_store.receipt_path(paired_id)
+                            .relative_to(workspace)
+                            .as_posix(),
+                        )
+                    )
+                    continue
+                cites_run = run_id in {
+                    receipt.native_run_id,
+                    receipt.canonical_run_id,
+                }
+            else:
+                try:
+                    definition = paired_store.read_definition(paired_id)
+                except StorageError as exc:
+                    try:
+                        cites_run = _legacy_paired_definition_cites_run(
+                            paired_store.definition_path(paired_id), run_fingerprint
+                        )
+                    except (KeyError, TypeError, ValueError) as legacy_exc:
+                        issues.append(
+                            IntegrityIssue(
+                                code=IntegrityIssueCode.PLAN_CONFLICT,
+                                severity=IntegritySeverity.ERROR,
+                                message=(
+                                    f"unreadable paired definition: {exc}; "
+                                    f"source identities invalid: {legacy_exc}"
+                                ),
+                                relative_path=relative,
+                            )
+                        )
+                        continue
+                else:
+                    cites_run = run_fingerprint in {
+                        definition.native_run_fingerprint,
+                        definition.canonical_run_fingerprint,
+                    }
+            if cites_run:
+                issues.append(
+                    IntegrityIssue(
+                        code=IntegrityIssueCode.PLAN_CONFLICT,
+                        severity=IntegritySeverity.ERROR,
+                        message=(
+                            f"paired evaluation {paired_id} cites run {run_id}; "
+                            "Stage 7C has no paired evaluation"
+                        ),
+                        relative_path=relative,
+                    )
+                )
     return issues
+
+
+def _legacy_paired_definition_cites_run(path: Path, run_fingerprint: str) -> bool:
+    """Read only source identities from a pre-current paired definition.
+
+    Finalised comparisons are identified from their modelled receipt. Current
+    unfinished comparisons are identified from ``PairedEvaluationDefinition``.
+    This narrow fallback keeps older unfinished definitions readable after the
+    definition fingerprint schema changed: it parses two named JSON fields,
+    validates them as complete digests and compares exact identities. It never
+    greps or searches arbitrary JSON text.
+    """
+    payload = read_json(path)
+    fingerprints: list[str] = []
+    for name in ("native_run_fingerprint", "canonical_run_fingerprint"):
+        value = str(payload[name]).strip().lower()
+        if len(value) != 64 or not set(value) <= set("0123456789abcdef"):
+            raise ValueError(f"{name} is not a 64-character hexadecimal digest")
+        fingerprints.append(value)
+    return run_fingerprint in fingerprints
+
+
+def _load_downstream_definition(
+    payload: Mapping[str, Any], *, decision_model: Any, metric_model: Any
+) -> Any:
+    errors: list[str] = []
+    for model in (decision_model, metric_model):
+        try:
+            return model(**payload)
+        except (KeyError, TypeError, ValueError) as exc:
+            errors.append(f"{model.__name__}: {exc}")
+    raise StorageError("; ".join(errors))
 
 
 def _load_execution_profile(path: Path) -> ExecutionProfile:
@@ -1358,6 +1787,10 @@ def _load_execution_profile(path: Path) -> ExecutionProfile:
         ),
         parameters=parameters,
     )
+
+
+def _utc_now() -> str:
+    return _dt.datetime.now(_dt.timezone.utc).isoformat()
 
 
 def _require_no_decision_keys(document: Any, path: Path, trail: str = "") -> None:

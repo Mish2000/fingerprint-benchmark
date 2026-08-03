@@ -7,7 +7,7 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
 
 .PHONY: help test test-all full-run adapter-contract \
         nbis-inspect nbis-seal nbis-fetch nbis-build nbis-certify nbis-verify \
-        nbis-contract nbis-upstream \
+        nbis-contract nbis-upstream nbis-canonical500-preflight \
         sourceafis-build sourceafis-java-test sourceafis-python-test \
         sourceafis-test sourceafis-sd300-smoke \
         research-prepare research-execute research-status research-finalize \
@@ -39,6 +39,7 @@ help:
 	@echo "nbis-verify             re-check a build against the lock and this repository"
 	@echo "nbis-contract           the NBIS route's own contract (no NBIS, no network)"
 	@echo "nbis-upstream           the claims only a real certified build can settle"
+	@echo "nbis-canonical500-preflight  the stage 7C workspace gate, before and after"
 	@echo ""
 	@echo "research-prepare        pin the runtime and plan the 6,000-comparison run"
 	@echo "research-execute        execute it, resumably (JOBS=n for a slice)"
@@ -129,6 +130,12 @@ nbis-contract:
 # or exactly one certified build under build/nbis-5.0.0/.
 nbis-upstream:
 	pytest -m nbis_upstream -q
+
+# The stage 7C workspace, before and after the run: the reference chain, the
+# prepared set, the alignment at 6,000/6,000 and 3,000/3,000, the pinned build,
+# and — once a run exists — that nothing downstream of its raw scores was made.
+nbis-canonical500-preflight:
+	pytest -m nbis_full_run -q
 
 # ------------------------------------------------------------------- SourceAFIS
 

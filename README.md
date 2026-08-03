@@ -72,6 +72,11 @@ them with no behavioural patch, and certified against NIST's own reference outpu
 which it reproduces byte for byte. It also produced no biometric number: the 6,000
 comparisons are stage 7C's.
 
+Phase 7C ran **those 6,000 comparisons under NBIS** — the same pair ids, in the same
+order, over the same canonical 500 ppi images, proved row by row rather than assumed —
+and published the raw scores and the failure codes. No threshold, no decision, no metric,
+no paired comparison and no SourceAFIS score was read.
+
 ```
 VERIFIED SOURCE IMAGES
         ↓
@@ -1295,6 +1300,55 @@ Details:
 [docs/architecture/nbis-input-and-ppi-policy.md](docs/architecture/nbis-input-and-ppi-policy.md),
 [docs/architecture/nbis-build-provenance.md](docs/architecture/nbis-build-provenance.md).
 
+## Stage 7C: the same 6,000 comparisons, under the second algorithm
+
+Stage 7C runs the certified NBIS route over the comparisons SourceAFIS already ran, and
+publishes raw scores and failure codes — nothing that interprets them.
+
+The claim it has to make good on is a claim about *inputs*: the same 6,000 pairs, in the
+same order, over the same 3,000 prepared 500 ppi PNGs. Nothing about a run's identity says
+so on its own. Two runs can share a `pair_manifest_hash` and still have been planned from
+different rows; two runs can quote the same `preparation_set_id` and still have opened
+different bytes. So it is proved rather than asserted, record by record, by
+`CanonicalRunAlignmentReport`:
+
+* the two ordered pair-id sequences, position by position;
+* every pair's release, stage, ground truth, left image and right image;
+* every prepared image's source digest, encoded digest, pixel digest, output width,
+  height and resolution, transform action and entry fingerprint.
+
+Comparing counts would prove nothing at all, and an alignment of 5,999 of 6,000 is a
+failure rather than a near miss — the one row that differs is the row whose two results
+cannot be attributed to one comparison. The check runs three times: before the run is
+created, again against the plan the engine then builds, and again at finalization against
+the copy preparation stored
+([ADR 0051](docs/adr/0051-nbis-full-run-reuses-sourceafis-canonical-pairs.md)).
+
+Stage 7C selects nothing. It calls neither `build_cohort` nor `build_pairs`, loads the
+manifests with `allow_creation=False`, materialises no image, and pins one named certified
+build — `658f9f54a8f2` — passed explicitly, with no "newest", no lexicographic first, no
+environment variable and no fallback to the gcc-9 build stage 7B certified
+([ADR 0053](docs/adr/0053-stage-7c-pins-one-certified-nbis-build.md)). The execution
+profile is not restated: it is `canonical_500_lanczos3_60s_v1`, the reference run's own
+file, reused unchanged, so the two runs differ in the algorithm and in nothing else.
+
+And it decides nothing. No `DecisionSet`, no `EligibilitySet`, no `MetricSet`, no paired
+evaluation, no threshold anywhere in the configuration — `threshold`, `decision_profile`,
+`match_threshold`, `acceptance_threshold` and `calibration` are refused at any depth — and
+no score statistic in the operational summary. No SourceAFIS score is read at all: the
+reference run is opened for its identity, its plan, its pair manifest, its prepared inputs
+and its readiness. A BOZORTH3 score of 0 is a successful comparison, not a `NON_MATCH`.
+SourceAFIS's documented 40 is a number about a different scale and does not transfer
+([ADR 0052](docs/adr/0052-stage-7c-publishes-raw-scores-only.md)).
+
+The orchestration is stage 7A's, untouched: `nbis_canonical500_full.py` loads two config
+files, proves the alignment, and hands a spec plus the NBIS integration to
+`algorithm_research`. A structural test walks its syntax tree and fails if it grows a job
+loop, opens a raw result, builds a bundle, a result set, a receipt or a marker, or names
+the first algorithm outside the one function that reads the reference run's readiness.
+
+Details: [docs/experiments/nbis-canonical500-raw.md](docs/experiments/nbis-canonical500-raw.md).
+
 ## Architecture note: where the models live
 
 Several containers sit in `core` rather than in the package that derives them:
@@ -1321,11 +1375,12 @@ one experiment, and it needs somewhere to live that is not the planner.
    becomes possible without touching the 50 test subjects
    ([ADR 0021](docs/adr/0021-decision-profiles-are-immutable-and-external.md));
 3. failure analysis over the algorithmic failure codes the run recorded;
-4. **stage 7C** — the same 6,000 pair ids under `nbis_mindtct_bozorth3`, over the
-   canonical 500 ppi set, raw scores only. The route is certified, the source is
-   sealed and the harness is unchanged; what is left is to run it. No threshold and
-   no metric belongs to that stage either
-   ([ADR 0047](docs/adr/0047-nbis-v1-runs-only-on-canonical-500ppi.md));
+4. **stage 7D** — decisions over the NBIS raw scores: how a `DecisionProfile` for
+   BOZORTH3 is defined, where its threshold comes from, how SELF defines eligibility on a
+   route whose SELF comparisons can fail differently, which failures are `UNDECIDABLE`,
+   and how a comparison with SourceAFIS is made without mixing two scales. Its input is
+   stage 7C's finished result set, and none of those decisions was taken there
+   ([ADR 0052](docs/adr/0052-stage-7c-publishes-raw-scores-only.md));
 5. the persistent-JVM decision, on the strength of the full run's operational summary
    rather than a guess ([ADR 0015](docs/adr/0015-sourceafis-uses-stateless-java-bridge.md));
 6. a better negative set, if a real false-match rate is ever wanted: cross-subject, and

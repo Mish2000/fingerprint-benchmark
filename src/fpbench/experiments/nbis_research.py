@@ -84,6 +84,7 @@ __all__ = [
     "NBIS_INTEGRATION_DIRECTORY",
     "BUILD_ROOT",
     "BUILD_DIRECTORY_ENV_VAR",
+    "require_certified_build",
     "resolve_build_directory",
     "prepare_nbis_research_run",
     "execute_nbis_research_run",
@@ -226,7 +227,7 @@ def _development_runtime(
         bozorth3_executable=directory / "bin" / "bozorth3",
         build_manifest=directory / BUILD_MANIFEST_FILENAME,
     )
-    _require_certified(config, repository_root=Path(repository_root))
+    require_certified_build(config, repository_root=Path(repository_root))
     return DevelopmentAdapterRuntime(
         adapter=NbisAdapter(config), assets=dict(config.runtime_assets())
     )
@@ -256,13 +257,20 @@ def _research_delegate(
         build_manifest=Path(asset_paths[BUILD_MANIFEST_ROLE]),
         research_mode=True,
     )
-    _require_certified(config, repository_root=Path(repository_root))
+    require_certified_build(config, repository_root=Path(repository_root))
     _require_bundle_digests(config, bundle)
     return NbisAdapter(config)
 
 
-def _require_certified(config: NbisConfig, *, repository_root: Path) -> None:
-    """The build manifest describes these files, these sources and this repository."""
+def require_certified_build(config: NbisConfig, *, repository_root: Path) -> None:
+    """The build manifest describes these files, these sources and this repository.
+
+    Public because an experiment is entitled to make this check *before* it does
+    anything else, rather than discovering it several preflight steps in. Stage
+    7C's preparation verifies the pinned build first and refuses to go on
+    (spec section 24); running the check twice is a few file digests, and having
+    two implementations of it would be a way for them to disagree.
+    """
     try:
         manifest = read_build_manifest(config.build_manifest)
         verify_build_manifest(

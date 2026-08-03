@@ -425,8 +425,37 @@ def test_the_wrapper_holds_no_orchestration():
 
 
 def test_the_wrapper_defines_no_full_run_configuration():
-    """Section 16: the 6,000-comparison configuration belongs to stage 7C."""
-    configs = Path(__file__).resolve().parents[2] / "configs" / "algorithms"
-    assert not (configs / "nbis_canonical500_full_v1.yaml").exists()
-    experiments = Path(nbis_research.__file__).parent
-    assert not (experiments / "nbis_canonical500_full.py").exists()
+    """Section 16: the 6,000-comparison configuration is not in this module.
+
+    Stage 7C has since written that configuration, in its own experiment module
+    and its own YAML file. What stage 7B's rule protects is unchanged and is what
+    is checked here: ``nbis_research.py`` certifies the route and knows nothing
+    about SD300, so importing it can never start a run over the dataset.
+    """
+    repository = Path(__file__).resolve().parents[2]
+    assert not (
+        repository / "configs" / "algorithms" / "nbis_canonical500_full_v1.yaml"
+    ).exists(), "an experiment is not an algorithm"
+
+    # Over the code, not over the text: the module's docstring explains that the
+    # 6,000 SD300 comparisons are stage 7C's, and a prose ban would be defeated
+    # by explaining it.
+    tree = ast.parse(Path(nbis_research.__file__).read_text(encoding="utf-8"))
+    docstrings = {
+        id(node.body[0].value)
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef))
+        and node.body
+        and isinstance(node.body[0], ast.Expr)
+        and isinstance(node.body[0].value, ast.Constant)
+        and isinstance(node.body[0].value.value, str)
+    }
+    literals = " ".join(
+        node.value.lower()
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and id(node) not in docstrings
+    )
+    for forbidden in ("sd300", "prepset_", "run_4c59fa02a6ab", "6000"):
+        assert forbidden not in literals, forbidden

@@ -533,6 +533,11 @@ def build_comparison_records(
             "needs one row each"
         )
 
+    # The manifest is keyed by ``PairId``; the decisions carry plain strings.
+    # Indexed once rather than searched per row: a linear scan here would be
+    # thirty-six million comparisons for six thousand pairs.
+    pairs_by_id = {str(key): pair for key, pair in pairs.items()}
+
     records: list[CrossAlgorithmComparisonRecord] = []
     for ordinal, (left_record, right_record) in enumerate(
         zip(left.decisions, right.decisions, strict=True)
@@ -543,7 +548,7 @@ def build_comparison_records(
                 f"{left_record.pair_id} and the {right.label} chain covers "
                 f"{right_record.pair_id}"
             )
-        pair = _pair_for(pairs, left_record.pair_id)
+        pair = _pair_for(pairs_by_id, left_record.pair_id)
         fields = {
             "ordinal": ordinal,
             "pair_id": left_record.pair_id,
@@ -566,13 +571,14 @@ def build_comparison_records(
     return tuple(records)
 
 
-def _pair_for(pairs: Mapping[Any, Any], pair_id: str) -> Any:
-    for key, pair in pairs.items():
-        if str(key) == pair_id:
-            return pair
-    raise CrossAlgorithmError(
-        f"pair {pair_id} is decided by both chains but is not in the pair manifest"
-    )
+def _pair_for(pairs_by_id: Mapping[str, Any], pair_id: str) -> Any:
+    pair = pairs_by_id.get(pair_id)
+    if pair is None:
+        raise CrossAlgorithmError(
+            f"pair {pair_id} is decided by both chains but is not in the pair "
+            "manifest"
+        )
+    return pair
 
 
 class _RecordProbe:

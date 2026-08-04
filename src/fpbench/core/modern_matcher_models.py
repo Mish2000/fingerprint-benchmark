@@ -1493,7 +1493,8 @@ class CandidateQualificationReport:
             if item.gate is QualificationGate.FINITE_RAW_SCORE
         )
         finite_score_is_the_only_dynamic_unknown = set(score_gate.failures) <= {
-            "RAW_SCORE_NOT_FINITE"
+            "RAW_SCORE_NOT_FINITE",
+            "RAW_SCORE_RUNTIME_NOT_EXECUTED",
         }
         expected_static = all(passed[gate] for gate in static_gates) and (
             score_gate.passed or finite_score_is_the_only_dynamic_unknown

@@ -236,6 +236,67 @@ def test_offline_and_process_restart_require_explicit_isolation_evidence() -> No
     } <= _failures(parts)
 
 
+def test_unexecuted_runtime_reports_only_unknown_runtime_conclusions() -> None:
+    parts = _parts()
+    parts["facts"] = rebuild(
+        parts["facts"],
+        raw_score_finite=False,
+        self_independent=False,
+        determinism_within_tolerance=False,
+        process_restart_isolated=False,
+        operationally_feasible=False,
+        execution_attempted=False,
+        smoke_passed=False,
+        contract_passed=False,
+    )
+    parts["determinism"] = make_determinism(tested=False)
+    parts["operational"] = make_operational(measured=False)
+
+    failures = _failures(parts)
+    assert {
+        "RAW_SCORE_RUNTIME_NOT_EXECUTED",
+        "SELF_CONTRACT_NOT_EXECUTED",
+        "DETERMINISM_NOT_TESTED",
+        "OPERATIONAL_MEASUREMENTS_MISSING",
+    } <= failures
+    assert {
+        "RAW_SCORE_NOT_FINITE",
+        "SELF_EXTRACTION_NOT_INDEPENDENT",
+        "PROCESS_RESTART_NOT_ISOLATED",
+        "NONDETERMINISM_EXCEEDS_TOLERANCE",
+        "FULL_RUN_NOT_OPERATIONALLY_FEASIBLE",
+    }.isdisjoint(failures)
+
+
+def test_executed_runtime_preserves_observed_negative_conclusions() -> None:
+    parts = _parts()
+    parts["facts"] = rebuild(
+        parts["facts"],
+        raw_score_finite=False,
+        self_independent=False,
+        determinism_within_tolerance=False,
+        process_restart_isolated=False,
+        operationally_feasible=False,
+        smoke_passed=False,
+        contract_passed=False,
+    )
+
+    failures = _failures(parts)
+    assert {
+        "RAW_SCORE_NOT_FINITE",
+        "SELF_EXTRACTION_NOT_INDEPENDENT",
+        "PROCESS_RESTART_NOT_ISOLATED",
+        "NONDETERMINISM_EXCEEDS_TOLERANCE",
+        "FULL_RUN_NOT_OPERATIONALLY_FEASIBLE",
+    } <= failures
+    assert {
+        "RAW_SCORE_RUNTIME_NOT_EXECUTED",
+        "SELF_CONTRACT_NOT_EXECUTED",
+        "DETERMINISM_NOT_TESTED",
+        "OPERATIONAL_MEASUREMENTS_MISSING",
+    }.isdisjoint(failures)
+
+
 def test_every_licensing_scope_must_be_reviewed_separately() -> None:
     parts = _parts()
     source = make_license(LicenseScope.SOURCE_CODE)
@@ -321,15 +382,10 @@ def test_documented_threshold_source_must_resolve_to_locked_upstream_evidence() 
 @pytest.mark.parametrize(
     "facts",
     [
-        make_facts(
-            execution_attempted=False,
-            smoke_passed=False,
-            contract_passed=False,
-        ),
         make_facts(smoke_passed=False, contract_passed=False),
         make_facts(contract_passed=False),
     ],
-    ids=("not-executed", "smoke-failed", "contract-failed"),
+    ids=("smoke-failed", "contract-failed"),
 )
 def test_ready_status_requires_executed_smoke_and_contract_qualification(
     facts: QualificationFacts,
@@ -339,6 +395,31 @@ def test_ready_status_requires_executed_smoke_and_contract_qualification(
 
     with pytest.raises(ValueError, match="readiness requires executed smoke"):
         make_report(candidate, registry, facts=facts)
+
+
+def test_unexecuted_report_is_recorded_as_not_established_not_ready() -> None:
+    candidate = make_candidate()
+    registry = make_registry((candidate,))
+    report = make_report(
+        candidate,
+        registry,
+        facts=make_facts(
+            execution_attempted=False,
+            smoke_passed=False,
+            contract_passed=False,
+        ),
+        determinism=make_determinism(tested=False),
+        operational=make_operational(measured=False),
+    )
+
+    assert not report.raw_score_ready
+    assert not report.decision_path_ready
+    assert {
+        "RAW_SCORE_RUNTIME_NOT_EXECUTED",
+        "SELF_CONTRACT_NOT_EXECUTED",
+        "DETERMINISM_NOT_TESTED",
+        "OPERATIONAL_MEASUREMENTS_MISSING",
+    } <= set(report.exact_gate_failures)
 
 
 def test_candidate_specific_failures_are_preserved_verbatim() -> None:

@@ -305,7 +305,17 @@ def derive_gate_results(
 
     _append(failures, QualificationGate.FINITE_RAW_SCORE, not facts.comparator_present, "COMPARATOR_MISSING")
     _append(failures, QualificationGate.FINITE_RAW_SCORE, not facts.raw_score_exposed, "RAW_SCORE_NOT_EXPOSED")
-    _append(failures, QualificationGate.FINITE_RAW_SCORE, facts.raw_score_exposed and not facts.raw_score_finite, "RAW_SCORE_NOT_FINITE")
+    if facts.execution_attempted:
+        _append(
+            failures,
+            QualificationGate.FINITE_RAW_SCORE,
+            facts.raw_score_exposed and not facts.raw_score_finite,
+            "RAW_SCORE_NOT_FINITE",
+        )
+    else:
+        failures[QualificationGate.FINITE_RAW_SCORE].append(
+            "RAW_SCORE_RUNTIME_NOT_EXECUTED"
+        )
     _append(failures, QualificationGate.FINITE_RAW_SCORE, facts.hidden_threshold or (score is not None and score.hidden_threshold), "HIDDEN_THRESHOLD")
     _append(failures, QualificationGate.FINITE_RAW_SCORE, score is None or not score.complete, "SCORE_PROFILE_INCOMPLETE")
 
@@ -398,22 +408,36 @@ def derive_gate_results(
             "CALIBRATION_PROTOCOL_EVIDENCE_NOT_BOUND",
         )
 
-    _append(failures, QualificationGate.INDEPENDENT_SELF, not facts.self_independent, "SELF_EXTRACTION_NOT_INDEPENDENT")
+    if facts.execution_attempted:
+        _append(
+            failures,
+            QualificationGate.INDEPENDENT_SELF,
+            not facts.self_independent,
+            "SELF_EXTRACTION_NOT_INDEPENDENT",
+        )
+    else:
+        failures[QualificationGate.INDEPENDENT_SELF].append(
+            "SELF_CONTRACT_NOT_EXECUTED"
+        )
 
-    _append(failures, QualificationGate.DETERMINISM, not determinism.tested, "DETERMINISM_NOT_TESTED")
-    _append(
-        failures,
-        QualificationGate.DETERMINISM,
-        not facts.process_restart_isolated,
-        "PROCESS_RESTART_NOT_ISOLATED",
-    )
-    _append(
-        failures,
-        QualificationGate.DETERMINISM,
-        not facts.determinism_within_tolerance
-        or determinism.within_predeclared_tolerance is not True,
-        "NONDETERMINISM_EXCEEDS_TOLERANCE",
-    )
+    if not determinism.tested:
+        failures[QualificationGate.DETERMINISM].append(
+            "DETERMINISM_NOT_TESTED"
+        )
+    else:
+        _append(
+            failures,
+            QualificationGate.DETERMINISM,
+            not facts.process_restart_isolated,
+            "PROCESS_RESTART_NOT_ISOLATED",
+        )
+        _append(
+            failures,
+            QualificationGate.DETERMINISM,
+            not facts.determinism_within_tolerance
+            or determinism.within_predeclared_tolerance is not True,
+            "NONDETERMINISM_EXCEEDS_TOLERANCE",
+        )
     _append(
         failures,
         QualificationGate.DECISION_PATH,
@@ -491,8 +515,18 @@ def derive_gate_results(
     _append(failures, QualificationGate.ARCHITECTURE_FIT, not facts.external_minutiae_in_candidate_identity, "EXTERNAL_MINUTIAE_OUTSIDE_IDENTITY")
     _append(failures, QualificationGate.ARCHITECTURE_FIT, facts.reweighting_uses_evaluation_cohort, "EVALUATION_COHORT_REWEIGHTING")
 
-    _append(failures, QualificationGate.OPERATIONAL_FEASIBILITY, not operational.measured, "OPERATIONAL_MEASUREMENTS_MISSING")
-    _append(failures, QualificationGate.OPERATIONAL_FEASIBILITY, not facts.operationally_feasible or operational.operationally_feasible is not True, "FULL_RUN_NOT_OPERATIONALLY_FEASIBLE")
+    if not operational.measured:
+        failures[QualificationGate.OPERATIONAL_FEASIBILITY].append(
+            "OPERATIONAL_MEASUREMENTS_MISSING"
+        )
+    else:
+        _append(
+            failures,
+            QualificationGate.OPERATIONAL_FEASIBILITY,
+            not facts.operationally_feasible
+            or operational.operationally_feasible is not True,
+            "FULL_RUN_NOT_OPERATIONALLY_FEASIBLE",
+        )
 
     expected_roles = set(candidate.expected_components)
     present_roles = {component.role for component in manifest.components if component.present}
@@ -651,7 +685,8 @@ def build_qualification_report(
     # the comparator, raw-score API, profile, and absence of a hidden threshold,
     # but cannot require the very execution it is deciding whether to permit.
     finite_score_is_the_only_dynamic_unknown = set(score_gate.failures) <= {
-        "RAW_SCORE_NOT_FINITE"
+        "RAW_SCORE_NOT_FINITE",
+        "RAW_SCORE_RUNTIME_NOT_EXECUTED",
     }
     static_passed = all(passed[gate] for gate in static_gates) and (
         score_gate.passed or finite_score_is_the_only_dynamic_unknown

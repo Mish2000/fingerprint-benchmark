@@ -1,0 +1,2242 @@
+{
+  "receipt": {
+    "schema_version": "1",
+    "protocol_id": "stage7d_fair_measurement_protocol_v1",
+    "protocol_fingerprint": "ac212d9893a4990b8cf28da8b88077dfed3a30f3d29e02e8b74357b1d1efbc7d",
+    "evaluation_id": "algcompare_7ef9d0c9a0df",
+    "evaluation_fingerprint": "7ef9d0c9a0df39f401291cd62d85df96df06b0fdffdf696061c9a18000396630",
+    "definition_fingerprint": "92b58f885349c94c64062b140147b0cdc6202d1c973ab06a85f1edaeaa943530",
+    "audit_fingerprint": "4b36dcf753c380cebc848f443a42ad6373dea42dc5f7f6cb3b142ae3c76d6189",
+    "left_label": "sourceafis",
+    "left_run_fingerprint": "4c59fa02a6ab0471bdd46e134c61d74a7b6463276bf7c1bb6bd2e217622ceb5a",
+    "left_result_set_fingerprint": "087b084fb8a8001eb92e20d4900dfc759dc5abbc9d5346144c83f5298f61e38b",
+    "left_decision_set_fingerprint": "df0d584bdeded5a9097a00bc0854d33243747adbd1ee238826ce378d40d679c6",
+    "left_eligibility_set_fingerprint": "d87d6591d517b7b800906d4e67aff414cefc6ff7999d8e1496201602201c24b0",
+    "left_metric_set_fingerprint": "b4c70fbfd1d374c5612f130a0fde04184ae0e76f3c2a635b5e954cc345e79dbf",
+    "left_decision_profile_fingerprint": "a9550e9dfd0ce54f6538d395a32c5e354db3bd4a9cbafff4cf0268e88fc78b75",
+    "right_label": "nbis",
+    "right_run_fingerprint": "f0468f28ffba544fc7f2df0d4e9844cc0c6f0ed8e5359fd338d49ab6e8022c9f",
+    "right_result_set_fingerprint": "73a9d93a8528e95322b69c64af416a234e7bd100cbb6556e66f1ae8c1cdd7fff",
+    "right_decision_set_fingerprint": "52b1ee4e6aca1c8ef5e2b5cec3988375167e2cc6dda5e0393efe71c20d5652ad",
+    "right_eligibility_set_fingerprint": "9e717ecf6a820acabfd6b62783752dac3b822a0e5f324107340db2f0eb5eff5f",
+    "right_metric_set_fingerprint": "614450282fdb91620a9eeed117bc09a51f956bc0eb001e80e69fab609f0998e6",
+    "right_decision_profile_fingerprint": "2aca865177dddbfda5d2037520531a29472bc78af0af980b3018a08d1449eb20",
+    "right_stage_finalization_fingerprint": "76a678adefef2c070161d15ccae1e1689ac85cefcbc83700fdbd36e7d906fb7e",
+    "alignment_fingerprint": "d25b52159d251c2998bc55577d2e40f7a287d869b134dbe6aabbd3a3baa91686",
+    "eligibility_policy_id": "plain_and_roll_self_must_match",
+    "eligibility_policy_version": "1",
+    "metric_policy_fingerprint": "177c59880368cde201d6c95d1aa8686fed11c20ba51fd82cd933ed9fe868d6bf",
+    "comparison_policy_fingerprint": "46af40e02cd4c04fb4e95bf6feaf58088537d41c6db0e1e176dac00a2f3e3727",
+    "comparison_records_hash": "3aaf315656411d8ac87c97736a1dec7fe6c595e6fcf6668ce4fec628a0218668",
+    "eligibility_transitions_hash": "41167ba17cbf77cb57329ada786b2f851fe6e71f0d092afed57e7a111721eed1",
+    "common_eligible_hash": "0d214e7282566534d4797f2de71dd1ccb98b12fdd861181250864364327f6476",
+    "count_records_hash": "b8dc1354ed8dd7a7630a83ff8fa356ad5dcd601a67e86ef1236a4ad33007fe6c",
+    "observations_hash": "5fe296c10e96072a3979fcffdc3c2821f0d03827a282fb38405641758583a27f",
+    "report_content_hash": "5ca0bd28a71866b856b86ab8d66c93ab384a3e2de765a1e0ec3519f69fb5c241",
+    "comparison_software_fingerprint": "43ba1fa5f5cd08256fcedb39151b439d82e0abdada4ae58d70f9323684621856",
+    "comparison_source_commit": "dae7afd38191642f5f3b6d5bc27dfa375e38a10d",
+    "comparison_source_tree_clean": true,
+    "total_records": 6000,
+    "total_transitions": 1500,
+    "total_common_eligible": 1472,
+    "total_observations": 52,
+    "operating_point_relation": "independently_documented_not_equated",
+    "statement": "This comparison uses independently documented, uncalibrated operating points on identical inputs. It records paired observed outcomes. It does not establish equal FMR, general algorithm superiority, causality, or statistical significance.",
+    "created_utc": "2026-08-04T09:56:45.646288+00:00"
+  },
+  "definition": {
+    "definition_id": "algcomparedef_92b58f885349",
+    "definition_fingerprint": "92b58f885349c94c64062b140147b0cdc6202d1c973ab06a85f1edaeaa943530",
+    "protocol_id": "stage7d_fair_measurement_protocol_v1",
+    "protocol_fingerprint": "ac212d9893a4990b8cf28da8b88077dfed3a30f3d29e02e8b74357b1d1efbc7d",
+    "left_label": "sourceafis",
+    "left_run_id": "run_4c59fa02a6ab",
+    "left_run_fingerprint": "4c59fa02a6ab0471bdd46e134c61d74a7b6463276bf7c1bb6bd2e217622ceb5a",
+    "left_result_set_fingerprint": "087b084fb8a8001eb92e20d4900dfc759dc5abbc9d5346144c83f5298f61e38b",
+    "left_decision_set_id": "decisionset_df0d584bdede",
+    "left_decision_set_fingerprint": "df0d584bdeded5a9097a00bc0854d33243747adbd1ee238826ce378d40d679c6",
+    "left_eligibility_set_id": "eligibilityset_d87d6591d517",
+    "left_eligibility_set_fingerprint": "d87d6591d517b7b800906d4e67aff414cefc6ff7999d8e1496201602201c24b0",
+    "left_metric_set_id": "metricset_b4c70fbfd1d3",
+    "left_metric_set_fingerprint": "b4c70fbfd1d374c5612f130a0fde04184ae0e76f3c2a635b5e954cc345e79dbf",
+    "left_decision_profile_fingerprint": "a9550e9dfd0ce54f6538d395a32c5e354db3bd4a9cbafff4cf0268e88fc78b75",
+    "right_label": "nbis",
+    "right_run_id": "run_f0468f28ffba",
+    "right_run_fingerprint": "f0468f28ffba544fc7f2df0d4e9844cc0c6f0ed8e5359fd338d49ab6e8022c9f",
+    "right_result_set_fingerprint": "73a9d93a8528e95322b69c64af416a234e7bd100cbb6556e66f1ae8c1cdd7fff",
+    "right_decision_set_id": "decisionset_52b1ee4e6aca",
+    "right_decision_set_fingerprint": "52b1ee4e6aca1c8ef5e2b5cec3988375167e2cc6dda5e0393efe71c20d5652ad",
+    "right_eligibility_set_id": "eligibilityset_9e717ecf6a82",
+    "right_eligibility_set_fingerprint": "9e717ecf6a820acabfd6b62783752dac3b822a0e5f324107340db2f0eb5eff5f",
+    "right_metric_set_id": "metricset_614450282fdb",
+    "right_metric_set_fingerprint": "614450282fdb91620a9eeed117bc09a51f956bc0eb001e80e69fab609f0998e6",
+    "right_decision_profile_fingerprint": "2aca865177dddbfda5d2037520531a29472bc78af0af980b3018a08d1449eb20",
+    "alignment_fingerprint": "d25b52159d251c2998bc55577d2e40f7a287d869b134dbe6aabbd3a3baa91686",
+    "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+    "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+    "eligibility_policy_id": "plain_and_roll_self_must_match",
+    "eligibility_policy_version": "1",
+    "metric_policy_fingerprint": "177c59880368cde201d6c95d1aa8686fed11c20ba51fd82cd933ed9fe868d6bf",
+    "comparison_policy_fingerprint": "46af40e02cd4c04fb4e95bf6feaf58088537d41c6db0e1e176dac00a2f3e3727",
+    "comparison_software_fingerprint": "43ba1fa5f5cd08256fcedb39151b439d82e0abdada4ae58d70f9323684621856",
+    "comparison_source_commit": "dae7afd38191642f5f3b6d5bc27dfa375e38a10d",
+    "created_utc": "2026-08-04T09:56:44.836667+00:00"
+  },
+  "manifest": {
+    "evaluation_id": "algcompare_7ef9d0c9a0df",
+    "evaluation_fingerprint": "7ef9d0c9a0df39f401291cd62d85df96df06b0fdffdf696061c9a18000396630",
+    "definition_id": "algcomparedef_92b58f885349",
+    "definition_fingerprint": "92b58f885349c94c64062b140147b0cdc6202d1c973ab06a85f1edaeaa943530",
+    "audit_fingerprint": "4b36dcf753c380cebc848f443a42ad6373dea42dc5f7f6cb3b142ae3c76d6189",
+    "comparison_records_hash": "3aaf315656411d8ac87c97736a1dec7fe6c595e6fcf6668ce4fec628a0218668",
+    "eligibility_transitions_hash": "41167ba17cbf77cb57329ada786b2f851fe6e71f0d092afed57e7a111721eed1",
+    "common_eligible_hash": "0d214e7282566534d4797f2de71dd1ccb98b12fdd861181250864364327f6476",
+    "count_records_hash": "b8dc1354ed8dd7a7630a83ff8fa356ad5dcd601a67e86ef1236a4ad33007fe6c",
+    "observations_hash": "5fe296c10e96072a3979fcffdc3c2821f0d03827a282fb38405641758583a27f",
+    "total_records": 6000,
+    "total_transitions": 1500,
+    "total_common_eligible": 1472,
+    "total_observations": 52,
+    "created_utc": "2026-08-04T09:56:45.332671+00:00"
+  },
+  "observations": [
+    {
+      "observation_id": "plain_self_match_rate_attempt_sd300a",
+      "metric_id": "plain_self_match_rate_attempt",
+      "scope": "SD300A",
+      "population": "same_population",
+      "left_numerator": 487,
+      "left_denominator": 500,
+      "right_numerator": 498,
+      "right_denominator": 500,
+      "difference_numerator": 11,
+      "difference_denominator": 500
+    },
+    {
+      "observation_id": "plain_self_match_rate_attempt_sd300b",
+      "metric_id": "plain_self_match_rate_attempt",
+      "scope": "SD300B",
+      "population": "same_population",
+      "left_numerator": 493,
+      "left_denominator": 500,
+      "right_numerator": 500,
+      "right_denominator": 500,
+      "difference_numerator": 7,
+      "difference_denominator": 500
+    },
+    {
+      "observation_id": "plain_self_match_rate_attempt_sd300c",
+      "metric_id": "plain_self_match_rate_attempt",
+      "scope": "SD300C",
+      "population": "same_population",
+      "left_numerator": 492,
+      "left_denominator": 500,
+      "right_numerator": 500,
+      "right_denominator": 500,
+      "difference_numerator": 2,
+      "difference_denominator": 125
+    },
+    {
+      "observation_id": "plain_self_match_rate_attempt_pooled",
+      "metric_id": "plain_self_match_rate_attempt",
+      "scope": "pooled",
+      "population": "same_population",
+      "left_numerator": 1472,
+      "left_denominator": 1500,
+      "right_numerator": 1498,
+      "right_denominator": 1500,
+      "difference_numerator": 13,
+      "difference_denominator": 750
+    },
+    {
+      "observation_id": "plain_self_match_rate_decided_sd300a",
+      "metric_id": "plain_self_match_rate_decided",
+      "scope": "SD300A",
+      "population": "same_population",
+      "left_numerator": 487,
+      "left_denominator": 500,
+      "right_numerator": 498,
+      "right_denominator": 500,
+      "difference_numerator": 11,
+      "difference_denominator": 500
+    },
+    {
+      "observation_id": "plain_self_match_rate_decided_sd300b",
+      "metric_id": "plain_self_match_rate_decided",
+      "scope": "SD300B",
+      "population": "same_population",
+      "left_numerator": 493,
+      "left_denominator": 500,
+      "right_numerator": 500,
+      "right_denominator": 500,
+      "difference_numerator": 7,
+      "difference_denominator": 500
+    },
+    {
+      "observation_id": "plain_self_match_rate_decided_sd300c",
+      "metric_id": "plain_self_match_rate_decided",
+      "scope": "SD300C",
+      "population": "same_population",
+      "left_numerator": 492,
+      "left_denominator": 500,
+      "right_numerator": 500,
+      "right_denominator": 500,
+      "difference_numerator": 2,
+      "difference_denominator": 125
+    },
+    {
+      "observation_id": "plain_self_match_rate_decided_pooled",
+      "metric_id": "plain_self_match_rate_decided",
+      "scope": "pooled",
+      "population": "same_population",
+      "left_numerator": 1472,
+      "left_denominator": 1500,
+      "right_numerator": 1498,
+      "right_denominator": 1500,
+      "difference_numerator": 13,
+      "difference_denominator": 750
+    },
+    {
+      "observation_id": "roll_self_match_rate_attempt_sd300a",
+      "metric_id": "roll_self_match_rate_attempt",
+      "scope": "SD300A",
+      "population": "same_population",
+      "left_numerator": 500,
+      "left_denominator": 500,
+      "right_numerator": 500,
+      "right_denominator": 500,
+      "difference_numerator": 0,
+      "difference_denominator": 1
+    },
+    {
+      "observation_id": "roll_self_match_rate_attempt_sd300b",
+      "metric_id": "roll_self_match_rate_attempt",
+      "scope": "SD300B",
+      "population": "same_population",
+      "left_numerator": 500,
+      "left_denominator": 500,
+      "right_numerator": 500,
+      "right_denominator": 500,
+      "difference_numerator": 0,
+      "difference_denominator": 1
+    },
+    {
+      "observation_id": "roll_self_match_rate_attempt_sd300c",
+      "metric_id": "roll_self_match_rate_attempt",
+      "scope": "SD300C",
+      "population": "same_population",
+      "left_numerator": 500,
+      "left_denominator": 500,
+      "right_numerator": 500,
+      "right_denominator": 500,
+      "difference_numerator": 0,
+      "difference_denominator": 1
+    },
+    {
+      "observation_id": "roll_self_match_rate_attempt_pooled",
+      "metric_id": "roll_self_match_rate_attempt",
+      "scope": "pooled",
+      "population": "same_population",
+      "left_numerator": 1500,
+      "left_denominator": 1500,
+      "right_numerator": 1500,
+      "right_denominator": 1500,
+      "difference_numerator": 0,
+      "difference_denominator": 1
+    },
+    {
+      "observation_id": "roll_self_match_rate_decided_sd300a",
+      "metric_id": "roll_self_match_rate_decided",
+      "scope": "SD300A",
+      "population": "same_population",
+      "left_numerator": 500,
+      "left_denominator": 500,
+      "right_numerator": 500,
+      "right_denominator": 500,
+      "difference_numerator": 0,
+      "difference_denominator": 1
+    },
+    {
+      "observation_id": "roll_self_match_rate_decided_sd300b",
+      "metric_id": "roll_self_match_rate_decided",
+      "scope": "SD300B",
+      "population": "same_population",
+      "left_numerator": 500,
+      "left_denominator": 500,
+      "right_numerator": 500,
+      "right_denominator": 500,
+      "difference_numerator": 0,
+      "difference_denominator": 1
+    },
+    {
+      "observation_id": "roll_self_match_rate_decided_sd300c",
+      "metric_id": "roll_self_match_rate_decided",
+      "scope": "SD300C",
+      "population": "same_population",
+      "left_numerator": 500,
+      "left_denominator": 500,
+      "right_numerator": 500,
+      "right_denominator": 500,
+      "difference_numerator": 0,
+      "difference_denominator": 1
+    },
+    {
+      "observation_id": "roll_self_match_rate_decided_pooled",
+      "metric_id": "roll_self_match_rate_decided",
+      "scope": "pooled",
+      "population": "same_population",
+      "left_numerator": 1500,
+      "left_denominator": 1500,
+      "right_numerator": 1500,
+      "right_denominator": 1500,
+      "difference_numerator": 0,
+      "difference_denominator": 1
+    },
+    {
+      "observation_id": "plain_roll_mated_unconditional_non_success_rate_attempt_sd300a",
+      "metric_id": "plain_roll_mated_unconditional_non_success_rate_attempt",
+      "scope": "SD300A",
+      "population": "same_population",
+      "left_numerator": 164,
+      "left_denominator": 500,
+      "right_numerator": 199,
+      "right_denominator": 500,
+      "difference_numerator": 7,
+      "difference_denominator": 100
+    },
+    {
+      "observation_id": "plain_roll_mated_unconditional_non_success_rate_attempt_sd300b",
+      "metric_id": "plain_roll_mated_unconditional_non_success_rate_attempt",
+      "scope": "SD300B",
+      "population": "same_population",
+      "left_numerator": 176,
+      "left_denominator": 500,
+      "right_numerator": 196,
+      "right_denominator": 500,
+      "difference_numerator": 1,
+      "difference_denominator": 25
+    },
+    {
+      "observation_id": "plain_roll_mated_unconditional_non_success_rate_attempt_sd300c",
+      "metric_id": "plain_roll_mated_unconditional_non_success_rate_attempt",
+      "scope": "SD300C",
+      "population": "same_population",
+      "left_numerator": 181,
+      "left_denominator": 500,
+      "right_numerator": 200,
+      "right_denominator": 500,
+      "difference_numerator": 19,
+      "difference_denominator": 500
+    },
+    {
+      "observation_id": "plain_roll_mated_unconditional_non_success_rate_attempt_pooled",
+      "metric_id": "plain_roll_mated_unconditional_non_success_rate_attempt",
+      "scope": "pooled",
+      "population": "same_population",
+      "left_numerator": 521,
+      "left_denominator": 1500,
+      "right_numerator": 595,
+      "right_denominator": 1500,
+      "difference_numerator": 37,
+      "difference_denominator": 750
+    },
+    {
+      "observation_id": "plain_roll_mated_unconditional_fnmr_decided_sd300a",
+      "metric_id": "plain_roll_mated_unconditional_fnmr_decided",
+      "scope": "SD300A",
+      "population": "same_population",
+      "left_numerator": 164,
+      "left_denominator": 500,
+      "right_numerator": 199,
+      "right_denominator": 500,
+      "difference_numerator": 7,
+      "difference_denominator": 100
+    },
+    {
+      "observation_id": "plain_roll_mated_unconditional_fnmr_decided_sd300b",
+      "metric_id": "plain_roll_mated_unconditional_fnmr_decided",
+      "scope": "SD300B",
+      "population": "same_population",
+      "left_numerator": 176,
+      "left_denominator": 500,
+      "right_numerator": 196,
+      "right_denominator": 500,
+      "difference_numerator": 1,
+      "difference_denominator": 25
+    },
+    {
+      "observation_id": "plain_roll_mated_unconditional_fnmr_decided_sd300c",
+      "metric_id": "plain_roll_mated_unconditional_fnmr_decided",
+      "scope": "SD300C",
+      "population": "same_population",
+      "left_numerator": 181,
+      "left_denominator": 500,
+      "right_numerator": 200,
+      "right_denominator": 500,
+      "difference_numerator": 19,
+      "difference_denominator": 500
+    },
+    {
+      "observation_id": "plain_roll_mated_unconditional_fnmr_decided_pooled",
+      "metric_id": "plain_roll_mated_unconditional_fnmr_decided",
+      "scope": "pooled",
+      "population": "same_population",
+      "left_numerator": 521,
+      "left_denominator": 1500,
+      "right_numerator": 595,
+      "right_denominator": 1500,
+      "difference_numerator": 37,
+      "difference_denominator": 750
+    },
+    {
+      "observation_id": "plain_roll_mated_conditional_selection_rate_sd300a",
+      "metric_id": "plain_roll_mated_conditional_selection_rate",
+      "scope": "SD300A",
+      "population": "same_population",
+      "left_numerator": 487,
+      "left_denominator": 500,
+      "right_numerator": 498,
+      "right_denominator": 500,
+      "difference_numerator": 11,
+      "difference_denominator": 500
+    },
+    {
+      "observation_id": "plain_roll_mated_conditional_selection_rate_sd300b",
+      "metric_id": "plain_roll_mated_conditional_selection_rate",
+      "scope": "SD300B",
+      "population": "same_population",
+      "left_numerator": 493,
+      "left_denominator": 500,
+      "right_numerator": 500,
+      "right_denominator": 500,
+      "difference_numerator": 7,
+      "difference_denominator": 500
+    },
+    {
+      "observation_id": "plain_roll_mated_conditional_selection_rate_sd300c",
+      "metric_id": "plain_roll_mated_conditional_selection_rate",
+      "scope": "SD300C",
+      "population": "same_population",
+      "left_numerator": 492,
+      "left_denominator": 500,
+      "right_numerator": 500,
+      "right_denominator": 500,
+      "difference_numerator": 2,
+      "difference_denominator": 125
+    },
+    {
+      "observation_id": "plain_roll_mated_conditional_selection_rate_pooled",
+      "metric_id": "plain_roll_mated_conditional_selection_rate",
+      "scope": "pooled",
+      "population": "same_population",
+      "left_numerator": 1472,
+      "left_denominator": 1500,
+      "right_numerator": 1498,
+      "right_denominator": 1500,
+      "difference_numerator": 13,
+      "difference_denominator": 750
+    },
+    {
+      "observation_id": "plain_roll_mated_conditional_fnmr_decided_sd300a",
+      "metric_id": "plain_roll_mated_conditional_fnmr_decided",
+      "scope": "SD300A",
+      "population": "different_eligible_populations",
+      "left_numerator": 151,
+      "left_denominator": 487,
+      "right_numerator": 197,
+      "right_denominator": 498,
+      "difference_numerator": null,
+      "difference_denominator": null
+    },
+    {
+      "observation_id": "plain_roll_mated_conditional_fnmr_decided_sd300b",
+      "metric_id": "plain_roll_mated_conditional_fnmr_decided",
+      "scope": "SD300B",
+      "population": "different_eligible_populations",
+      "left_numerator": 169,
+      "left_denominator": 493,
+      "right_numerator": 196,
+      "right_denominator": 500,
+      "difference_numerator": null,
+      "difference_denominator": null
+    },
+    {
+      "observation_id": "plain_roll_mated_conditional_fnmr_decided_sd300c",
+      "metric_id": "plain_roll_mated_conditional_fnmr_decided",
+      "scope": "SD300C",
+      "population": "different_eligible_populations",
+      "left_numerator": 173,
+      "left_denominator": 492,
+      "right_numerator": 200,
+      "right_denominator": 500,
+      "difference_numerator": null,
+      "difference_denominator": null
+    },
+    {
+      "observation_id": "plain_roll_mated_conditional_fnmr_decided_pooled",
+      "metric_id": "plain_roll_mated_conditional_fnmr_decided",
+      "scope": "pooled",
+      "population": "different_eligible_populations",
+      "left_numerator": 493,
+      "left_denominator": 1472,
+      "right_numerator": 593,
+      "right_denominator": 1498,
+      "difference_numerator": null,
+      "difference_denominator": null
+    },
+    {
+      "observation_id": "plain_roll_mated_conditional_non_success_rate_attempt_sd300a",
+      "metric_id": "plain_roll_mated_conditional_non_success_rate_attempt",
+      "scope": "SD300A",
+      "population": "different_eligible_populations",
+      "left_numerator": 151,
+      "left_denominator": 487,
+      "right_numerator": 197,
+      "right_denominator": 498,
+      "difference_numerator": null,
+      "difference_denominator": null
+    },
+    {
+      "observation_id": "plain_roll_mated_conditional_non_success_rate_attempt_sd300b",
+      "metric_id": "plain_roll_mated_conditional_non_success_rate_attempt",
+      "scope": "SD300B",
+      "population": "different_eligible_populations",
+      "left_numerator": 169,
+      "left_denominator": 493,
+      "right_numerator": 196,
+      "right_denominator": 500,
+      "difference_numerator": null,
+      "difference_denominator": null
+    },
+    {
+      "observation_id": "plain_roll_mated_conditional_non_success_rate_attempt_sd300c",
+      "metric_id": "plain_roll_mated_conditional_non_success_rate_attempt",
+      "scope": "SD300C",
+      "population": "different_eligible_populations",
+      "left_numerator": 173,
+      "left_denominator": 492,
+      "right_numerator": 200,
+      "right_denominator": 500,
+      "difference_numerator": null,
+      "difference_denominator": null
+    },
+    {
+      "observation_id": "plain_roll_mated_conditional_non_success_rate_attempt_pooled",
+      "metric_id": "plain_roll_mated_conditional_non_success_rate_attempt",
+      "scope": "pooled",
+      "population": "different_eligible_populations",
+      "left_numerator": 493,
+      "left_denominator": 1472,
+      "right_numerator": 593,
+      "right_denominator": 1498,
+      "difference_numerator": null,
+      "difference_denominator": null
+    },
+    {
+      "observation_id": "plain_roll_mated_common_eligible_non_success_rate_attempt_sd300a",
+      "metric_id": "plain_roll_mated_common_eligible_non_success_rate_attempt",
+      "scope": "SD300A",
+      "population": "common_eligible_population",
+      "left_numerator": 151,
+      "left_denominator": 487,
+      "right_numerator": 187,
+      "right_denominator": 487,
+      "difference_numerator": 36,
+      "difference_denominator": 487
+    },
+    {
+      "observation_id": "plain_roll_mated_common_eligible_non_success_rate_attempt_sd300b",
+      "metric_id": "plain_roll_mated_common_eligible_non_success_rate_attempt",
+      "scope": "SD300B",
+      "population": "common_eligible_population",
+      "left_numerator": 169,
+      "left_denominator": 493,
+      "right_numerator": 189,
+      "right_denominator": 493,
+      "difference_numerator": 20,
+      "difference_denominator": 493
+    },
+    {
+      "observation_id": "plain_roll_mated_common_eligible_non_success_rate_attempt_sd300c",
+      "metric_id": "plain_roll_mated_common_eligible_non_success_rate_attempt",
+      "scope": "SD300C",
+      "population": "common_eligible_population",
+      "left_numerator": 173,
+      "left_denominator": 492,
+      "right_numerator": 192,
+      "right_denominator": 492,
+      "difference_numerator": 19,
+      "difference_denominator": 492
+    },
+    {
+      "observation_id": "plain_roll_mated_common_eligible_non_success_rate_attempt_pooled",
+      "metric_id": "plain_roll_mated_common_eligible_non_success_rate_attempt",
+      "scope": "pooled",
+      "population": "common_eligible_population",
+      "left_numerator": 493,
+      "left_denominator": 1472,
+      "right_numerator": 568,
+      "right_denominator": 1472,
+      "difference_numerator": 75,
+      "difference_denominator": 1472
+    },
+    {
+      "observation_id": "plain_roll_mated_common_eligible_fnmr_decided_sd300a",
+      "metric_id": "plain_roll_mated_common_eligible_fnmr_decided",
+      "scope": "SD300A",
+      "population": "common_eligible_population",
+      "left_numerator": 151,
+      "left_denominator": 487,
+      "right_numerator": 187,
+      "right_denominator": 487,
+      "difference_numerator": 36,
+      "difference_denominator": 487
+    },
+    {
+      "observation_id": "plain_roll_mated_common_eligible_fnmr_decided_sd300b",
+      "metric_id": "plain_roll_mated_common_eligible_fnmr_decided",
+      "scope": "SD300B",
+      "population": "common_eligible_population",
+      "left_numerator": 169,
+      "left_denominator": 493,
+      "right_numerator": 189,
+      "right_denominator": 493,
+      "difference_numerator": 20,
+      "difference_denominator": 493
+    },
+    {
+      "observation_id": "plain_roll_mated_common_eligible_fnmr_decided_sd300c",
+      "metric_id": "plain_roll_mated_common_eligible_fnmr_decided",
+      "scope": "SD300C",
+      "population": "common_eligible_population",
+      "left_numerator": 173,
+      "left_denominator": 492,
+      "right_numerator": 192,
+      "right_denominator": 492,
+      "difference_numerator": 19,
+      "difference_denominator": 492
+    },
+    {
+      "observation_id": "plain_roll_mated_common_eligible_fnmr_decided_pooled",
+      "metric_id": "plain_roll_mated_common_eligible_fnmr_decided",
+      "scope": "pooled",
+      "population": "common_eligible_population",
+      "left_numerator": 493,
+      "left_denominator": 1472,
+      "right_numerator": 568,
+      "right_denominator": 1472,
+      "difference_numerator": 75,
+      "difference_denominator": 1472
+    },
+    {
+      "observation_id": "plain_roll_non_mated_sanity_match_rate_attempt_sd300a",
+      "metric_id": "plain_roll_non_mated_sanity_match_rate_attempt",
+      "scope": "SD300A",
+      "population": "same_population",
+      "left_numerator": 0,
+      "left_denominator": 500,
+      "right_numerator": 0,
+      "right_denominator": 500,
+      "difference_numerator": 0,
+      "difference_denominator": 1
+    },
+    {
+      "observation_id": "plain_roll_non_mated_sanity_match_rate_attempt_sd300b",
+      "metric_id": "plain_roll_non_mated_sanity_match_rate_attempt",
+      "scope": "SD300B",
+      "population": "same_population",
+      "left_numerator": 1,
+      "left_denominator": 500,
+      "right_numerator": 0,
+      "right_denominator": 500,
+      "difference_numerator": -1,
+      "difference_denominator": 500
+    },
+    {
+      "observation_id": "plain_roll_non_mated_sanity_match_rate_attempt_sd300c",
+      "metric_id": "plain_roll_non_mated_sanity_match_rate_attempt",
+      "scope": "SD300C",
+      "population": "same_population",
+      "left_numerator": 0,
+      "left_denominator": 500,
+      "right_numerator": 0,
+      "right_denominator": 500,
+      "difference_numerator": 0,
+      "difference_denominator": 1
+    },
+    {
+      "observation_id": "plain_roll_non_mated_sanity_match_rate_attempt_pooled",
+      "metric_id": "plain_roll_non_mated_sanity_match_rate_attempt",
+      "scope": "pooled",
+      "population": "same_population",
+      "left_numerator": 1,
+      "left_denominator": 1500,
+      "right_numerator": 0,
+      "right_denominator": 1500,
+      "difference_numerator": -1,
+      "difference_denominator": 1500
+    },
+    {
+      "observation_id": "plain_roll_non_mated_sanity_match_rate_decided_sd300a",
+      "metric_id": "plain_roll_non_mated_sanity_match_rate_decided",
+      "scope": "SD300A",
+      "population": "same_population",
+      "left_numerator": 0,
+      "left_denominator": 500,
+      "right_numerator": 0,
+      "right_denominator": 500,
+      "difference_numerator": 0,
+      "difference_denominator": 1
+    },
+    {
+      "observation_id": "plain_roll_non_mated_sanity_match_rate_decided_sd300b",
+      "metric_id": "plain_roll_non_mated_sanity_match_rate_decided",
+      "scope": "SD300B",
+      "population": "same_population",
+      "left_numerator": 1,
+      "left_denominator": 500,
+      "right_numerator": 0,
+      "right_denominator": 500,
+      "difference_numerator": -1,
+      "difference_denominator": 500
+    },
+    {
+      "observation_id": "plain_roll_non_mated_sanity_match_rate_decided_sd300c",
+      "metric_id": "plain_roll_non_mated_sanity_match_rate_decided",
+      "scope": "SD300C",
+      "population": "same_population",
+      "left_numerator": 0,
+      "left_denominator": 500,
+      "right_numerator": 0,
+      "right_denominator": 500,
+      "difference_numerator": 0,
+      "difference_denominator": 1
+    },
+    {
+      "observation_id": "plain_roll_non_mated_sanity_match_rate_decided_pooled",
+      "metric_id": "plain_roll_non_mated_sanity_match_rate_decided",
+      "scope": "pooled",
+      "population": "same_population",
+      "left_numerator": 1,
+      "left_denominator": 1500,
+      "right_numerator": 0,
+      "right_denominator": 1500,
+      "difference_numerator": -1,
+      "difference_denominator": 1500
+    }
+  ],
+  "counts": [
+    {
+      "family": "plain_self",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 487
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 11
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 2
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 493
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 7
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 492
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 8
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 1472
+    },
+    {
+      "family": "plain_self",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 26
+    },
+    {
+      "family": "plain_self",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 2
+    },
+    {
+      "family": "plain_self",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "plain_self",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 500
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 500
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 500
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 1500
+    },
+    {
+      "family": "roll_self",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "roll_self",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 262
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 74
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 39
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 125
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 255
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 69
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 49
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 127
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 250
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 69
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 50
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 131
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 767
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 212
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 138
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 383
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 262
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 74
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 38
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 113
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 255
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 69
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 49
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 120
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 250
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 69
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 50
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 123
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 767
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 212
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 137
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 356
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "mated_common_eligible",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300A",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 500
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300A",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300A",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 1
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300B",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 499
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300B",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300B",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300C",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 500
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300C",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "SD300C",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "non_match",
+      "count": 1
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "pooled",
+      "left_outcome": "match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "non_match",
+      "count": 1499
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "pooled",
+      "left_outcome": "non_match",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "non_match",
+      "count": 0
+    },
+    {
+      "family": "negative_sanity",
+      "scope": "pooled",
+      "left_outcome": "undecidable",
+      "right_outcome": "undecidable",
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300A:eligible:eligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 487
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300A:eligible:ineligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300A:eligible:undetermined",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300A:ineligible:eligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 11
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300A:ineligible:ineligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 2
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300A:ineligible:undetermined",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300A:undetermined:eligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300A:undetermined:ineligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300A:undetermined:undetermined",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300B:eligible:eligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 493
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300B:eligible:ineligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300B:eligible:undetermined",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300B:ineligible:eligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 7
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300B:ineligible:ineligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300B:ineligible:undetermined",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300B:undetermined:eligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300B:undetermined:ineligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300B:undetermined:undetermined",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300C:eligible:eligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 492
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300C:eligible:ineligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300C:eligible:undetermined",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300C:ineligible:eligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 8
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300C:ineligible:ineligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300C:ineligible:undetermined",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300C:undetermined:eligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300C:undetermined:ineligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:SD300C:undetermined:undetermined",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:pooled:eligible:eligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 1472
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:pooled:eligible:ineligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:pooled:eligible:undetermined",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:pooled:ineligible:eligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 26
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:pooled:ineligible:ineligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 2
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:pooled:ineligible:undetermined",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:pooled:undetermined:eligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:pooled:undetermined:ineligible",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    },
+    {
+      "family": "mated_unconditional",
+      "scope": "eligibility:pooled:undetermined:undetermined",
+      "left_outcome": null,
+      "right_outcome": null,
+      "count": 0
+    }
+  ]
+}

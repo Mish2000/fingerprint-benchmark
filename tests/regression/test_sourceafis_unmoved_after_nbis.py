@@ -151,10 +151,23 @@ def test_the_committed_evidence_still_names_the_same_artefacts():
         assert payload[key] == path.stem, path
 
 
-#: Stage 7C's own evidence, which is *about* NBIS and says so. Every other
-#: directory under evidence/ predates the second algorithm and must not have
-#: acquired a word of its vocabulary.
-NBIS_EVIDENCE_DIRECTORY = "nbis-canonical500-raw"
+#: The evidence directories that are *about* NBIS and say so: stage 7C's raw
+#: scores, stage 7D's decisions and counts over them, and the comparison that
+#: names both algorithms in its own title. Every other directory under evidence/
+#: predates the second algorithm and must not have acquired a word of its
+#: vocabulary.
+#:
+#: An allowlist rather than a prefix rule, because the comparison directory
+#: begins with ``sourceafis-`` and would otherwise be checked for the word it
+#: exists to use.
+NBIS_EVIDENCE_DIRECTORIES = frozenset(
+    {
+        "nbis-canonical500-raw",
+        "nbis-canonical500-decisions",
+        "nbis-canonical500-evaluation",
+        "sourceafis-vs-nbis-canonical500",
+    }
+)
 
 
 def test_no_earlier_receipt_was_upgraded_to_a_newer_schema():
@@ -165,11 +178,35 @@ def test_no_earlier_receipt_was_upgraded_to_a_newer_schema():
     it catches a re-issue, a re-render and a silent upgrade alike.
     """
     for directory in sorted(EVIDENCE.iterdir()):
-        if not directory.is_dir() or directory.name == NBIS_EVIDENCE_DIRECTORY:
+        if not directory.is_dir() or directory.name in NBIS_EVIDENCE_DIRECTORIES:
             continue
         for path in sorted(directory.glob("*.json")):
             payload = json.loads(path.read_text(encoding="utf-8"))
             assert "nbis" not in json.dumps(payload, sort_keys=True).lower(), path
+
+
+def test_no_earlier_receipt_acquired_the_second_schema_version():
+    """The same question asked of the schema number rather than the vocabulary.
+
+    Stage 7D added a schema-2 derivation receipt, which binds three things
+    schema 1 does not. Every receipt published before it is schema 1 and stays
+    schema 1 — an upgrade would change the digest its finalization marker cites
+    (docs/adr/0055).
+    """
+    for directory in sorted(EVIDENCE.iterdir()):
+        if not directory.is_dir() or directory.name in NBIS_EVIDENCE_DIRECTORIES:
+            continue
+        for path in sorted(directory.glob("*.json")):
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(payload, dict) and "schema_version" in payload:
+                assert str(payload["schema_version"]) in {"1", "2", "3"}, path
+            for name in (
+                "source_stage_finalization_kind",
+                "derivation_definition_fingerprint",
+            ):
+                assert name not in json.dumps(payload), (
+                    f"{path} acquired the stage 7D receipt field {name!r}"
+                )
 
 
 # ------------------------------------------------------------- the chains

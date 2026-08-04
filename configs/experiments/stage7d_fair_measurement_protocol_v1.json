@@ -27,5 +27,5 @@
   "nbis_decision_set_id": "decisionset_52b1ee4e6aca",
   "nbis_eligibility_set_id": "eligibilityset_9e717ecf6a82",
   "nbis_metric_set_id": "metricset_614450282fdb",
-  "cross_algorithm_evaluation_id": null
+  "cross_algorithm_evaluation_id": "algcompare_7ef9d0c9a0df"
 }

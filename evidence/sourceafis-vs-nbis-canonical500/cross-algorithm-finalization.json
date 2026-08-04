@@ -1,0 +1,15 @@
+{
+  "schema_version": "1",
+  "finalization_id": "algcomparefinal_a71dce8ce151",
+  "finalization_fingerprint": "a71dce8ce1510ebc303a69f465caf3fedf04f00d2e6edd5cb6f7d7200f066a45",
+  "evaluation_id": "algcompare_7ef9d0c9a0df",
+  "evaluation_fingerprint": "7ef9d0c9a0df39f401291cd62d85df96df06b0fdffdf696061c9a18000396630",
+  "protocol_fingerprint": "ac212d9893a4990b8cf28da8b88077dfed3a30f3d29e02e8b74357b1d1efbc7d",
+  "audit_fingerprint": "4b36dcf753c380cebc848f443a42ad6373dea42dc5f7f6cb3b142ae3c76d6189",
+  "receipt_fingerprint": "d9e3cb6d22f121f422fa04e05a15b0682d047693dda76364f6dcee170beb41a3",
+  "receipt_content_hash": "29aa35441d3782dafc53556d99681fab914e13d416fdffabcb7e359ec1b8b9b6",
+  "report_content_hash": "5ca0bd28a71866b856b86ab8d66c93ab384a3e2de765a1e0ec3519f69fb5c241",
+  "comparison_source_commit": "dae7afd38191642f5f3b6d5bc27dfa375e38a10d",
+  "comparison_source_tree_clean": true,
+  "created_utc": "2026-08-04T09:56:45.646288+00:00"
+}

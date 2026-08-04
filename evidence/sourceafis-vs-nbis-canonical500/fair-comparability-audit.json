@@ -1,0 +1,19 @@
+{
+  "protocol_fingerprint": "ac212d9893a4990b8cf28da8b88077dfed3a30f3d29e02e8b74357b1d1efbc7d",
+  "pair_alignment_fingerprint": "d25b52159d251c2998bc55577d2e40f7a287d869b134dbe6aabbd3a3baa91686",
+  "pair_ids_equal": true,
+  "pair_semantics_equal": true,
+  "prepared_entries_equal": true,
+  "eligibility_policy_equal": true,
+  "metric_policy_equal": true,
+  "execution_profile_equal": true,
+  "left_profile_origin": "documented_native",
+  "right_profile_origin": "documented_native",
+  "left_calibrated": false,
+  "right_calibrated": false,
+  "test_cohort_used": false,
+  "operating_points_equated": false,
+  "raw_scores_compared": false,
+  "issues": [],
+  "audit_fingerprint": "4b36dcf753c380cebc848f443a42ad6373dea42dc5f7f6cb3b142ae3c76d6189"
+}

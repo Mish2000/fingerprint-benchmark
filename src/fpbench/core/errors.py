@@ -62,6 +62,12 @@ __all__ = [
     "PairedEvaluationConflictError",
     "PairedEvaluationIntegrityError",
     "PairedFinalizationError",
+    "ModernMatcherError",
+    "CandidateRegistryError",
+    "CandidateArtifactError",
+    "QualificationError",
+    "ModernMatcherSelectionError",
+    "Stage8AFinalizationError",
 ]
 
 
@@ -496,3 +502,34 @@ class PairedEvaluationIntegrityError(PairedEvaluationError):
 
 class PairedFinalizationError(PairedEvaluationError):
     """A comparison could not be finalised, or its marker no longer holds."""
+
+
+# --------------------------------------------------------- modern matchers
+#
+# Stage 8A qualifies third-party artefacts without importing the benchmark
+# dataset, stored results, or either existing algorithm.  Its failures are
+# therefore provenance/configuration failures, never biometric outcomes.
+
+
+class ModernMatcherError(FpbenchError):
+    """A Stage 8A candidate artefact could not be qualified honestly."""
+
+
+class CandidateRegistryError(ModernMatcherError):
+    """The frozen Stage 8A registry is missing, altered, or malformed."""
+
+
+class CandidateArtifactError(ModernMatcherError):
+    """An acquired source, checkpoint, lock, or licence lost its identity."""
+
+
+class QualificationError(ModernMatcherError):
+    """Candidate evidence is incomplete, contradictory, or unsafe to execute."""
+
+
+class ModernMatcherSelectionError(ModernMatcherError):
+    """The fixed gate-first selection policy could not produce one outcome."""
+
+
+class Stage8AFinalizationError(ModernMatcherError):
+    """The Stage 8A evidence chain is incomplete or no longer verifies."""

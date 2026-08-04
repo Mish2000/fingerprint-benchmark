@@ -1,0 +1,35 @@
+schema_version: "1"
+policy_id: stage8a_gate_first_selection_v1
+mandatory_gates:
+  - scientific_identity
+  - complete_inference
+  - exact_weights
+  - complete_preprocessing
+  - complete_representation
+  - finite_raw_score
+  - decision_path
+  - independent_self
+  - determinism
+  - offline_operation
+  - license_and_publication
+  - architecture_fit
+  - operational_feasibility
+tier_order: [A, B, C]
+tie_breakers:
+  - official_or_author_supplied
+  - algorithm_completeness
+  - no_external_completion_component
+  - documented_checkpoint_threshold
+  - dataset_independent_preprocessing
+  - smaller_simpler_runtime
+  - less_new_adapter_code
+  - architecture_diversity
+  - research_recency
+weighted_score_forbidden: true
+unresolved_tie_action: fail_closed
+max_projected_12000_extractions_seconds: "86400"
+max_projected_6000_comparisons_seconds: "21600"
+max_peak_ram_bytes: 34359738368
+max_peak_vram_bytes: 25769803776
+max_artifact_disk_bytes: 10737418240
+fingerprint: b61d85f8539d06df9984fa6ad95f21e40977edfda17225c53fdbfb2428b6f396

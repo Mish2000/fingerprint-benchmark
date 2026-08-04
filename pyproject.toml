@@ -43,4 +43,6 @@ markers = [
     "upstream: needs a third-party source archive or a build of one; excluded from every no-network suite",
     "stage7d_contract: the stage 7D methodology — strict comparators, legacy profile compatibility, algorithm-neutral orchestration, cross-algorithm models, population comparability, tampering (no JVM, no NBIS, no dataset)",
     "stage7d: the stage 7D workspace — NBIS decisions, NBIS metrics and the SourceAFIS/NBIS comparison over the real 6,000 (needs the finished chains of both algorithms)",
+    "stage8a_contract: artifact qualification, hard gates, immutable identities, selection policy, offline probes and tampering (no ML runtime, network, dataset, or prior results)",
+    "stage8a: the committed Stage 8A modern-matcher qualification and selection evidence gate (no dataset and no prior-result workspace)",
 ]

@@ -18,6 +18,7 @@ from fpbench.storage.derivation_schemas import (
 from fpbench.storage.eligibility_set_store import EligibilitySetStore
 from fpbench.storage.evaluation_view_store import EvaluationViewStore
 from fpbench.storage.manifest_store import ManifestStore
+from fpbench.storage.modern_matcher_store import Stage8AEvidenceStore
 from fpbench.storage.plan_schemas import PLANNED_JOB_SCHEMA
 from fpbench.storage.plan_store import PlanStore
 from fpbench.storage.result_schemas import RAW_RESULT_SCHEMA
@@ -49,6 +50,7 @@ __all__ = [
     "ResultSetStore",
     "ResultStore",
     "RuntimeBundleStore",
+    "Stage8AEvidenceStore",
     "SELF_ELIGIBILITY_SCHEMA",
     "SUBJECT_SCHEMA",
 ]

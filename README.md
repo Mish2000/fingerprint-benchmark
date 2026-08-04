@@ -78,6 +78,15 @@ and published the raw scores and the failure codes: 6,000 scored, no algorithmic
 and no blocking failure. No threshold, no decision, no metric, no paired comparison, and
 no SourceAFIS score was read.
 
+Phase 7D **decided those scores and compared the two algorithms**, at two thresholds
+neither of which this project chose. NIST's documented `> 40` for NBIS, SourceAFIS's
+documented `>= 40` unchanged, a methodology frozen and committed before the first
+decision existed, and one engine deriving both chains so that a difference between the
+two sets of numbers cannot be a difference in how they were derived. The comparison
+records paired decisions and no scores: the two numbers are on two scales, and every
+sentence a reader might infer from a table — equal FMR, superiority, significance — is
+refused in the receipt and in the report, verbatim.
+
 ```
 VERIFIED SOURCE IMAGES
         ↓
@@ -1366,6 +1375,79 @@ score was read ([ADR 0054](docs/adr/0054-stage-7c-alignment-is-completion-author
 Details: [docs/experiments/nbis-canonical500-raw.md](docs/experiments/nbis-canonical500-raw.md);
 evidence under [evidence/nbis-canonical500-raw/](evidence/nbis-canonical500-raw/).
 
+## Stage 7D: decisions for the second algorithm, and a comparison that concludes nothing
+
+Stage 7C left 6,000 BOZORTH3 scores and no threshold, because where the boundary sits on
+BOZORTH3's scale was a question nobody had earned the right to answer. Stage 7D answers
+it with the number NIST's own guide documents, counts the result under the policy both
+SourceAFIS evaluations already use, and puts the two chains side by side under a list of
+things the comparison does not establish.
+
+**The threshold is `> 40`, and the comparator is strict because the sentence is.**
+SourceAFIS documents a match at a score *of at least* 40; NIST describes a BOZORTH3 score
+*greater than* 40 as a rule of thumb. Making them agree on the comparator would mean
+making one of them say something it does not. So `ThresholdComparator` grew `GREATER_THAN`
+and `LESS_THAN`, and `DecisionProfile` grew a schema version to carry them: schema 1 stays
+frozen, hashes under the mapping it always had, and a regression test pins the two
+published SourceAFIS profile digests as literals
+([ADR 0055](docs/adr/0055-strict-threshold-comparators-preserve-legacy-profiles.md)).
+
+**The methodology was committed before the first decision existed.** `stage7d_fair_measurement_protocol_v1`
+(`ac212d98…`) pins both chains, both profiles, the shared alignment and the three
+policies. Four fields are left empty because a decision-set id is derived from the
+decisions; `bind()` is the only way to fill them, it refuses every other field, and
+binding does not move the fingerprint.
+
+**Both algorithms are decided and counted by one engine.** `experiments/algorithm_decisions.py`
+and `experiments/algorithm_evaluation.py` name no algorithm — not in an import, a branch
+or a literal — and a structural suite walks the syntax trees rather than trusting the
+docstrings. Everything algorithm-specific arrives through `DecisionSourceIntegration`,
+which answers one question: is this run's evidence chain sound enough to decide? For NBIS
+that answer includes stage 7C's alignment, re-derived from the manifests every time
+([ADR 0056](docs/adr/0056-decision-and-evaluation-orchestration-is-algorithm-neutral.md)).
+
+**No raw score is compared.** `fpbench.cross_algorithm` is a separate package from
+`fpbench.paired`, whose schema assumes one algorithm, one threshold and a meaningful score
+delta — all three false between two matchers. The models have no score field and the
+comparison is a table of paired *decisions*
+([ADR 0060](docs/adr/0060-cross-algorithm-comparison-never-subtracts-raw-scores.md)).
+
+The NBIS chain came out at `decisionset_52b1ee4e6aca` / `eligibilityset_9e717ecf6a82` —
+6,000 decisions, **6,000 decided, 0 undecidable** — and `metricset_614450282fdb`, 56
+observations, `EVALUATION_READY`. The comparison is `algcompare_7ef9d0c9a0df`, with a
+clean fairness audit: same 6,000 pair ids in the same order, same pair meanings, same
+3,000 prepared images, same eligibility policy, same metric policy, same execution
+profile, nothing calibrated, no test cohort used, no operating points equated, no raw
+scores compared.
+
+The primary number is the full mated population — all 1,500 attempts, the same
+denominator on both sides, `NON_MATCH` and `UNDECIDABLE` both counted as non-successes.
+Pooled, the observed non-success rate was **521/1500 for SourceAFIS** at its documented
+`>= 40` and **595/1500 for NBIS** at NIST's documented `> 40`, a difference of exactly
+**37/750**. It is not called an FNMR, and neither threshold was calibrated
+([ADR 0059](docs/adr/0059-unconditional-attempt-population-is-primary.md)).
+
+The eligibility transition matrix is where the two chains differ most: 1,472 units
+eligible on both sides, 26 that SourceAFIS found ineligible and NBIS did not, 2
+ineligible for both, none undetermined anywhere. So the two conditional populations are
+genuinely different, and the conditional rows carry no difference at all — *different
+eligible populations, difference undefined*, printed in the cell rather than replaced by
+a number nobody could interpret
+([ADR 0038](docs/adr/0038-conditional-rates-over-different-populations-are-not-subtracted.md)).
+
+Both thresholds are written "40" and they are **not** the same operating point. The
+comparison is named `comparison_at_independently_documented_operating_points`, the
+relation is a required field of the protocol, the policy and the receipt, and every
+receipt and report carries the refusal verbatim
+([ADR 0058](docs/adr/0058-cross-algorithm-operating-points-are-not-equated.md)).
+
+Details: [docs/experiments/nbis-canonical500-decisions.md](docs/experiments/nbis-canonical500-decisions.md),
+[docs/experiments/nbis-canonical500-evaluation.md](docs/experiments/nbis-canonical500-evaluation.md),
+[docs/experiments/sourceafis-vs-nbis-canonical500.md](docs/experiments/sourceafis-vs-nbis-canonical500.md);
+evidence under [evidence/nbis-canonical500-decisions/](evidence/nbis-canonical500-decisions/),
+[evidence/nbis-canonical500-evaluation/](evidence/nbis-canonical500-evaluation/) and
+[evidence/sourceafis-vs-nbis-canonical500/](evidence/sourceafis-vs-nbis-canonical500/).
+
 ## Architecture note: where the models live
 
 Several containers sit in `core` rather than in the package that derives them:
@@ -1392,12 +1474,12 @@ one experiment, and it needs somewhere to live that is not the planner.
    becomes possible without touching the 50 test subjects
    ([ADR 0021](docs/adr/0021-decision-profiles-are-immutable-and-external.md));
 3. failure analysis over the algorithmic failure codes the run recorded;
-4. **stage 7D** — decisions over the NBIS raw scores: how a `DecisionProfile` for
-   BOZORTH3 is defined, where its threshold comes from, how SELF defines eligibility on a
-   route whose SELF comparisons can fail differently, which failures are `UNDECIDABLE`,
-   and how a comparison with SourceAFIS is made without mixing two scales. Its input is
-   stage 7C's finished result set, and none of those decisions was taken there
-   ([ADR 0052](docs/adr/0052-stage-7c-publishes-raw-scores-only.md));
+4. **stage 7E** — a sensitivity analysis over a pre-registered grid of documented
+   thresholds, with no winner chosen from it and no change to stage 7D's primary result.
+   Calibrating both algorithms to a common FMR is a different and larger piece of work:
+   it needs an independent development cohort, a calibration manifest, a ban on touching
+   the SD300 test cohort, and a new evaluation under a new profile
+   ([ADR 0058](docs/adr/0058-cross-algorithm-operating-points-are-not-equated.md));
 5. the persistent-JVM decision, on the strength of the full run's operational summary
    rather than a guess ([ADR 0015](docs/adr/0015-sourceafis-uses-stateless-java-bridge.md));
 6. a better negative set, if a real false-match rate is ever wanted: cross-subject, and

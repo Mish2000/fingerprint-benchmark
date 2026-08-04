@@ -53,6 +53,35 @@ def _require_workspace() -> None:
         pytest.skip("FPBENCH_SD300_ROOT is not set")
 
 
+def _require_clean_tree() -> None:
+    """A chain status refuses a dirty tree, by design (docs/adr/0017).
+
+    The status of a research chain is a statement about code that can be
+    recovered from a commit, so a checkout in the middle of a change cannot
+    answer the question at all. Saying so here is the honest outcome, and it
+    beats failing four hundred lines deep inside a provenance capture with a
+    message about starting a research run.
+    """
+    import shutil
+    import subprocess
+
+    if shutil.which("git") is None:
+        pytest.skip("git is not installed")
+    completed = subprocess.run(
+        ["git", "-C", str(REPOSITORY_ROOT), "status", "--porcelain"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        pytest.skip("git could not report the working tree state")
+    if completed.stdout.strip():
+        pytest.skip(
+            "the working tree has uncommitted changes; a chain status is only "
+            "meaningful over a committed tree"
+        )
+
+
 @pytest.fixture(scope="module", autouse=True)
 def _workspace() -> None:
     _require_workspace()
@@ -196,6 +225,7 @@ def test_a_score_of_zero_is_a_decided_non_match():
 
 
 def test_the_nbis_decision_chain_is_decision_ready():
+    _require_clean_tree()
     from fpbench.experiments.nbis_canonical500_decisions import inspect_nbis_decisions
 
     state = inspect_nbis_decisions(
@@ -215,6 +245,7 @@ def test_the_nbis_decision_chain_is_decision_ready():
 
 
 def test_the_nbis_evaluation_is_evaluation_ready_with_56_observations():
+    _require_clean_tree()
     from fpbench.experiments.nbis_canonical500_evaluation import (
         inspect_nbis_evaluation,
     )
@@ -248,6 +279,7 @@ def test_both_chains_were_counted_under_one_metric_policy():
 
 
 def test_the_comparison_is_cross_algorithm_ready():
+    _require_clean_tree()
     from fpbench.experiments.sourceafis_vs_nbis_canonical500 import (
         DEFAULT_COMPARISON_CONFIG,
         inspect_comparison,

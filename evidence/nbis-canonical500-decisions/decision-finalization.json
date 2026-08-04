@@ -1,0 +1,20 @@
+{
+  "schema_version": "2",
+  "finalization_id": "derivationfinal_4b55743fa9b3",
+  "finalization_fingerprint": "4b55743fa9b31e09497150d49c65945c01d43ab7d754fe92bfe0bdc8714cfba7",
+  "run_id": "run_f0468f28ffba",
+  "source_result_set_fingerprint": "73a9d93a8528e95322b69c64af416a234e7bd100cbb6556e66f1ae8c1cdd7fff",
+  "decision_profile_fingerprint": "2aca865177dddbfda5d2037520531a29472bc78af0af980b3018a08d1449eb20",
+  "decision_set_fingerprint": "52b1ee4e6aca1c8ef5e2b5cec3988375167e2cc6dda5e0393efe71c20d5652ad",
+  "eligibility_set_fingerprint": "9e717ecf6a820acabfd6b62783752dac3b822a0e5f324107340db2f0eb5eff5f",
+  "unconditional_view_fingerprint": "3bb2ed74ee4b19bb292293250f3968e28d16e3b2988823e93ebb587c1ac38cdc",
+  "conditional_view_fingerprint": "478f83fb4b0798b370ef87009014ae33cd892e764cb21609ac083b4a577e76a9",
+  "non_mated_view_fingerprint": "beb574d3ba16895b8f0e866250de5ee470bcbb8c33eb8b627198736a3f7439c3",
+  "derivation_receipt_fingerprint": "e0c29ac10dbc761be6f9313d2fa280ea78f33d9fd921c521f924f36101c6b531",
+  "derivation_receipt_content_hash": "607049cdfa04668f094508bb781f6a3bb40fe58e919d3bb13622d794ed7ca18a",
+  "derivation_source_commit": "8ce1562ff9988def8f79cb2da2741b0fe6358733",
+  "derivation_source_tree_clean": true,
+  "created_utc": "2026-08-04T09:18:52.861637+00:00",
+  "source_stage_finalization_kind": "stage_7c_finalization",
+  "source_stage_finalization_fingerprint": "76a678adefef2c070161d15ccae1e1689ac85cefcbc83700fdbd36e7d906fb7e"
+}

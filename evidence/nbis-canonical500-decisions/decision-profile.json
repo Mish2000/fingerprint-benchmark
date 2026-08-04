@@ -1,0 +1,31 @@
+{
+  "profile_id": "nbis_mindtct_bozorth3_5_0_0_nistir7391_gt40_canonical500_v1",
+  "profile_fingerprint": "2aca865177dddbfda5d2037520531a29472bc78af0af980b3018a08d1449eb20",
+  "display_name": "NBIS MINDTCT/BOZORTH3 5.0.0, NIST-documented score > 40, canonical 500 PPI",
+  "profile_version": "1",
+  "algorithm_id": "nbis_mindtct_bozorth3",
+  "implementation_version": "5.0.0",
+  "algorithm_fingerprint": "41ebe6eeda877e959d58df40d007daab74a8a1a560462984a6f58a444dbfebc5",
+  "score_direction": "higher_is_better",
+  "comparator": "greater_than",
+  "threshold": "40",
+  "origin": "documented_native",
+  "source_kind": "official_upstream_documentation",
+  "source_reference": "nistir_7391_section_4_2_3",
+  "source_version": "2007",
+  "allowed_execution_profiles": [
+    "canonical_500_lanczos3_60s_v1"
+  ],
+  "calibration_performed": false,
+  "calibration_manifest_fingerprint": null,
+  "metadata": {
+    "upstream_claim": "score_above_40_usually_indicates_true_match",
+    "upstream_claim_is_not_benchmark_result": "true",
+    "calibration_test_cohort_used": "false",
+    "claims.calibrated_fmr": "false",
+    "claims.equivalent_to_sourceafis_operating_point": "false",
+    "claims.optimal_for_sd300": "false",
+    "provenance.source_statement_kind": "rule_of_thumb"
+  },
+  "schema_version": "2"
+}

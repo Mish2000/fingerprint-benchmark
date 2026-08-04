@@ -39,6 +39,13 @@ LEGACY_METRIC_SETS = {
 }
 LEGACY_PAIRED = "pairedeval_ee2e0fe7ddb6"
 
+#: The four identities Stage 7D published. These are acceptance inputs, not
+#: pointers to whatever the workspace happens to contain today.
+NBIS_DECISION_SET = "decisionset_52b1ee4e6aca"
+NBIS_ELIGIBILITY_SET = "eligibilityset_9e717ecf6a82"
+NBIS_METRIC_SET = "metricset_614450282fdb"
+CROSS_ALGORITHM_EVALUATION = "algcompare_7ef9d0c9a0df"
+
 
 def _dataset_root() -> Path | None:
     value = os.environ.get("FPBENCH_SD300_ROOT")
@@ -46,40 +53,240 @@ def _dataset_root() -> Path | None:
 
 
 def _require_workspace() -> None:
-    for run_id in (SOURCEAFIS_RUN, NBIS_RUN, NATIVE_RUN):
-        if not (WORKSPACE / "results" / run_id / "run.json").is_file():
-            pytest.skip(f"workspace does not hold {run_id}")
-    if _dataset_root() is None:
-        pytest.skip("FPBENCH_SD300_ROOT is not set")
+    run_directories = {
+        run_id: WORKSPACE / "results" / run_id
+        for run_id in (SOURCEAFIS_RUN, NBIS_RUN, NATIVE_RUN)
+    }
+    if not any(path.exists() for path in run_directories.values()):
+        pytest.skip("the workspace holds none of the three Stage 7D research runs")
+
+    issues: list[str] = []
+    dataset_root = _dataset_root()
+    if dataset_root is None:
+        issues.append("FPBENCH_SD300_ROOT is not set")
+    elif not dataset_root.is_dir():
+        issues.append(f"FPBENCH_SD300_ROOT is not a directory: {dataset_root}")
+    for run_id, directory in run_directories.items():
+        manifest = directory / "run.json"
+        if not manifest.is_file():
+            issues.append(f"research run {run_id} is missing its manifest: {manifest}")
+    if issues:
+        _fail_gate(issues)
+
+    _require_stage7d_publication()
 
 
-def _require_clean_tree() -> None:
-    """A chain status refuses a dirty tree, by design (docs/adr/0017).
+def _require_stage7d_publication() -> None:
+    """Fail closed unless every published Stage 7D identity is present.
 
-    The status of a research chain is a statement about code that can be
-    recovered from a commit, so a checkout in the middle of a change cannot
-    answer the question at all. Saying so here is the honest outcome, and it
-    beats failing four hundred lines deep inside a provenance capture with a
-    message about starting a research run.
+    This is intentionally a cheap existence and binding gate. The tests below
+    still re-read and re-derive the three chains; this fixture ensures none of
+    those tests can turn a missing prerequisite into a green skip first.
     """
-    import shutil
-    import subprocess
-
-    if shutil.which("git") is None:
-        pytest.skip("git is not installed")
-    completed = subprocess.run(
-        ["git", "-C", str(REPOSITORY_ROOT), "status", "--porcelain"],
-        capture_output=True,
-        text=True,
-        check=False,
+    from fpbench.core.cross_algorithm_models import CrossAlgorithmFinalization
+    from fpbench.core.serialization import read_json, to_plain
+    from fpbench.cross_algorithm import EVIDENCE_DIRECTORY
+    from fpbench.cross_algorithm.align import load_fair_measurement_protocol
+    from fpbench.experiments.nbis_canonical500_decisions import (
+        EVIDENCE_DIRECTORY as DECISION_EVIDENCE_DIRECTORY,
     )
-    if completed.returncode != 0:
-        pytest.skip("git could not report the working tree state")
-    if completed.stdout.strip():
-        pytest.skip(
-            "the working tree has uncommitted changes; a chain status is only "
-            "meaningful over a committed tree"
+    from fpbench.experiments.nbis_canonical500_evaluation import (
+        EVIDENCE_DIRECTORY as METRIC_EVIDENCE_DIRECTORY,
+        FINALIZATION_EVIDENCE_NAME as METRIC_FINALIZATION_EVIDENCE_NAME,
+    )
+    from fpbench.experiments.sourceafis_vs_nbis_canonical500 import (
+        AUDIT_EVIDENCE_NAME,
+        DEFAULT_COMPARISON_CONFIG,
+        FINALIZATION_EVIDENCE_NAME,
+        load_comparison_config,
+    )
+    from fpbench.storage.decision_set_store import DecisionSetStore
+    from fpbench.storage.eligibility_set_store import EligibilitySetStore
+    from fpbench.storage.metric_set_store import MetricSetStore
+
+    issues: list[str] = []
+    decision_pointer = _nbis_decision_set_id()
+    metric_pointer = _nbis_metric_set_id()
+    if decision_pointer != NBIS_DECISION_SET:
+        issues.append(
+            f"NBIS decision pointer is {decision_pointer!r}, expected "
+            f"{NBIS_DECISION_SET!r}"
         )
+    if metric_pointer != NBIS_METRIC_SET:
+        issues.append(
+            f"NBIS metric pointer is {metric_pointer!r}, expected "
+            f"{NBIS_METRIC_SET!r}"
+        )
+
+    decisions = DecisionSetStore(WORKSPACE)
+    eligibility = EligibilitySetStore(WORKSPACE)
+    metrics = MetricSetStore(WORKSPACE)
+    decision_evidence = REPOSITORY_ROOT / DECISION_EVIDENCE_DIRECTORY
+    metric_evidence = REPOSITORY_ROOT / METRIC_EVIDENCE_DIRECTORY
+    comparison_evidence = REPOSITORY_ROOT / EVIDENCE_DIRECTORY
+    required = {
+        "NBIS DecisionSet": decisions.manifest_path(NBIS_RUN, NBIS_DECISION_SET),
+        "NBIS decision receipt": decisions.receipt_path(
+            NBIS_RUN, NBIS_DECISION_SET
+        ),
+        "NBIS decision finalization": decisions.finalization_path(
+            NBIS_RUN, NBIS_DECISION_SET
+        ),
+        "NBIS EligibilitySet": eligibility.manifest_path(
+            NBIS_RUN, NBIS_DECISION_SET
+        ),
+        "NBIS MetricSet": metrics.manifest_path(NBIS_RUN, NBIS_METRIC_SET),
+        "NBIS metric receipt": metrics.receipt_path(NBIS_RUN, NBIS_METRIC_SET),
+        "NBIS metric finalization": metrics.finalization_path(
+            NBIS_RUN, NBIS_METRIC_SET
+        ),
+        "published decision receipt": (
+            decision_evidence / f"{NBIS_DECISION_SET}.json"
+        ),
+        "published decision finalization": (
+            decision_evidence / "decision-finalization.json"
+        ),
+        "published metric receipt": metric_evidence / f"{NBIS_METRIC_SET}.json",
+        "published metric report": metric_evidence / f"{NBIS_METRIC_SET}.md",
+        "published metric finalization": (
+            metric_evidence / METRIC_FINALIZATION_EVIDENCE_NAME
+        ),
+        "published comparison receipt": (
+            comparison_evidence / f"{CROSS_ALGORITHM_EVALUATION}.json"
+        ),
+        "published comparison report": (
+            comparison_evidence / f"{CROSS_ALGORITHM_EVALUATION}.md"
+        ),
+        "published comparison audit": comparison_evidence / AUDIT_EVIDENCE_NAME,
+        "published comparison finalization": (
+            comparison_evidence / FINALIZATION_EVIDENCE_NAME
+        ),
+    }
+    for label, path in required.items():
+        if not path.is_file():
+            issues.append(f"{label} is missing: {path}")
+
+    try:
+        comparison = load_comparison_config(DEFAULT_COMPARISON_CONFIG)
+    except Exception as exc:
+        issues.append(f"comparison config is not bound and readable: {exc}")
+    else:
+        expected_right = (
+            NBIS_RUN,
+            NBIS_DECISION_SET,
+            NBIS_ELIGIBILITY_SET,
+            NBIS_METRIC_SET,
+        )
+        actual_right = (
+            comparison.right.run_id,
+            comparison.right.decision_set_id,
+            comparison.right.eligibility_set_id,
+            comparison.right.metric_set_id,
+        )
+        if actual_right != expected_right:
+            issues.append(
+                f"comparison right side is {actual_right!r}, expected "
+                f"{expected_right!r}"
+            )
+        try:
+            protocol = load_fair_measurement_protocol(comparison.protocol_config)
+        except Exception as exc:
+            issues.append(f"fair measurement protocol is unreadable: {exc}")
+        else:
+            if protocol.cross_algorithm_evaluation_id != CROSS_ALGORITHM_EVALUATION:
+                issues.append(
+                    "fair measurement protocol binds comparison "
+                    f"{protocol.cross_algorithm_evaluation_id!r}, expected "
+                    f"{CROSS_ALGORITHM_EVALUATION!r}"
+                )
+
+    bundles = sorted(comparison_evidence.glob("algcompare_*.json"))
+    reports = sorted(comparison_evidence.glob("algcompare_*.md"))
+    if [path.stem for path in bundles] != [CROSS_ALGORITHM_EVALUATION]:
+        issues.append(
+            "comparison evidence must contain exactly one JSON bundle for "
+            f"{CROSS_ALGORITHM_EVALUATION}: {[path.name for path in bundles]}"
+        )
+    if [path.stem for path in reports] != [CROSS_ALGORITHM_EVALUATION]:
+        issues.append(
+            "comparison evidence must contain exactly one Markdown report for "
+            f"{CROSS_ALGORITHM_EVALUATION}: {[path.name for path in reports]}"
+        )
+
+    if issues:
+        _fail_gate(issues)
+
+    try:
+        decision_manifest = decisions.read_manifest(NBIS_RUN, NBIS_DECISION_SET)
+        eligibility_manifest = eligibility.read_manifest(
+            NBIS_RUN, NBIS_DECISION_SET
+        )
+        decision_marker = decisions.read_finalization(
+            NBIS_RUN, NBIS_DECISION_SET
+        )
+        metric_manifest = metrics.read_manifest(NBIS_RUN, NBIS_METRIC_SET)
+        metric_marker = metrics.read_finalization(NBIS_RUN, NBIS_METRIC_SET)
+        published_decision_marker = read_json(
+            decision_evidence / "decision-finalization.json"
+        )
+        published_metric_marker = read_json(
+            metric_evidence / METRIC_FINALIZATION_EVIDENCE_NAME
+        )
+        comparison_marker = CrossAlgorithmFinalization(
+            **read_json(comparison_evidence / FINALIZATION_EVIDENCE_NAME)
+        )
+    except Exception as exc:
+        _fail_gate([f"a required Stage 7D artefact is unreadable: {exc}"])
+
+    identity_issues: list[str] = []
+    if decision_manifest.decision_set_id != NBIS_DECISION_SET:
+        identity_issues.append(
+            f"decision manifest identifies {decision_manifest.decision_set_id!r}"
+        )
+    if eligibility_manifest.eligibility_set_id != NBIS_ELIGIBILITY_SET:
+        identity_issues.append(
+            "eligibility manifest identifies "
+            f"{eligibility_manifest.eligibility_set_id!r}"
+        )
+    if metric_manifest.metric_set_id != NBIS_METRIC_SET:
+        identity_issues.append(
+            f"metric manifest identifies {metric_manifest.metric_set_id!r}"
+        )
+    if metric_manifest.decision_set_id != NBIS_DECISION_SET:
+        identity_issues.append(
+            f"metric manifest counts {metric_manifest.decision_set_id!r}"
+        )
+    if decision_marker.decision_set_fingerprint != (
+        decision_manifest.decision_set_fingerprint
+    ):
+        identity_issues.append("decision finalization does not bind the DecisionSet")
+    if decision_marker.eligibility_set_fingerprint != (
+        eligibility_manifest.eligibility_set_fingerprint
+    ):
+        identity_issues.append(
+            "decision finalization does not bind the EligibilitySet"
+        )
+    if metric_marker.metric_set_fingerprint != metric_manifest.metric_set_fingerprint:
+        identity_issues.append("metric finalization does not bind the MetricSet")
+    if published_decision_marker != to_plain(decision_marker):
+        identity_issues.append(
+            "published decision finalization differs from the workspace marker"
+        )
+    if published_metric_marker != to_plain(metric_marker):
+        identity_issues.append(
+            "published metric finalization differs from the workspace marker"
+        )
+    if comparison_marker.evaluation_id != CROSS_ALGORITHM_EVALUATION:
+        identity_issues.append(
+            f"comparison finalization identifies {comparison_marker.evaluation_id!r}"
+        )
+    if identity_issues:
+        _fail_gate(identity_issues)
+
+
+def _fail_gate(issues: list[str]) -> None:
+    detail = "\n".join(f"- {issue}" for issue in issues)
+    pytest.fail(f"Stage 7D acceptance gate is incomplete:\n{detail}", pytrace=False)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -167,11 +374,9 @@ def test_the_real_scores_at_the_boundary_are_decided_as_written():
     from fpbench.storage.result_store import ResultStore
 
     store = DecisionSetStore(WORKSPACE)
-    set_id = _nbis_decision_set_id()
-    if set_id is None or not store.has_decision_set(NBIS_RUN, set_id):
-        pytest.skip("the NBIS decision set has not been derived yet")
-
-    _profile, _manifest, records = store.read_decision_set(NBIS_RUN, set_id)
+    _profile, _manifest, records = store.read_decision_set(
+        NBIS_RUN, NBIS_DECISION_SET
+    )
     results = ResultStore(WORKSPACE)
     counts: dict[int, int] = {39: 0, 40: 0, 41: 0}
     for record in records:
@@ -203,11 +408,9 @@ def test_a_score_of_zero_is_a_decided_non_match():
     from fpbench.storage.result_store import ResultStore
 
     store = DecisionSetStore(WORKSPACE)
-    set_id = _nbis_decision_set_id()
-    if set_id is None or not store.has_decision_set(NBIS_RUN, set_id):
-        pytest.skip("the NBIS decision set has not been derived yet")
-
-    _profile, _manifest, records = store.read_decision_set(NBIS_RUN, set_id)
+    _profile, _manifest, records = store.read_decision_set(
+        NBIS_RUN, NBIS_DECISION_SET
+    )
     results = ResultStore(WORKSPACE)
     seen = 0
     for record in records:
@@ -225,7 +428,6 @@ def test_a_score_of_zero_is_a_decided_non_match():
 
 
 def test_the_nbis_decision_chain_is_decision_ready():
-    _require_clean_tree()
     from fpbench.experiments.nbis_canonical500_decisions import inspect_nbis_decisions
 
     state = inspect_nbis_decisions(
@@ -245,7 +447,6 @@ def test_the_nbis_decision_chain_is_decision_ready():
 
 
 def test_the_nbis_evaluation_is_evaluation_ready_with_56_observations():
-    _require_clean_tree()
     from fpbench.experiments.nbis_canonical500_evaluation import (
         inspect_nbis_evaluation,
     )
@@ -265,10 +466,7 @@ def test_both_chains_were_counted_under_one_metric_policy():
 
     store = MetricSetStore(WORKSPACE)
     left = store.read_manifest(SOURCEAFIS_RUN, LEGACY_METRIC_SETS[SOURCEAFIS_RUN])
-    right_id = _nbis_metric_set_id()
-    if right_id is None:
-        pytest.skip("the NBIS metric set has not been derived yet")
-    right = store.read_manifest(NBIS_RUN, right_id)
+    right = store.read_manifest(NBIS_RUN, NBIS_METRIC_SET)
     assert left.metric_policy_fingerprint == right.metric_policy_fingerprint
     assert not list(
         (REPOSITORY_ROOT / "configs" / "metrics").glob("*nbis*")
@@ -279,17 +477,13 @@ def test_both_chains_were_counted_under_one_metric_policy():
 
 
 def test_the_comparison_is_cross_algorithm_ready():
-    _require_clean_tree()
     from fpbench.experiments.sourceafis_vs_nbis_canonical500 import (
         DEFAULT_COMPARISON_CONFIG,
         inspect_comparison,
         load_comparison_config,
     )
 
-    try:
-        config = load_comparison_config(DEFAULT_COMPARISON_CONFIG)
-    except Exception as exc:  # a placeholder id is not a failure yet
-        pytest.skip(f"the comparison config is not bound yet: {exc}")
+    config = load_comparison_config(DEFAULT_COMPARISON_CONFIG)
 
     state = inspect_comparison(
         workspace=WORKSPACE, config=config, repository_root=REPOSITORY_ROOT
@@ -308,8 +502,6 @@ def test_the_published_comparison_carries_no_score():
     )
 
     directory = REPOSITORY_ROOT / EVIDENCE_DIRECTORY
-    if not directory.is_dir():
-        pytest.skip("no comparison evidence is published yet")
     for path in sorted(directory.glob("*.json")):
         require_no_score_comparison(read_json(path), path=path.name)
     for path in sorted(directory.glob("*.md")):

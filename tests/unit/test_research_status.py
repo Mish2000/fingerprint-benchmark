@@ -191,7 +191,13 @@ def test_broken_prepared_input_set_is_reported_as_invalid_not_raised(
         pairs=world.pair_index,
         verifier_software=world.software,
     )
-    monkeypatch.setattr(algorithm_research, "_load_prepared", lambda **_: prepared)
+    load_arguments = {}
+
+    def load_prepared(**kwargs):
+        load_arguments.update(kwargs)
+        return prepared
+
+    monkeypatch.setattr(algorithm_research, "_load_prepared", load_prepared)
 
     def must_not_validate(*_, **__):  # pragma: no cover - the assertion is no call
         raise AssertionError("broken preparation must not request prepared entries")
@@ -205,6 +211,7 @@ def test_broken_prepared_input_set_is_reported_as_invalid_not_raised(
     )
     assert state.status is ResearchRunStatus.INVALID
     assert any("preparation-set preflight failed" in issue for issue in state.issues)
+    assert load_arguments["require_clean_verifier"] is False
 
 
 def test_a_deleted_result_invalidates_a_finalised_run(tmp_path):

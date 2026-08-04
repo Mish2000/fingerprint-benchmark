@@ -496,6 +496,7 @@ def inspect_algorithm_research_experiment(
         run_id=run_id,
         require_source_match=False,
         run_preparer_preflight=False,
+        require_clean_verifier=False,
     )
     validation = None
     manifest = None
@@ -666,6 +667,15 @@ def capture_research_provenance(repository_root: Path) -> SoftwareProvenance:
 
     return capture_software_provenance(
         repository_root=Path(repository_root), require_clean=True
+    )
+
+
+def _capture_inspection_provenance(repository_root: Path) -> SoftwareProvenance:
+    """Describe the current reader without making a clean tree a prerequisite."""
+    from fpbench.provenance.software import capture_software_provenance
+
+    return capture_software_provenance(
+        repository_root=Path(repository_root), require_clean=False
     )
 
 
@@ -850,18 +860,25 @@ def _load_prepared(
     run_id: str | None,
     require_source_match: bool = True,
     run_preparer_preflight: bool = True,
+    require_clean_verifier: bool = True,
 ) -> PreparedAlgorithmResearchRun:
     """Reconstruct a prepared run from what ``prepare`` already wrote.
 
     Never re-materialises and never re-plans. Execution requires the current
     revision to match the executor revision recorded by the run. Status and
     finalization instead preserve that recorded provenance while capturing the
-    clean verifier revision that is checking it; otherwise a verifier fix could
-    never be applied to an older completed run (docs/adr/0017).
+    verifier revision that is checking it; otherwise a verifier fix could never
+    be applied to an older completed run (docs/adr/0017). Finalization requires
+    that verifier to be clean. Status records a dirty or unavailable verifier
+    without refusing to read already-published evidence.
     """
     workspace = Path(workspace)
     repository_root = Path(repository_root)
-    verifier_software = capture_research_provenance(repository_root)
+    verifier_software = (
+        capture_research_provenance(repository_root)
+        if require_clean_verifier
+        else _capture_inspection_provenance(repository_root)
+    )
 
     resolved = run_id or _read_pointer(workspace, spec.experiment_id)
     result_store = ResultStore(workspace)

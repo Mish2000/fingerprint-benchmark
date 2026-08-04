@@ -8,7 +8,7 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
 .PHONY: help test test-all full-run adapter-contract \
         nbis-inspect nbis-seal nbis-fetch nbis-build nbis-certify nbis-verify \
         nbis-contract nbis-upstream nbis-canonical500-preflight \
-        stage7d-contract stage7d-workspace \
+        stage7d-contract stage7d-workspace stage8a-contract stage8a-workspace stage8a-status \
         sourceafis-build sourceafis-java-test sourceafis-python-test \
         sourceafis-test sourceafis-sd300-smoke \
         research-prepare research-execute research-status research-finalize \
@@ -28,6 +28,9 @@ help:
 	@echo "adapter-contract        what a new algorithm must satisfy (no dataset, no JVM)"
 	@echo "stage7d-contract        the comparison methodology (no dataset, no algorithm)"
 	@echo "stage7d-workspace       the comparison over the real 12,000 results"
+	@echo "stage8a-contract        modern artifact qualification and selection rules (offline, no data)"
+	@echo "stage8a-workspace       verify the committed Stage 8A evidence authority"
+	@echo "stage8a-status          re-derive and print the Stage 8A outcome"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
 	@echo "sourceafis-java-test    Java unit tests"
 	@echo "sourceafis-python-test  Python SourceAFIS tests, excluding the dataset"
@@ -153,6 +156,22 @@ stage7d-contract:
 # evidence trees. Run after every evidence commit (spec section 87).
 stage7d-workspace:
 	pytest -m "dataset and stage7d" -q
+
+# ---------------------------------------------------------------- stage 8A
+
+# Artifact qualification only: immutable models, hard gates, offline fixture
+# probes, selection ordering, negative cases, and tampering.  It has no route to
+# SD300 or to the result/derivation workspaces.
+stage8a-contract:
+	pytest -m "stage8a_contract" -q
+
+# The committed evidence is mandatory and may never skip.  A missing report,
+# altered acquisition manifest, policy change, or stale finalization fails.
+stage8a-workspace:
+	pytest -m "stage8a" -q
+
+stage8a-status:
+	python -m fpbench.experiments.stage8a_modern_matcher_selection status
 
 # ------------------------------------------------------------------- SourceAFIS
 

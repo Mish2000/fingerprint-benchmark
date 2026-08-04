@@ -1,0 +1,51 @@
+name: Stage 8A modern matcher selection
+
+on:
+  push:
+    paths:
+      - "configs/modern-matchers/**"
+      - "integrations/modern-matchers/**"
+      - "src/fpbench/core/modern_matcher_models.py"
+      - "src/fpbench/modern_matchers/**"
+      - "src/fpbench/storage/modern_matcher_store.py"
+      - "src/fpbench/experiments/stage8a_modern_matcher_selection.py"
+      - "evidence/stage8a-modern-matcher-selection/**"
+      - "tests/**stage8a**"
+      - "tests/**modern_matcher**"
+      - "pyproject.toml"
+      - "Makefile"
+      - ".github/workflows/stage8a-modern-matcher-selection.yml"
+  pull_request:
+    paths:
+      - "configs/modern-matchers/**"
+      - "integrations/modern-matchers/**"
+      - "src/fpbench/core/modern_matcher_models.py"
+      - "src/fpbench/modern_matchers/**"
+      - "src/fpbench/storage/modern_matcher_store.py"
+      - "src/fpbench/experiments/stage8a_modern_matcher_selection.py"
+      - "evidence/stage8a-modern-matcher-selection/**"
+      - "tests/**stage8a**"
+      - "tests/**modern_matcher**"
+      - "pyproject.toml"
+      - "Makefile"
+      - ".github/workflows/stage8a-modern-matcher-selection.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  qualification-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[dev]"
+      - name: Hard gates, negative cases, and tampering
+        run: pytest -m "stage8a_contract" -q
+      - name: Committed evidence gate
+        run: pytest -m "stage8a" -q

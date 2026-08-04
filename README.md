@@ -1448,6 +1448,41 @@ evidence under [evidence/nbis-canonical500-decisions/](evidence/nbis-canonical50
 [evidence/nbis-canonical500-evaluation/](evidence/nbis-canonical500-evaluation/) and
 [evidence/sourceafis-vs-nbis-canonical500/](evidence/sourceafis-vs-nbis-canonical500/).
 
+## Stage 8A: qualify a modern artifact, or select nothing
+
+Stage 8A froze three candidates before inspection: an official or author-supplied
+AFR-Net artifact (tier A), an official or author-supplied MGViT artifact (tier B), and
+the exact public `flx` fixed-length extractor/checkpoint (tier C). id3 Finger SDK is a
+reserve outside the stage and cannot become selected through fallback.
+
+This stage examines artifacts, not biometric performance. It has no route to SD300,
+the 6,000-pair plan, earlier raw results or derivations. It creates no adapter,
+`ResultSet`, threshold, calibration or comparison. Every candidate instead has to pass
+hard gates for scientific identity, inference code, exact weights, preprocessing,
+representation, a finite raw-score API, a future decision path, independent SELF
+extraction, determinism, offline operation, licensing, architecture fit and operational
+feasibility. Tier and the nine frozen tie-breakers apply only after every gate passes.
+
+**The result is `NO_MODERN_MATCHER_READY`.** AFR-Net and MGViT have identified papers
+but no qualifying official executable artifacts. `flx` has separately identified source
+and checkpoint bytes, including a detected two-branch 512-dimensional model, but the
+checkpoint licence is not established, dependencies are unpinned, and its loaders do
+not define one dataset-independent route from the canonical PNG. Static inspection
+therefore stopped all fixture execution; the reports do not pretend that determinism,
+capacity or SELF independence was measured.
+
+The evidence is re-derived rather than trusted. It binds the frozen registry, separate
+acquisition manifests, one report per candidate, the gate-first selection and exact
+publication bytes. Missing or edited evidence fails closed, while model weights,
+biometric fixtures, embeddings and observed scores remain unpublished.
+
+Details: [the Stage 8A evidence report](evidence/stage8a-modern-matcher-selection/README.md)
+and [ADRs 0061–0066](docs/adr/README.md). Verify it with:
+
+```bash
+python -m fpbench.experiments.stage8a_modern_matcher_selection verify
+```
+
 ## Architecture note: where the models live
 
 Several containers sit in `core` rather than in the package that derives them:
@@ -1466,6 +1501,14 @@ everywhere else: "run SourceAFIS over SD300 at native resolution" is a sentence 
 one experiment, and it needs somewhere to live that is not the planner.
 
 ## Next stage
+
+Stage 8B is closed because Stage 8A selected no artifact. The next matcher work must be
+an explicit stage that either reconsiders id3 Finger SDK or VeriFinger under its own
+legal/runtime requirements, or freezes a new registry version after upstream publishes
+a newly identifiable modern artifact. It must not weaken Stage 8A retroactively or use
+SD300 to repair a missing preprocessing, threshold or runtime claim.
+
+## Longer-term backlog from earlier stages
 
 1. metrics over the three views — FMR, FNMR and the conditional PLAIN–ROLL report — with
    the one thing that makes them honest written down first: what happens to a failed

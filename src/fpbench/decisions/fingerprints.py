@@ -10,20 +10,26 @@ from __future__ import annotations
 
 from fpbench.core.decision_models import (
     DECISION_PROFILE_SCHEMA_VERSION,
+    DECISION_PROFILE_SCHEMA_VERSIONS,
     DECISION_SET_SCHEMA_VERSION,
     canonical_threshold,
+    comparators_for,
     decision_profile_fingerprint,
     decision_record_hash,
     decision_set_fingerprint,
     decision_set_id,
     ordered_decisions_hash,
+    require_comparator_schema_version,
     threshold_decimal,
 )
 
 __all__ = [
     "DECISION_PROFILE_SCHEMA_VERSION",
+    "DECISION_PROFILE_SCHEMA_VERSIONS",
     "DECISION_SET_SCHEMA_VERSION",
     "canonical_threshold",
+    "comparators_for",
+    "require_comparator_schema_version",
     "decision_profile_fingerprint",
     "decision_record_hash",
     "decision_set_fingerprint",

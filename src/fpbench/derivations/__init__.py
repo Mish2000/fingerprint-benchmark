@@ -14,6 +14,7 @@ from fpbench.core.derivation_models import (
     DecisionDerivationReceipt,
     DecisionDerivationState,
     DerivationDefinition,
+    SourceFinalizationIdentity,
     derivation_definition_fingerprint,
 )
 from fpbench.derivations.receipt import (
@@ -31,6 +32,7 @@ __all__ = [
     "DecisionDerivationReceipt",
     "DecisionDerivationState",
     "DerivationDefinition",
+    "SourceFinalizationIdentity",
     "EVIDENCE_DIRECTORY",
     "VIEW_KINDS",
     "build_derivation_finalization_marker",

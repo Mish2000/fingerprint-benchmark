@@ -19,7 +19,11 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 from fpbench.core.decision_models import DecisionProfile, DecisionRecord
-from fpbench.core.derivation_models import DecisionDerivationState, DerivationDefinition
+from fpbench.core.derivation_models import (
+    DecisionDerivationState,
+    DerivationDefinition,
+    SourceFinalizationIdentity,
+)
 from fpbench.core.eligibility_models import SelfEligibilityUnit
 from fpbench.core.enums import DecisionDerivationStatus, ResearchRunStatus
 from fpbench.core.errors import FpbenchError
@@ -71,6 +75,7 @@ def inspect_decision_derivation(
     pair_manifest_hash: str,
     non_mated_finger_shift: int,
     workspace: Path | None = None,
+    source_finalization: SourceFinalizationIdentity | None = None,
 ) -> DecisionDerivationState:
     """Recompute the whole chain and report where it stands.
 
@@ -281,6 +286,7 @@ def inspect_decision_derivation(
                     non_mated_view=view_manifests[NON_MATED_SANITY_VIEW],
                     pair_manifest_hash=pair_manifest_hash,
                     definition=definition,
+                    source_finalization=source_finalization,
                 )
                 receipt_valid = True
             except FpbenchError as exc:
@@ -311,6 +317,7 @@ def inspect_decision_derivation(
                     non_mated_view=view_manifests[NON_MATED_SANITY_VIEW],
                     receipt=decisions_store.read_receipt(run.run_id, decision_set_id),
                     definition=definition,
+                    source_finalization=source_finalization,
                 )
                 finalization_valid = True
             except FpbenchError as exc:

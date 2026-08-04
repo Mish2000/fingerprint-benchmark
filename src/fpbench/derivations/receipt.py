@@ -28,6 +28,7 @@ from fpbench.core.derivation_models import (
     DecisionDerivationFinalizationMarker,
     DecisionDerivationReceipt,
     DerivationDefinition,
+    SourceFinalizationIdentity,
     derivation_finalization_fingerprint,
     derivation_receipt_content_hash,
     derivation_receipt_fingerprint,
@@ -50,6 +51,7 @@ __all__ = [
     "build_derivation_finalization_marker",
     "verify_derivation_finalization_marker",
     "write_derivation_evidence_copy",
+    "write_evidence_document",
 ]
 
 #: One committed file per decision set, so two thresholds over the same run
@@ -69,12 +71,28 @@ def build_derivation_receipt(
     derivation_software: SoftwareProvenance,
     pair_manifest_hash: str,
     created_utc: str | None = None,
+    schema_version: str = DERIVATION_RECEIPT_SCHEMA_VERSION,
+    definition: DerivationDefinition | None = None,
+    source_finalization: SourceFinalizationIdentity | None = None,
 ) -> DecisionDerivationReceipt:
     """Derive the sanitised receipt for a complete, verified derivation.
 
+    Args:
+        schema_version: ``"1"`` reproduces the shape four published SourceAFIS
+            receipts already have, byte for byte. ``"2"`` additionally binds the
+            derivation definition, the derivation software identity and the
+            source run's stage finalization marker, and requires all three.
+
     Raises:
-        DecisionFinalizationError: the links do not agree with one another.
+        DecisionFinalizationError: the links do not agree with one another, or a
+            schema-2 receipt was asked for without what schema 2 binds.
     """
+    extras = _receipt_extras(
+        schema_version=schema_version,
+        definition=definition,
+        derivation_software=derivation_software,
+        source_finalization=source_finalization,
+    )
     _require_chain(
         run=run,
         result_set=result_set,
@@ -94,7 +112,8 @@ def build_derivation_receipt(
     )
 
     return DecisionDerivationReceipt(
-        schema_version=DERIVATION_RECEIPT_SCHEMA_VERSION,
+        **extras,
+        schema_version=str(schema_version),
         run_id=run.run_id,
         run_fingerprint=run.run_fingerprint,
         result_set_id=result_set.result_set_id,
@@ -140,6 +159,7 @@ def verify_derivation_receipt(
     non_mated_view: EvaluationViewManifest,
     pair_manifest_hash: str,
     definition: DerivationDefinition,
+    source_finalization: SourceFinalizationIdentity | None = None,
 ) -> None:
     """Re-derive every load-bearing receipt claim from the current artefacts.
 
@@ -147,8 +167,12 @@ def verify_derivation_receipt(
     receipt can be perfectly self-consistent while describing a derivation that
     is not the one on disk.
     """
+    _require_receipt_extras(
+        receipt=receipt,
+        definition=definition,
+        source_finalization=source_finalization,
+    )
     expected: Mapping[str, object] = {
-        "schema_version": DERIVATION_RECEIPT_SCHEMA_VERSION,
         "run_id": run.run_id,
         "run_fingerprint": run.run_fingerprint,
         "result_set_id": result_set.result_set_id,
@@ -212,6 +236,8 @@ def build_derivation_finalization_marker(
     receipt: DecisionDerivationReceipt,
     derivation_software: SoftwareProvenance,
     created_utc: str | None = None,
+    schema_version: str = DERIVATION_FINALIZATION_SCHEMA_VERSION,
+    source_finalization: SourceFinalizationIdentity | None = None,
 ) -> DecisionDerivationFinalizationMarker:
     """Build the last-written authority over an already verified chain."""
     if not derivation_software.is_research_grade:
@@ -227,7 +253,10 @@ def build_derivation_finalization_marker(
             "the receipt and decision set name different derivation commits"
         )
     claims = {
-        "schema_version": DERIVATION_FINALIZATION_SCHEMA_VERSION,
+        **_marker_extras(
+            schema_version=schema_version, source_finalization=source_finalization
+        ),
+        "schema_version": str(schema_version),
         "run_id": run.run_id,
         "source_result_set_fingerprint": result_set.result_set_fingerprint,
         "decision_profile_fingerprint": decision_set.decision_profile_fingerprint,
@@ -262,8 +291,36 @@ def verify_derivation_finalization_marker(
     non_mated_view: EvaluationViewManifest,
     receipt: DecisionDerivationReceipt,
     definition: DerivationDefinition,
+    source_finalization: SourceFinalizationIdentity | None = None,
 ) -> None:
     """Confirm the marker still names every current durable artefact."""
+    if marker.schema_version != receipt.schema_version:
+        raise DecisionFinalizationError(
+            f"the marker is schema {marker.schema_version} and the receipt is "
+            f"schema {receipt.schema_version}; a derivation is finalised under one"
+        )
+    if marker.source_stage_finalization_kind is not None:
+        stage_kind = (
+            source_finalization.stage_finalization_kind
+            if source_finalization
+            else None
+        )
+        stage_fingerprint = (
+            source_finalization.stage_finalization_fingerprint
+            if source_finalization
+            else None
+        )
+        if (
+            marker.source_stage_finalization_kind != stage_kind
+            or marker.source_stage_finalization_fingerprint != stage_fingerprint
+        ):
+            raise DecisionFinalizationError(
+                "the marker names stage finalization "
+                f"{marker.source_stage_finalization_kind}/"
+                f"{str(marker.source_stage_finalization_fingerprint)[:12]}..., but "
+                f"the source run currently carries {stage_kind}/"
+                f"{str(stage_fingerprint)[:12]}..."
+            )
     expected = {
         "run_id": run.run_id,
         "source_result_set_fingerprint": result_set.result_set_fingerprint,
@@ -300,15 +357,27 @@ def write_derivation_evidence_copy(
     repository_root: Path,
     directory: Path = EVIDENCE_DIRECTORY,
 ) -> Path:
-    """Write the committable copy, byte-identically or not at all.
+    """Write the committable copy, byte-identically or not at all."""
+    return write_evidence_document(
+        Path(repository_root) / directory / f"{receipt.decision_set_id}.json",
+        receipt,
+    )
+
+
+def write_evidence_document(path: Path, value: object) -> Path:
+    """Write one committable JSON file, byte-identically or not at all.
 
     Line endings are normalised to the platform's, matching ``write_json``, so
     that a copy checked out by git on another platform is recognised as the same
     evidence rather than as a conflicting one.
+
+    There is deliberately no overwrite. Published evidence that could be silently
+    replaced is not evidence; a second finalisation either agrees with the first
+    byte for byte or stops.
     """
-    path = Path(repository_root) / directory / f"{receipt.decision_set_id}.json"
+    path = Path(path)
     rendered = (
-        json.dumps(to_plain(receipt), indent=2, ensure_ascii=False, sort_keys=False)
+        json.dumps(to_plain(value), indent=2, ensure_ascii=False, sort_keys=False)
         + "\n"
     )
     payload = rendered.replace("\n", os.linesep).encode("utf-8")
@@ -333,6 +402,93 @@ def write_derivation_evidence_copy(
 
 
 # ----------------------------------------------------------------- internals
+
+
+def _receipt_extras(
+    *,
+    schema_version: str,
+    definition: DerivationDefinition | None,
+    derivation_software: SoftwareProvenance,
+    source_finalization: SourceFinalizationIdentity | None,
+) -> Mapping[str, object]:
+    """The four fields schema 2 binds, or four ``None``\\ s for schema 1."""
+    if str(schema_version) == DERIVATION_RECEIPT_SCHEMA_VERSION:
+        return {}
+    if definition is None:
+        raise DecisionFinalizationError(
+            "a schema-2 derivation receipt binds the derivation definition it was "
+            "produced under; none was supplied"
+        )
+    if source_finalization is None:
+        raise DecisionFinalizationError(
+            "a schema-2 derivation receipt binds what made the source run "
+            "authoritative; no source finalization identity was supplied"
+        )
+    return {
+        "derivation_definition_fingerprint": definition.definition_fingerprint,
+        "derivation_software_fingerprint": software_provenance_fingerprint(
+            derivation_software
+        ),
+        "source_stage_finalization_kind": (
+            source_finalization.stage_finalization_kind
+        ),
+        "source_stage_finalization_fingerprint": (
+            source_finalization.stage_finalization_fingerprint
+        ),
+    }
+
+
+def _marker_extras(
+    *,
+    schema_version: str,
+    source_finalization: SourceFinalizationIdentity | None,
+) -> Mapping[str, object]:
+    if str(schema_version) == DERIVATION_FINALIZATION_SCHEMA_VERSION:
+        return {}
+    if source_finalization is None or source_finalization.stage_finalization_kind is None:
+        raise DecisionFinalizationError(
+            "a schema-2 derivation finalization binds the source run's stage "
+            "marker; this run has none, so it does not need schema 2"
+        )
+    return {
+        "source_stage_finalization_kind": (
+            source_finalization.stage_finalization_kind
+        ),
+        "source_stage_finalization_fingerprint": (
+            source_finalization.stage_finalization_fingerprint
+        ),
+    }
+
+
+def _require_receipt_extras(
+    *,
+    receipt: DecisionDerivationReceipt,
+    definition: DerivationDefinition,
+    source_finalization: SourceFinalizationIdentity | None,
+) -> None:
+    """Re-derive the schema-2 bindings, when the receipt claims to have them."""
+    if receipt.schema_version == DERIVATION_RECEIPT_SCHEMA_VERSION:
+        return
+    expected: Mapping[str, object] = {
+        "derivation_definition_fingerprint": definition.definition_fingerprint,
+        "derivation_software_fingerprint": (
+            definition.derivation_software_fingerprint
+        ),
+        "source_stage_finalization_kind": (
+            source_finalization.stage_finalization_kind if source_finalization else None
+        ),
+        "source_stage_finalization_fingerprint": (
+            source_finalization.stage_finalization_fingerprint
+            if source_finalization
+            else None
+        ),
+    }
+    for name, value in expected.items():
+        actual = getattr(receipt, name)
+        if actual != value:
+            raise DecisionFinalizationError(
+                f"derivation receipt field {name} is {actual!r}, expected {value!r}"
+            )
 
 
 def _require_chain(

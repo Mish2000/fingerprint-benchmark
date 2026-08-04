@@ -34,6 +34,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from fpbench.core.decision_models import (
+    DECISION_PROFILE_SCHEMA_VERSION,
     DECISION_SET_SCHEMA_VERSION,
     DecisionProfile,
     DecisionRecord,
@@ -179,6 +180,12 @@ class DecisionSetStore:
                     "calibration_manifest_fingerprint"
                 ],
                 metadata=payload["metadata"],
+                # Absent from every profile stored before stage 7D, and absence
+                # means schema 1 — which is what those profiles were, and what
+                # their published fingerprints were computed under.
+                schema_version=payload.get(
+                    "schema_version", DECISION_PROFILE_SCHEMA_VERSION
+                ),
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise StorageError(f"{path}: unreadable decision profile ({exc})") from exc

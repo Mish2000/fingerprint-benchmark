@@ -25,7 +25,7 @@ import datetime as _dt
 import math
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Mapping
+from typing import Any, Mapping
 
 from fpbench.core.decision_models import (
     DecisionApplicationStatus,
@@ -70,6 +70,19 @@ class DecisionSet:
         return {record.job_id: record for record in self.records}
 
 
+#: One predicate per comparator, and the whole of the decision layer's
+#: arithmetic. Kept as a table rather than a chain of ``if``s so that adding a
+#: comparator without deciding what it means at the boundary is impossible: the
+#: table would simply have no entry for it.
+_COMPARATORS: Mapping[ThresholdComparator, Any] = {
+    ThresholdComparator.GREATER_THAN_OR_EQUAL: lambda value, threshold: value
+    >= threshold,
+    ThresholdComparator.GREATER_THAN: lambda value, threshold: value > threshold,
+    ThresholdComparator.LESS_THAN_OR_EQUAL: lambda value, threshold: value <= threshold,
+    ThresholdComparator.LESS_THAN: lambda value, threshold: value < threshold,
+}
+
+
 def decide_score(*, score: float, profile: DecisionProfile) -> DecisionValue:
     """Compare one score to one threshold. Nothing else.
 
@@ -84,6 +97,12 @@ def decide_score(*, score: float, profile: DecisionProfile) -> DecisionValue:
     The comparison is done in :class:`~decimal.Decimal`. Converting the
     threshold to binary floating point instead would mean ``40`` is not exactly
     40, and a score that landed on the boundary would be decided by the parser.
+
+    That mattered before four comparators existed and matters more now: under
+    ``>=`` a boundary score is a MATCH and under ``>`` it is a NON_MATCH, so the
+    two comparators disagree about exactly the scores where an epsilon or a
+    binary rounding error would decide the answer. There is no epsilon here
+    (docs/adr/0055, spec sections 17 and 18).
     """
     number = float(score)
     if not math.isfinite(number):
@@ -91,12 +110,15 @@ def decide_score(*, score: float, profile: DecisionProfile) -> DecisionValue:
             f"score {score!r} is not finite and cannot be compared to a threshold"
         )
 
-    value = Decimal(repr(number))
+    value = Decimal(str(number))
     threshold = profile.threshold_value
 
-    if profile.comparator is ThresholdComparator.GREATER_THAN_OR_EQUAL:
-        return DecisionValue.MATCH if value >= threshold else DecisionValue.NON_MATCH
-    return DecisionValue.MATCH if value <= threshold else DecisionValue.NON_MATCH
+    predicate = _COMPARATORS.get(profile.comparator)
+    if predicate is None:  # pragma: no cover - unreachable while the table is total
+        raise DecisionDerivationError(
+            f"comparator {profile.comparator.value!r} has no decision rule"
+        )
+    return DecisionValue.MATCH if predicate(value, threshold) else DecisionValue.NON_MATCH
 
 
 def apply_decision_profile(

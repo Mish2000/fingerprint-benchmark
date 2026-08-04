@@ -43,6 +43,9 @@ __all__ = [
     "ScoreRelation",
     "ComparabilityStatus",
     "PairedEvaluationStatus",
+    "CrossAlgorithmPopulation",
+    "CrossAlgorithmTransitionFamily",
+    "CrossAlgorithmStatus",
 ]
 
 
@@ -344,10 +347,24 @@ class ThresholdComparator(str, Enum):
     Paired with the algorithm's score direction and checked against it, because
     a comparator that disagrees with the direction silently inverts every
     decision in a run.
+
+    The two *strict* members exist because upstream documentation does not
+    always write an inclusive rule. NIST's NBIS guide describes a BOZORTH3 score
+    **greater than** 40 as usually indicating a true match; SourceAFIS documents
+    a score **of at least** 40. Reading either one as the other moves a boundary
+    nobody moved, so both spellings are first-class and a profile has to say
+    which it means (docs/adr/0055, docs/adr/0057).
     """
 
     GREATER_THAN_OR_EQUAL = "greater_than_or_equal"
     LESS_THAN_OR_EQUAL = "less_than_or_equal"
+    GREATER_THAN = "greater_than"
+    LESS_THAN = "less_than"
+
+    @property
+    def is_strict(self) -> bool:
+        """Whether a score exactly at the threshold falls outside the match side."""
+        return self in (ThresholdComparator.GREATER_THAN, ThresholdComparator.LESS_THAN)
 
 
 class DecisionApplicationStatus(str, Enum):
@@ -599,6 +616,88 @@ class PairedEvaluationStatus(str, Enum):
     AGGREGATES_READY = "aggregates_ready"
     REPORT_READY = "report_ready"
     PAIRED_EVALUATION_READY = "paired_evaluation_ready"
+    INVALID = "invalid"
+
+
+# ------------------------------------------------------ cross-algorithm analysis
+#
+# The vocabulary of comparing two *different algorithms* over one body of inputs.
+# It is deliberately not the paired vocabulary above: that one compares two runs
+# of the same algorithm under two image preparations, where a score delta is a
+# meaningful quantity and a control set of identical scores is the argument.
+# Neither is true here (docs/adr/0058, docs/adr/0060).
+
+
+class CrossAlgorithmPopulation(str, Enum):
+    """Whether two observed rates may be subtracted, and over what.
+
+    The most important member is the one that refuses. Two conditional rates
+    computed over *different eligible populations* are two measurements of two
+    things; their difference is the sum of the effect and the change in who was
+    counted, and no amount of care downstream can separate them again
+    (docs/adr/0038, spec section 61).
+    """
+
+    #: The same attempts on both sides, the same denominator, and every attempt
+    #: decided on both sides. A difference is a difference.
+    SAME_POPULATION = "same_population"
+    #: The same attempts, but the two sides could decide different subsets of
+    #: them. Attempt-level rates remain comparable; decided-level ones do not.
+    DIFFERENT_DECIDED_POPULATIONS = "different_decided_populations"
+    #: Each side selected its own eligible set. Report side by side, never as a
+    #: difference.
+    DIFFERENT_ELIGIBLE_POPULATIONS = "different_eligible_populations"
+    #: The intersection of the two eligible sets — one denominator, both sides.
+    COMMON_ELIGIBLE_POPULATION = "common_eligible_population"
+    #: Reported because it is informative, not because it supports a difference.
+    DESCRIPTIVE_ONLY = "descriptive_only"
+    #: Something about the two sides does not line up at all.
+    NOT_COMPARABLE = "not_comparable"
+
+    @property
+    def permits_difference(self) -> bool:
+        """Whether an exact rate difference may be stored for this population."""
+        return self in (
+            CrossAlgorithmPopulation.SAME_POPULATION,
+            CrossAlgorithmPopulation.COMMON_ELIGIBLE_POPULATION,
+        )
+
+
+class CrossAlgorithmTransitionFamily(str, Enum):
+    """Which set of comparisons a 3x3 outcome transition matrix covers.
+
+    Five families, each over one fixed population, because a transition matrix
+    whose rows came from different populations would be a table of two different
+    experiments (spec section 51).
+    """
+
+    PLAIN_SELF = "plain_self"
+    ROLL_SELF = "roll_self"
+    MATED_UNCONDITIONAL = "mated_unconditional"
+    MATED_COMMON_ELIGIBLE = "mated_common_eligible"
+    NEGATIVE_SANITY = "negative_sanity"
+
+
+class CrossAlgorithmStatus(str, Enum):
+    """How much of a cross-algorithm comparison's evidence chain is in place.
+
+    The same shape as every other status ladder in this project, and for the same
+    reason: everything before the finalization marker is retryable work.
+
+    ``CROSS_ALGORITHM_READY`` additionally requires a clean fair-comparability
+    audit. If the two sides were not given the same 6,000 pairs in the same order
+    from the same 3,000 prepared images under the same policies, then the paired
+    outcomes are not paired and no table derived from them means what it appears
+    to mean (spec sections 56 and 81).
+    """
+
+    NOT_PREPARED = "not_prepared"
+    SOURCES_READY = "sources_ready"
+    AUDIT_READY = "audit_ready"
+    RECORDS_READY = "records_ready"
+    AGGREGATES_READY = "aggregates_ready"
+    REPORT_READY = "report_ready"
+    CROSS_ALGORITHM_READY = "cross_algorithm_ready"
     INVALID = "invalid"
 
 

@@ -127,7 +127,7 @@ def test_a_missing_profile_file_is_refused(tmp_path):
 
 
 def test_a_comparator_that_contradicts_the_score_direction_is_refused():
-    with pytest.raises(DecisionProfileError, match="requires comparator"):
+    with pytest.raises(DecisionProfileError, match="inverts every decision"):
         build_decision_profile(
             **_fields(comparator=ThresholdComparator.LESS_THAN_OR_EQUAL)
         )

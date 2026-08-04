@@ -64,29 +64,100 @@ __all__ = [
     "decision_set_fingerprint",
     "decision_set_id",
     "DECISION_PROFILE_SCHEMA_VERSION",
+    "DECISION_PROFILE_SCHEMA_VERSIONS",
     "DECISION_SET_SCHEMA_VERSION",
     "DECISION_SET_ID_LENGTH",
     "COMPARATOR_FOR_DIRECTION",
+    "COMPARATORS_FOR_DIRECTION",
+    "comparators_for",
+    "require_comparator_schema_version",
 ]
 
-#: Bumped when the meaning of a decision profile changes. Inside the
-#: fingerprint, so a bump separates new profiles from old.
+#: What a profile is read as when it does not say. Every profile written before
+#: stage 7D omits the key, and each of those is schema 1 by definition: at the
+#: time it was written there was no other kind (docs/adr/0055).
 DECISION_PROFILE_SCHEMA_VERSION = "1"
+
+#: The schema versions a profile may declare.
+#:
+#: **1** — inclusive comparators only, and the fingerprint mapping that six
+#: published SourceAFIS artefacts already cite. It is frozen.
+#: **2** — inclusive *or* strict comparators, under a fingerprint mapping of its
+#: own, so that a schema-2 profile can never collide with a schema-1 one.
+DECISION_PROFILE_SCHEMA_VERSIONS: tuple[str, ...] = ("1", "2")
 
 #: Bumped when the meaning of a decision set changes.
 DECISION_SET_SCHEMA_VERSION = "1"
 
 DECISION_SET_ID_LENGTH = 12
 
-#: The only comparator that is coherent with each score direction. A matcher
-#: whose scores rise with similarity matches *at or above* its threshold; one
-#: whose scores are distances matches at or below. Allowing the other pairing
-#: would invert every decision in a run while looking like a configuration
-#: choice.
+#: The comparators that are coherent with each score direction, per schema
+#: version. A matcher whose scores rise with similarity matches *above* its
+#: threshold — inclusively or strictly, and the profile says which; one whose
+#: scores are distances matches below. Allowing the other pairing would invert
+#: every decision in a run while looking like a configuration choice.
+#:
+#: Schema 1 admits one comparator per direction and cannot be widened: widening
+#: it is precisely the "silent schema bump" section 15 of the stage 7D
+#: specification forbids, and it would let a legacy profile change meaning
+#: without changing its fingerprint.
+COMPARATORS_FOR_DIRECTION: Mapping[
+    str, Mapping[ScoreDirection, frozenset[ThresholdComparator]]
+] = {
+    "1": {
+        ScoreDirection.HIGHER_IS_BETTER: frozenset(
+            {ThresholdComparator.GREATER_THAN_OR_EQUAL}
+        ),
+        ScoreDirection.LOWER_IS_BETTER: frozenset(
+            {ThresholdComparator.LESS_THAN_OR_EQUAL}
+        ),
+    },
+    "2": {
+        ScoreDirection.HIGHER_IS_BETTER: frozenset(
+            {
+                ThresholdComparator.GREATER_THAN,
+                ThresholdComparator.GREATER_THAN_OR_EQUAL,
+            }
+        ),
+        ScoreDirection.LOWER_IS_BETTER: frozenset(
+            {ThresholdComparator.LESS_THAN, ThresholdComparator.LESS_THAN_OR_EQUAL}
+        ),
+    },
+}
+
+#: Historical name, kept because callers outside this module read it as "the one
+#: comparator schema 1 allows". It is the schema-1 table and nothing else.
 COMPARATOR_FOR_DIRECTION: Mapping[ScoreDirection, ThresholdComparator] = {
     ScoreDirection.HIGHER_IS_BETTER: ThresholdComparator.GREATER_THAN_OR_EQUAL,
     ScoreDirection.LOWER_IS_BETTER: ThresholdComparator.LESS_THAN_OR_EQUAL,
 }
+
+
+def require_comparator_schema_version(value: object) -> str:
+    """Normalise a declared profile schema version, or refuse it.
+
+    Raises:
+        DecisionProfileError: the version is not one this project understands. A
+            profile from the future is not read leniently — every field in it is
+            inside a fingerprint, and guessing at one would produce an identity
+            that means something different to whoever wrote it.
+    """
+    version = str(value).strip()
+    if version not in DECISION_PROFILE_SCHEMA_VERSIONS:
+        raise DecisionProfileError(
+            f"decision-profile schema version {version!r} is not supported; this "
+            f"project understands {list(DECISION_PROFILE_SCHEMA_VERSIONS)}"
+        )
+    return version
+
+
+def comparators_for(
+    schema_version: str, direction: ScoreDirection
+) -> frozenset[ThresholdComparator]:
+    """Which comparators one schema version allows for one score direction."""
+    return COMPARATORS_FOR_DIRECTION[require_comparator_schema_version(schema_version)][
+        direction
+    ]
 
 _HEX = frozenset("0123456789abcdef")
 
@@ -175,7 +246,15 @@ class DecisionProfile:
 
     metadata: Mapping[str, str] = field(default_factory=dict)
 
+    #: Which profile grammar this file was written in. Defaulted, and defaulted
+    #: to 1, so that every profile written before stage 7D — none of which
+    #: carries the key — keeps the exact identity it was published under.
+    schema_version: str = DECISION_PROFILE_SCHEMA_VERSION
+
     def __post_init__(self) -> None:
+        object.__setattr__(
+            self, "schema_version", require_comparator_schema_version(self.schema_version)
+        )
         validate_id(self.profile_id)
         validate_id(self.algorithm_id)
         for name in (
@@ -214,12 +293,14 @@ class DecisionProfile:
             validate_id(profile_id)
         object.__setattr__(self, "allowed_execution_profiles", profiles)
 
-        expected = COMPARATOR_FOR_DIRECTION[self.score_direction]
-        if self.comparator is not expected:
+        allowed = comparators_for(self.schema_version, self.score_direction)
+        if self.comparator not in allowed:
+            spellings = ", ".join(sorted(item.value for item in allowed))
             raise DecisionProfileError(
-                f"score direction {self.score_direction.value!r} requires "
-                f"comparator {expected.value!r}, not {self.comparator.value!r}; "
-                "the other pairing inverts every decision"
+                f"score direction {self.score_direction.value!r} under profile "
+                f"schema {self.schema_version} admits {spellings}, not "
+                f"{self.comparator.value!r}; the other pairing inverts every "
+                "decision, and a strict comparator needs schema 2"
             )
 
         object.__setattr__(
@@ -273,7 +354,17 @@ def decision_profile_fingerprint(profile: DecisionProfile) -> str:
     ``display_name`` is excluded: renaming a profile in a report must not
     invalidate decisions derived under it. So are timestamps and file paths —
     the same profile, written in two repositories, is the same profile.
+
+    **Two mappings, and the first one is frozen.** A schema-1 profile hashes
+    exactly the fields, under exactly the tag, that the four published SourceAFIS
+    decision sets were derived under; that mapping is not allowed to acquire a
+    field, because six committed artefacts cite digests produced by it. A
+    schema-2 profile hashes under a tag of its own, so a schema-2 profile whose
+    every other field is identical to a schema-1 one is a *different* profile
+    rather than a silently upgraded one (docs/adr/0055).
     """
+    if profile.schema_version != "1":
+        return _decision_profile_fingerprint_v2(profile)
     return stable_hash(
         {
             "schema": "decision_profile_fingerprint_v1",
@@ -285,6 +376,42 @@ def decision_profile_fingerprint(profile: DecisionProfile) -> str:
             "algorithm_fingerprint": profile.algorithm_fingerprint,
             "score_direction": profile.score_direction.value,
             "comparator": profile.comparator.value,
+            "threshold": profile.threshold,
+            "origin": profile.origin.value,
+            "source_kind": profile.source_kind,
+            "source_reference": profile.source_reference,
+            "source_version": profile.source_version,
+            "allowed_execution_profiles": list(profile.allowed_execution_profiles),
+            "calibration_performed": profile.calibration_performed,
+            "calibration_manifest_fingerprint": (
+                profile.calibration_manifest_fingerprint
+            ),
+            "metadata": dict(profile.metadata),
+        },
+        length=64,
+    )
+
+
+def _decision_profile_fingerprint_v2(profile: DecisionProfile) -> str:
+    """The schema-2 mapping: the same facts, plus the grammar they were read in.
+
+    ``comparator_is_strict`` is redundant with ``comparator`` and is here on
+    purpose. It is the one property of the rule a reader of a stored fingerprint
+    input would otherwise have to infer, and inference is what this project is
+    trying to remove: a boundary score is decided by whether that flag is true.
+    """
+    return stable_hash(
+        {
+            "schema": "decision_profile_fingerprint_v2",
+            "decision_profile_schema_version": profile.schema_version,
+            "profile_id": profile.profile_id,
+            "profile_version": profile.profile_version,
+            "algorithm_id": profile.algorithm_id,
+            "implementation_version": profile.implementation_version,
+            "algorithm_fingerprint": profile.algorithm_fingerprint,
+            "score_direction": profile.score_direction.value,
+            "comparator": profile.comparator.value,
+            "comparator_is_strict": profile.comparator.is_strict,
             "threshold": profile.threshold,
             "origin": profile.origin.value,
             "source_kind": profile.source_kind,

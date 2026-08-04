@@ -46,13 +46,55 @@ __all__ = [
     "derivation_receipt_content_hash",
     "derivation_finalization_fingerprint",
     "require_sanitised_derivation",
+    "SourceFinalizationIdentity",
     "DERIVATION_RECEIPT_SCHEMA_VERSION",
+    "DERIVATION_RECEIPT_SCHEMA_VERSIONS",
     "DERIVATION_FINALIZATION_SCHEMA_VERSION",
+    "DERIVATION_FINALIZATION_SCHEMA_VERSIONS",
+    "OPTIONAL_RECEIPT_FIELDS",
+    "OPTIONAL_FINALIZATION_FIELDS",
     "NO_METRIC_STATEMENT",
 ]
 
+#: What a receipt is when it does not say otherwise, and what the four published
+#: SourceAFIS receipts are.
 DERIVATION_RECEIPT_SCHEMA_VERSION = "1"
 DERIVATION_FINALIZATION_SCHEMA_VERSION = "1"
+
+#: **1** — the shape stage 5A published and stage 6B republished. Frozen.
+#: **2** — additionally binds the derivation definition, the derivation software
+#: identity and the source run's stage finalization marker. A schema-2 receipt
+#: must carry all three; a schema-1 receipt must carry none of them, so that
+#: neither can be mistaken for the other and neither can drift into the other
+#: (spec sections 15, 25 and 36).
+DERIVATION_RECEIPT_SCHEMA_VERSIONS: tuple[str, ...] = ("1", "2")
+DERIVATION_FINALIZATION_SCHEMA_VERSIONS: tuple[str, ...] = ("1", "2")
+
+#: Fields added to the receipt after four SourceAFIS receipts had already been
+#: published, finalised and committed.
+#:
+#: They are hashed when a derivation has them and *removed* when it does not,
+#: rather than hashed as ``null``. Hashing a null would move the digest of every
+#: receipt written before the field existed, which would in turn invalidate the
+#: finalization markers that cite those digests — four decision sets, four
+#: eligibility sets and four metric sets, none of which changed in any way that
+#: matters (spec sections 19, 25 and 82).
+#:
+#: The rule is deliberately narrow: it applies to this fixed list and not to
+#: "any null", so a future required field cannot slip past it by being optional
+#: for one caller.
+OPTIONAL_RECEIPT_FIELDS: tuple[str, ...] = (
+    "source_stage_finalization_kind",
+    "source_stage_finalization_fingerprint",
+    "derivation_definition_fingerprint",
+    "derivation_software_fingerprint",
+)
+
+#: The same, for the finalization marker.
+OPTIONAL_FINALIZATION_FIELDS: tuple[str, ...] = (
+    "source_stage_finalization_kind",
+    "source_stage_finalization_fingerprint",
+)
 
 #: Printed verbatim into every derivation receipt. Somebody will eventually read
 #: only this file, and it has to be impossible to mistake for a measurement.
@@ -198,7 +240,31 @@ class DecisionDerivationReceipt:
     statement: str = NO_METRIC_STATEMENT
     created_utc: str = ""
 
+    #: What made the *source run's* raw scores authoritative, when the run has a
+    #: stage marker of its own beyond the general research finalization. Stage 7C
+    #: wrote one for the NBIS run: it binds the alignment proof to the receipt,
+    #: and a decision receipt that did not cite it would be resting on a run
+    #: whose defining property — that it was given the reference run's own
+    #: inputs — appears nowhere above it (spec section 36).
+    source_stage_finalization_kind: str | None = None
+    source_stage_finalization_fingerprint: str | None = None
+
+    #: The derivation definition and the code that carried it out, by digest.
+    #: ``derivation_source_commit`` above answers "which commit"; these answer
+    #: "which pinned derivation" and "which exact software identity", which are
+    #: not recoverable from a commit alone (docs/adr/0017).
+    derivation_definition_fingerprint: str | None = None
+    derivation_software_fingerprint: str | None = None
+
     def __post_init__(self) -> None:
+        _normalise_stage_finalization(self)
+        for name in (
+            "derivation_definition_fingerprint",
+            "derivation_software_fingerprint",
+        ):
+            value = getattr(self, name)
+            if value is not None:
+                object.__setattr__(self, name, _require_digest(value, name))
         for name in (
             "run_id",
             "result_set_id",
@@ -261,11 +327,17 @@ class DecisionDerivationReceipt:
             )
 
         version = str(self.schema_version).strip()
-        if version != DERIVATION_RECEIPT_SCHEMA_VERSION:
+        if version not in DERIVATION_RECEIPT_SCHEMA_VERSIONS:
             raise ValueError(
                 f"unsupported derivation receipt schema version {version!r}"
             )
         object.__setattr__(self, "schema_version", version)
+        _require_optional_fields_match_schema(
+            self,
+            version=version,
+            names=OPTIONAL_RECEIPT_FIELDS,
+            label="derivation receipt",
+        )
 
         if str(self.statement).strip() != NO_METRIC_STATEMENT:
             raise ValueError(
@@ -279,14 +351,32 @@ class DecisionDerivationReceipt:
         require_sanitised_derivation(self)
 
 
+def _drop_absent_optionals(
+    plain: dict[str, Any], names: tuple[str, ...]
+) -> dict[str, Any]:
+    """Remove the post-hoc optional keys a document does not carry.
+
+    See :data:`OPTIONAL_RECEIPT_FIELDS` for why absence is removal rather than
+    ``null``: it is what keeps every artefact published before stage 7D
+    fingerprinting to the identity it was published under.
+    """
+    for name in names:
+        if plain.get(name) is None:
+            plain.pop(name, None)
+    return plain
+
+
 def derivation_receipt_fingerprint(receipt: DecisionDerivationReceipt) -> str:
     """A digest of the receipt's durable claims, excluding when it was written."""
     plain = dict(to_plain(receipt))
     plain.pop("created_utc", None)
     return stable_hash(
         {
-            "schema": f"derivation_receipt_v{DERIVATION_RECEIPT_SCHEMA_VERSION}",
-            "receipt": plain,
+            # The receipt's own version, not the module's idea of the current
+            # one. A schema-1 receipt hashes under the v1 tag for ever, whatever
+            # this module later learns to write.
+            "schema": f"derivation_receipt_v{receipt.schema_version}",
+            "receipt": _drop_absent_optionals(plain, OPTIONAL_RECEIPT_FIELDS),
         },
         length=64,
     )
@@ -301,7 +391,12 @@ def derivation_receipt_content_hash(receipt: DecisionDerivationReceipt) -> str:
     frozen.
     """
     return stable_hash(
-        {"schema": "derivation_receipt_content_v1", "receipt": to_plain(receipt)},
+        {
+            "schema": "derivation_receipt_content_v1",
+            "receipt": _drop_absent_optionals(
+                dict(to_plain(receipt)), OPTIONAL_RECEIPT_FIELDS
+            ),
+        },
         length=64,
     )
 
@@ -335,7 +430,13 @@ class DecisionDerivationFinalizationMarker:
 
     created_utc: str
 
+    #: The source run's own stage marker, when it has one. See the receipt field
+    #: of the same name.
+    source_stage_finalization_kind: str | None = None
+    source_stage_finalization_fingerprint: str | None = None
+
     def __post_init__(self) -> None:
+        _normalise_stage_finalization(self)
         validate_id(self.finalization_id)
         validate_id(self.run_id)
         for name in (
@@ -363,11 +464,17 @@ class DecisionDerivationFinalizationMarker:
             )
 
         version = str(self.schema_version).strip()
-        if version != DERIVATION_FINALIZATION_SCHEMA_VERSION:
+        if version not in DERIVATION_FINALIZATION_SCHEMA_VERSIONS:
             raise ValueError(
                 f"unsupported derivation finalization schema version {version!r}"
             )
         object.__setattr__(self, "schema_version", version)
+        _require_optional_fields_match_schema(
+            self,
+            version=version,
+            names=OPTIONAL_FINALIZATION_FIELDS,
+            label="derivation finalization",
+        )
         created = str(self.created_utc).strip()
         if not created:
             raise ValueError("created_utc must not be empty")
@@ -395,7 +502,108 @@ def derivation_finalization_fingerprint(
     plain.pop("finalization_fingerprint", None)
     plain.pop("created_utc", None)
     return stable_hash(
-        {"schema": "derivation_finalization_v1", "marker": plain}, length=64
+        {
+            "schema": "derivation_finalization_v1",
+            "marker": _drop_absent_optionals(plain, OPTIONAL_FINALIZATION_FIELDS),
+        },
+        length=64,
+    )
+
+
+# ------------------------------------------------- the source's stage marker
+
+
+@dataclass(frozen=True, slots=True)
+class SourceFinalizationIdentity:
+    """What makes one run's raw scores authoritative, named without naming it.
+
+    Every research run has a general research finalization marker. Some runs
+    additionally have a *stage* marker that binds something the general chain
+    knows nothing about: the NBIS run has one, because being aligned row by row
+    with the SourceAFIS run is the property that makes the two comparable at all,
+    and the general chain has no field for it.
+
+    The decision engine treats this as opaque — a kind and a digest — so that the
+    next algorithm's stage marker needs no change to any engine (docs/adr/0056).
+    """
+
+    research_finalization_fingerprint: str
+    stage_finalization_kind: str | None = None
+    stage_finalization_fingerprint: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "research_finalization_fingerprint",
+            _require_digest(
+                self.research_finalization_fingerprint,
+                "research_finalization_fingerprint",
+            ),
+        )
+        kind = self.stage_finalization_kind
+        fingerprint = self.stage_finalization_fingerprint
+        if (kind is None) != (fingerprint is None):
+            raise ValueError(
+                "a stage finalization is a kind and a digest together; one without "
+                "the other names a marker nobody can look up"
+            )
+        if kind is not None:
+            kind = str(kind).strip()
+            if not kind:
+                raise ValueError("stage_finalization_kind must not be empty")
+            object.__setattr__(self, "stage_finalization_kind", kind)
+            object.__setattr__(
+                self,
+                "stage_finalization_fingerprint",
+                _require_digest(fingerprint, "stage_finalization_fingerprint"),
+            )
+
+
+def _require_optional_fields_match_schema(
+    document: Any, *, version: str, names: tuple[str, ...], label: str
+) -> None:
+    """Schema 1 carries none of the later fields; schema 2 carries all of them.
+
+    Stated as an equality rather than a minimum so that neither shape can drift
+    into the other. A schema-1 document that acquired one field would fingerprint
+    like a schema-1 document and mean something else; a schema-2 document missing
+    one would claim a binding it does not have.
+    """
+    absent = [name for name in names if getattr(document, name) is None]
+    if version == "1" and absent != list(names):
+        present = sorted(set(names) - set(absent))
+        raise ValueError(
+            f"a schema-1 {label} carries none of {list(names)}; this one carries "
+            f"{present}. Those fields are what schema 2 is for"
+        )
+    if version != "1" and absent:
+        raise ValueError(
+            f"a schema-{version} {label} must bind {absent}; a receipt that names "
+            "only some of what it rests on is a receipt whose reader has to guess "
+            "the rest"
+        )
+
+
+def _normalise_stage_finalization(document: Any) -> None:
+    """Validate the ``source_stage_finalization_*`` pair on a frozen document."""
+    kind = document.source_stage_finalization_kind
+    fingerprint = document.source_stage_finalization_fingerprint
+    if (kind is None) != (fingerprint is None):
+        raise ValueError(
+            "source_stage_finalization_kind and "
+            "source_stage_finalization_fingerprint are written together or not at "
+            "all"
+        )
+    if kind is None:
+        return
+    text = str(kind).strip()
+    if not text:
+        raise ValueError("source_stage_finalization_kind must not be empty")
+    object.__setattr__(document, "source_stage_finalization_kind", text)
+    object.__setattr__(
+        document,
+        "source_stage_finalization_fingerprint",
+        _require_digest(fingerprint, "source_stage_finalization_fingerprint"),
     )
 
 

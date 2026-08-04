@@ -29,11 +29,13 @@ from typing import Any, Mapping
 import yaml
 
 from fpbench.core.decision_models import (
+    DECISION_PROFILE_SCHEMA_VERSION,
     DecisionProfile,
     ThresholdComparator,
     ThresholdOrigin,
     canonical_threshold,
     decision_profile_fingerprint,
+    require_comparator_schema_version,
 )
 from fpbench.core.enums import ScoreDirection
 from fpbench.core.errors import (
@@ -94,6 +96,10 @@ def load_decision_profile(
     if not isinstance(calibration, Mapping):
         raise DecisionProfileError(f"{path}: malformed 'calibration' section")
 
+    schema_version = require_comparator_schema_version(
+        profile.get("schema_version", DECISION_PROFILE_SCHEMA_VERSION)
+    )
+
     declared = str(algorithm.get("fingerprint") or "").strip().lower()
     if declared and declared != str(algorithm_fingerprint).strip().lower():
         raise DecisionProfileError(
@@ -130,6 +136,13 @@ def load_decision_profile(
             "on is the one form of leakage that invalidates the whole study; draw "
             "a development cohort instead"
         )
+    if calibration_performed:
+        raise DecisionProfileError(
+            f"{path}: calibration.performed is true, but nothing in this project "
+            "has calibrated a threshold. A calibrated threshold needs a "
+            "development cohort and a calibration manifest, and neither exists "
+            "(docs/adr/0021)"
+        )
 
     metadata = {
         "upstream_claim": str(provenance.get("upstream_claim", "")),
@@ -137,12 +150,17 @@ def load_decision_profile(
         "calibration_test_cohort_used": _flag(calibration_test_cohort_used),
     }
     metadata.update(_transfer_metadata(document, path))
+    metadata.update(_claims_metadata(document, path, schema_version=schema_version))
+    metadata.update(
+        _statement_kind_metadata(provenance, path, schema_version=schema_version)
+    )
     extra = document.get("metadata") or {}
     if isinstance(extra, Mapping):
         metadata.update({str(k): str(v) for k, v in extra.items()})
 
     try:
         return build_decision_profile(
+            schema_version=schema_version,
             profile_id=str(profile["profile_id"]),
             display_name=str(profile.get("display_name", profile["profile_id"])),
             profile_version=str(profile.get("profile_version", "1")),
@@ -224,6 +242,7 @@ class _FingerprintProbe:
         "calibration_manifest_fingerprint",
         "metadata",
         "display_name",
+        "schema_version",
     )
 
     def __init__(self, **fields: Any) -> None:
@@ -235,6 +254,11 @@ class _FingerprintProbe:
         self.calibration_performed = bool(self.calibration_performed)
         self.metadata = dict(self.metadata or {})
         self.threshold = canonical_threshold(self.threshold)
+        self.schema_version = require_comparator_schema_version(
+            self.schema_version
+            if self.schema_version is not None
+            else DECISION_PROFILE_SCHEMA_VERSION
+        )
 
 
 def require_profile_applies_to_run(
@@ -356,6 +380,90 @@ def _transfer_metadata(
     return {
         f"transfer.{name}": _render_transfer(block[name]) for name in _TRANSFER_FIELDS
     }
+
+
+#: The three claims a schema-2 profile has to disclaim, in the order the stage
+#: 7D specification lists them. All three are false in every profile this
+#: project can execute, and all three are inside the fingerprint, so a profile
+#: that started claiming one would be a different profile rather than the same
+#: one read more generously (spec section 11).
+_REQUIRED_FALSE_CLAIMS: tuple[str, ...] = (
+    "calibrated_fmr",
+    "equivalent_to_sourceafis_operating_point",
+    "optimal_for_sd300",
+)
+
+
+def _claims_metadata(
+    document: Mapping[str, Any], path: Path, *, schema_version: str
+) -> Mapping[str, str]:
+    """Read the ``claims`` block, which exists to be false.
+
+    A threshold taken from somebody else's documentation carries no measurement
+    of this study's data. It has no calibrated false-match rate, it is not
+    equivalent to another algorithm's operating point, and it is not an optimum
+    for SD300 — three sentences that are easy to write in a paper and impossible
+    to substantiate here. The block turns each of them into a flag that is
+    checked and fingerprinted rather than a caveat somebody may forget to repeat
+    (docs/adr/0057, docs/adr/0058).
+    """
+    block = document.get("claims")
+    if schema_version == "1":
+        if block is not None:
+            raise DecisionProfileError(
+                f"{path}: a 'claims' block needs profile schema 2. Under schema 1 it "
+                "would sit outside the fingerprint, which is worse than not having "
+                "it: the file would assert something its identity did not cover"
+            )
+        return {}
+    if not isinstance(block, Mapping):
+        raise DecisionProfileError(
+            f"{path}: schema 2 requires a 'claims' section. A profile that says "
+            "nothing about what it does not claim is a profile whose reader has to "
+            "guess"
+        )
+    unknown = sorted(set(map(str, block)) - set(_REQUIRED_FALSE_CLAIMS))
+    if unknown:
+        raise DecisionProfileError(
+            f"{path}: unknown claims {unknown}; this project has a fixed catalogue "
+            "of claims it refuses to make, and a new one needs a decision, not a key"
+        )
+    for name in _REQUIRED_FALSE_CLAIMS:
+        if _yaml_bool(block, name, path=path, section="claims"):
+            raise DecisionProfileError(
+                f"{path}: claims.{name} may not be true. Nothing in this project "
+                "has measured it, and a threshold profile is not where such a "
+                "claim could be established"
+            )
+    return {f"claims.{name}": _flag(False) for name in _REQUIRED_FALSE_CLAIMS}
+
+
+def _statement_kind_metadata(
+    provenance: Mapping[str, Any], path: Path, *, schema_version: str
+) -> Mapping[str, str]:
+    """Record *what kind of sentence* the upstream source actually wrote.
+
+    NIST's guide describes a score above 40 as a rule of thumb that usually
+    indicates a true match. That is not the same kind of statement as a
+    published operating point with a measured error rate, and the difference is
+    the whole reason stage 7D refuses to equate two thresholds that happen to
+    be spelled with the same digits (docs/adr/0058).
+    """
+    value = provenance.get("source_statement_kind")
+    if schema_version == "1":
+        if value is not None:
+            raise DecisionProfileError(
+                f"{path}: provenance.source_statement_kind needs profile schema 2; "
+                "under schema 1 it would not reach the fingerprint"
+            )
+        return {}
+    text = str(value or "").strip()
+    if not text:
+        raise DecisionProfileError(
+            f"{path}: schema 2 requires provenance.source_statement_kind — what the "
+            "upstream source actually claimed, not merely where it is written"
+        )
+    return {"provenance.source_statement_kind": text}
 
 
 def _render_transfer(value: Any) -> str:

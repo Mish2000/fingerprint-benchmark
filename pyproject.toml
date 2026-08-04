@@ -41,4 +41,6 @@ markers = [
     "nbis_upstream: needs NIST's NBIS 5.0.0 archives or a certified build of them (set FPBENCH_NBIS_BUILD_DIR)",
     "nbis_full_run: the stage 7C workspace — the canonical 6,000 comparisons under NBIS (needs the dataset, the certified build and the finished SourceAFIS chain)",
     "upstream: needs a third-party source archive or a build of one; excluded from every no-network suite",
+    "stage7d_contract: the stage 7D methodology — strict comparators, legacy profile compatibility, algorithm-neutral orchestration, cross-algorithm models, population comparability, tampering (no JVM, no NBIS, no dataset)",
+    "stage7d: the stage 7D workspace — NBIS decisions, NBIS metrics and the SourceAFIS/NBIS comparison over the real 6,000 (needs the finished chains of both algorithms)",
 ]

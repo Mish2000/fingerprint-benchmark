@@ -67,6 +67,12 @@ can be held to.
 | [0058](0058-cross-algorithm-operating-points-are-not-equated.md) | The two operating points are documented independently, not equated | Accepted, implemented |
 | [0059](0059-unconditional-attempt-population-is-primary.md) | The unconditional attempt population is the primary analysis | Accepted, implemented |
 | [0060](0060-cross-algorithm-comparison-never-subtracts-raw-scores.md) | A cross-algorithm comparison never touches raw scores | Accepted, implemented |
+| [0061](0061-stage-8a-qualifies-artifacts-not-papers.md) | Stage 8A qualifies artifacts, not papers | Accepted, implemented |
+| [0062](0062-modern-matcher-selection-does-not-read-sd300.md) | Modern matcher selection does not read SD300 or prior results | Accepted, implemented |
+| [0063](0063-code-and-model-weights-have-separate-identities-and-licenses.md) | Code and model weights have separate identities and licences | Accepted, implemented |
+| [0064](0064-preprocessing-is-part-of-the-algorithm.md) | Preprocessing is part of the algorithm | Accepted, implemented |
+| [0065](0065-raw-score-readiness-does-not-imply-decision-readiness.md) | Raw-score readiness does not imply decision readiness | Accepted, implemented |
+| [0066](0066-no-paper-reimplementation-is-accepted-as-an-upstream-algorithm.md) | No paper reimplementation is accepted as an upstream algorithm | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

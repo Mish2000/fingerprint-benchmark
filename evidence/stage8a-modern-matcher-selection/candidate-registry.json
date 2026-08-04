@@ -1,0 +1,128 @@
+{
+  "schema_version": "1",
+  "candidate_registry_version": "stage8a_candidates_v1",
+  "frozen_before_qualification": true,
+  "candidates": [
+    {
+      "schema_version": "1",
+      "candidate_id": "afr_net_official_artifact",
+      "tier": "A",
+      "claimed_algorithm_name": "AFR-Net",
+      "actual_implementation_name": null,
+      "paper_citation": "S. A. Grosz and A. K. Jain, AFR-Net: Attention-Driven Fingerprint Recognition Network, IEEE TBIOM, 2023, doi:10.1109/TBIOM.2023.3317303",
+      "paper_url": "https://arxiv.org/abs/2211.13897",
+      "implementation_authors": [
+        "Steven A. Grosz",
+        "Anil K. Jain"
+      ],
+      "relationship_to_original_paper": null,
+      "implementation_origin": "not_established",
+      "expected_components": [
+        "inference_code",
+        "global_cnn_checkpoint",
+        "attention_checkpoint",
+        "local_feature_extraction",
+        "global_fusion",
+        "low_certainty_trigger",
+        "realignment",
+        "final_score",
+        "preprocessing",
+        "model_configuration",
+        "dependency_lock",
+        "runtime_manifest",
+        "source_license",
+        "weights_license"
+      ],
+      "known_missing_components": [
+        "official_or_author_supplied_artifact_not_acquired",
+        "model_configuration_not_acquired",
+        "dependency_lock_not_acquired",
+        "runtime_manifest_not_acquired"
+      ],
+      "acquisition_method": "official paper, MSU publication index, and author-maintained public source search",
+      "fingerprint": "4ecd18716ef9478f642d77d198b94adb6b49428014f668f12ea18f86a4e6d690"
+    },
+    {
+      "schema_version": "1",
+      "candidate_id": "mgvit_official_artifact",
+      "tier": "B",
+      "claimed_algorithm_name": "Minutiae-Guided Fingerprint Embeddings via Vision Transformers",
+      "actual_implementation_name": null,
+      "paper_citation": "S. A. Grosz et al., Minutiae-Guided Fingerprint Embeddings via Vision Transformers, arXiv:2210.13994, 2022",
+      "paper_url": "https://arxiv.org/abs/2210.13994",
+      "implementation_authors": [
+        "Steven A. Grosz",
+        "Joshua J. Engelsma",
+        "Eryun Liu",
+        "Anil K. Jain"
+      ],
+      "relationship_to_original_paper": null,
+      "implementation_origin": "not_established",
+      "expected_components": [
+        "vit_inference_code",
+        "checkpoint",
+        "minutiae_map_generator",
+        "minutiae_map_encoding",
+        "image_map_concatenation",
+        "embedding_fusion",
+        "similarity_function",
+        "preprocessing",
+        "model_configuration",
+        "dependency_lock",
+        "runtime_manifest",
+        "source_license",
+        "weights_license"
+      ],
+      "known_missing_components": [
+        "paper_code_link_is_placeholder",
+        "model_configuration_not_acquired",
+        "dependency_lock_not_acquired",
+        "runtime_manifest_not_acquired"
+      ],
+      "acquisition_method": "official paper, MSU publication index, and author-maintained public source search",
+      "fingerprint": "07b7dbbee777f5aafc9481f4ed994588baec61effeab59597ca66bab648cbf4c"
+    },
+    {
+      "schema_version": "1",
+      "candidate_id": "flx_fixed_length_extractor",
+      "tier": "C",
+      "claimed_algorithm_name": "flx fixed-length fingerprint extractor",
+      "actual_implementation_name": "flx author-supplied fixed-length extractor artifact",
+      "paper_citation": "T. Rohwedder et al., Benchmarking Fixed-Length Fingerprint Representations across Different Embedding Sizes and Sensor Types, BIOSIG 2023",
+      "paper_url": "https://arxiv.org/abs/2307.08615",
+      "implementation_authors": [
+        "Tim Rohwedder",
+        "Daniel Osorio-Roig",
+        "Christian Rathgeb",
+        "Christoph Busch"
+      ],
+      "relationship_to_original_paper": "author-supplied code for the BIOSIG 2023 study and an independent reimplementation of DeepPrint",
+      "implementation_origin": "independent_reimplementation",
+      "expected_components": [
+        "source_code",
+        "checkpoint",
+        "model_constructor",
+        "image_loader",
+        "preprocessing",
+        "representation",
+        "comparator",
+        "dependency_lock",
+        "model_configuration",
+        "runtime_manifest",
+        "source_license",
+        "weights_license"
+      ],
+      "known_missing_components": [
+        "weights_license_not_established",
+        "dataset_independent_preprocessing_not_defined",
+        "dependency_versions_not_locked",
+        "runtime_manifest_not_defined"
+      ],
+      "acquisition_method": "pinned public author repository plus the exact checkpoint file linked from its README",
+      "fingerprint": "286e70467a9b97661cdbf7f59c4a8fb3c1710e9a60b7f501fe80a4482a9d35f6"
+    }
+  ],
+  "reserve_candidate_id": "id3_finger_sdk",
+  "reserve_activation": "outside Stage 8A; requires an explicit new stage and decision",
+  "fingerprint": "9db25365601adaf0fe4c25c85f7c3cacc522782364159ce9029a37e8955a83d7"
+}

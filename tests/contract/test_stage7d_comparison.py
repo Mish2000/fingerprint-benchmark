@@ -169,13 +169,40 @@ def test_a_protocol_edited_after_committing_no_longer_constructs(tmp_path):
 
 
 def test_only_the_late_bound_identities_may_be_bound_afterwards():
+    """Section 13: four ids may be filled in, and nothing else may move.
+
+    The committed protocol has all four bound now, so the three cases are:
+    rebinding one to the value it already has is a no-op, rebinding it to a
+    different value is refused, and a field that was inside the frozen
+    fingerprint is refused whatever it is set to.
+    """
     protocol = load_fair_measurement_protocol(PROTOCOL_PATH)
-    bound = protocol.bind(nbis_decision_set_id="decisionset_abcdef123456")
-    assert bound.protocol_fingerprint == protocol.protocol_fingerprint
+    assert protocol.is_bound
+
+    same = protocol.bind(nbis_decision_set_id=protocol.nbis_decision_set_id)
+    assert same.protocol_fingerprint == protocol.protocol_fingerprint
+    assert same.nbis_decision_set_id == protocol.nbis_decision_set_id
+
+    with pytest.raises(ValueError, match="already bound"):
+        protocol.bind(nbis_decision_set_id="decisionset_000000000000")
     with pytest.raises(ValueError, match="may not change"):
         protocol.bind(metric_policy_id="something_else")
-    with pytest.raises(ValueError, match="already bound"):
-        bound.bind(nbis_decision_set_id="decisionset_000000000000")
+
+
+def test_binding_an_identity_never_moves_the_protocol_fingerprint():
+    """The four late fields sit outside the digest by construction."""
+    import dataclasses
+
+    protocol = load_fair_measurement_protocol(PROTOCOL_PATH)
+    unbound = dataclasses.replace(
+        protocol,
+        nbis_decision_set_id=None,
+        nbis_eligibility_set_id=None,
+        nbis_metric_set_id=None,
+        cross_algorithm_evaluation_id=None,
+    )
+    assert unbound.protocol_fingerprint == protocol.protocol_fingerprint
+    assert not unbound.is_bound
 
 
 # --------------------------------------------------------- the fairness gate

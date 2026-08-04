@@ -486,20 +486,37 @@ def inspect_comparison(
     config: ComparisonExperimentConfig | None = None,
     repository_root: Path = REPOSITORY_ROOT,
 ) -> Any:
-    """Re-derive everything and compare it with what was published."""
+    """Re-derive everything and compare it with what was published.
+
+    The *published* definition is what the re-derivation is measured against, not
+    a fresh one. A comparison's identity covers the commit that produced it — as
+    every other derivation's does — so recomputing one here would give the
+    published evidence a different id the moment it was committed, and a
+    published artefact that can never be re-verified is not evidence.
+
+    Nothing is taken on trust by using it: :func:`verify_definition` re-derives
+    the stored definition's fingerprint and checks every identity it names
+    against the artefacts currently on disk.
+    """
+    import dataclasses
+
     prepared = prepare_comparison(
         workspace=workspace,
         config=config,
         repository_root=repository_root,
         permissive_provenance=True,
     )
+    directory = Path(repository_root) / EVIDENCE_DIRECTORY
+    published = _read_published_definition(directory)
+    if published is not None:
+        prepared = dataclasses.replace(prepared, definition=published)
+
     prepared, derivation, markdown = derive_comparison(
         workspace=workspace,
         config=config,
         repository_root=repository_root,
         prepared=prepared,
     )
-    directory = Path(repository_root) / EVIDENCE_DIRECTORY
     published_receipt, published_marker, published_report = _read_published(
         directory, derivation.manifest.evaluation_id
     )
@@ -608,6 +625,37 @@ def read_verified_comparison_report(
 
 
 # ----------------------------------------------------------------- internals
+
+
+def _read_published_definition(
+    directory: Path,
+) -> CrossAlgorithmEvaluationDefinition | None:
+    """The definition of whatever comparison this directory already publishes.
+
+    ``None`` when nothing is published yet, which is the ordinary state before
+    ``finalize``. Exactly one bundle is expected; two would mean two comparisons
+    were published into one directory, and choosing between them silently is how
+    a stale one gets re-verified for ever.
+    """
+    from fpbench.core.serialization import read_json
+
+    if not directory.is_dir():
+        return None
+    bundles = sorted(directory.glob("algcompare_*.json"))
+    if not bundles:
+        return None
+    if len(bundles) > 1:
+        raise CrossAlgorithmError(
+            f"{directory} publishes {len(bundles)} comparisons "
+            f"({[path.name for path in bundles]}); one directory holds one"
+        )
+    payload = read_json(bundles[0])
+    try:
+        return CrossAlgorithmEvaluationDefinition(**payload["definition"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise CrossAlgorithmError(
+            f"{bundles[0].name}: unreadable comparison definition ({exc})"
+        ) from exc
 
 
 def _read_published(directory: Path, evaluation_id: str):

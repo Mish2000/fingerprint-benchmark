@@ -1,0 +1,15 @@
+{
+  "schema_version": "1",
+  "finalization_id": "evaluationfinal_c0e487441660",
+  "finalization_fingerprint": "c0e48744166018886a3576b1e5b40a1d84efdb2aff42ba46f02af4fb2f0726bc",
+  "source_decision_finalization_fingerprint": "4b55743fa9b31e09497150d49c65945c01d43ab7d754fe92bfe0bdc8714cfba7",
+  "metric_definition_fingerprint": "8d99eb0f514fa605833fd8d7ae52bac63fcf9ea572c4ed0eb172dbd5111f17a4",
+  "metric_set_fingerprint": "614450282fdb91620a9eeed117bc09a51f956bc0eb001e80e69fab609f0998e6",
+  "summary_content_hash": "6361f056d0f47586798591aaa57efcfb4847a6e34f0b6f8aca9794cd5b079bd1",
+  "report_content_hash": "c8e8940164de5112a06513612b197054666ae910777f3ea06edcddbeea8d4660",
+  "evaluation_receipt_fingerprint": "fe10b7a20694feef8ee4777732a245ba908fcfab25cdb27e01eda282f144706c",
+  "evaluation_receipt_content_hash": "3d8a15bcfd7ba1394713db94cabc3a3f8e53f6f52d0c037bf34f4bc9fa2081f1",
+  "metric_source_commit": "5684cbb60d3be7707df418c6ad8514d498580fe3",
+  "metric_source_tree_clean": true,
+  "created_utc": "2026-08-04T09:35:47.717112+00:00"
+}

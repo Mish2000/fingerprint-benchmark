@@ -54,6 +54,7 @@ from fpbench.experiments.sd300_inputs import (
 from fpbench.experiments.sourceafis_decisions import (
     PreparedDerivation,
     SourceAfisDecisionExperimentSpec,
+    build_sourceafis_decision_spec,
     derive_decisions,
     finalize_decision_derivation,
     inspect_decisions,
@@ -120,7 +121,7 @@ def load_decision_experiment_config(
     )
 
     source = load_experiment_config(repository_root=repository_root)
-    return SourceAfisDecisionExperimentSpec(
+    return build_sourceafis_decision_spec(
         experiment_id=EXPERIMENT_ID,
         source_experiment_id=source.experiment_id,
         source_experiment_config=Path(DEFAULT_EXPERIMENT_CONFIG),

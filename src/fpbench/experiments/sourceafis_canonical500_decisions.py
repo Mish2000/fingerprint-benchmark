@@ -55,6 +55,7 @@ from fpbench.experiments.sourceafis_decisions import (
     PreparationBinding,
     PreparedDerivation,
     SourceAfisDecisionExperimentSpec,
+    build_sourceafis_decision_spec,
     derive_decisions,
     finalize_decision_derivation,
     inspect_decisions,
@@ -149,7 +150,7 @@ def load_canonical_decision_spec(
     )
 
     source = load_canonical_experiment_config(repository_root=repository_root)
-    return SourceAfisDecisionExperimentSpec(
+    return build_sourceafis_decision_spec(
         experiment_id=EXPERIMENT_ID,
         source_experiment_id=source.experiment_id,
         source_experiment_config=Path(DEFAULT_EXPERIMENT_CONFIG),

@@ -4,9 +4,9 @@
   "outcome": "NO_MODERN_MATCHER_READY",
   "registry_fingerprint": "9db25365601adaf0fe4c25c85f7c3cacc522782364159ce9029a37e8955a83d7",
   "candidate_qualification_fingerprints": {
-    "afr_net_official_artifact": "9b52c7421472f7007a10df34e50fad3d0325e3f26f221dc983941d4fb393e07e",
-    "flx_fixed_length_extractor": "605b2286dd96e9f3a069567ca63cf3e1c592cab23a040585dad00af311159fb5",
-    "mgvit_official_artifact": "f041a196bda8abd1a791c6ece11d7cc034d237d9d9f8dd7c1cec641ee445b7c7"
+    "afr_net_official_artifact": "974de80d2895262fb6ab11717b80e579b336d63d3d28cbba39437478b6b1d6b5",
+    "flx_fixed_length_extractor": "7ae8cd851f978b6267b4a01c46b1422e62f495d1bc3aa993518935a961209042",
+    "mgvit_official_artifact": "81871518bc5afb5dcfea1059ed565476d098c333c28ff21fae44f38fcbe98680"
   },
   "selected_candidate_id": null,
   "selected_artifact_fingerprint": null,
@@ -17,7 +17,7 @@
     {
       "schema_version": "1",
       "candidate_id": "afr_net_official_artifact",
-      "qualification_fingerprint": "9b52c7421472f7007a10df34e50fad3d0325e3f26f221dc983941d4fb393e07e",
+      "qualification_fingerprint": "974de80d2895262fb6ab11717b80e579b336d63d3d28cbba39437478b6b1d6b5",
       "selection_state": "REJECTED",
       "gate_failures": [
         "SCIENTIFIC_IDENTITY_INCOMPLETE",
@@ -42,14 +42,13 @@
         "REPRESENTATION_INCOMPLETE",
         "COMPARATOR_MISSING",
         "RAW_SCORE_NOT_EXPOSED",
+        "RAW_SCORE_RUNTIME_NOT_EXECUTED",
         "SCORE_PROFILE_INCOMPLETE",
         "EXPECTED_COMPONENT_MISSING_FINAL_SCORE",
         "AFR_NET_FINAL_FUSION_AND_SCORE_FORMULA_ARTIFACT_MISSING",
         "DECISION_PATH_NOT_ESTABLISHED",
-        "SELF_EXTRACTION_NOT_INDEPENDENT",
+        "SELF_CONTRACT_NOT_EXECUTED",
         "DETERMINISM_NOT_TESTED",
-        "PROCESS_RESTART_NOT_ISOLATED",
-        "NONDETERMINISM_EXCEEDS_TOLERANCE",
         "OFFLINE_BUNDLE_INCOMPLETE",
         "OFFLINE_EXECUTION_NOT_PROVEN",
         "EXPECTED_COMPONENT_MISSING_DEPENDENCY_LOCK",
@@ -62,16 +61,15 @@
         "EXPECTED_COMPONENT_MISSING_SOURCE_LICENSE",
         "EXPECTED_COMPONENT_MISSING_WEIGHTS_LICENSE",
         "ARCHITECTURE_CONTRACT_NOT_MET",
-        "OPERATIONAL_MEASUREMENTS_MISSING",
-        "FULL_RUN_NOT_OPERATIONALLY_FEASIBLE"
+        "OPERATIONAL_MEASUREMENTS_MISSING"
       ],
       "reason": "one or more mandatory qualification gates failed",
-      "fingerprint": "fc42108c3f40cb22b89e1357c8d0b0260cd548a7b13cbce9c0d5cfe48f46cfcd"
+      "fingerprint": "ad394bad6bd60d3eec7162265ddf482f5e31f03a7db9cabce55044187e01270c"
     },
     {
       "schema_version": "1",
       "candidate_id": "flx_fixed_length_extractor",
-      "qualification_fingerprint": "605b2286dd96e9f3a069567ca63cf3e1c592cab23a040585dad00af311159fb5",
+      "qualification_fingerprint": "7ae8cd851f978b6267b4a01c46b1422e62f495d1bc3aa993518935a961209042",
       "selection_state": "REJECTED",
       "gate_failures": [
         "IMPORTS_UNRESOLVABLE",
@@ -81,16 +79,12 @@
         "PREPROCESSING_INCOMPLETE",
         "PREPROCESSING_DATASET_DEPENDENT",
         "GENERIC_CANONICAL_PNG_ROUTE_NOT_DEFINED",
-        "RAW_SCORE_NOT_FINITE",
-        "SCORE_PROFILE_INCOMPLETE",
         "RAW_SCORE_RUNTIME_NOT_EXECUTED",
+        "SCORE_PROFILE_INCOMPLETE",
         "DECISION_PATH_NOT_ESTABLISHED",
         "CHECKPOINT_BOUND_THRESHOLD_NOT_DOCUMENTED",
-        "SELF_EXTRACTION_NOT_INDEPENDENT",
         "SELF_CONTRACT_NOT_EXECUTED",
         "DETERMINISM_NOT_TESTED",
-        "PROCESS_RESTART_NOT_ISOLATED",
-        "NONDETERMINISM_EXCEEDS_TOLERANCE",
         "OFFLINE_BUNDLE_INCOMPLETE",
         "OFFLINE_EXECUTION_NOT_PROVEN",
         "EXPECTED_COMPONENT_MISSING_DEPENDENCY_LOCK",
@@ -100,16 +94,15 @@
         "BENCHMARK_PUBLICATION_PERMISSIONS_NOT_CLEAR",
         "EXPECTED_COMPONENT_MISSING_WEIGHTS_LICENSE",
         "WEIGHTS_HOLD_AND_EXECUTE_PERMISSION_UNESTABLISHED",
-        "OPERATIONAL_MEASUREMENTS_MISSING",
-        "FULL_RUN_NOT_OPERATIONALLY_FEASIBLE"
+        "OPERATIONAL_MEASUREMENTS_MISSING"
       ],
       "reason": "one or more mandatory qualification gates failed",
-      "fingerprint": "8425db470cd648911603b633ff496e2e38b443e53e3ce569d38be9c26aab330a"
+      "fingerprint": "e547da1cc76c72c40244483643250e12fca6d05c605908757140d6ade3d78bf3"
     },
     {
       "schema_version": "1",
       "candidate_id": "mgvit_official_artifact",
-      "qualification_fingerprint": "f041a196bda8abd1a791c6ece11d7cc034d237d9d9f8dd7c1cec641ee445b7c7",
+      "qualification_fingerprint": "81871518bc5afb5dcfea1059ed565476d098c333c28ff21fae44f38fcbe98680",
       "selection_state": "REJECTED",
       "gate_failures": [
         "SCIENTIFIC_IDENTITY_INCOMPLETE",
@@ -133,13 +126,12 @@
         "EXPECTED_COMPONENT_MISSING_IMAGE_MAP_CONCATENATION",
         "COMPARATOR_MISSING",
         "RAW_SCORE_NOT_EXPOSED",
+        "RAW_SCORE_RUNTIME_NOT_EXECUTED",
         "SCORE_PROFILE_INCOMPLETE",
         "EXPECTED_COMPONENT_MISSING_SIMILARITY_FUNCTION",
         "DECISION_PATH_NOT_ESTABLISHED",
-        "SELF_EXTRACTION_NOT_INDEPENDENT",
+        "SELF_CONTRACT_NOT_EXECUTED",
         "DETERMINISM_NOT_TESTED",
-        "PROCESS_RESTART_NOT_ISOLATED",
-        "NONDETERMINISM_EXCEEDS_TOLERANCE",
         "OFFLINE_BUNDLE_INCOMPLETE",
         "OFFLINE_EXECUTION_NOT_PROVEN",
         "EXPECTED_COMPONENT_MISSING_DEPENDENCY_LOCK",
@@ -154,15 +146,14 @@
         "ARCHITECTURE_CONTRACT_NOT_MET",
         "EXTERNAL_MINUTIAE_OUTSIDE_IDENTITY",
         "MINDTCT_SUBSTITUTION_NOT_AUTHORIZED",
-        "OPERATIONAL_MEASUREMENTS_MISSING",
-        "FULL_RUN_NOT_OPERATIONALLY_FEASIBLE"
+        "OPERATIONAL_MEASUREMENTS_MISSING"
       ],
       "reason": "one or more mandatory qualification gates failed",
-      "fingerprint": "6520e8d21549ca7b692180690c06105a88e8d1b58a27e48f0255b13466bf5356"
+      "fingerprint": "58e6c978fd4153d65b192c1a60bbb39dea1dc31a514c3e910acdb39eb6765c00"
     }
   ],
   "selection_policy_fingerprint": "b61d85f8539d06df9984fa6ad95f21e40977edfda17225c53fdbfb2428b6f396",
-  "verifier_source_commit": "72a4743802f6c4ec3dcee1ad74a421f9c9d658c6",
+  "verifier_source_commit": "afe337d363f86db11bdf7cb7184d73fd0535f15c",
   "decided_utc": "2026-08-04T18:30:00+03:00",
-  "fingerprint": "c3d10006b2aee352c1f9220f64d215e9d7a022e7aaf3d3ffab3841b83ee1871c"
+  "fingerprint": "46539be795ef12cbb4854b16888534c65995b94633f1459c3868bd709018d09c"
 }

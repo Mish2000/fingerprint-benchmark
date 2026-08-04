@@ -39,12 +39,19 @@ identified separately, while the runtime manifest remains missing.
 Those static facts do not make the artifact runnable.  The unclear checkpoint
 licence, unpinned runtime, non-general input route, unexecuted finite-score
 check, untested SELF contract, missing offline bundle, absent operational
-measurements and missing checkpoint-bound decision path remain explicit failed
-gates.  Because static inspection failed, execution was forbidden: no smoke,
-determinism or capacity result was invented from an unqualified runtime.
+measurements and missing checkpoint-bound decision path remain explicit
+unestablished qualification gates.  Because static inspection failed,
+execution was forbidden: no smoke, determinism or capacity result was
+invented from an unqualified runtime.
 Source-code rights, checkpoint rights, third-party rights and upstream
 training restrictions were reviewed as separate licence scopes; a source
 licence was never treated as a checkpoint licence.
+
+Runtime evidence preserves the distinction between an unknown result and an
+observed failure.  An unexecuted score, SELF contract, determinism probe or
+capacity measurement is reported respectively as not executed, not tested or
+missing; it is not reported as a non-finite score, a non-independent SELF,
+excessive nondeterminism or an operationally infeasible full run.
 
 ## Evidence authority
 

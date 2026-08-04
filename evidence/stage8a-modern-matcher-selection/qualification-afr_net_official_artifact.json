@@ -196,6 +196,7 @@
       "failures": [
         "COMPARATOR_MISSING",
         "RAW_SCORE_NOT_EXPOSED",
+        "RAW_SCORE_RUNTIME_NOT_EXECUTED",
         "SCORE_PROFILE_INCOMPLETE",
         "EXPECTED_COMPONENT_MISSING_FINAL_SCORE",
         "AFR_NET_FINAL_FUSION_AND_SCORE_FORMULA_ARTIFACT_MISSING"
@@ -203,7 +204,7 @@
       "evidence": [
         "https://arxiv.org/abs/2211.13897"
       ],
-      "fingerprint": "9b7398a025b54618fa710dc90168304679ad73993927789d0568fe5ad8538f38"
+      "fingerprint": "25a2ceb75116e38f935cd37802f425f2b4959af18c820ca0f762fe523acadaf8"
     },
     {
       "schema_version": "1",
@@ -222,26 +223,24 @@
       "gate": "independent_self",
       "passed": false,
       "failures": [
-        "SELF_EXTRACTION_NOT_INDEPENDENT"
+        "SELF_CONTRACT_NOT_EXECUTED"
       ],
       "evidence": [
         "https://arxiv.org/abs/2211.13897"
       ],
-      "fingerprint": "5085afba2b9f9a30ab0c3e8132dd30d481bc64218a201a7f1b9182bc3794ae77"
+      "fingerprint": "92a96a5452255eceff01be28780379119df62cae304676ae387928e8794cce63"
     },
     {
       "schema_version": "1",
       "gate": "determinism",
       "passed": false,
       "failures": [
-        "DETERMINISM_NOT_TESTED",
-        "PROCESS_RESTART_NOT_ISOLATED",
-        "NONDETERMINISM_EXCEEDS_TOLERANCE"
+        "DETERMINISM_NOT_TESTED"
       ],
       "evidence": [
         "https://arxiv.org/abs/2211.13897"
       ],
-      "fingerprint": "39dd529fcba5e143d17e2eb3ba7104a4b23bce0f8487e7656327abc43144117e"
+      "fingerprint": "3b30ae078ef8c8bd09306ef6fd2b60527813c278389b7be1e91604f27fda0149"
     },
     {
       "schema_version": "1",
@@ -293,13 +292,12 @@
       "gate": "operational_feasibility",
       "passed": false,
       "failures": [
-        "OPERATIONAL_MEASUREMENTS_MISSING",
-        "FULL_RUN_NOT_OPERATIONALLY_FEASIBLE"
+        "OPERATIONAL_MEASUREMENTS_MISSING"
       ],
       "evidence": [
         "https://arxiv.org/abs/2211.13897"
       ],
-      "fingerprint": "6fa2127ef22b7666013b85510175e64e9781765c98bbec0117d936d6ca4d6c41"
+      "fingerprint": "776cc96e6de13c338a55f0010059d6cb755883d49676d798375da6f77f672df4"
     }
   ],
   "qualification_status": "ARTIFACT_INCOMPLETE",
@@ -321,5 +319,5 @@
   "diversity_rank": 0,
   "paper_year": 2023,
   "qualified_utc": "2026-08-04T18:00:00+03:00",
-  "fingerprint": "9b52c7421472f7007a10df34e50fad3d0325e3f26f221dc983941d4fb393e07e"
+  "fingerprint": "974de80d2895262fb6ab11717b80e579b336d63d3d28cbba39437478b6b1d6b5"
 }

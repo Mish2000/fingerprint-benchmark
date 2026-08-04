@@ -766,14 +766,13 @@
       "gate": "finite_raw_score",
       "passed": false,
       "failures": [
-        "RAW_SCORE_NOT_FINITE",
-        "SCORE_PROFILE_INCOMPLETE",
-        "RAW_SCORE_RUNTIME_NOT_EXECUTED"
+        "RAW_SCORE_RUNTIME_NOT_EXECUTED",
+        "SCORE_PROFILE_INCOMPLETE"
       ],
       "evidence": [
         "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
       ],
-      "fingerprint": "7ffb16832944f3d80cb7225e2cfe6596ddae8ead7b81f68130c611f534097b81"
+      "fingerprint": "48988b27f3ee29a4fe4651205f3c3ee3a126235662b9aaf941c9de1aa092a9b9"
     },
     {
       "schema_version": "1",
@@ -793,27 +792,24 @@
       "gate": "independent_self",
       "passed": false,
       "failures": [
-        "SELF_EXTRACTION_NOT_INDEPENDENT",
         "SELF_CONTRACT_NOT_EXECUTED"
       ],
       "evidence": [
         "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
       ],
-      "fingerprint": "594105ee3598fa7f20e992d02d941ea0857579a84b61e44761f4032941edc368"
+      "fingerprint": "7796954c37f29eb54a662837111dd648ad5a1ef6893c427537a14824d3aa7fe6"
     },
     {
       "schema_version": "1",
       "gate": "determinism",
       "passed": false,
       "failures": [
-        "DETERMINISM_NOT_TESTED",
-        "PROCESS_RESTART_NOT_ISOLATED",
-        "NONDETERMINISM_EXCEEDS_TOLERANCE"
+        "DETERMINISM_NOT_TESTED"
       ],
       "evidence": [
         "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
       ],
-      "fingerprint": "6fbf35e78914c7317a016e0c703c99436ab43c0565f36dc9b398f277ed101198"
+      "fingerprint": "118ffb0ef8a217f701047b1e94d4116ead35bea89f32649e8d2f28cbb6e11cfb"
     },
     {
       "schema_version": "1",
@@ -861,13 +857,12 @@
       "gate": "operational_feasibility",
       "passed": false,
       "failures": [
-        "OPERATIONAL_MEASUREMENTS_MISSING",
-        "FULL_RUN_NOT_OPERATIONALLY_FEASIBLE"
+        "OPERATIONAL_MEASUREMENTS_MISSING"
       ],
       "evidence": [
         "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
       ],
-      "fingerprint": "4e883b975c6f645fa4866e91aac75d257cc863d02e94ebf83306e1b39586f204"
+      "fingerprint": "6ac71a2b72f248b2a800952a936061a61c08461c25b4683af106277e0a35bc9e"
     }
   ],
   "qualification_status": "LICENSE_BLOCKED",
@@ -889,5 +884,5 @@
   "diversity_rank": 0,
   "paper_year": 2023,
   "qualified_utc": "2026-08-04T18:00:00+03:00",
-  "fingerprint": "605b2286dd96e9f3a069567ca63cf3e1c592cab23a040585dad00af311159fb5"
+  "fingerprint": "7ae8cd851f978b6267b4a01c46b1422e62f495d1bc3aa993518935a961209042"
 }

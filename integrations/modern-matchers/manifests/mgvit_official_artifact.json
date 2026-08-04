@@ -1,0 +1,41 @@
+{
+  "schema_version": "1",
+  "manifest_id": "artifact_mgvit_official_artifact",
+  "candidate_id": "mgvit_official_artifact",
+  "registry_fingerprint": "9db25365601adaf0fe4c25c85f7c3cacc522782364159ce9029a37e8955a83d7",
+  "candidate_fingerprint": "07b7dbbee777f5aafc9481f4ed994588baec61effeab59597ca66bab648cbf4c",
+  "source_commit": null,
+  "source_archive_sha256": null,
+  "components": [
+    {
+      "schema_version": "1",
+      "component_id": "mgvit_official_artifact_paper",
+      "kind": "upstream_documentation",
+      "role": "paper",
+      "required": false,
+      "present": true,
+      "identity_established": true,
+      "locked_for_offline_use": false,
+      "filename": "2210.13994.pdf",
+      "sha256": "3466ea75a36e574f5b84b9b690d082ab3a11a95c27cb569993399f2ae0cdec21",
+      "size_bytes": 3553465,
+      "format": "PDF",
+      "source_locator": "https://arxiv.org/pdf/2210.13994",
+      "source_commit": null,
+      "source_archive_sha256": null,
+      "model_variant": null,
+      "embedding_dimension": null,
+      "training_provenance": null,
+      "license_record_fingerprint": null,
+      "notes": [
+        "Scientific description only; not executable inference code."
+      ],
+      "fingerprint": "d3fd36457a45e9ab15b7f3dd759240465419de7e2b2e4bbb36f62371e29f9033"
+    }
+  ],
+  "license_records": [],
+  "storage_reference": null,
+  "acquisition_method": "official paper, MSU publication index, and author-maintained public source search",
+  "acquired_utc": "2026-08-04T17:00:00+03:00",
+  "fingerprint": "148d084de304661db5949d85a1585bdcfd95437a2e76a0def27dc4bc5b54e3a9"
+}

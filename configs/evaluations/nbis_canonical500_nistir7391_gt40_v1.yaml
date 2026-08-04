@@ -1,0 +1,56 @@
+# Counting the 6,000 NBIS decisions taken at NIST's documented score > 40.
+#
+# The same metric policy file as both SourceAFIS evaluations. Not a copy of it
+# under an NBIS name: the same file, cited by path, so that the fourteen metrics,
+# their numerators, their denominators, the pooling rule and the refusal to call
+# the negative sanity set an FMR are literally identical for the two algorithms.
+# A copy would be a second place for the definitions to live and a second chance
+# for them to drift, and the whole comparison rests on their not drifting
+# (spec section 40).
+#
+# It names one exact source — one run id and one decision-set id — and will not
+# fall back to "the latest". The decision-set id is filled in after the NBIS
+# derivation has produced it, for the same reason the canonical SourceAFIS
+# config's was: it is derived from the decisions and cannot be known before them.
+
+experiment:
+  experiment_id: nbis_canonical500_nistir7391_gt40_evaluation_v1
+
+source:
+  # Stage 7C's NBIS run over the same canonical 6,000 comparisons, and the
+  # decisions stage 7D derived from it under NIST's documented rule of thumb.
+  run_id: run_f0468f28ffba
+  decision_set_id: TO_BE_FILLED_AFTER_DERIVATION
+
+metric_policy:
+  ref: configs/metrics/plain_roll_biometric_metrics_v1.yaml
+
+report_profile:
+  profile_id: biometric_evaluation_markdown_en_v1
+
+expected_shape:
+  decisions: 6000
+  eligibility_units: 1500
+  rows_per_view: 1500
+  rows_per_release_per_view: 500
+
+  # Fourteen metrics over three releases plus pooled. Declared rather than
+  # counted afterwards, so that a metric silently added or a release silently
+  # dropped fails here instead of changing a published table (spec section 42).
+  metric_observations: 56
+
+  releases:
+    - SD300A
+    - SD300B
+    - SD300C
+
+limitations:
+  # Each of these is a claim this evaluation may not make, and the loader refuses
+  # the file if any is switched on. A different algorithm changes none of it:
+  # there is still no calibration manifest, still no bootstrap, still no impostor
+  # design chosen for estimation — and NIST's "greater than 40" is still not the
+  # same operating point as SourceAFIS's "at least 40".
+  confidence_intervals: false
+  threshold_calibration: false
+  general_fmr_claim: false
+  equal_operating_point_claim: false

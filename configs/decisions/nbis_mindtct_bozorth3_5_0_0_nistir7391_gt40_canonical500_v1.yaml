@@ -1,0 +1,96 @@
+# NIST's documented BOZORTH3 rule of thumb, applied without being reinterpreted.
+#
+# The single most important sentence about this file:
+#
+#   NIST's own guide describes a BOZORTH3 score *greater than* 40 as a rule of
+#   thumb that usually indicates a true match. That is the rule written here,
+#   with the comparator NIST wrote and not the one SourceAFIS wrote.
+#
+# It is not a calibrated threshold, not an operating point with a measured error
+# rate, and not the equivalent of SourceAFIS's 40. The two numbers are spelled
+# with the same digits and come from different documents about different score
+# scales; equating them would be an inference this project has not earned and
+# cannot support (docs/adr/0057, docs/adr/0058).
+#
+# Three consequences of `comparator: greater_than`, spelled out because they are
+# the whole difference:
+#
+#     score 39 -> NON_MATCH
+#     score 40 -> NON_MATCH
+#     score 41 -> MATCH
+#
+# A BOZORTH3 score of 0 is a *score*. It is decided, and it decides NON_MATCH.
+# It is never UNDECIDABLE and never a failure: the comparison ran, produced a
+# number, and the number was low (docs/adr/0006).
+#
+# The threshold is applied to the 6,000 raw scores stage 7C stored, and only
+# there. BOZORTH3's own `-T` option would filter its output at a threshold at
+# run time; it was not used, cannot be used retroactively, and would have made
+# the decisions a property of the run rather than of a profile anyone can reread
+# (docs/adr/0052, spec section 9).
+
+profile:
+  # Schema 2, because the rule is strict. Schema 1 admits inclusive comparators
+  # only, and widening it would have changed the identity of four already
+  # published SourceAFIS profiles to make room for this one (docs/adr/0055).
+  schema_version: "2"
+
+  profile_id: nbis_mindtct_bozorth3_5_0_0_nistir7391_gt40_canonical500_v1
+  display_name: NBIS MINDTCT/BOZORTH3 5.0.0, NIST-documented score > 40, canonical 500 PPI
+
+  profile_version: "1"
+
+  # NIST wrote both the matcher and the sentence about its scores, which is what
+  # `documented_native` means. It is the only origin this project may execute:
+  # a calibrated threshold needs a development cohort and a calibration
+  # manifest, and neither exists (docs/adr/0021).
+  origin: documented_native
+
+algorithm:
+  algorithm_id: nbis_mindtct_bozorth3
+  implementation_version: "5.0.0"
+  score_direction: higher_is_better
+
+rule:
+  comparator: greater_than
+  threshold: "40"
+
+scope:
+  # This profile covers the canonical 500 ppi route and nothing else — the same
+  # rule the two SourceAFIS profiles follow, for the same reason. A threshold
+  # quoted for images prepared one way does not transfer to images prepared
+  # another way, and the NBIS route has never been run any other way
+  # (docs/adr/0047).
+  execution_profiles:
+    - canonical_500_lanczos3_60s_v1
+
+provenance:
+  source_kind: official_upstream_documentation
+  source_reference: nistir_7391_section_4_2_3
+  source_version: "2007"
+
+  # What *kind* of sentence the source actually wrote. A rule of thumb is not a
+  # published operating point with an error rate beside it, and the difference
+  # is the reason this project refuses to treat two thresholds spelled "40" as
+  # the same security level (docs/adr/0058).
+  source_statement_kind: rule_of_thumb
+
+  upstream_claim: score_above_40_usually_indicates_true_match
+  upstream_claim_is_not_benchmark_result: true
+
+calibration:
+  performed: false
+
+  # The cohort these decisions are reported over is a TEST cohort. Choosing a
+  # threshold from it would be leakage, and the loader refuses this file outright
+  # if this is ever set to true.
+  test_cohort_used: false
+
+claims:
+  # Three sentences that would be easy to write and impossible to substantiate.
+  # Each is inside the profile fingerprint, so a profile that started claiming
+  # one would be a different profile and could not be mistaken for this one
+  # (spec section 11).
+  calibrated_fmr: false
+  equivalent_to_sourceafis_operating_point: false
+  optimal_for_sd300: false

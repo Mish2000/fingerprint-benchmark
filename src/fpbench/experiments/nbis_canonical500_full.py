@@ -116,6 +116,7 @@ __all__ = [
     "ALIGNMENT_REPORT_NAME",
     "STAGE_7C_FINALIZATION_NAME",
     "FORBIDDEN_CONFIG_KEYS",
+    "PERMITTED_DOWNSTREAM_EXPERIMENTS",
     # Re-exported so a caller needs one import: the shape this experiment is,
     # and the sizes ``is_clean`` is measured against.
     "SD300_CANONICAL_EXPECTATIONS",
@@ -134,6 +135,21 @@ __all__ = [
 ]
 
 EXPERIMENT_ID = "nbis_canonical500_full_v1"
+
+#: The experiments entitled to derive from this run.
+#:
+#: Empty while stage 7C was the last word — a decision set over these scores
+#: would have meant a threshold chosen by nobody. Stage 7D chose one from NIST's
+#: own documentation and wrote it into a committed profile, so these two
+#: experiments are now expected. Anything else deriving from this run is still a
+#: defect, and the list being data rather than a wildcard is what keeps that
+#: true (docs/adr/0057, spec section 82).
+PERMITTED_DOWNSTREAM_EXPERIMENTS: frozenset[str] = frozenset(
+    {
+        "nbis_canonical500_decisions_v1",
+        "nbis_canonical500_nistir7391_gt40_evaluation_v1",
+    }
+)
 
 #: Where a committed copy of this run's evidence lives (spec section 38).
 EVIDENCE_DIRECTORY = Path("evidence") / "nbis-canonical500-raw"
@@ -1572,13 +1588,26 @@ def _issues_from_plain(items: Any) -> tuple[IntegrityIssue, ...]:
     return tuple(rebuilt)
 
 
-def _check_no_derivations(workspace: Path, run_id: str) -> list[IntegrityIssue]:
-    """Stage 7C produces raw scores. Nothing downstream of them exists yet.
+def _check_no_derivations(
+    workspace: Path,
+    run_id: str,
+    *,
+    permitted_experiments: frozenset[str] = None,  # type: ignore[assignment]
+) -> list[IntegrityIssue]:
+    """Nothing derives from this run except the experiments entitled to.
 
-    A decision set, an eligibility set, a metric set or a paired evaluation over
-    this run would mean somebody had chosen a threshold for BOZORTH3, and there
-    is no such threshold to choose yet (spec sections 45 and 51,
-    docs/adr/0052).
+    Stage 7C itself produces raw scores and nothing else, and while it was the
+    last word that meant *no* derivation could exist: a decision set over this
+    run would have meant somebody chose a threshold for BOZORTH3, and there was
+    no such threshold to choose (docs/adr/0052).
+
+    Stage 7D chose one, from NIST's own documentation, and wrote it into a
+    committed profile. So the rule is now the one it always meant: a derivation
+    of this run must be *accounted for* by a named experiment, and anything else
+    is still a defect. The named experiments are data — see
+    :data:`PERMITTED_DOWNSTREAM_EXPERIMENTS` — and an unrecognised one still
+    fails, which is what makes this a check rather than a comment
+    (docs/adr/0057, spec sections 27 and 82).
     """
     from fpbench.core.derivation_models import DerivationDefinition
     from fpbench.core.enums import IntegrityIssueCode, IntegritySeverity
@@ -1587,25 +1616,12 @@ def _check_no_derivations(workspace: Path, run_id: str) -> list[IntegrityIssue]:
     from fpbench.storage import layout
     from fpbench.storage.paired_evaluation_store import PairedEvaluationStore
 
-    issues: list[IntegrityIssue] = []
-    run_directory = ResultStore(workspace).run_dir(run_id)
-    for name in ("decisions", "metrics", "eligibility"):
-        path = run_directory / name
-        if path.exists():
-            issues.append(
-                IntegrityIssue(
-                    code=IntegrityIssueCode.PLAN_CONFLICT,
-                    severity=IntegritySeverity.ERROR,
-                    message=(
-                        f"run {run_id} carries a {name}/ directory; Stage 7C "
-                        "applies no threshold and computes no metric "
-                        "(docs/adr/0052)"
-                    ),
-                    relative_path=f"results/{run_id}/{name}",
-                )
-            )
+    if permitted_experiments is None:
+        permitted_experiments = PERMITTED_DOWNSTREAM_EXPERIMENTS
 
+    issues: list[IntegrityIssue] = []
     derivations_root = layout.derivations_root(workspace)
+    accounted_for = False
     if derivations_root.is_dir():
         for path in sorted(derivations_root.rglob("definition.json")):
             try:
@@ -1625,21 +1641,49 @@ def _check_no_derivations(workspace: Path, run_id: str) -> list[IntegrityIssue]:
                     )
                 )
                 continue
-            if definition.run_id == run_id:
-                kind = (
-                    "decision/eligibility"
-                    if isinstance(definition, DerivationDefinition)
-                    else "metric"
+            if definition.run_id != run_id:
+                continue
+            owner = _owning_experiment_id(path, derivations_root)
+            if owner in permitted_experiments:
+                accounted_for = True
+                continue
+            kind = (
+                "decision/eligibility"
+                if isinstance(definition, DerivationDefinition)
+                else "metric"
+            )
+            issues.append(
+                IntegrityIssue(
+                    code=IntegrityIssueCode.PLAN_CONFLICT,
+                    severity=IntegritySeverity.ERROR,
+                    message=(
+                        f"{kind} definition {definition.definition_id} derives "
+                        f"from run {run_id} under experiment {owner!r}, which is "
+                        "not one this run is derived by"
+                    ),
+                    relative_path=path.relative_to(workspace).as_posix(),
                 )
+            )
+
+    # The per-run artefact directories. A directory name cannot say who owns it,
+    # so it is only a finding while *nothing* is entitled to have written one —
+    # once a permitted experiment has pinned a definition over this run, the
+    # definition-level check above is the one with teeth.
+    run_directory = ResultStore(workspace).run_dir(run_id)
+    if not accounted_for:
+        for name in ("decisions", "metrics", "eligibility"):
+            path = run_directory / name
+            if path.exists():
                 issues.append(
                     IntegrityIssue(
                         code=IntegrityIssueCode.PLAN_CONFLICT,
                         severity=IntegritySeverity.ERROR,
                         message=(
-                            f"{kind} definition {definition.definition_id} derives "
-                            f"from run {run_id}; Stage 7C publishes raw scores only"
+                            f"run {run_id} carries a {name}/ directory that no "
+                            "pinned derivation accounts for; a threshold was "
+                            "applied outside an experiment (docs/adr/0052)"
                         ),
-                        relative_path=path.relative_to(workspace).as_posix(),
+                        relative_path=f"results/{run_id}/{name}",
                     )
                 )
 
@@ -1721,6 +1765,21 @@ def _check_no_derivations(workspace: Path, run_id: str) -> list[IntegrityIssue]:
                     )
                 )
     return issues
+
+
+def _owning_experiment_id(definition_path: Path, derivations_root: Path) -> str:
+    """Which experiment's directory a definition file sits under.
+
+    ``derivations/<experiment_id>/<run_id>/...``, so the first path component
+    below the root is the answer. Read from the layout rather than from the
+    file's contents on purpose: a definition does not record which experiment
+    pinned it, and the directory is the only place that fact exists.
+    """
+    try:
+        relative = definition_path.relative_to(derivations_root)
+    except ValueError:  # pragma: no cover - the caller globbed from this root
+        return ""
+    return relative.parts[0] if relative.parts else ""
 
 
 def _legacy_paired_definition_cites_run(path: Path, run_fingerprint: str) -> bool:

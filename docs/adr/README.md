@@ -61,6 +61,12 @@ can be held to.
 | [0052](0052-stage-7c-publishes-raw-scores-only.md) | Stage 7C publishes raw scores, and nothing that interprets them | Accepted, implemented |
 | [0053](0053-stage-7c-pins-one-certified-nbis-build.md) | Stage 7C names one certified NBIS build and refuses to guess | Accepted, implemented |
 | [0054](0054-stage-7c-alignment-is-completion-authority.md) | Stage 7C alignment is part of completion authority | Accepted, implemented |
+| [0055](0055-strict-threshold-comparators-preserve-legacy-profiles.md) | Strict comparators arrive under a second profile schema | Accepted, implemented |
+| [0056](0056-decision-and-evaluation-orchestration-is-algorithm-neutral.md) | Decision and evaluation orchestration is algorithm-neutral | Accepted, implemented |
+| [0057](0057-nbis-uses-nist-documented-score-greater-than-40.md) | NBIS decisions use NIST's documented score > 40 | Accepted, implemented |
+| [0058](0058-cross-algorithm-operating-points-are-not-equated.md) | The two operating points are documented independently, not equated | Accepted, implemented |
+| [0059](0059-unconditional-attempt-population-is-primary.md) | The unconditional attempt population is the primary analysis | Accepted, implemented |
+| [0060](0060-cross-algorithm-comparison-never-subtracts-raw-scores.md) | A cross-algorithm comparison never touches raw scores | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

@@ -1,0 +1,52 @@
+# SourceAFIS and NBIS, over the same 6,000 comparisons, at two documented points.
+#
+# Every identity below is exact. There is no `latest`, no "the newest decision
+# set for this run", and no fallback of any kind: a comparison that could follow
+# a pointer would be a comparison of whatever the workspace happened to hold, and
+# the whole argument of stage 7D is that both sides are pinned.
+#
+# `left` and `right` are the only side names this project uses. Not `native` and
+# `canonical` — those describe two image preparations of one algorithm and are
+# the wrong distinction here. Every difference in the report is defined once and
+# in one direction: right minus left, which is NBIS minus SourceAFIS
+# (spec section 55).
+#
+# The three NBIS ids start as placeholders for the same reason the evaluation
+# config's does: they are derived from the decisions and cannot be known before
+# them. The comparison refuses to run while a placeholder is present.
+
+experiment:
+  experiment_id: sourceafis_vs_nbis_canonical500_documented_points_v1
+
+protocol:
+  # The methodology, frozen and committed before a single NBIS decision existed.
+  # Its fingerprint covers the thresholds, the comparators, the eligibility
+  # policy, the metric policy, the comparison policy and the statement that the
+  # two operating points are not equated.
+  ref: configs/experiments/stage7d_fair_measurement_protocol_v1.json
+
+left:
+  label: sourceafis
+  run_id: run_4c59fa02a6ab
+  result_set_id: resultset_087b084fb8a8
+  decision_set_id: decisionset_df0d584bdede
+  eligibility_set_id: eligibilityset_d87d6591d517
+  metric_set_id: metricset_b4c70fbfd1d3
+
+right:
+  label: nbis
+  run_id: run_f0468f28ffba
+  result_set_id: resultset_73a9d93a8528
+  decision_set_id: TO_BE_FILLED_AFTER_DERIVATION
+  eligibility_set_id: TO_BE_FILLED_AFTER_DERIVATION
+  metric_set_id: TO_BE_FILLED_AFTER_DERIVATION
+
+alignment:
+  # Stage 7C's proof that the two runs were given the same 6,000 pairs in the
+  # same order from the same 3,000 prepared images. Re-derived and re-checked
+  # here rather than trusted; a second alignment built in parallel would create a
+  # second answer to the question that matters most (docs/adr/0054).
+  fingerprint: d25b52159d251c2998bc55577d2e40f7a287d869b134dbe6aabbd3a3baa91686
+
+policy:
+  ref: configs/comparisons/policies/documented_operating_points_v1.yaml

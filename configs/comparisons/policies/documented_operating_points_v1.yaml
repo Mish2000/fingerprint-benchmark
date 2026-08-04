@@ -1,0 +1,70 @@
+# What a comparison between two algorithms at two documented operating points
+# may and may not do.
+#
+# Every key here is a refusal, and every refusal exists because the corresponding
+# mistake is easy, tempting and invisible in the output. Two thresholds both
+# written "40"; two score columns sitting side by side in a table; a difference
+# of two conditional rates that each excluded a different set of fingers. None of
+# those produces an error message. They produce a number.
+#
+# The file is loaded strictly: an unknown key is refused rather than ignored, so
+# a policy that grew a setting nobody implemented cannot silently do nothing. Its
+# fingerprint is inside the measurement protocol, the comparison definition, the
+# receipt and the finalization marker, so a policy edited after the fact does not
+# match the comparison it claims to govern (docs/adr/0058, docs/adr/0060).
+
+policy:
+  policy_id: documented_operating_points_v1
+  policy_version: "1"
+
+operating_points:
+  # The number 40 appears on both sides and means two different things. NIST
+  # documents a BOZORTH3 score above 40 as a rule of thumb; SourceAFIS documents
+  # a score of at least 40 with an approximate FMR of its own measuring. Neither
+  # was chosen on this project's data, and nothing establishes that the two sit
+  # at the same error rate.
+  relation: independently_documented_not_equated
+  calibration_allowed: false
+  test_cohort_allowed: false
+
+populations:
+  # The headline is the full mated population: all 1,500 attempts, the same
+  # denominator on both sides, with NON_MATCH and UNDECIDABLE both counted as
+  # non-successes. It is the only mated population that is identical for the two
+  # algorithms by construction (docs/adr/0059).
+  primary: mated_unconditional_all_attempts
+
+  # Each algorithm's own conditional set is kept and reported, side by side, with
+  # full denominators — and never subtracted when the sets differ.
+  retain_side_specific_conditional: true
+
+  # The intersection of the two eligible sets is a controlled secondary
+  # analysis: one denominator, both sides, and an explicit acknowledgement that
+  # it filters out the units that were hard for either algorithm.
+  retain_common_eligible: true
+
+scores:
+  # A BOZORTH3 score and a SourceAFIS score are numbers on two scales produced by
+  # two matchers. Every operation below would produce a quantity with no unit.
+  compare_raw: false
+  normalise: false
+  subtract: false
+  correlate: false
+
+statistics:
+  # Both need a sampling design and a pre-registered test this stage does not
+  # have. A confidence interval computed anyway would be a precise statement
+  # about an unspecified population.
+  confidence_intervals: false
+  significance_tests: false
+
+negative_sanity:
+  # Closed set, same subject on both sides, one fixed cyclic pairing. It is
+  # structurally shaped like a false-match-rate calculation, which is exactly
+  # why the refusal to call it one is a machine-checked flag (docs/adr/0030).
+  label_as_fmr: false
+
+claims:
+  superiority: false
+  causality: false
+  equal_fmr: false

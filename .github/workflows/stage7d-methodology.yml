@@ -1,0 +1,143 @@
+name: stage 7D methodology
+
+# The comparison methodology, without either algorithm and without the dataset.
+#
+# Everything that decides what the SourceAFIS/NBIS comparison is *allowed to say*
+# is checkable on an ordinary runner in seconds: the strict comparators and their
+# boundary, the frozen identities of the two published SourceAFIS profiles, the
+# import boundaries that keep both derivation engines algorithm-neutral, the
+# comparison policy's refusals, the population rules, the transition matrices and
+# the tampering cases.
+#
+# What is deliberately not here is the comparison itself. That needs both
+# finished chains — 12,000 stored results and two verified evidence trees — and
+# is marked `dataset and stage7d`; its sanitised evidence is committed under
+# evidence/ instead (spec section 87).
+
+on:
+  push:
+    paths:
+      - "src/fpbench/core/decision_models.py"
+      - "src/fpbench/core/derivation_models.py"
+      - "src/fpbench/core/cross_algorithm_models.py"
+      - "src/fpbench/core/enums.py"
+      - "src/fpbench/decisions/**"
+      - "src/fpbench/cross_algorithm/**"
+      - "src/fpbench/experiments/algorithm_decisions.py"
+      - "src/fpbench/experiments/algorithm_evaluation.py"
+      - "src/fpbench/experiments/decision_source_integration.py"
+      - "src/fpbench/experiments/nbis_canonical500_decisions.py"
+      - "src/fpbench/experiments/nbis_canonical500_evaluation.py"
+      - "src/fpbench/experiments/sourceafis_vs_nbis_canonical500.py"
+      - "configs/decisions/**"
+      - "configs/comparisons/**"
+      - "configs/evaluations/**"
+      - "configs/experiments/stage7d_fair_measurement_protocol_v1.json"
+      - "tests/crossalgorithmworld.py"
+      - "tests/**stage7d**"
+      - "tests/**comparator**"
+      - "tests/**legacy_decision_profile**"
+      - ".github/workflows/stage7d-methodology.yml"
+  pull_request:
+    paths:
+      - "src/fpbench/core/decision_models.py"
+      - "src/fpbench/core/derivation_models.py"
+      - "src/fpbench/core/cross_algorithm_models.py"
+      - "src/fpbench/core/enums.py"
+      - "src/fpbench/decisions/**"
+      - "src/fpbench/cross_algorithm/**"
+      - "src/fpbench/experiments/algorithm_decisions.py"
+      - "src/fpbench/experiments/algorithm_evaluation.py"
+      - "src/fpbench/experiments/decision_source_integration.py"
+      - "src/fpbench/experiments/nbis_canonical500_decisions.py"
+      - "src/fpbench/experiments/nbis_canonical500_evaluation.py"
+      - "src/fpbench/experiments/sourceafis_vs_nbis_canonical500.py"
+      - "configs/decisions/**"
+      - "configs/comparisons/**"
+      - "configs/evaluations/**"
+      - "configs/experiments/stage7d_fair_measurement_protocol_v1.json"
+      - "tests/crossalgorithmworld.py"
+      - "tests/**stage7d**"
+      - "tests/**comparator**"
+      - "tests/**legacy_decision_profile**"
+      - ".github/workflows/stage7d-methodology.yml"
+
+jobs:
+  methodology:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the project
+        run: pip install -e ".[dev]"
+
+      # Strict comparators, legacy profile compatibility, algorithm-neutral
+      # orchestration, profile leakage, metric-policy parity, the cross-algorithm
+      # models, population comparability and the tampering cases.
+      - name: Run the stage 7D contract suite
+        run: pytest -m "stage7d_contract and not dataset" -q
+
+      # The decision layer as a whole, because stage 7D added a comparator to it.
+      - name: Run the decision-derivation tests
+        run: pytest -m "decisions and not dataset" -q
+
+      # The three committed methodology files must stay loadable and stay
+      # refusals. Each is a file a well-meaning edit could turn into a research
+      # claim, and each is cheap to check.
+      - name: Confirm the methodology is still frozen
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.cross_algorithm import load_comparison_policy
+          from fpbench.cross_algorithm.align import load_fair_measurement_protocol
+          from fpbench.decisions import load_decision_profile
+
+          profile = load_decision_profile(
+              Path(
+                  "configs/decisions/"
+                  "nbis_mindtct_bozorth3_5_0_0_nistir7391_gt40_canonical500_v1.yaml"
+              ),
+              algorithm_fingerprint="0" * 64,
+          )
+          assert profile.threshold == "40", profile.threshold
+          assert profile.comparator.value == "greater_than", profile.comparator
+          assert profile.schema_version == "2", profile.schema_version
+          assert not profile.calibration_performed
+          for claim in (
+              "claims.calibrated_fmr",
+              "claims.equivalent_to_sourceafis_operating_point",
+              "claims.optimal_for_sd300",
+          ):
+              assert profile.metadata[claim] == "false", claim
+
+          policy = load_comparison_policy(
+              Path(
+                  "configs/comparisons/policies/documented_operating_points_v1.yaml"
+              )
+          )
+          protocol = load_fair_measurement_protocol(
+              Path("configs/experiments/stage7d_fair_measurement_protocol_v1.json")
+          )
+          assert protocol.comparison_policy_fingerprint == policy.policy_fingerprint
+          assert protocol.operating_point_relation == (
+              "independently_documented_not_equated"
+          )
+          assert not protocol.raw_score_comparison
+          assert not protocol.calibration_performed
+          assert not protocol.test_cohort_used
+          print("methodology ok:", protocol.protocol_id, protocol.protocol_fingerprint)
+          PY
+
+      # The two published SourceAFIS profiles must still fingerprint to the
+      # digests four decision sets, four eligibility sets and four metric sets
+      # cite. This is the one check that would catch a silent schema bump.
+      - name: Confirm the legacy profile identities have not moved
+        run: pytest tests/regression/test_legacy_decision_profile_identities.py -q

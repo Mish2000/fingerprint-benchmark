@@ -8,6 +8,7 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
 .PHONY: help test test-all full-run adapter-contract \
         nbis-inspect nbis-seal nbis-fetch nbis-build nbis-certify nbis-verify \
         nbis-contract nbis-upstream nbis-canonical500-preflight \
+        stage7d-contract stage7d-workspace \
         sourceafis-build sourceafis-java-test sourceafis-python-test \
         sourceafis-test sourceafis-sd300-smoke \
         research-prepare research-execute research-status research-finalize \
@@ -25,6 +26,8 @@ help:
 	@echo "test-all                everything available on this machine"
 	@echo "full-run                the 6,000-job dummy protocol (minutes)"
 	@echo "adapter-contract        what a new algorithm must satisfy (no dataset, no JVM)"
+	@echo "stage7d-contract        the comparison methodology (no dataset, no algorithm)"
+	@echo "stage7d-workspace       the comparison over the real 12,000 results"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
 	@echo "sourceafis-java-test    Java unit tests"
 	@echo "sourceafis-python-test  Python SourceAFIS tests, excluding the dataset"
@@ -136,6 +139,20 @@ nbis-upstream:
 # and — once a run exists — that nothing downstream of its raw scores was made.
 nbis-canonical500-preflight:
 	pytest -m nbis_full_run -q
+
+# ---------------------------------------------------------------- stage 7D
+
+# The comparison methodology, without either algorithm and without the dataset:
+# strict comparators and their boundary, the frozen SourceAFIS profile
+# identities, the algorithm-neutral orchestration, the comparison policy's
+# refusals, the population rules and the tampering cases.
+stage7d-contract:
+	pytest -m "stage7d_contract and not dataset" -q
+
+# The same methodology over the real 12,000 stored results and both finished
+# evidence trees. Run after every evidence commit (spec section 87).
+stage7d-workspace:
+	pytest -m "dataset and stage7d" -q
 
 # ------------------------------------------------------------------- SourceAFIS
 

@@ -30,8 +30,14 @@ import pytest
 pytestmark = [pytest.mark.decisions, pytest.mark.metrics]
 
 _MODULES = {
-    "decision_engine": "fpbench.experiments.sourceafis_decisions",
-    "evaluation_engine": "fpbench.experiments.sourceafis_evaluation",
+    # Stage 7D moved the orchestration out of the two SourceAFIS modules and
+    # into engines that name no algorithm. The SourceAFIS modules kept their
+    # names: one is now the SourceAFIS half of the seam, the other an import
+    # surface (docs/adr/0056).
+    "decision_engine": "fpbench.experiments.algorithm_decisions",
+    "evaluation_engine": "fpbench.experiments.algorithm_evaluation",
+    "decision_integration": "fpbench.experiments.sourceafis_decisions",
+    "evaluation_surface": "fpbench.experiments.sourceafis_evaluation",
     "native_decisions": "fpbench.experiments.sourceafis_native_decisions",
     "native_evaluation": "fpbench.experiments.sourceafis_native_evaluation",
     "canonical_decisions": "fpbench.experiments.sourceafis_canonical500_decisions",
@@ -140,27 +146,54 @@ def test_no_wrapper_imports_its_opposite_number():
 
 
 def test_the_shared_engines_import_neither_run_experiment():
-    """Section 12: the engine resolves a run through the shared research layer."""
+    """Section 12: the engine resolves a run through the shared research layer.
+
+    Stronger since stage 7D: the engines import no *algorithm* module at all,
+    which subsumes "neither run experiment". The SourceAFIS run pointer is now
+    reached through ``algorithm_research``, and everything else algorithm-specific
+    arrives through the integration (docs/adr/0056).
+    """
     for key in ("decision_engine", "evaluation_engine"):
         imported = _imported_modules(key)
         assert not any(
-            module.endswith("sourceafis_native_full")
-            or module.endswith("sourceafis_canonical500_full")
-            for module in imported
-        ), f"{key} imports a run experiment module"
+            "sourceafis" in module or "nbis" in module for module in imported
+        ), f"{key} imports an algorithm module"
     assert (
-        "fpbench.experiments.sourceafis_research"
+        "fpbench.experiments.algorithm_research"
         in _imported_modules("decision_engine")
     )
 
 
 def test_the_evaluation_engine_reuses_the_decision_engines_source_loader():
     """One implementation of "read the source chain", not two."""
-    assert "fpbench.experiments.sourceafis_decisions" in _imported_modules(
+    assert "fpbench.experiments.algorithm_decisions" in _imported_modules(
         "evaluation_engine"
     )
     source = _source("evaluation_engine")
     assert "load_decision_source" in source
+
+
+def test_the_sourceafis_modules_are_the_seam_rather_than_the_engine():
+    """What is left in the two SourceAFIS modules is one question's answer.
+
+    The decision module still knows what a bridge jar is and which validator to
+    run — that is the algorithm-specific half. What it may not still hold is the
+    orchestration.
+    """
+    integration = _source("decision_integration")
+    for name in (
+        "apply_decision_profile",
+        "derive_self_eligibility",
+        "build_mated_unconditional_view",
+        "build_derivation_receipt",
+    ):
+        assert name not in integration, (
+            f"the SourceAFIS integration performs derivation itself: {name}"
+        )
+    assert "validate_sourceafis_result_set" in integration
+    assert "fpbench.experiments.algorithm_decisions" in _imported_modules(
+        "decision_integration"
+    )
 
 
 # ------------------------------------------------------- spec is data only
@@ -195,5 +228,31 @@ def test_the_two_decision_specs_differ_only_in_data():
         native.non_mated_finger_shift == canonical.non_mated_finger_shift
     ), "the two derivations must be built over the same impostor strategy"
     # Only the canonical derivation checks results against a prepared-image set.
-    assert native.preparation_binding is None
-    assert canonical.preparation_binding is not None
+    # Since stage 7D the binding hangs off the integration rather than the spec,
+    # because "how do I verify this run's inputs?" is the one algorithm-specific
+    # question and the spec is otherwise pure data (docs/adr/0056).
+    assert native.integration.preparation_binding_factory is None
+    assert canonical.integration.preparation_binding_factory is not None
+    assert (
+        native.integration.integration_id == canonical.integration.integration_id
+    ), "both SourceAFIS derivations go through one seam"
+    assert native.integration.algorithm_id == "sourceafis_java"
+
+
+def test_both_sourceafis_wrappers_still_write_schema_one_receipts():
+    """Section 25: no new SourceAFIS derivation, and no new SourceAFIS identity.
+
+    A schema-2 receipt over the same chain would be a different artefact with a
+    different digest, which is the one thing stage 7D may not produce.
+    """
+    from fpbench.core.derivation_models import DERIVATION_RECEIPT_SCHEMA_VERSION
+    from fpbench.experiments.sourceafis_canonical500_decisions import (
+        load_canonical_decision_spec,
+    )
+    from fpbench.experiments.sourceafis_native_decisions import (
+        load_decision_experiment_config,
+    )
+
+    for spec in (load_decision_experiment_config(), load_canonical_decision_spec()):
+        assert spec.receipt_schema_version == DERIVATION_RECEIPT_SCHEMA_VERSION == "1"
+        assert not spec.extra_evidence

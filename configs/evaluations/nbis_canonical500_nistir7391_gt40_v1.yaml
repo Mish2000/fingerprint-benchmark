@@ -20,7 +20,7 @@ source:
   # Stage 7C's NBIS run over the same canonical 6,000 comparisons, and the
   # decisions stage 7D derived from it under NIST's documented rule of thumb.
   run_id: run_f0468f28ffba
-  decision_set_id: TO_BE_FILLED_AFTER_DERIVATION
+  decision_set_id: decisionset_52b1ee4e6aca
 
 metric_policy:
   ref: configs/metrics/plain_roll_biometric_metrics_v1.yaml

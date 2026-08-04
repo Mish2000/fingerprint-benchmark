@@ -24,8 +24,8 @@
   "calibration_performed": false,
   "test_cohort_used": false,
   "protocol_fingerprint": "ac212d9893a4990b8cf28da8b88077dfed3a30f3d29e02e8b74357b1d1efbc7d",
-  "nbis_decision_set_id": null,
-  "nbis_eligibility_set_id": null,
-  "nbis_metric_set_id": null,
+  "nbis_decision_set_id": "decisionset_52b1ee4e6aca",
+  "nbis_eligibility_set_id": "eligibilityset_9e717ecf6a82",
+  "nbis_metric_set_id": "metricset_614450282fdb",
   "cross_algorithm_evaluation_id": null
 }

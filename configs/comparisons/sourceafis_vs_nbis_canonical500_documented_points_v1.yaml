@@ -37,9 +37,9 @@ right:
   label: nbis
   run_id: run_f0468f28ffba
   result_set_id: resultset_73a9d93a8528
-  decision_set_id: TO_BE_FILLED_AFTER_DERIVATION
-  eligibility_set_id: TO_BE_FILLED_AFTER_DERIVATION
-  metric_set_id: TO_BE_FILLED_AFTER_DERIVATION
+  decision_set_id: decisionset_52b1ee4e6aca
+  eligibility_set_id: eligibilityset_9e717ecf6a82
+  metric_set_id: metricset_614450282fdb
 
 alignment:
   # Stage 7C's proof that the two runs were given the same 6,000 pairs in the

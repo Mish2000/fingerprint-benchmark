@@ -1,0 +1,325 @@
+{
+  "schema_version": "1",
+  "report_id": "qualification_mgvit_official_artifact",
+  "candidate_id": "mgvit_official_artifact",
+  "candidate_fingerprint": "07b7dbbee777f5aafc9481f4ed994588baec61effeab59597ca66bab648cbf4c",
+  "qualified_implementation_name": null,
+  "registry_fingerprint": "9db25365601adaf0fe4c25c85f7c3cacc522782364159ce9029a37e8955a83d7",
+  "artifact_manifest": {
+    "schema_version": "1",
+    "manifest_id": "artifact_mgvit_official_artifact",
+    "candidate_id": "mgvit_official_artifact",
+    "registry_fingerprint": "9db25365601adaf0fe4c25c85f7c3cacc522782364159ce9029a37e8955a83d7",
+    "candidate_fingerprint": "07b7dbbee777f5aafc9481f4ed994588baec61effeab59597ca66bab648cbf4c",
+    "source_commit": null,
+    "source_archive_sha256": null,
+    "components": [
+      {
+        "schema_version": "1",
+        "component_id": "mgvit_official_artifact_paper",
+        "kind": "upstream_documentation",
+        "role": "paper",
+        "required": false,
+        "present": true,
+        "identity_established": true,
+        "locked_for_offline_use": false,
+        "filename": "2210.13994.pdf",
+        "sha256": "3466ea75a36e574f5b84b9b690d082ab3a11a95c27cb569993399f2ae0cdec21",
+        "size_bytes": 3553465,
+        "format": "PDF",
+        "source_locator": "https://arxiv.org/pdf/2210.13994",
+        "source_commit": null,
+        "source_archive_sha256": null,
+        "model_variant": null,
+        "embedding_dimension": null,
+        "training_provenance": null,
+        "license_record_fingerprint": null,
+        "notes": [
+          "Scientific description only; not executable inference code."
+        ],
+        "fingerprint": "d3fd36457a45e9ab15b7f3dd759240465419de7e2b2e4bbb36f62371e29f9033"
+      }
+    ],
+    "license_records": [],
+    "storage_reference": null,
+    "acquisition_method": "official paper, MSU publication index, and author-maintained public source search",
+    "acquired_utc": "2026-08-04T17:00:00+03:00",
+    "fingerprint": "148d084de304661db5949d85a1585bdcfd95437a2e76a0def27dc4bc5b54e3a9"
+  },
+  "preprocessing_profile": null,
+  "representation_profile": null,
+  "score_profile": null,
+  "determinism_report": {
+    "schema_version": "1",
+    "report_id": "determinism_mgvit_official_artifact",
+    "tested": false,
+    "runtime_kind": null,
+    "runtime_version": null,
+    "driver_version": null,
+    "device_class": null,
+    "repeated_extraction_equal": null,
+    "repeated_comparison_equal": null,
+    "single_image_vs_batch_equal": null,
+    "process_restart_equal": null,
+    "process_restart_representation_equal": null,
+    "input_order_equal": null,
+    "bitwise_equal": null,
+    "numeric_tolerance": null,
+    "maximum_observed_score_drift": null,
+    "within_predeclared_tolerance": null,
+    "nondeterminism_reason": "static inspection failed before execution was permitted",
+    "runtime_restrictions": [
+      "no runtime was certified"
+    ],
+    "decision_safe": null,
+    "inspected_utc": "2026-08-04T18:00:00+03:00",
+    "fingerprint": "1fc529730842df7b46fddb49b6cf637c0aace0c6bcfcaab8188ae16fe04a6297"
+  },
+  "operational_report": {
+    "schema_version": "1",
+    "report_id": "operational_mgvit_official_artifact",
+    "measured": false,
+    "startup_seconds": null,
+    "model_load_seconds": null,
+    "extraction_seconds": null,
+    "comparison_seconds": null,
+    "peak_ram_bytes": null,
+    "peak_vram_bytes": null,
+    "artifact_disk_bytes": null,
+    "projected_12000_extractions_seconds": null,
+    "projected_6000_comparisons_seconds": null,
+    "max_projected_12000_extractions_seconds": null,
+    "max_projected_6000_comparisons_seconds": null,
+    "max_peak_ram_bytes": null,
+    "max_peak_vram_bytes": null,
+    "max_artifact_disk_bytes": null,
+    "operationally_feasible": null,
+    "measurement_scope": "not measured: failed static inspection forbade fixture execution; no biometric performance claim",
+    "inspected_utc": "2026-08-04T18:00:00+03:00",
+    "fingerprint": "13abc33e157822f9993806fcae1858b1fe908d4e9d714f06a52192c622bd4691"
+  },
+  "decision_path": {
+    "schema_version": "1",
+    "kind": "none",
+    "documented_threshold": null,
+    "threshold_source": null,
+    "threshold_source_fingerprint": null,
+    "threshold_source_kind": "none",
+    "checkpoint_fingerprint": null,
+    "development_cohort": null,
+    "development_cohort_kind": "none",
+    "calibration_protocol_fingerprint": null,
+    "cohort_is_independent_of_evaluation": false,
+    "legally_and_practically_available": false,
+    "fingerprint": "0a4119ffa85e5df60ff7aa9c5a6dff79cf7ef0f405ceef6da5ba2d395a02bb66"
+  },
+  "gate_results": [
+    {
+      "schema_version": "1",
+      "gate": "scientific_identity",
+      "passed": false,
+      "failures": [
+        "SCIENTIFIC_IDENTITY_INCOMPLETE"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2210.13994"
+      ],
+      "fingerprint": "e5c5f3cc51cd4bd0c39ae519b4ebc2a1131e858349ada3c7369107312317b08b"
+    },
+    {
+      "schema_version": "1",
+      "gate": "complete_inference",
+      "passed": false,
+      "failures": [
+        "PAPER_WITHOUT_INFERENCE_CODE",
+        "IMPORTS_UNRESOLVABLE",
+        "MODEL_CONSTRUCTOR_MISSING",
+        "EXPECTED_COMPONENT_MISSING_MINUTIAE_MAP_ENCODING",
+        "EXPECTED_COMPONENT_MISSING_MINUTIAE_MAP_GENERATOR",
+        "EXPECTED_COMPONENT_MISSING_MODEL_CONFIGURATION",
+        "EXPECTED_COMPONENT_MISSING_VIT_INFERENCE_CODE",
+        "MGVIT_PAPER_CODE_LINK_IS_PLACEHOLDER",
+        "MGVIT_MINUTIAE_MAP_COMPONENT_MISSING"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2210.13994"
+      ],
+      "fingerprint": "17ee2795a8aba42471e91e6ee559afe7c86a2a4826eee235e754de7923fe5dd1"
+    },
+    {
+      "schema_version": "1",
+      "gate": "exact_weights",
+      "passed": false,
+      "failures": [
+        "WEIGHTS_MISSING",
+        "EXPECTED_COMPONENT_MISSING_CHECKPOINT",
+        "MGVIT_EXACT_CHECKPOINT_MISSING"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2210.13994"
+      ],
+      "fingerprint": "2b23e638b5eaafecf37c8187eea58ce26f8f9829f279abe01bb810c4be30dca0"
+    },
+    {
+      "schema_version": "1",
+      "gate": "complete_preprocessing",
+      "passed": false,
+      "failures": [
+        "PREPROCESSING_INCOMPLETE",
+        "PREPROCESSING_DATASET_DEPENDENT",
+        "EXPECTED_COMPONENT_MISSING_PREPROCESSING"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2210.13994"
+      ],
+      "fingerprint": "b5e0677a59e772f87e6ac3f0a7ce5749c90d886142ffd772bdcb5953f0480353"
+    },
+    {
+      "schema_version": "1",
+      "gate": "complete_representation",
+      "passed": false,
+      "failures": [
+        "REPRESENTATION_INCOMPLETE",
+        "EXPECTED_COMPONENT_MISSING_EMBEDDING_FUSION",
+        "EXPECTED_COMPONENT_MISSING_IMAGE_MAP_CONCATENATION"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2210.13994"
+      ],
+      "fingerprint": "5d5fcc58750af71c884e5bc2d5bf3b8496e2f800595c3371f50542d69ed4158d"
+    },
+    {
+      "schema_version": "1",
+      "gate": "finite_raw_score",
+      "passed": false,
+      "failures": [
+        "COMPARATOR_MISSING",
+        "RAW_SCORE_NOT_EXPOSED",
+        "SCORE_PROFILE_INCOMPLETE",
+        "EXPECTED_COMPONENT_MISSING_SIMILARITY_FUNCTION"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2210.13994"
+      ],
+      "fingerprint": "0902cd5aa73fa621ce0bf7b4264640cd6d5953bfde8484e27bc793c5f2a406da"
+    },
+    {
+      "schema_version": "1",
+      "gate": "decision_path",
+      "passed": false,
+      "failures": [
+        "DECISION_PATH_NOT_ESTABLISHED"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2210.13994"
+      ],
+      "fingerprint": "f2722c72fd7dfa05fbe995e6a903bb03842255f0a5d6b5f0aee414e6cfb68d90"
+    },
+    {
+      "schema_version": "1",
+      "gate": "independent_self",
+      "passed": false,
+      "failures": [
+        "SELF_EXTRACTION_NOT_INDEPENDENT"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2210.13994"
+      ],
+      "fingerprint": "a7faf37464938d5fbdbc395faff23616f850551e4dcfe44342e00e86e2add941"
+    },
+    {
+      "schema_version": "1",
+      "gate": "determinism",
+      "passed": false,
+      "failures": [
+        "DETERMINISM_NOT_TESTED",
+        "PROCESS_RESTART_NOT_ISOLATED",
+        "NONDETERMINISM_EXCEEDS_TOLERANCE"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2210.13994"
+      ],
+      "fingerprint": "992093c802110a15e743a498e68ec978f041e8cc168d92219fd04b60108cb498"
+    },
+    {
+      "schema_version": "1",
+      "gate": "offline_operation",
+      "passed": false,
+      "failures": [
+        "OFFLINE_BUNDLE_INCOMPLETE",
+        "OFFLINE_EXECUTION_NOT_PROVEN",
+        "EXPECTED_COMPONENT_MISSING_DEPENDENCY_LOCK",
+        "EXPECTED_COMPONENT_MISSING_RUNTIME_MANIFEST"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2210.13994"
+      ],
+      "fingerprint": "baa25b2fe0a88e176fe486b9c7967e35c8dabf5f2b7c5a9c0405915a3cb52648"
+    },
+    {
+      "schema_version": "1",
+      "gate": "license_and_publication",
+      "passed": false,
+      "failures": [
+        "SOURCE_CODE_LICENSE_MISSING",
+        "CHECKPOINT_LICENSE_MISSING",
+        "THIRD_PARTY_LICENSE_REVIEW_MISSING",
+        "TRAINING_RESTRICTIONS_REVIEW_MISSING",
+        "BENCHMARK_PUBLICATION_PERMISSIONS_NOT_CLEAR",
+        "EXPECTED_COMPONENT_MISSING_SOURCE_LICENSE",
+        "EXPECTED_COMPONENT_MISSING_WEIGHTS_LICENSE"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2210.13994"
+      ],
+      "fingerprint": "5ad6f07a277e9afe20155162855815e517500957b23f17546ee51ab92b7a76a1"
+    },
+    {
+      "schema_version": "1",
+      "gate": "architecture_fit",
+      "passed": false,
+      "failures": [
+        "ARCHITECTURE_CONTRACT_NOT_MET",
+        "EXTERNAL_MINUTIAE_OUTSIDE_IDENTITY",
+        "MINDTCT_SUBSTITUTION_NOT_AUTHORIZED"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2210.13994"
+      ],
+      "fingerprint": "ba8f30c80400c12e2c7034ff520a3d2852c59ee3f858f628867c558097a21f07"
+    },
+    {
+      "schema_version": "1",
+      "gate": "operational_feasibility",
+      "passed": false,
+      "failures": [
+        "OPERATIONAL_MEASUREMENTS_MISSING",
+        "FULL_RUN_NOT_OPERATIONALLY_FEASIBLE"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2210.13994"
+      ],
+      "fingerprint": "3adf717089d731cf67f8c5e009b300e047c897339f7df459f82d8b4a01f509fd"
+    }
+  ],
+  "qualification_status": "ARTIFACT_INCOMPLETE",
+  "static_inspection_passed": false,
+  "execution_attempted": false,
+  "smoke_qualification_passed": false,
+  "contract_qualification_passed": false,
+  "runtime_probe": null,
+  "runtime_probe_fingerprint": null,
+  "raw_score_ready": false,
+  "decision_path_ready": false,
+  "license_clear": false,
+  "architecture_fit": false,
+  "official_or_author_supplied": false,
+  "algorithm_completeness_rank": 0,
+  "external_components_required": 1,
+  "runtime_complexity_rank": 0,
+  "estimated_adapter_lines": 0,
+  "diversity_rank": 0,
+  "paper_year": 2022,
+  "qualified_utc": "2026-08-04T18:00:00+03:00",
+  "fingerprint": "f041a196bda8abd1a791c6ece11d7cc034d237d9d9f8dd7c1cec641ee445b7c7"
+}

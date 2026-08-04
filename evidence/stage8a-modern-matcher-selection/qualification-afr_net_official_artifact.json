@@ -1,0 +1,325 @@
+{
+  "schema_version": "1",
+  "report_id": "qualification_afr_net_official_artifact",
+  "candidate_id": "afr_net_official_artifact",
+  "candidate_fingerprint": "4ecd18716ef9478f642d77d198b94adb6b49428014f668f12ea18f86a4e6d690",
+  "qualified_implementation_name": null,
+  "registry_fingerprint": "9db25365601adaf0fe4c25c85f7c3cacc522782364159ce9029a37e8955a83d7",
+  "artifact_manifest": {
+    "schema_version": "1",
+    "manifest_id": "artifact_afr_net_official_artifact",
+    "candidate_id": "afr_net_official_artifact",
+    "registry_fingerprint": "9db25365601adaf0fe4c25c85f7c3cacc522782364159ce9029a37e8955a83d7",
+    "candidate_fingerprint": "4ecd18716ef9478f642d77d198b94adb6b49428014f668f12ea18f86a4e6d690",
+    "source_commit": null,
+    "source_archive_sha256": null,
+    "components": [
+      {
+        "schema_version": "1",
+        "component_id": "afr_net_official_artifact_paper",
+        "kind": "upstream_documentation",
+        "role": "paper",
+        "required": false,
+        "present": true,
+        "identity_established": true,
+        "locked_for_offline_use": false,
+        "filename": "2211.13897.pdf",
+        "sha256": "e4c2d0c404c307fc4e9056c0b908cedce4e9196b5b2d4fbfb5917075f767214e",
+        "size_bytes": 7087539,
+        "format": "PDF",
+        "source_locator": "https://arxiv.org/pdf/2211.13897",
+        "source_commit": null,
+        "source_archive_sha256": null,
+        "model_variant": null,
+        "embedding_dimension": null,
+        "training_provenance": null,
+        "license_record_fingerprint": null,
+        "notes": [
+          "Scientific description only; not executable inference code."
+        ],
+        "fingerprint": "e474d368024e0aae88a5692f66df86e004d4535c595f8a694a6b9809fb91a05f"
+      }
+    ],
+    "license_records": [],
+    "storage_reference": null,
+    "acquisition_method": "official paper, MSU publication index, and author-maintained public source search",
+    "acquired_utc": "2026-08-04T17:00:00+03:00",
+    "fingerprint": "f6c253c512c9b041fb6502d41f87804fdfc46d641eb35d3990a9fa17bba06d7e"
+  },
+  "preprocessing_profile": null,
+  "representation_profile": null,
+  "score_profile": null,
+  "determinism_report": {
+    "schema_version": "1",
+    "report_id": "determinism_afr_net_official_artifact",
+    "tested": false,
+    "runtime_kind": null,
+    "runtime_version": null,
+    "driver_version": null,
+    "device_class": null,
+    "repeated_extraction_equal": null,
+    "repeated_comparison_equal": null,
+    "single_image_vs_batch_equal": null,
+    "process_restart_equal": null,
+    "process_restart_representation_equal": null,
+    "input_order_equal": null,
+    "bitwise_equal": null,
+    "numeric_tolerance": null,
+    "maximum_observed_score_drift": null,
+    "within_predeclared_tolerance": null,
+    "nondeterminism_reason": "static inspection failed before execution was permitted",
+    "runtime_restrictions": [
+      "no runtime was certified"
+    ],
+    "decision_safe": null,
+    "inspected_utc": "2026-08-04T18:00:00+03:00",
+    "fingerprint": "69d252f1fc8e79dd816a21b5f825dd1eb90cc28d92e260f725da02df121b5daf"
+  },
+  "operational_report": {
+    "schema_version": "1",
+    "report_id": "operational_afr_net_official_artifact",
+    "measured": false,
+    "startup_seconds": null,
+    "model_load_seconds": null,
+    "extraction_seconds": null,
+    "comparison_seconds": null,
+    "peak_ram_bytes": null,
+    "peak_vram_bytes": null,
+    "artifact_disk_bytes": null,
+    "projected_12000_extractions_seconds": null,
+    "projected_6000_comparisons_seconds": null,
+    "max_projected_12000_extractions_seconds": null,
+    "max_projected_6000_comparisons_seconds": null,
+    "max_peak_ram_bytes": null,
+    "max_peak_vram_bytes": null,
+    "max_artifact_disk_bytes": null,
+    "operationally_feasible": null,
+    "measurement_scope": "not measured: failed static inspection forbade fixture execution; no biometric performance claim",
+    "inspected_utc": "2026-08-04T18:00:00+03:00",
+    "fingerprint": "6a1b96f04ad8391e8c7c97d46b2a6b686b6c781cedfb623126240d1039ef6517"
+  },
+  "decision_path": {
+    "schema_version": "1",
+    "kind": "none",
+    "documented_threshold": null,
+    "threshold_source": null,
+    "threshold_source_fingerprint": null,
+    "threshold_source_kind": "none",
+    "checkpoint_fingerprint": null,
+    "development_cohort": null,
+    "development_cohort_kind": "none",
+    "calibration_protocol_fingerprint": null,
+    "cohort_is_independent_of_evaluation": false,
+    "legally_and_practically_available": false,
+    "fingerprint": "0a4119ffa85e5df60ff7aa9c5a6dff79cf7ef0f405ceef6da5ba2d395a02bb66"
+  },
+  "gate_results": [
+    {
+      "schema_version": "1",
+      "gate": "scientific_identity",
+      "passed": false,
+      "failures": [
+        "SCIENTIFIC_IDENTITY_INCOMPLETE"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2211.13897"
+      ],
+      "fingerprint": "4c945a3e1cd86232b5f2a4188dc151f8facbda69440fe54379fd2a818d087ccc"
+    },
+    {
+      "schema_version": "1",
+      "gate": "complete_inference",
+      "passed": false,
+      "failures": [
+        "PAPER_WITHOUT_INFERENCE_CODE",
+        "IMPORTS_UNRESOLVABLE",
+        "MODEL_CONSTRUCTOR_MISSING",
+        "EXPECTED_COMPONENT_MISSING_GLOBAL_FUSION",
+        "EXPECTED_COMPONENT_MISSING_INFERENCE_CODE",
+        "EXPECTED_COMPONENT_MISSING_LOCAL_FEATURE_EXTRACTION",
+        "EXPECTED_COMPONENT_MISSING_LOW_CERTAINTY_TRIGGER",
+        "EXPECTED_COMPONENT_MISSING_MODEL_CONFIGURATION",
+        "EXPECTED_COMPONENT_MISSING_REALIGNMENT",
+        "AFR_NET_OFFICIAL_ARTIFACT_NOT_ACQUIRED",
+        "AFR_NET_LOCAL_REALIGNMENT_IMPLEMENTATION_MISSING"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2211.13897"
+      ],
+      "fingerprint": "3c54770838c1e0418552d04fd124ca3066df64e1973baa351f35325c2f3aefaa"
+    },
+    {
+      "schema_version": "1",
+      "gate": "exact_weights",
+      "passed": false,
+      "failures": [
+        "WEIGHTS_MISSING",
+        "EXPECTED_COMPONENT_MISSING_ATTENTION_CHECKPOINT",
+        "EXPECTED_COMPONENT_MISSING_GLOBAL_CNN_CHECKPOINT",
+        "AFR_NET_GLOBAL_AND_ATTENTION_CHECKPOINTS_MISSING"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2211.13897"
+      ],
+      "fingerprint": "ffd75e37c763031777105c12d35c93c5c0ae38e05454f206513add57978738f1"
+    },
+    {
+      "schema_version": "1",
+      "gate": "complete_preprocessing",
+      "passed": false,
+      "failures": [
+        "PREPROCESSING_INCOMPLETE",
+        "PREPROCESSING_DATASET_DEPENDENT",
+        "EXPECTED_COMPONENT_MISSING_PREPROCESSING"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2211.13897"
+      ],
+      "fingerprint": "98773adeb1267f006ea9bb3f9ebdd5a76511a5b05b15d94f7a54891a962b9399"
+    },
+    {
+      "schema_version": "1",
+      "gate": "complete_representation",
+      "passed": false,
+      "failures": [
+        "REPRESENTATION_INCOMPLETE"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2211.13897"
+      ],
+      "fingerprint": "0cda334396bb8764fecd7f828268cd6db7413a7a7283486ab89eea0de10d6cba"
+    },
+    {
+      "schema_version": "1",
+      "gate": "finite_raw_score",
+      "passed": false,
+      "failures": [
+        "COMPARATOR_MISSING",
+        "RAW_SCORE_NOT_EXPOSED",
+        "SCORE_PROFILE_INCOMPLETE",
+        "EXPECTED_COMPONENT_MISSING_FINAL_SCORE",
+        "AFR_NET_FINAL_FUSION_AND_SCORE_FORMULA_ARTIFACT_MISSING"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2211.13897"
+      ],
+      "fingerprint": "9b7398a025b54618fa710dc90168304679ad73993927789d0568fe5ad8538f38"
+    },
+    {
+      "schema_version": "1",
+      "gate": "decision_path",
+      "passed": false,
+      "failures": [
+        "DECISION_PATH_NOT_ESTABLISHED"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2211.13897"
+      ],
+      "fingerprint": "0d665400052a3d4bbaedd5e7821fefe37abb56e1ac897587c038b015e417797b"
+    },
+    {
+      "schema_version": "1",
+      "gate": "independent_self",
+      "passed": false,
+      "failures": [
+        "SELF_EXTRACTION_NOT_INDEPENDENT"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2211.13897"
+      ],
+      "fingerprint": "5085afba2b9f9a30ab0c3e8132dd30d481bc64218a201a7f1b9182bc3794ae77"
+    },
+    {
+      "schema_version": "1",
+      "gate": "determinism",
+      "passed": false,
+      "failures": [
+        "DETERMINISM_NOT_TESTED",
+        "PROCESS_RESTART_NOT_ISOLATED",
+        "NONDETERMINISM_EXCEEDS_TOLERANCE"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2211.13897"
+      ],
+      "fingerprint": "39dd529fcba5e143d17e2eb3ba7104a4b23bce0f8487e7656327abc43144117e"
+    },
+    {
+      "schema_version": "1",
+      "gate": "offline_operation",
+      "passed": false,
+      "failures": [
+        "OFFLINE_BUNDLE_INCOMPLETE",
+        "OFFLINE_EXECUTION_NOT_PROVEN",
+        "EXPECTED_COMPONENT_MISSING_DEPENDENCY_LOCK",
+        "EXPECTED_COMPONENT_MISSING_RUNTIME_MANIFEST"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2211.13897"
+      ],
+      "fingerprint": "281447c747147761cca1db3d9567b60ed590404c8be419cb4af5bcf5694a7b07"
+    },
+    {
+      "schema_version": "1",
+      "gate": "license_and_publication",
+      "passed": false,
+      "failures": [
+        "SOURCE_CODE_LICENSE_MISSING",
+        "CHECKPOINT_LICENSE_MISSING",
+        "THIRD_PARTY_LICENSE_REVIEW_MISSING",
+        "TRAINING_RESTRICTIONS_REVIEW_MISSING",
+        "BENCHMARK_PUBLICATION_PERMISSIONS_NOT_CLEAR",
+        "EXPECTED_COMPONENT_MISSING_SOURCE_LICENSE",
+        "EXPECTED_COMPONENT_MISSING_WEIGHTS_LICENSE"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2211.13897"
+      ],
+      "fingerprint": "a503cec1176f02883c9b7b498eddbe82b5611e4593585c4679383d20f30359d5"
+    },
+    {
+      "schema_version": "1",
+      "gate": "architecture_fit",
+      "passed": false,
+      "failures": [
+        "ARCHITECTURE_CONTRACT_NOT_MET"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2211.13897"
+      ],
+      "fingerprint": "a92a317cc2fed37ecf1741d4693ba702f5b9cdc9d634710c42088a95611a319b"
+    },
+    {
+      "schema_version": "1",
+      "gate": "operational_feasibility",
+      "passed": false,
+      "failures": [
+        "OPERATIONAL_MEASUREMENTS_MISSING",
+        "FULL_RUN_NOT_OPERATIONALLY_FEASIBLE"
+      ],
+      "evidence": [
+        "https://arxiv.org/abs/2211.13897"
+      ],
+      "fingerprint": "6fa2127ef22b7666013b85510175e64e9781765c98bbec0117d936d6ca4d6c41"
+    }
+  ],
+  "qualification_status": "ARTIFACT_INCOMPLETE",
+  "static_inspection_passed": false,
+  "execution_attempted": false,
+  "smoke_qualification_passed": false,
+  "contract_qualification_passed": false,
+  "runtime_probe": null,
+  "runtime_probe_fingerprint": null,
+  "raw_score_ready": false,
+  "decision_path_ready": false,
+  "license_clear": false,
+  "architecture_fit": false,
+  "official_or_author_supplied": false,
+  "algorithm_completeness_rank": 0,
+  "external_components_required": 1,
+  "runtime_complexity_rank": 0,
+  "estimated_adapter_lines": 0,
+  "diversity_rank": 0,
+  "paper_year": 2023,
+  "qualified_utc": "2026-08-04T18:00:00+03:00",
+  "fingerprint": "9b52c7421472f7007a10df34e50fad3d0325e3f26f221dc983941d4fb393e07e"
+}

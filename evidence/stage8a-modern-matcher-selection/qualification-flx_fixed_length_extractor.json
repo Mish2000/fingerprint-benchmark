@@ -1,0 +1,893 @@
+{
+  "schema_version": "1",
+  "report_id": "qualification_flx_fixed_length_extractor",
+  "candidate_id": "flx_fixed_length_extractor",
+  "candidate_fingerprint": "286e70467a9b97661cdbf7f59c4a8fb3c1710e9a60b7f501fe80a4482a9d35f6",
+  "qualified_implementation_name": "flx author-supplied fixed-length extractor artifact: DeepPrint_TexMinu_512_without_localization",
+  "registry_fingerprint": "9db25365601adaf0fe4c25c85f7c3cacc522782364159ce9029a37e8955a83d7",
+  "artifact_manifest": {
+    "schema_version": "1",
+    "manifest_id": "artifact_flx_fixed_length_extractor",
+    "candidate_id": "flx_fixed_length_extractor",
+    "registry_fingerprint": "9db25365601adaf0fe4c25c85f7c3cacc522782364159ce9029a37e8955a83d7",
+    "candidate_fingerprint": "286e70467a9b97661cdbf7f59c4a8fb3c1710e9a60b7f501fe80a4482a9d35f6",
+    "source_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+    "source_archive_sha256": "60fa2c8894ea90efe2bb0553cd331d8ef84611b973b6126eaf6d162d1aa9b7e2",
+    "components": [
+      {
+        "schema_version": "1",
+        "component_id": "flx_source_archive",
+        "kind": "source_code",
+        "role": "source_code",
+        "required": true,
+        "present": true,
+        "identity_established": true,
+        "locked_for_offline_use": false,
+        "filename": "fixed-length-fingerprint-extractors-7accfca.tar.gz",
+        "sha256": "60fa2c8894ea90efe2bb0553cd331d8ef84611b973b6126eaf6d162d1aa9b7e2",
+        "size_bytes": 7149830,
+        "format": "git archive tar.gz",
+        "source_locator": "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+        "source_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+        "source_archive_sha256": "60fa2c8894ea90efe2bb0553cd331d8ef84611b973b6126eaf6d162d1aa9b7e2",
+        "model_variant": null,
+        "embedding_dimension": null,
+        "training_provenance": "BIOSIG 2023 author repository",
+        "license_record_fingerprint": "c9cfe5e5b0772ac65d0cacc1ce79b9db3cba82689755496305633a0f4a4f34bc",
+        "notes": [],
+        "fingerprint": "509a0c31ca42538122ebbb18d2ae5701be790c6aebfe3ab622115228c6d06659"
+      },
+      {
+        "schema_version": "1",
+        "component_id": "flx_checkpoint",
+        "kind": "checkpoint",
+        "role": "checkpoint",
+        "required": true,
+        "present": true,
+        "identity_established": true,
+        "locked_for_offline_use": false,
+        "filename": "best_model.pyt",
+        "sha256": "2683a04427bacd54adc00cfdc97474625b1e11e5a9e6672c5129f033018f8a28",
+        "size_bytes": 875770140,
+        "format": "PyTorch ZIP/pickle checkpoint",
+        "source_locator": "google-drive-file:1R9v73hFBuy0iihz7v8eDlBcGrMDmQ9TH",
+        "source_commit": null,
+        "source_archive_sha256": null,
+        "model_variant": "DeepPrint_TexMinu_512_without_localization",
+        "embedding_dimension": 512,
+        "training_provenance": "state dict exposes 8000 classifier classes; upstream paper text reports a conflicting identity count that remains unresolved",
+        "license_record_fingerprint": "35358015ff105ac2f96d3db7f9946e310fc794896092f456ff6c4407cbd20c87",
+        "notes": [
+          "Texture 256-D and minutia 256-D branches; no localization keys.",
+          "Inspected as untrusted PyTorch serialization; not executed for qualification."
+        ],
+        "fingerprint": "c6bca254e0f166bea08fa8df6694752444c8eadc7eac1cfec83b3822ac4f01f8"
+      },
+      {
+        "schema_version": "1",
+        "component_id": "flx_model_constructor",
+        "kind": "inference",
+        "role": "model_constructor",
+        "required": true,
+        "present": true,
+        "identity_established": true,
+        "locked_for_offline_use": false,
+        "filename": "flx/models/deep_print_arch.py",
+        "sha256": "cd47acea82815d5451f84ad5985f0630c5a0115762e0f504552c73f6f2fbafd9",
+        "size_bytes": 15695,
+        "format": "Python source",
+        "source_locator": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/models/deep_print_arch.py",
+        "source_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+        "source_archive_sha256": null,
+        "model_variant": null,
+        "embedding_dimension": null,
+        "training_provenance": null,
+        "license_record_fingerprint": "c9cfe5e5b0772ac65d0cacc1ce79b9db3cba82689755496305633a0f4a4f34bc",
+        "notes": [],
+        "fingerprint": "afcd70f8945cd2287b0952cc3a68bdc4fe4b01cbfdde696ea0c5e5bb17b26797"
+      },
+      {
+        "schema_version": "1",
+        "component_id": "flx_model_configuration",
+        "kind": "model_configuration",
+        "role": "model_configuration",
+        "required": true,
+        "present": true,
+        "identity_established": true,
+        "locked_for_offline_use": false,
+        "filename": "flx/models/deep_print_arch.py",
+        "sha256": "cd47acea82815d5451f84ad5985f0630c5a0115762e0f504552c73f6f2fbafd9",
+        "size_bytes": 15695,
+        "format": "Python model constructor and configuration source",
+        "source_locator": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/models/deep_print_arch.py",
+        "source_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+        "source_archive_sha256": null,
+        "model_variant": "DeepPrint_TexMinu_512_without_localization",
+        "embedding_dimension": 512,
+        "training_provenance": "constructor identity only; checkpoint training provenance remains conflicting",
+        "license_record_fingerprint": "c9cfe5e5b0772ac65d0cacc1ce79b9db3cba82689755496305633a0f4a4f34bc",
+        "notes": [],
+        "fingerprint": "7aba8d6face5ae06c6b709aa0eafdc64afcc89c9fde56c8e0ec974f8fd0cde0b"
+      },
+      {
+        "schema_version": "1",
+        "component_id": "flx_image_loader",
+        "kind": "preprocessing",
+        "role": "image_loader",
+        "required": true,
+        "present": true,
+        "identity_established": true,
+        "locked_for_offline_use": false,
+        "filename": "flx/data/image_loader.py",
+        "sha256": "cadf869df515b8dfa441d6a3f4acf3db69e5b248eb6114e2c8e033239a6af4a6",
+        "size_bytes": 4484,
+        "format": "Python source",
+        "source_locator": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/image_loader.py",
+        "source_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+        "source_archive_sha256": null,
+        "model_variant": null,
+        "embedding_dimension": null,
+        "training_provenance": null,
+        "license_record_fingerprint": "c9cfe5e5b0772ac65d0cacc1ce79b9db3cba82689755496305633a0f4a4f34bc",
+        "notes": [
+          "Rules branch by SFinge, FVC2004, MCYT optical/capacitive, and NIST SD4 loader."
+        ],
+        "fingerprint": "ad4fe526c85c5981ee7aaa5c31f6e7561e4b34f1c1257a0b13177529e6df4af6"
+      },
+      {
+        "schema_version": "1",
+        "component_id": "flx_preprocessing",
+        "kind": "preprocessing",
+        "role": "preprocessing",
+        "required": true,
+        "present": true,
+        "identity_established": true,
+        "locked_for_offline_use": false,
+        "filename": "flx/data/image_helpers.py",
+        "sha256": "7f93fb781c857183edb0e2be6229feebb18d099a3060818f2287dbad6c2debcd",
+        "size_bytes": 2345,
+        "format": "Python source",
+        "source_locator": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/image_helpers.py",
+        "source_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+        "source_archive_sha256": null,
+        "model_variant": null,
+        "embedding_dimension": null,
+        "training_provenance": null,
+        "license_record_fingerprint": "c9cfe5e5b0772ac65d0cacc1ce79b9db3cba82689755496305633a0f4a4f34bc",
+        "notes": [
+          "Defines square padding and 299x299 resize but not a dataset-independent loader choice."
+        ],
+        "fingerprint": "75965162e40cb96f315058edb08b7a5a127960ce957c4067b689e67a7ef8d8e7"
+      },
+      {
+        "schema_version": "1",
+        "component_id": "flx_representation",
+        "kind": "representation",
+        "role": "representation",
+        "required": true,
+        "present": true,
+        "identity_established": true,
+        "locked_for_offline_use": false,
+        "filename": "flx/models/deep_print_arch.py",
+        "sha256": "cd47acea82815d5451f84ad5985f0630c5a0115762e0f504552c73f6f2fbafd9",
+        "size_bytes": 15695,
+        "format": "Python source",
+        "source_locator": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/models/deep_print_arch.py",
+        "source_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+        "source_archive_sha256": null,
+        "model_variant": "DeepPrint_TexMinu_512_without_localization",
+        "embedding_dimension": 512,
+        "training_provenance": null,
+        "license_record_fingerprint": "c9cfe5e5b0772ac65d0cacc1ce79b9db3cba82689755496305633a0f4a4f34bc",
+        "notes": [],
+        "fingerprint": "bbd8a1ad3335ede02a4d85d4dcc44cd593e8b3b32d869b00525319b9cef3f2a3"
+      },
+      {
+        "schema_version": "1",
+        "component_id": "flx_comparator",
+        "kind": "comparator",
+        "role": "comparator",
+        "required": true,
+        "present": true,
+        "identity_established": true,
+        "locked_for_offline_use": false,
+        "filename": "flx/benchmarks/matchers.py",
+        "sha256": "7c882182eedac5e25a2a9df2c7ce5e571d0eaac86ddd73512c3f06413fb441d7",
+        "size_bytes": 1970,
+        "format": "Python source",
+        "source_locator": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/benchmarks/matchers.py",
+        "source_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+        "source_archive_sha256": null,
+        "model_variant": null,
+        "embedding_dimension": null,
+        "training_provenance": null,
+        "license_record_fingerprint": "c9cfe5e5b0772ac65d0cacc1ce79b9db3cba82689755496305633a0f4a4f34bc",
+        "notes": [
+          "One-to-one comparator is numpy dot product over concatenated normalized branches."
+        ],
+        "fingerprint": "ec034cfb8f3af56d0ccfa276f42f2f4493eb440380b41557e907e627b44fcda2"
+      },
+      {
+        "schema_version": "1",
+        "component_id": "flx_dependency_lock",
+        "kind": "dependency_lock",
+        "role": "dependency_lock",
+        "required": true,
+        "present": false,
+        "identity_established": false,
+        "locked_for_offline_use": false,
+        "filename": null,
+        "sha256": null,
+        "size_bytes": null,
+        "format": null,
+        "source_locator": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/requirements.txt",
+        "source_commit": null,
+        "source_archive_sha256": null,
+        "model_variant": null,
+        "embedding_dimension": null,
+        "training_provenance": null,
+        "license_record_fingerprint": null,
+        "notes": [
+          "requirements.txt names packages without versions and is not a dependency lock."
+        ],
+        "fingerprint": "7aa252491d5b0aeb7cc3f553c61f449bd74d518f0f5af42592cd74b7e91f22d8"
+      },
+      {
+        "schema_version": "1",
+        "component_id": "flx_runtime_manifest",
+        "kind": "runtime_manifest",
+        "role": "runtime_manifest",
+        "required": true,
+        "present": false,
+        "identity_established": false,
+        "locked_for_offline_use": false,
+        "filename": null,
+        "sha256": null,
+        "size_bytes": null,
+        "format": null,
+        "source_locator": null,
+        "source_commit": null,
+        "source_archive_sha256": null,
+        "model_variant": null,
+        "embedding_dimension": null,
+        "training_provenance": null,
+        "license_record_fingerprint": null,
+        "notes": [
+          "No upstream runtime manifest pins Python, PyTorch, torchvision, NumPy, OpenCV, or CUDA/CPU requirements."
+        ],
+        "fingerprint": "7f0b3972b42d2a36023cee6d2bb077eec1ac752e52b181ea91a56838b068e9a2"
+      },
+      {
+        "schema_version": "1",
+        "component_id": "flx_source_license",
+        "kind": "license_document",
+        "role": "source_license",
+        "required": true,
+        "present": true,
+        "identity_established": true,
+        "locked_for_offline_use": false,
+        "filename": "LICENSE",
+        "sha256": "f831e7eed577481687a9bc0b48024e5e40b6f655fcde073ede964b50be5d55d9",
+        "size_bytes": 7815,
+        "format": "text",
+        "source_locator": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/LICENSE",
+        "source_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+        "source_archive_sha256": null,
+        "model_variant": null,
+        "embedding_dimension": null,
+        "training_provenance": null,
+        "license_record_fingerprint": "c9cfe5e5b0772ac65d0cacc1ce79b9db3cba82689755496305633a0f4a4f34bc",
+        "notes": [],
+        "fingerprint": "94ca30adc11f1220786331a854103cb0510f6248e40ea9581e9eb747401ee284"
+      },
+      {
+        "schema_version": "1",
+        "component_id": "flx_weights_license",
+        "kind": "license_document",
+        "role": "weights_license",
+        "required": true,
+        "present": false,
+        "identity_established": false,
+        "locked_for_offline_use": false,
+        "filename": null,
+        "sha256": null,
+        "size_bytes": null,
+        "format": null,
+        "source_locator": "google-drive-file:1R9v73hFBuy0iihz7v8eDlBcGrMDmQ9TH",
+        "source_commit": null,
+        "source_archive_sha256": null,
+        "model_variant": null,
+        "embedding_dimension": null,
+        "training_provenance": null,
+        "license_record_fingerprint": "35358015ff105ac2f96d3db7f9946e310fc794896092f456ff6c4407cbd20c87",
+        "notes": [
+          "No checkpoint-specific licence document was supplied."
+        ],
+        "fingerprint": "ae06f7a3ad59b42ffc70f2bd35b4a06131c66ffd0986907df5bcc769c9a8a786"
+      }
+    ],
+    "license_records": [
+      {
+        "schema_version": "1",
+        "record_id": "flx_source_lgpl3",
+        "scope": "source_code",
+        "subject": "fixed-length-fingerprint-extractors source at commit 7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+        "license_name": "GNU Lesser General Public License v3.0",
+        "spdx_identifier": "LGPL-3.0-only",
+        "license_document_sha256": "f831e7eed577481687a9bc0b48024e5e40b6f655fcde073ede964b50be5d55d9",
+        "license_document_url": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/LICENSE",
+        "conclusion": "clear",
+        "academic_benchmark_allowed": true,
+        "nist_image_processing_allowed": true,
+        "cross_algorithm_comparison_allowed": true,
+        "publish_counts_and_rates_allowed": true,
+        "publish_metadata_and_hashes_allowed": true,
+        "hold_and_execute_allowed": true,
+        "redistribution_allowed": true,
+        "restrictions": [
+          "LGPL notices and relinking/source obligations remain applicable."
+        ],
+        "evidence": [
+          "Pinned LICENSE bytes were inspected independently of the checkpoint."
+        ],
+        "fingerprint": "c9cfe5e5b0772ac65d0cacc1ce79b9db3cba82689755496305633a0f4a4f34bc"
+      },
+      {
+        "schema_version": "1",
+        "record_id": "flx_weights_unlicensed",
+        "scope": "weights",
+        "subject": "best_model.pyt SHA-256 2683a04427bacd54adc00cfdc97474625b1e11e5a9e6672c5129f033018f8a28",
+        "license_name": null,
+        "spdx_identifier": null,
+        "license_document_sha256": null,
+        "license_document_url": null,
+        "conclusion": "unclear",
+        "academic_benchmark_allowed": null,
+        "nist_image_processing_allowed": null,
+        "cross_algorithm_comparison_allowed": null,
+        "publish_counts_and_rates_allowed": null,
+        "publish_metadata_and_hashes_allowed": null,
+        "hold_and_execute_allowed": null,
+        "redistribution_allowed": null,
+        "restrictions": [
+          "No checkpoint-specific licence or terms accompanied the Google Drive file."
+        ],
+        "evidence": [
+          "The repository source licence does not automatically license separately hosted weights."
+        ],
+        "fingerprint": "35358015ff105ac2f96d3db7f9946e310fc794896092f456ff6c4407cbd20c87"
+      },
+      {
+        "schema_version": "1",
+        "record_id": "flx_inception_bsd3",
+        "scope": "third_party",
+        "subject": "flx/models/InceptionV4.py",
+        "license_name": "BSD 3-Clause License",
+        "spdx_identifier": "BSD-3-Clause",
+        "license_document_sha256": "b27cecb06296fe541fba97156a741891c5a0217afce94fc4106655bc19511e3d",
+        "license_document_url": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/models/InceptionV4.py",
+        "conclusion": "clear",
+        "academic_benchmark_allowed": true,
+        "nist_image_processing_allowed": true,
+        "cross_algorithm_comparison_allowed": true,
+        "publish_counts_and_rates_allowed": true,
+        "publish_metadata_and_hashes_allowed": true,
+        "hold_and_execute_allowed": true,
+        "redistribution_allowed": true,
+        "restrictions": [
+          "Retain copyright and licence notices."
+        ],
+        "evidence": [
+          "The BSD text is embedded at the top of the pinned source file."
+        ],
+        "fingerprint": "b0939366332ccbf8c41780e25bed054dfd7ed2b9502a0402eb587c57ba9ac9ac"
+      },
+      {
+        "schema_version": "1",
+        "record_id": "flx_iso_encoder_apache2",
+        "scope": "third_party",
+        "subject": "flx/data/iso_encoder_decoder",
+        "license_name": "Apache License 2.0",
+        "spdx_identifier": "Apache-2.0",
+        "license_document_sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6",
+        "license_document_url": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/iso_encoder_decoder/LICENSE",
+        "conclusion": "clear",
+        "academic_benchmark_allowed": true,
+        "nist_image_processing_allowed": true,
+        "cross_algorithm_comparison_allowed": true,
+        "publish_counts_and_rates_allowed": true,
+        "publish_metadata_and_hashes_allowed": true,
+        "hold_and_execute_allowed": true,
+        "redistribution_allowed": true,
+        "restrictions": [
+          "Retain notices and state modifications where applicable."
+        ],
+        "evidence": [
+          "A separate Apache-2.0 licence file is present in the pinned subtree."
+        ],
+        "fingerprint": "6119019d58c973b52003af171e192b436fc2333c69dc5c5cd2fda7183e411400"
+      },
+      {
+        "schema_version": "1",
+        "record_id": "flx_training_restrictions_review",
+        "scope": "training_restrictions",
+        "subject": "training provenance and dataset restrictions for best_model.pyt",
+        "license_name": null,
+        "spdx_identifier": null,
+        "license_document_sha256": null,
+        "license_document_url": null,
+        "conclusion": "unclear",
+        "academic_benchmark_allowed": null,
+        "nist_image_processing_allowed": null,
+        "cross_algorithm_comparison_allowed": null,
+        "publish_counts_and_rates_allowed": null,
+        "publish_metadata_and_hashes_allowed": null,
+        "hold_and_execute_allowed": null,
+        "redistribution_allowed": null,
+        "restrictions": [
+          "Training provenance conflicts between the repository documentation and the identified checkpoint metadata.",
+          "Permissions and restrictions for every upstream training dataset were not established."
+        ],
+        "evidence": [
+          "Pinned repository documentation and checkpoint structure were inspected separately; no complete checkpoint-bound training provenance or dataset-rights statement was found."
+        ],
+        "fingerprint": "fc7247725a11d8d5c2cda2857d8fff84367164629f8fd7fca75d24f08f2cb1e1"
+      }
+    ],
+    "storage_reference": null,
+    "acquisition_method": "pinned public author repository plus the exact checkpoint file linked from its README",
+    "acquired_utc": "2026-08-04T17:00:00+03:00",
+    "fingerprint": "46b36b0266a3173f22289ce9c2262cc0812cb148d8e1c7b6a3da909a1d6927f3"
+  },
+  "preprocessing_profile": {
+    "schema_version": "1",
+    "profile_id": "flx_checkpoint_preprocessing_inspection_v1",
+    "operations": [
+      {
+        "schema_version": "1",
+        "operation_id": "grayscale_conversion",
+        "action": "OpenCV IMREAD_GRAYSCALE in each named dataset loader",
+        "upstream_source_kind": "pinned upstream source code",
+        "upstream_source_reference": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/image_loader.py",
+        "source_fingerprint": "cadf869df515b8dfa441d6a3f4acf3db69e5b248eb6114e2c8e033239a6af4a6",
+        "fingerprint": "0208781411af3dcd9ba8de532b3244efd544bcb71684e31c19d8847502cf2db9"
+      },
+      {
+        "schema_version": "1",
+        "operation_id": "polarity",
+        "action": "no explicit polarity transform in the inspected loaders",
+        "upstream_source_kind": "pinned upstream source code",
+        "upstream_source_reference": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/image_loader.py",
+        "source_fingerprint": "cadf869df515b8dfa441d6a3f4acf3db69e5b248eb6114e2c8e033239a6af4a6",
+        "fingerprint": "99a90356356ed285f54f4fd85019271a6263a485a4085db97243b17a82be70b6"
+      },
+      {
+        "schema_version": "1",
+        "operation_id": "crop",
+        "action": "dataset-specific: SFinGe removes 32 rows; MCYT optical center-crops a fixed ROI; other loaders do not crop",
+        "upstream_source_kind": "pinned upstream source code",
+        "upstream_source_reference": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/image_loader.py",
+        "source_fingerprint": "cadf869df515b8dfa441d6a3f4acf3db69e5b248eb6114e2c8e033239a6af4a6",
+        "fingerprint": "f438370d84fa0d88101d9ce52117b6397ff657b1dd7d73c7e55a910299f4879e"
+      },
+      {
+        "schema_version": "1",
+        "operation_id": "padding",
+        "action": "symmetric square padding; the inspected benchmark loaders pass white fill 1.0",
+        "upstream_source_kind": "pinned upstream source code",
+        "upstream_source_reference": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/image_helpers.py",
+        "source_fingerprint": "7f93fb781c857183edb0e2be6229feebb18d099a3060818f2287dbad6c2debcd",
+        "fingerprint": "efe5204ffa9b4c8426beb4fc12cfea05de1cb510291a085751824750a9728293"
+      },
+      {
+        "schema_version": "1",
+        "operation_id": "resize",
+        "action": "torchvision functional resize to 299 by 299 with antialias enabled",
+        "upstream_source_kind": "pinned upstream source code",
+        "upstream_source_reference": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/image_helpers.py",
+        "source_fingerprint": "7f93fb781c857183edb0e2be6229feebb18d099a3060818f2287dbad6c2debcd",
+        "fingerprint": "a605efb2ad230f2d0b3a43c82161d93fa0390f9aadb21e6e2d726d43dfe0bc94"
+      },
+      {
+        "schema_version": "1",
+        "operation_id": "interpolation",
+        "action": "torchvision resize default interpolation; exact behavior is not locked because dependency versions are unpinned",
+        "upstream_source_kind": "pinned upstream source code",
+        "upstream_source_reference": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/image_helpers.py",
+        "source_fingerprint": "7f93fb781c857183edb0e2be6229feebb18d099a3060818f2287dbad6c2debcd",
+        "fingerprint": "6ccf54cfc3a2682ca69dc2534def20553ce26f224b39b05b50979c5ee0a74b37"
+      },
+      {
+        "schema_version": "1",
+        "operation_id": "alignment",
+        "action": "no generic inference alignment operation is selected",
+        "upstream_source_kind": "pinned upstream source code",
+        "upstream_source_reference": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/image_loader.py",
+        "source_fingerprint": "cadf869df515b8dfa441d6a3f4acf3db69e5b248eb6114e2c8e033239a6af4a6",
+        "fingerprint": "6bc6aa7635df9da91a2a7245f00952fa1604fc72da3898b03c8568139f5fdac0"
+      },
+      {
+        "schema_version": "1",
+        "operation_id": "localization",
+        "action": "absent from the identified checkpoint variant and its constructor",
+        "upstream_source_kind": "pinned upstream source code",
+        "upstream_source_reference": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/models/deep_print_arch.py",
+        "source_fingerprint": "cd47acea82815d5451f84ad5985f0630c5a0115762e0f504552c73f6f2fbafd9",
+        "fingerprint": "fbfea3b1eab006d37a580eb29308f8e104641fa82dae2c2da9d88f2ce5fc0223"
+      },
+      {
+        "schema_version": "1",
+        "operation_id": "contrast_transformation",
+        "action": "no inference-time contrast transform in the inspected loaders",
+        "upstream_source_kind": "pinned upstream source code",
+        "upstream_source_reference": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/image_loader.py",
+        "source_fingerprint": "cadf869df515b8dfa441d6a3f4acf3db69e5b248eb6114e2c8e033239a6af4a6",
+        "fingerprint": "66c056fad810dba0ad25823916dd1f9adf23f818968fbb7d3c60aee22907276c"
+      },
+      {
+        "schema_version": "1",
+        "operation_id": "normalization",
+        "action": "torchvision to_tensor conversion only; no further mean or variance normalization",
+        "upstream_source_kind": "pinned upstream source code",
+        "upstream_source_reference": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/image_helpers.py",
+        "source_fingerprint": "7f93fb781c857183edb0e2be6229feebb18d099a3060818f2287dbad6c2debcd",
+        "fingerprint": "d7ff604ab2e0ae55e40755324248874b268f0f8ba78a0e9a41206698328c43a6"
+      },
+      {
+        "schema_version": "1",
+        "operation_id": "channel_replication",
+        "action": "none; the model stem expects one grayscale channel",
+        "upstream_source_kind": "pinned upstream source code",
+        "upstream_source_reference": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/models/deep_print_arch.py",
+        "source_fingerprint": "cd47acea82815d5451f84ad5985f0630c5a0115762e0f504552c73f6f2fbafd9",
+        "fingerprint": "28359e80708bec3f4e44f5da8cb62c38cdf27226ae8a533ee11bb0d1091b1912"
+      },
+      {
+        "schema_version": "1",
+        "operation_id": "tensor_layout",
+        "action": "torchvision to_tensor produces channel-height-width layout",
+        "upstream_source_kind": "pinned upstream source code",
+        "upstream_source_reference": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/image_helpers.py",
+        "source_fingerprint": "7f93fb781c857183edb0e2be6229feebb18d099a3060818f2287dbad6c2debcd",
+        "fingerprint": "3c7467a83d73611e10a743132b9488c5cb259e34ba3bb54c918a8d264c8e6898"
+      },
+      {
+        "schema_version": "1",
+        "operation_id": "numeric_dtype",
+        "action": "torchvision to_tensor floating output; exact library version and resulting runtime are not locked",
+        "upstream_source_kind": "pinned upstream source code",
+        "upstream_source_reference": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/image_helpers.py",
+        "source_fingerprint": "7f93fb781c857183edb0e2be6229feebb18d099a3060818f2287dbad6c2debcd",
+        "fingerprint": "711a1bccf8ceb778289c3765cbbe46f42f36a20d7c5ba8095cc890a8daa2aa59"
+      },
+      {
+        "schema_version": "1",
+        "operation_id": "value_range",
+        "action": "uint8 inputs are scaled by torchvision to_tensor to the nominal zero-to-one range",
+        "upstream_source_kind": "pinned upstream source code",
+        "upstream_source_reference": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/image_helpers.py",
+        "source_fingerprint": "7f93fb781c857183edb0e2be6229feebb18d099a3060818f2287dbad6c2debcd",
+        "fingerprint": "6fbd8c41edeed759bb8b32a3f40f7e76950b8e9be6f75d1f4ba5a62a8de9d796"
+      }
+    ],
+    "dataset_independent": false,
+    "subject_independent": true,
+    "label_independent": true,
+    "canonical_png_to_tensor_complete": false,
+    "fingerprint": "34df989e3b51a53edefdbcc2ec001420001c3e550176afa86595ff754528572f"
+  },
+  "representation_profile": {
+    "schema_version": "1",
+    "profile_id": "flx_deepprint_texminu_512_representation_v1",
+    "representation_kind": "two-branch fixed-length learned embedding",
+    "representation_shape": [
+      512
+    ],
+    "representation_dtype": "PyTorch floating tensor; exact runtime dtype not dynamically qualified",
+    "representation_normalization": "independent L2 normalization of each 256-dimensional branch",
+    "fixed_length": true,
+    "branches": [
+      {
+        "schema_version": "1",
+        "branch_id": "texture",
+        "kind": "texture embedding",
+        "shape": [
+          256
+        ],
+        "included_in_final_score": true,
+        "combination_rule": "concatenated before the one-to-one dot-product comparator",
+        "fingerprint": "4e339c71f5c5b06943b28ea3770caf3a0d6384619abc781162675e39bdbc112d"
+      },
+      {
+        "schema_version": "1",
+        "branch_id": "minutia",
+        "kind": "learned minutia embedding; no external minutiae detector at inference",
+        "shape": [
+          256
+        ],
+        "included_in_final_score": true,
+        "combination_rule": "concatenated before the one-to-one dot-product comparator",
+        "fingerprint": "37c886e2763a47493f6304f682cae7769778fbbfe9da2ada63c4b425f349b4ec"
+      }
+    ],
+    "fusion_rule": "concatenate texture then minutia; dot product sums the two branch similarities",
+    "pose_information_required": false,
+    "pose_handling": "no pose input is required by the identified no-localization variant or its direct one-to-one comparator",
+    "complete": true,
+    "fingerprint": "7670ebb92878423052397f877b82cead02b54704d151f84072c9234d6e9b8c13"
+  },
+  "score_profile": {
+    "schema_version": "1",
+    "profile_id": "flx_direct_pair_dot_product_v1",
+    "compare_api": "CosineSimilarityMatcher.similarity(sample1, sample2)",
+    "similarity_function": "NumPy dot product over the concatenated, independently L2-normalized branches",
+    "score_direction": "higher_is_more_similar",
+    "score_range": "nominal [-2, 2], the sum of two branch cosine similarities",
+    "score_minimum": "-2",
+    "score_maximum": "2",
+    "normalization": "each 256-dimensional branch is L2-normalized before concatenation",
+    "symmetric": true,
+    "fusion": "sum of texture and minutia branch dot products",
+    "reweighting": "none; both independently normalized branches retain equal unit contribution and no evaluation-cohort weights are introduced",
+    "realignment_trigger": "none; no localization branch and no comparator realignment",
+    "fallback_behavior": "none in the direct one-to-one API; its vectorized sibling is not the selected pair API",
+    "returns_finite_numeric_raw_score": false,
+    "hidden_threshold": false,
+    "complete": false,
+    "fingerprint": "778cb5e2c601dde70dd4da7cecdbb7d6c0641cd0a4153067246da7afc31462b5"
+  },
+  "determinism_report": {
+    "schema_version": "1",
+    "report_id": "determinism_flx_fixed_length_extractor",
+    "tested": false,
+    "runtime_kind": null,
+    "runtime_version": null,
+    "driver_version": null,
+    "device_class": null,
+    "repeated_extraction_equal": null,
+    "repeated_comparison_equal": null,
+    "single_image_vs_batch_equal": null,
+    "process_restart_equal": null,
+    "process_restart_representation_equal": null,
+    "input_order_equal": null,
+    "bitwise_equal": null,
+    "numeric_tolerance": null,
+    "maximum_observed_score_drift": null,
+    "within_predeclared_tolerance": null,
+    "nondeterminism_reason": "static inspection failed before execution was permitted",
+    "runtime_restrictions": [
+      "no runtime was certified"
+    ],
+    "decision_safe": null,
+    "inspected_utc": "2026-08-04T18:00:00+03:00",
+    "fingerprint": "239fcbd89faea08e103e79cfe0ce46c2c2989d9c23dca3db923a0cfc067f3f52"
+  },
+  "operational_report": {
+    "schema_version": "1",
+    "report_id": "operational_flx_fixed_length_extractor",
+    "measured": false,
+    "startup_seconds": null,
+    "model_load_seconds": null,
+    "extraction_seconds": null,
+    "comparison_seconds": null,
+    "peak_ram_bytes": null,
+    "peak_vram_bytes": null,
+    "artifact_disk_bytes": null,
+    "projected_12000_extractions_seconds": null,
+    "projected_6000_comparisons_seconds": null,
+    "max_projected_12000_extractions_seconds": null,
+    "max_projected_6000_comparisons_seconds": null,
+    "max_peak_ram_bytes": null,
+    "max_peak_vram_bytes": null,
+    "max_artifact_disk_bytes": null,
+    "operationally_feasible": null,
+    "measurement_scope": "not measured: failed static inspection forbade fixture execution; no biometric performance claim",
+    "inspected_utc": "2026-08-04T18:00:00+03:00",
+    "fingerprint": "8c6dc895dfda5d1528890a7ec7032c6a61c3f7885dc905980792b0bc7576a4dd"
+  },
+  "decision_path": {
+    "schema_version": "1",
+    "kind": "none",
+    "documented_threshold": null,
+    "threshold_source": null,
+    "threshold_source_fingerprint": null,
+    "threshold_source_kind": "none",
+    "checkpoint_fingerprint": null,
+    "development_cohort": null,
+    "development_cohort_kind": "none",
+    "calibration_protocol_fingerprint": null,
+    "cohort_is_independent_of_evaluation": false,
+    "legally_and_practically_available": false,
+    "fingerprint": "0a4119ffa85e5df60ff7aa9c5a6dff79cf7ef0f405ceef6da5ba2d395a02bb66"
+  },
+  "gate_results": [
+    {
+      "schema_version": "1",
+      "gate": "scientific_identity",
+      "passed": true,
+      "failures": [],
+      "evidence": [
+        "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+      ],
+      "fingerprint": "c6b6cabfa63d8d8420043f71e3148b73f45673d9791ea8d42ced32f7824208f0"
+    },
+    {
+      "schema_version": "1",
+      "gate": "complete_inference",
+      "passed": false,
+      "failures": [
+        "IMPORTS_UNRESOLVABLE",
+        "DEPENDENCY_VERSIONS_NOT_LOCKED"
+      ],
+      "evidence": [
+        "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+      ],
+      "fingerprint": "4b0795e205e623085745922b1efba77e962fadeb364b9fb2afeba4cf8fca00c1"
+    },
+    {
+      "schema_version": "1",
+      "gate": "exact_weights",
+      "passed": false,
+      "failures": [
+        "CHECKPOINT_IDENTITY_INCOMPLETE",
+        "CHECKPOINT_TRAINING_PROVENANCE_CONFLICT"
+      ],
+      "evidence": [
+        "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+      ],
+      "fingerprint": "c06947042999c6cd463e8dd525917001669afd2b53ed842ba127368e41727552"
+    },
+    {
+      "schema_version": "1",
+      "gate": "complete_preprocessing",
+      "passed": false,
+      "failures": [
+        "PREPROCESSING_INCOMPLETE",
+        "PREPROCESSING_DATASET_DEPENDENT",
+        "GENERIC_CANONICAL_PNG_ROUTE_NOT_DEFINED"
+      ],
+      "evidence": [
+        "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+      ],
+      "fingerprint": "b1132fb44ddb682acb01e2b07a185ea8e14a8fde2110b3bbaba1f38e800ff483"
+    },
+    {
+      "schema_version": "1",
+      "gate": "complete_representation",
+      "passed": true,
+      "failures": [],
+      "evidence": [
+        "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+      ],
+      "fingerprint": "6b80d73a9e4ebe0410c35e6995ab18e1201140e23e1c1c7feb5f86730af7364c"
+    },
+    {
+      "schema_version": "1",
+      "gate": "finite_raw_score",
+      "passed": false,
+      "failures": [
+        "RAW_SCORE_NOT_FINITE",
+        "SCORE_PROFILE_INCOMPLETE",
+        "RAW_SCORE_RUNTIME_NOT_EXECUTED"
+      ],
+      "evidence": [
+        "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+      ],
+      "fingerprint": "7ffb16832944f3d80cb7225e2cfe6596ddae8ead7b81f68130c611f534097b81"
+    },
+    {
+      "schema_version": "1",
+      "gate": "decision_path",
+      "passed": false,
+      "failures": [
+        "DECISION_PATH_NOT_ESTABLISHED",
+        "CHECKPOINT_BOUND_THRESHOLD_NOT_DOCUMENTED"
+      ],
+      "evidence": [
+        "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+      ],
+      "fingerprint": "89c4167b7eae40a3af59c1a9ebe7780c27e2e0daca604d5934e3de9a1429f5a3"
+    },
+    {
+      "schema_version": "1",
+      "gate": "independent_self",
+      "passed": false,
+      "failures": [
+        "SELF_EXTRACTION_NOT_INDEPENDENT",
+        "SELF_CONTRACT_NOT_EXECUTED"
+      ],
+      "evidence": [
+        "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+      ],
+      "fingerprint": "594105ee3598fa7f20e992d02d941ea0857579a84b61e44761f4032941edc368"
+    },
+    {
+      "schema_version": "1",
+      "gate": "determinism",
+      "passed": false,
+      "failures": [
+        "DETERMINISM_NOT_TESTED",
+        "PROCESS_RESTART_NOT_ISOLATED",
+        "NONDETERMINISM_EXCEEDS_TOLERANCE"
+      ],
+      "evidence": [
+        "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+      ],
+      "fingerprint": "6fbf35e78914c7317a016e0c703c99436ab43c0565f36dc9b398f277ed101198"
+    },
+    {
+      "schema_version": "1",
+      "gate": "offline_operation",
+      "passed": false,
+      "failures": [
+        "OFFLINE_BUNDLE_INCOMPLETE",
+        "OFFLINE_EXECUTION_NOT_PROVEN",
+        "EXPECTED_COMPONENT_MISSING_DEPENDENCY_LOCK",
+        "EXPECTED_COMPONENT_MISSING_RUNTIME_MANIFEST",
+        "DEPENDENCY_LOCK_MISSING"
+      ],
+      "evidence": [
+        "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+      ],
+      "fingerprint": "b19fd59d78170fd33a8f4bd9f4546ac988e458325caee7c27b88654e734e9729"
+    },
+    {
+      "schema_version": "1",
+      "gate": "license_and_publication",
+      "passed": false,
+      "failures": [
+        "WEIGHTS_LICENSE_NOT_ESTABLISHED",
+        "BENCHMARK_PUBLICATION_PERMISSIONS_NOT_CLEAR",
+        "EXPECTED_COMPONENT_MISSING_WEIGHTS_LICENSE",
+        "WEIGHTS_HOLD_AND_EXECUTE_PERMISSION_UNESTABLISHED"
+      ],
+      "evidence": [
+        "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+      ],
+      "fingerprint": "d037201de8634588c6546c763fe872ac3d940077a61f17727fba8d509742ac33"
+    },
+    {
+      "schema_version": "1",
+      "gate": "architecture_fit",
+      "passed": true,
+      "failures": [],
+      "evidence": [
+        "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+      ],
+      "fingerprint": "7359dd1bf4313013428399352119b188d47096329bb94b4772efd18d4b613c34"
+    },
+    {
+      "schema_version": "1",
+      "gate": "operational_feasibility",
+      "passed": false,
+      "failures": [
+        "OPERATIONAL_MEASUREMENTS_MISSING",
+        "FULL_RUN_NOT_OPERATIONALLY_FEASIBLE"
+      ],
+      "evidence": [
+        "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+      ],
+      "fingerprint": "4e883b975c6f645fa4866e91aac75d257cc863d02e94ebf83306e1b39586f204"
+    }
+  ],
+  "qualification_status": "LICENSE_BLOCKED",
+  "static_inspection_passed": false,
+  "execution_attempted": false,
+  "smoke_qualification_passed": false,
+  "contract_qualification_passed": false,
+  "runtime_probe": null,
+  "runtime_probe_fingerprint": null,
+  "raw_score_ready": false,
+  "decision_path_ready": false,
+  "license_clear": false,
+  "architecture_fit": true,
+  "official_or_author_supplied": false,
+  "algorithm_completeness_rank": 6,
+  "external_components_required": 2,
+  "runtime_complexity_rank": 3,
+  "estimated_adapter_lines": 0,
+  "diversity_rank": 0,
+  "paper_year": 2023,
+  "qualified_utc": "2026-08-04T18:00:00+03:00",
+  "fingerprint": "605b2286dd96e9f3a069567ca63cf3e1c592cab23a040585dad00af311159fb5"
+}

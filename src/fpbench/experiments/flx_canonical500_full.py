@@ -52,15 +52,21 @@ from fpbench.core.errors import ConfigurationError, ResearchPreflightError
 from fpbench.core.execution_models import ExecutionProfile
 from fpbench.core.identifiers import validate_id
 from fpbench.core.imaging_models import PreparedImageEntry
-from fpbench.core.research_models import ResearchRunState
+from fpbench.core.research_models import (
+    ResearchReceipt,
+    ResearchRunState,
+    research_receipt_content_hash,
+    research_receipt_fingerprint,
+)
 from fpbench.core.run_state_models import IntegrityIssue
-from fpbench.core.serialization import read_json
+from fpbench.core.serialization import read_json, to_plain, write_json
 from fpbench.execution.batch_runner import RunExecutionSummary
 from fpbench.experiments.algorithm_research import (
     REPOSITORY_ROOT,
     AlgorithmResearchExperimentSpec,
     PreparedAlgorithmResearchRun,
     capture_research_provenance,
+    read_run_pointer,
 )
 from fpbench.experiments.canonical_run_alignment import (
     SD300_CANONICAL_EXPECTATIONS,
@@ -83,10 +89,14 @@ from fpbench.experiments.config_values import (
 )
 from fpbench.experiments.flx_research import (
     execute_flx_research_run,
+    finalize_flx_research_run,
     inspect_flx_research_experiment,
     prepare_flx_research_run,
 )
-from fpbench.experiments.flx_validation import SD300_CANONICAL500_INPUT_SET
+from fpbench.experiments.flx_validation import (
+    SD300_CANONICAL500_INPUT_SET,
+    validate_flx_result_set,
+)
 from fpbench.experiments.sd300_inputs import SD300Inputs, load_sd300_inputs
 from fpbench.experiments.stage8b_binding import require_stage8b_binding
 from fpbench.experiments.stage8c_identity import (
@@ -127,6 +137,11 @@ __all__ = [
     "prepare_flx_canonical500_run",
     "execute_flx_canonical500_run",
     "inspect_flx_canonical500_experiment",
+    "finalize_flx_canonical500_run",
+    "refresh_flx_canonical500_stage_finalization",
+    "publish_flx_canonical500_evidence",
+    "publish_flx_canonical500_finalization",
+    "check_no_cross_algorithm_comparison",
 ]
 
 DEFAULT_EXPERIMENT_CONFIG = (
@@ -1069,6 +1084,647 @@ def inspect_flx_canonical500_experiment(
         alignment_report=report,
         issues=tuple(issues),
     )
+
+
+def finalize_flx_canonical500_run(
+    *,
+    workspace: Path = DEFAULT_WORKSPACE,
+    dataset_root: Path | None = None,
+    config: FlxCanonical500ExperimentConfig | None = None,
+    repository_root: Path = REPOSITORY_ROOT,
+    run_id: str | None = None,
+    bundle_root: Path | None = None,
+) -> ResearchReceipt:
+    """Revalidate everything, publish the receipt, and prove the route held.
+
+    The engine does the audit, the result set, the flx validation, the receipt
+    and the marker — and it raises unless the run reaches ``RESEARCH_READY``, so
+    by the time it returns, that part of Stage 8C readiness is established. What
+    this function adds is what the engine has no business knowing about: the
+    alignment is re-derived and compared with the one preparation stored, the
+    Stage 8B binding is re-checked against the published qualification, and
+    nothing downstream of a raw score may exist.
+
+    **Why the combined check is not a second full inspection.** The engine's last
+    act is writing the committable receipt into ``evidence/``. A check that
+    re-captured software provenance afterwards would refuse the working tree
+    finalization had just modified, and would do so on every successful run. The
+    independent combined reading is
+    :func:`inspect_flx_canonical500_experiment`, run once the evidence has been
+    committed (docs/adr/0017).
+    """
+    workspace = Path(workspace)
+    repository_root = Path(repository_root)
+    config = config or load_flx_canonical500_config(repository_root=repository_root)
+    resolved = run_id or read_run_pointer(workspace, config.experiment_id)
+    capture_research_provenance(repository_root)
+
+    require_stage8b_binding(
+        config.stage8b, config.artifact, repository_root=repository_root
+    )
+    context = _load_alignment_context(
+        workspace=workspace,
+        dataset_root=dataset_root,
+        config=config,
+        repository_root=repository_root,
+        run_id=resolved,
+    )
+    require_clean_alignment(context.report)
+    require_canonical_input_controls_equal(
+        context.reference_run,
+        build_flx_canonical500_spec(config),
+        reference_materialization_policy=context.reference_materialization_policy,
+    )
+    stored_issues = tuple(
+        _compare_stored_alignment(workspace, resolved, context.report)
+    )
+    if stored_issues:
+        raise ResearchPreflightError(
+            "the alignment report stored at preparation is not the one this "
+            f"workspace now derives: {stored_issues[0].message}"
+        )
+
+    receipt = finalize_flx_research_run(
+        spec=build_flx_canonical500_spec(config),
+        preparer_factory=_preparer_factory,
+        workspace=workspace,
+        dataset_root=dataset_root,
+        repository_root=repository_root,
+        run_id=resolved,
+        bundle_root=bundle_root,
+        expected_input_set=SD300_CANONICAL500_INPUT_SET,
+    )
+
+    remaining = tuple(
+        _check_no_derivations(workspace, resolved, repository_root=repository_root)
+    )
+    if remaining or not context.report.is_clean:
+        raise ResearchPreflightError(
+            f"run {resolved} finalised but Stage 8C is not ready: alignment "
+            f"{'clean' if context.report.is_clean else 'not clean'}, "
+            f"issues {[issue.message for issue in remaining][:2]}"
+        )
+    _write_operational_summary(
+        workspace=workspace,
+        run_id=resolved,
+        config=config,
+        dataset_root=dataset_root,
+        repository_root=repository_root,
+        bundle_root=bundle_root,
+    )
+    return receipt
+
+
+def refresh_flx_canonical500_stage_finalization(
+    *,
+    workspace: Path = DEFAULT_WORKSPACE,
+    dataset_root: Path | None = None,
+    config: FlxCanonical500ExperimentConfig | None = None,
+    repository_root: Path = REPOSITORY_ROOT,
+    run_id: str | None = None,
+    bundle_root: Path | None = None,
+) -> Mapping[str, Any]:
+    """Re-derive the alignment and the operational summary without rerunning flx.
+
+    The migration path when verifier code changes after a completed run. It
+    requires a clean committed verifier tree, rechecks the general research
+    chain and every alignment source, rewrites only regenerable Stage 8C
+    artefacts, and never opens or executes a raw comparison job.
+    """
+    workspace = Path(workspace)
+    repository_root = Path(repository_root)
+    config = config or load_flx_canonical500_config(repository_root=repository_root)
+    resolved = run_id or read_run_pointer(workspace, config.experiment_id)
+    capture_research_provenance(repository_root)
+
+    state = inspect_flx_canonical500_experiment(
+        workspace=workspace,
+        dataset_root=dataset_root,
+        config=config,
+        repository_root=repository_root,
+        run_id=resolved,
+        bundle_root=bundle_root,
+    )
+    if not state.research_state.is_research_ready:
+        raise ResearchPreflightError(
+            f"run {resolved} is not RESEARCH_READY: "
+            f"{list(state.research_state.issues)[:3]}"
+        )
+    report = verify_flx_canonical500_alignment(
+        workspace=workspace,
+        dataset_root=dataset_root,
+        config=config,
+        repository_root=repository_root,
+        run_id=resolved,
+        require_clean=True,
+    )
+    downstream = tuple(
+        _check_no_derivations(workspace, resolved, repository_root=repository_root)
+    )
+    if downstream:
+        raise ResearchPreflightError(
+            f"run {resolved} has downstream derivations: "
+            f"{[issue.message for issue in downstream][:2]}"
+        )
+    _write_alignment_report(workspace, resolved, report)
+    return _write_operational_summary(
+        workspace=workspace,
+        run_id=resolved,
+        config=config,
+        dataset_root=dataset_root,
+        repository_root=repository_root,
+        bundle_root=bundle_root,
+    )
+
+
+# ------------------------------------------------------------------ evidence
+
+
+def publish_flx_canonical500_evidence(
+    *,
+    workspace: Path = DEFAULT_WORKSPACE,
+    repository_root: Path = REPOSITORY_ROOT,
+    config: FlxCanonical500ExperimentConfig | None = None,
+    run_id: str | None = None,
+) -> tuple[Path, ...]:
+    """Copy the committable artefacts out of the workspace.
+
+    Copies; it does not compose — with the one documented exception of the
+    operational summary, which was already composed and stored by ``finalize``
+    and is copied from there. The receipt, the marker, the alignment report and
+    the validation report are already written, already sanitised and already
+    fingerprinted; building a second version of any of them here would be
+    publishing something no check has ever seen.
+
+    The one file assembled here is ``runtime-provenance.json``, and it is an
+    index rather than a claim: every value in it is copied out of the stored run
+    definition, the stored runtime reference and the stored alignment report, so
+    that a reader can see the route's identity without opening a workspace. It
+    carries no score, no threshold and no path.
+
+    ``stage-8c-finalization.json`` is **not** written here. It is the last file
+    committed, derived against the Git blobs of the commit that published
+    everything else (spec section 37, commits 5 and 6).
+
+    ``README.md`` is written by hand beside them, because a human has to say what
+    the run was for.
+    """
+    workspace = Path(workspace)
+    repository_root = Path(repository_root)
+    config = config or load_flx_canonical500_config(repository_root=repository_root)
+    resolved = run_id or read_run_pointer(workspace, config.experiment_id)
+
+    from fpbench.experiments.operational_summary import OPERATIONAL_SUMMARY_NAME
+
+    result_store = ResultStore(workspace)
+    directory = repository_root / EVIDENCE_DIRECTORY
+    alignment = read_json(result_store.derived_path(resolved, ALIGNMENT_REPORT_NAME))
+    summary = read_json(result_store.derived_path(resolved, OPERATIONAL_SUMMARY_NAME))
+    validation = _stored_validation_report(
+        workspace=workspace, run_id=resolved, config=config
+    )
+    written: list[Path] = []
+    for name, value in (
+        (f"run_{resolved}.json", _run_document(workspace, resolved)),
+        ("research-receipt.json", result_store.read_research_receipt(resolved)),
+        (
+            "research-finalization.json",
+            result_store.read_research_finalization(resolved),
+        ),
+        ("alignment-report.json", alignment),
+        ("operational-summary.json", summary),
+        ("algorithm-validation.json", validation),
+        (
+            "runtime-provenance.json",
+            _runtime_provenance(
+                workspace=workspace,
+                run_id=resolved,
+                config=config,
+                alignment=alignment,
+            ),
+        ),
+    ):
+        written.append(write_json(directory / name, value))
+    return tuple(written)
+
+
+def _run_document(workspace: Path, run_id: str) -> Mapping[str, Any]:
+    """The stored run definition, published unchanged."""
+    return to_plain(ResultStore(workspace).read_run(run_id))
+
+
+def _stored_validation_report(
+    *, workspace: Path, run_id: str, config: FlxCanonical500ExperimentConfig
+) -> Mapping[str, Any]:
+    """The flx validation pass, re-derived from the stored results.
+
+    Published because the general engine has an independent validation report
+    and Stage 8C's carries the two extraction counts and the Decimal check
+    (spec section 28). It carries counts and failure codes; it carries no score.
+    """
+    result_store = ResultStore(workspace)
+    run = result_store.read_run(run_id)
+    plan = PlanStore(workspace).read_plan(run_id)
+    reference = result_store.read_runtime_reference(run_id)
+    inputs = load_sd300_inputs(
+        workspace=workspace,
+        dataset_root=None,
+        dataset_config=config.dataset_config,
+        protocol_config=config.protocol_config,
+        require_verified_checksums=config.require_verified_checksums,
+        allow_creation=False,
+    )
+    report = validate_flx_result_set(
+        run=run,
+        plan=plan,
+        pairs=inputs.pairs,
+        images=inputs.images,
+        result_store=result_store,
+        runtime_reference=reference,
+        preparation=None,
+        expected_input_set=SD300_CANONICAL500_INPUT_SET,
+    )
+    published = dict(to_plain(report))
+    # The wall clock is the one field that would make two identical passes
+    # produce two different documents.
+    published.pop("inspected_utc", None)
+    return published
+
+
+def _runtime_provenance(
+    *,
+    workspace: Path,
+    run_id: str,
+    config: FlxCanonical500ExperimentConfig,
+    alignment: Mapping[str, Any],
+) -> dict[str, Any]:
+    """What ran, what it ran on, and what it was aligned against.
+
+    Every field is read out of an artefact that is already stored and already
+    verified. Nothing is recomputed and nothing is inferred.
+    """
+    from fpbench.core.research_models import NO_CONCLUSION_STATEMENT
+
+    result_store = ResultStore(workspace)
+    run = result_store.read_run(run_id)
+    reference = result_store.read_runtime_reference(run_id)
+    dependencies = dict(run.environment.dependencies)
+    runtime = dict(run.environment.runtime)
+    return {
+        "schema_version": "1",
+        "kind": "stage_8c_runtime_provenance",
+        "statement": NO_CONCLUSION_STATEMENT,
+        "experiment_id": config.experiment_id,
+        "source_commit": runtime.get("fpbench.source.revision"),
+        "run_id": run.run_id,
+        "run_fingerprint": run.run_fingerprint,
+        "algorithm": {
+            "algorithm_id": run.algorithm.algorithm_id,
+            "adapter_id": run.algorithm.adapter_id,
+            "adapter_version": run.algorithm.adapter_version,
+            "adapter_contract_version": run.algorithm.adapter_contract_version,
+            "implementation_version": run.algorithm.implementation_version,
+            "score_direction": run.algorithm.score_direction.value,
+            "descriptor_fingerprint": run.algorithm_fingerprint,
+        },
+        "integration": {
+            "integration_id": runtime.get("fpbench.integration.id"),
+            "integration_fingerprint": runtime.get("fpbench.integration.fingerprint"),
+        },
+        "runtime": {
+            "bundle_id": reference.bundle_id,
+            "bundle_fingerprint": reference.bundle_fingerprint,
+            "asset_sha256s": dict(sorted(dict(reference.asset_sha256s).items())),
+            "runtime_profile_id": runtime.get("flx.runtime_profile_id"),
+            "runtime_manifest_fingerprint": runtime.get(
+                "flx.runtime_manifest_fingerprint"
+            ),
+            "device": runtime.get("flx.device"),
+            "torch_num_threads": runtime.get("flx.torch_num_threads"),
+            "torch_version": dependencies.get("flx.torch_version"),
+            "numpy_version": dependencies.get("flx.numpy_version"),
+            "blas_implementation": dependencies.get("flx.blas_implementation"),
+            "dependency_lock_sha256": dependencies.get("flx.dependency_lock_sha256"),
+        },
+        "artifacts": {
+            "source_commit": config.artifact.source_commit,
+            "source_archive_sha256": config.artifact.source_archive_sha256,
+            "checkpoint_filename": config.artifact.checkpoint_filename,
+            "checkpoint_sha256": config.artifact.checkpoint_sha256,
+            "checkpoint_size_bytes": config.artifact.checkpoint_size_bytes,
+            "checkpoint_published": False,
+            "weights_license_status": "unresolved",
+        },
+        "profiles": {
+            "preprocessing_profile_fingerprint": dependencies.get(
+                "flx.preprocessing_profile_fingerprint"
+            ),
+            "representation_profile_fingerprint": dependencies.get(
+                "flx.representation_profile_fingerprint"
+            ),
+            "score_profile_fingerprint": dependencies.get(
+                "flx.score_profile_fingerprint"
+            ),
+            "adapter_profile_fingerprint": dependencies.get(
+                "flx.adapter_profile_fingerprint"
+            ),
+        },
+        "stage8b": {
+            "finalization_fingerprint": config.stage8b.finalization_fingerprint,
+            "outcome": config.stage8b.outcome,
+        },
+        "execution_profile": {
+            "profile_id": run.execution_profile.profile_id,
+            "profile_hash": run.execution_profile_hash,
+            "preparer_id": run.execution_profile.preparer_id,
+            "job_deadline_seconds": str(run.execution_profile.timeout_seconds),
+            "deterministic_seed": str(run.execution_profile.deterministic_seed),
+            "replicate_index": str(run.replicate_index),
+            "max_workers": str(config.max_workers),
+            "retries": "0",
+        },
+        "inputs": {
+            "protocol_id": run.protocol_id,
+            "cohort_id": str(run.cohort_id),
+            "pair_manifest_hash": run.pair_manifest_hash,
+            "preparation_set_id": config.preparation_set_id,
+            "preparation_set_fingerprint": config.preparation_set_fingerprint,
+            "transform_profile_id": config.transform_profile_id,
+            "transform_profile_fingerprint": config.transform_profile_fingerprint,
+            "transform_runtime_fingerprint": config.transform_runtime_fingerprint,
+        },
+        "reference": {
+            "run_id": config.reference.run_id,
+            "plan_id": config.reference.plan_id,
+            "result_set_id": config.reference.result_set_id,
+        },
+        "alignment_fingerprint": alignment.get("alignment_fingerprint"),
+    }
+
+
+def publish_flx_canonical500_finalization(
+    *,
+    workspace: Path = DEFAULT_WORKSPACE,
+    repository_root: Path = REPOSITORY_ROOT,
+    config: FlxCanonical500ExperimentConfig | None = None,
+    run_id: str | None = None,
+    verifier_source_commit: str,
+    created_utc: str | None = None,
+) -> Any:
+    """Derive the last file, over the exact bytes of the ones already committed.
+
+    Written after everything else is committed, and never beside it. Its content
+    hashes are taken over the published files as they sit in the working tree at
+    the commit that published them, so the marker binds bytes a reviewer can
+    check out rather than bytes only this machine ever saw
+    (spec section 26, section 37 commit 6).
+    """
+    import datetime as _dt
+
+    from fpbench.experiments.stage8c_finalization import (
+        STAGE_8C_FINALIZATION_KIND,
+        STAGE_8C_FINALIZATION_SCHEMA_VERSION,
+        Stage8CFinalization,
+        alignment_report_content_hash,
+        file_sha256,
+        operational_summary_content_hash,
+        published_evidence_names,
+        require_expected_evidence_files,
+        require_no_forbidden_published_data,
+        stage_8c_finalization_fingerprint,
+    )
+
+    workspace = Path(workspace)
+    repository_root = Path(repository_root)
+    config = config or load_flx_canonical500_config(repository_root=repository_root)
+    resolved = run_id or read_run_pointer(workspace, config.experiment_id)
+    directory = repository_root / EVIDENCE_DIRECTORY
+
+    names = tuple(
+        name
+        for name in published_evidence_names(repository_root)
+        if name != STAGE_8C_FINALIZATION_NAME
+    )
+    run_file = require_expected_evidence_files(names + (STAGE_8C_FINALIZATION_NAME,))
+    require_no_forbidden_published_data(repository_root)
+
+    published_binding = require_stage8b_binding(
+        config.stage8b, config.artifact, repository_root=repository_root
+    )
+    result_store = ResultStore(workspace)
+    run = result_store.read_run(resolved)
+    plan = PlanStore(workspace).read_plan(resolved)
+    reference = result_store.read_runtime_reference(resolved)
+    result_set = ResultSetStore(workspace).verify_result_set(resolved)
+    completion = result_store.read_completion(resolved)
+    receipt = result_store.read_research_receipt(resolved)
+    research_finalization = result_store.read_research_finalization(resolved)
+
+    alignment = read_json(result_store.derived_path(resolved, ALIGNMENT_REPORT_NAME))
+    validation = read_json(directory / "algorithm-validation.json")
+    summary = read_json(directory / "operational-summary.json")
+    runtime = dict(run.environment.runtime)
+    dependencies = dict(run.environment.dependencies)
+
+    claims = {
+        "schema_version": STAGE_8C_FINALIZATION_SCHEMA_VERSION,
+        "kind": STAGE_8C_FINALIZATION_KIND,
+        "outcome": "FLX_CANONICAL500_RAW_READY",
+        "stage8b_finalization_fingerprint": published_binding.finalization_fingerprint,
+        "stage8b_outcome": published_binding.outcome,
+        "algorithm_id": run.algorithm.algorithm_id,
+        "integration_id": str(runtime["fpbench.integration.id"]),
+        "integration_fingerprint": str(runtime["fpbench.integration.fingerprint"]),
+        "source_archive_sha256": config.artifact.source_archive_sha256,
+        "checkpoint_sha256": config.artifact.checkpoint_sha256,
+        "runtime_bundle_id": reference.bundle_id,
+        "runtime_bundle_fingerprint": reference.bundle_fingerprint,
+        "runtime_manifest_fingerprint": config.stage8b.runtime_manifest_fingerprint,
+        "preprocessing_profile_fingerprint": str(
+            dependencies["flx.preprocessing_profile_fingerprint"]
+        ),
+        "representation_profile_fingerprint": str(
+            dependencies["flx.representation_profile_fingerprint"]
+        ),
+        "score_profile_fingerprint": str(dependencies["flx.score_profile_fingerprint"]),
+        "adapter_profile_fingerprint": str(
+            dependencies["flx.adapter_profile_fingerprint"]
+        ),
+        "run_id": run.run_id,
+        "run_fingerprint": run.run_fingerprint,
+        "plan_id": plan.plan_id,
+        "plan_fingerprint": plan.definition.plan_fingerprint,
+        "result_set_id": result_set.result_set_id,
+        "result_set_fingerprint": result_set.result_set_fingerprint,
+        "completion_id": completion.completion_id,
+        "completion_fingerprint": completion.completion_fingerprint,
+        "run_source_commit": str(runtime["fpbench.source.revision"]),
+        "run_source_tree_clean": runtime.get("fpbench.source.clean") == "true",
+        "reference_run_id": config.reference.run_id,
+        "reference_plan_id": config.reference.plan_id,
+        "reference_result_set_id": config.reference.result_set_id,
+        "pair_manifest_hash": run.pair_manifest_hash,
+        "preparation_set_id": config.preparation_set_id,
+        "preparation_set_fingerprint": config.preparation_set_fingerprint,
+        "transform_profile_fingerprint": config.transform_profile_fingerprint,
+        "transform_runtime_fingerprint": config.transform_runtime_fingerprint,
+        "audit_fingerprint": completion.audit_fingerprint,
+        "algorithm_validation_fingerprint": str(validation["validation_fingerprint"]),
+        "research_receipt_fingerprint": research_receipt_fingerprint(receipt),
+        "research_receipt_content_hash": research_receipt_content_hash(receipt),
+        "research_finalization_fingerprint": (
+            research_finalization.finalization_fingerprint
+        ),
+        "alignment_fingerprint": str(alignment["alignment_fingerprint"]),
+        "alignment_report_content_hash": alignment_report_content_hash(
+            read_json(directory / "alignment-report.json")
+        ),
+        "operational_summary_fingerprint": str(summary["summary_fingerprint"])
+        if "summary_fingerprint" in summary
+        else operational_summary_content_hash(summary),
+        "operational_summary_content_hash": operational_summary_content_hash(summary),
+        "planned_count": plan.total_jobs,
+        "stored_count": int(validation["total_results"]),
+        "success_count": int(validation["successful_results"]),
+        "algorithmic_failure_count": int(validation["algorithmic_failures"]),
+        "blocking_failure_count": int(validation["blocking_failures"]),
+        "preprocess_call_count": int(validation["preprocess_calls"]),
+        "logical_extraction_call_count": int(validation["logical_extraction_calls"]),
+        "physical_forward_row_count": int(validation["physical_forward_rows"]),
+        "comparison_call_count": int(validation["comparison_calls"]),
+        "permits_decisions": False,
+        "opens_stage_8d": True,
+        "prior_result_scores_read": False,
+        "score_statistics_published": False,
+        "evidence_content_hashes": {
+            name: file_sha256(directory / name) for name in sorted(names)
+        },
+        "verifier_source_commit": str(verifier_source_commit).strip().lower(),
+        "verifier_source_tree_clean": True,
+    }
+    marker = Stage8CFinalization(
+        **claims,
+        stage_8c_finalization_fingerprint=stage_8c_finalization_fingerprint(claims),
+        created_utc=created_utc
+        or _dt.datetime.now(_dt.timezone.utc).isoformat(),
+    )
+    write_json(directory / STAGE_8C_FINALIZATION_NAME, marker)
+    del run_file
+    return marker
+
+
+# ------------------------------------------------------- operational summary
+
+
+def _write_operational_summary(
+    *,
+    workspace: Path,
+    run_id: str,
+    config: FlxCanonical500ExperimentConfig,
+    dataset_root: Path | None,
+    repository_root: Path,
+    bundle_root: Path | None,
+) -> Mapping[str, Any]:
+    """The engine's summary, plus the two extraction counts it cannot know.
+
+    Composed rather than copied, and this is the one document that is. The
+    engine's summary is stored and verified; the operation counts come from the
+    flx validation report, which measured them over the same stored results. The
+    alternative — teaching the generic summary about a batch rule — would put an
+    algorithm inside the engine (docs/adr/0075, docs/adr/0007).
+
+    Finalization re-derives this document and compares its content hash, so a
+    composed file is no more trusted than a copied one.
+    """
+    from fpbench.experiments.operational_summary import (
+        OPERATIONAL_SUMMARY_NAME,
+        build_operational_summary,
+    )
+
+    spec = build_flx_canonical500_spec(config)
+    result_store = ResultStore(workspace)
+    run = result_store.read_run(run_id)
+    plan = PlanStore(workspace).read_plan(run_id)
+    reference = result_store.read_runtime_reference(run_id)
+    inputs = load_sd300_inputs(
+        workspace=workspace,
+        dataset_root=dataset_root,
+        dataset_config=config.dataset_config,
+        protocol_config=config.protocol_config,
+        require_verified_checksums=config.require_verified_checksums,
+        allow_creation=False,
+    )
+    engine_summary = build_operational_summary(
+        run=run,
+        plan=plan,
+        pairs=inputs.pairs,
+        result_store=result_store,
+        result_set=_result_set_manifest(workspace, run_id),
+        runtime_bundle_id=reference.bundle_id,
+    )
+    validation = validate_flx_result_set(
+        run=run,
+        plan=plan,
+        pairs=inputs.pairs,
+        images=inputs.images,
+        result_store=result_store,
+        runtime_reference=reference,
+        preparation=None,
+        expected_input_set=SD300_CANONICAL500_INPUT_SET,
+    )
+    summary = dict(engine_summary)
+    summary["algorithm_operations"] = _algorithm_operations(config, validation)
+    write_json(result_store.derived_path(run_id, OPERATIONAL_SUMMARY_NAME), summary)
+    del spec, bundle_root, repository_root
+    return summary
+
+
+def _algorithm_operations(
+    config: FlxCanonical500ExperimentConfig, validation: Any
+) -> dict[str, Any]:
+    """Both extraction counts, and the rule that makes them different.
+
+    A reader never has to know docs/adr/0070 to interpret the numbers, because
+    the rule that produced the second one is printed beside it (docs/adr/0075).
+    """
+    from fpbench.flx import identity as flx_identity
+
+    return {
+        "planned": {
+            "preprocess_calls": config.operations.planned_preprocess_calls,
+            "logical_extraction_calls": config.operations.planned_logical_extractions,
+            "physical_forward_rows": config.operations.planned_physical_forward_rows,
+            "comparison_calls": config.operations.planned_comparison_calls,
+        },
+        "measured": {
+            "preprocess_calls": validation.preprocess_calls,
+            "logical_extraction_calls": validation.logical_extraction_calls,
+            "physical_forward_rows": validation.physical_forward_rows,
+            "comparison_calls": validation.comparison_calls,
+        },
+        "batch_rule": {
+            "inference_batch_rows": flx_identity.INFERENCE_BATCH_ROWS,
+            "inference_batch_rule": flx_identity.INFERENCE_BATCH_RULE,
+            "represented_row": flx_identity.REPRESENTED_ROW,
+            "statement": (
+                "one logical extraction is one representation and two physical "
+                "forward rows; the two counts are never conflated "
+                "(docs/adr/0070, docs/adr/0075)"
+            ),
+        },
+        "worker": {
+            "max_workers": config.max_workers,
+            "job_deadline_seconds": config.job_deadline_seconds,
+            "retries": 0,
+        },
+    }
+
+
+def _result_set_manifest(workspace: Path, run_id: str) -> Any:
+    try:
+        return ResultSetStore(workspace).read_manifest(run_id)
+    except Exception:  # pragma: no cover - absent before finalization
+        return None
 
 
 # ----------------------------------------------------------------- internals

@@ -10,6 +10,7 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
         nbis-contract nbis-upstream nbis-canonical500-preflight \
         stage7d-contract stage7d-workspace stage8a-contract stage8a-workspace stage8a-status \
         stage8b-contract stage8b-workspace stage8b-status \
+        stage8c-contract stage8c-evidence stage8c-workspace stage8c-verify \
         sourceafis-build sourceafis-java-test sourceafis-python-test \
         sourceafis-test sourceafis-sd300-smoke \
         research-prepare research-execute research-status research-finalize \
@@ -35,6 +36,10 @@ help:
 	@echo "stage8b-contract        the frozen flx protocol: identities, profiles, gates (no torch)"
 	@echo "stage8b-workspace       verify the committed Stage 8B runtime qualification"
 	@echo "stage8b-status          re-derive and print the Stage 8B outcome"
+	@echo "stage8c-contract        the frozen Stage 8C protocol: identities, config, adapter, alignment (no torch)"
+	@echo "stage8c-evidence        verify the committed Stage 8C raw-run evidence (no dataset, no runtime)"
+	@echo "stage8c-workspace       Stage 8C alignment and preflight over the real inputs"
+	@echo "stage8c-verify          re-derive and print the Stage 8C evidence-only verification"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
 	@echo "sourceafis-java-test    Java unit tests"
 	@echo "sourceafis-python-test  Python SourceAFIS tests, excluding the dataset"
@@ -191,6 +196,25 @@ stage8b-workspace:
 
 stage8b-status:
 	python -m fpbench.experiments.stage8b_flx_runtime_qualification status
+
+# ---------------------------------------------------------------------- Stage 8C
+#
+# The 6,000-comparison run itself is deliberately absent from this file. It takes
+# hours, it may not be started under a different commit than it was prepared
+# under, and a convenient target is exactly how that happens by accident. The
+# documented invocation is docs/experiments/flx-canonical500-raw.md.
+stage8c-contract:
+	pytest -m "stage8c_contract" -q
+
+# The committed evidence is mandatory and may never skip.
+stage8c-evidence:
+	pytest -m "stage8c" -q
+
+stage8c-workspace:
+	pytest -m "stage8c_full_run" -q
+
+stage8c-verify:
+	python -c "from fpbench.experiments.stage8c_verify import verify_stage8c_evidence as v; print(v())"
 
 # ------------------------------------------------------------------- SourceAFIS
 

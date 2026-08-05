@@ -52,7 +52,7 @@ preflight_flx_canonical500_run()
    `FLX_RAW_SCORE_EXECUTION_READY`;
 3. all four flx profiles are rebuilt from this repository's source and must
    equal what Stage 8B published;
-4. the source archive, the five imported source files and all 875,770,140
+4. the source archive, the six imported source files and all 875,770,140
    checkpoint bytes are re-hashed;
 5. the prepared image set verifies, and all 3,000 PNGs with it;
 6. the reference SourceAFIS run is `RESEARCH_READY`;

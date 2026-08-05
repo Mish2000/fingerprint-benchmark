@@ -63,7 +63,7 @@ differs from the pinned one is a hard failure rather than a warning.
 The source archive and the checkpoint are pinned by
 `fpbench.flx.identity.SOURCE_ARCHIVE_SHA256` and `CHECKPOINT_SHA256`, which are
 frozen constants re-verified by `verify_bundle_artifacts()` — full re-hash of
-the archive, of all five imported source files and of all 875,770,140 checkpoint
+the archive, of all six imported source files and of all 875,770,140 checkpoint
 bytes — before the model is loaded, on every worker start. Neither ever enters
 the workspace, and neither is ever published (docs/adr/0072).
 

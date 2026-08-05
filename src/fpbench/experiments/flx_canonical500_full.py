@@ -822,7 +822,7 @@ def preflight_flx_canonical500_run(
     findings["stage8b_outcome"] = published.outcome
     findings["stage8b_finalization_fingerprint"] = published.finalization_fingerprint
 
-    # The 2.06 GB runtime, rehashed in full: the archive, the five imported
+    # The 2.06 GB runtime, rehashed in full: the archive, the six imported
     # source files and all 875,770,140 checkpoint bytes. This is the one check
     # that needs the bundle to be present, and it is the reason a missing
     # checkpoint is one fault of the run (docs/adr/0072).

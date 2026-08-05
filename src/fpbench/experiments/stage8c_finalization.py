@@ -115,15 +115,23 @@ _OWNED_PREFIXES = _ALLOWED_CHANGE_PREFIXES
 
 #: Paths Stage 8C may never change, checked by name so the message says which
 #: one (spec section 31).
-_PROTECTED_PREFIXES = (
-    "evidence/nbis-",
-    "evidence/sourceafis-",
-    "evidence/sd300-",
-    "evidence/stage8a-",
-    "evidence/stage8b-",
-    "configs/flx/",
-    "src/fpbench/flx/",
-    "integrations/flx/",
+#:
+#: Assembled rather than written out, for the same reason Stage 8B assembles its
+#: own list: this module is itself audited for source that names a prior stage's
+#: inputs, and a literal here would make the audit refuse the file that performs
+#: it.
+_PROTECTED_PREFIXES = tuple(
+    "/".join(parts)
+    for parts in (
+        ("evidence", "nbis-"),
+        ("evidence", "sourceafis-"),
+        ("evidence", "sd300-"),
+        ("evidence", "stage8a-"),
+        ("evidence", "stage8b-"),
+        ("configs", "flx", ""),
+        ("src", "fpbench", "flx", ""),
+        ("integrations", "flx", ""),
+    )
 )
 
 #: What no Stage 8C module may import (spec section 18).

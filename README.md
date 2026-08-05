@@ -1483,6 +1483,44 @@ and [ADRs 0061–0066](docs/adr/README.md). Verify it with:
 python -m fpbench.experiments.stage8a_modern_matcher_selection verify
 ```
 
+## Stage 8B: make one artifact runnable, and prove it
+
+Stage 8A rejected `flx` as `LICENSE_BLOCKED`, on gates that included an unpinned
+runtime, a dataset-dependent input route and an unexecuted score. Stage 8B builds
+exactly what was missing, under an explicit instruction from the project owner to
+run the checkpoint locally — which is not a licence finding, and the evidence keeps
+saying `weights_license_status: unresolved` (ADR 0068).
+
+Outcome: **`FLX_RAW_SCORE_EXECUTION_READY`**. All fifteen gates passed.
+
+```text
+canonical gray8 PNG → deterministic transform → 256+256 representation → raw Decimal score
+```
+
+The runtime is a bundle outside the repository, pinned by bytes: thirteen wheels by
+version, size, SHA-256 and index, installed with `--require-hashes --no-index` into
+a venv created `--without-pip`, so "the installed runtime is the lock" is checkable
+rather than checkable-with-exceptions. Torch is imported in one isolated worker
+process and nowhere else; the checkpoint is treated as untrusted input and loaded
+with `weights_only=True` into a model built from pinned source, strictly.
+
+Determinism holds at tolerance zero — repeated extraction, repeated comparison,
+input order, and a process restart, all bitwise. Single-threaded extraction takes
+0.763 s, which projects to 2.54 h for a full Stage 8C run against a 24 h budget
+frozen before the first timing existed.
+
+Three things had to be measured rather than assumed, and each is in an ADR: the
+pinned texture branch has no batch-of-one path, a SELF score is `2 + 2**-23` rather
+than 2, and an all-white image does not resize to a constant.
+
+Details: [the Stage 8B evidence report](evidence/stage8b-flx-runtime-qualification/README.md)
+and [ADRs 0067–0073](docs/adr/README.md). Verify it — with no torch and no weights —
+with:
+
+```bash
+python -m fpbench.experiments.stage8b_flx_runtime_qualification verify
+```
+
 ## Architecture note: where the models live
 
 Several containers sit in `core` rather than in the package that derives them:
@@ -1502,11 +1540,29 @@ one experiment, and it needs somewhere to live that is not the planner.
 
 ## Next stage
 
-Stage 8B is closed because Stage 8A selected no artifact. The next matcher work must be
-an explicit stage that either reconsiders id3 Finger SDK or VeriFinger under its own
-legal/runtime requirements, or freezes a new registry version after upstream publishes
-a newly identifiable modern artifact. It must not weaken Stage 8A retroactively or use
-SD300 to repair a missing preprocessing, threshold or runtime claim.
+**Stage 8C — flx canonical_500 raw run.** Opened by Stage 8B's
+`FLX_RAW_SCORE_EXECUTION_READY`: 6,000 comparisons and 12,000 independent
+extractions over the same 3,000 prepared canonical inputs, the same pair manifest,
+the same order, the same probe/gallery direction and the same failure policy as the
+SourceAFIS and NBIS runs.
+
+It produces raw scores and nothing else. Thresholds, decisions, eligibility and
+metrics stay outside it — raw-score readiness is not decision readiness
+([ADR 0065](docs/adr/0065-raw-score-readiness-does-not-imply-decision-readiness.md)),
+and the report that opened Stage 8C records `permits_decisions: false`.
+
+Two things Stage 8B left open on purpose.
+[ADR 0070](docs/adr/0070-one-extraction-is-a-duplicated-pair.md) is *Proposed —
+needs review*: one extraction is a duplicated pair, because the pinned texture
+branch has no batch-of-one path, and the alternative worth weighing is patching that
+one upstream line and recording the patch as part of the source identity. And the
+checkpoint's licence is unresolved, which does not block a local experiment but does
+block publishing anything derived from the weights themselves.
+
+Reconsidering id3 Finger SDK or VeriFinger remains a separate stage with its own
+registry version and its own legal and runtime qualification. Neither it nor Stage 8C
+may weaken Stage 8A retroactively or use SD300 to repair a missing preprocessing,
+threshold or runtime claim.
 
 ## Longer-term backlog from earlier stages
 

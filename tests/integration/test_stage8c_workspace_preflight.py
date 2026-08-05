@@ -138,7 +138,7 @@ def test_a_workspace_with_no_pair_manifest_is_an_error_not_an_invitation(
 
 @pytest.mark.flx_runtime
 def test_the_pinned_runtime_bundle_verifies_in_full(workspace: Path, config) -> None:
-    """The archive, the five source files and all 875,770,140 checkpoint bytes."""
+    """The archive, the six source files and all 875,770,140 checkpoint bytes."""
     from fpbench.experiments.flx_canonical500_full import preflight_flx_canonical500_run
 
     findings = preflight_flx_canonical500_run(
@@ -147,7 +147,7 @@ def test_the_pinned_runtime_bundle_verifies_in_full(workspace: Path, config) -> 
     assert findings["stage8b_outcome"] == frozen.STAGE8B_OUTCOME
     assert findings["artifacts"]["checkpoint_sha256"] == frozen.CHECKPOINT_SHA256
     assert findings["artifacts"]["checkpoint_size_bytes"] == frozen.CHECKPOINT_SIZE_BYTES
-    assert findings["artifacts"]["source_files_verified"] == 5
+    assert findings["artifacts"]["source_files_verified"] == 6
     assert findings["pairs"] == 6000
     assert findings["prepared_entries"] == 3000
     assert findings["planned_operations"] == {

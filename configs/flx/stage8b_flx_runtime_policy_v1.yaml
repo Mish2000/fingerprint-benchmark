@@ -1,0 +1,43 @@
+# Stage 8B operational policy — frozen before the first measurement.
+#
+# The three full-run budgets are Stage 8A's, inherited by fingerprint rather
+# than restated, so the two documents cannot drift into different budgets for
+# the same run. The per-operation deadlines below are new: only a subprocess
+# route needs them, and a deadline chosen after watching a slow operation is
+# not a deadline.
+#
+# Changing any value here changes the policy fingerprint, and a measurement
+# taken under the old fingerprint may not be reported under the new one.
+#
+# There is no VRAM limit. flx_cpu_linux_x86_64_v1 has no device to measure,
+# and a limit that can only ever read zero is not a gate. A GPU would be a new
+# runtime profile with its own policy (spec section 6).
+
+schema_version: "1"
+policy_id: stage8b_flx_runtime_policy_v1
+
+# stage8a_selection_policy_v1
+inherits_selection_policy_fingerprint: b61d85f8539d06df9984fa6ad95f21e40977edfda17225c53fdbfb2428b6f396
+
+# Stage 8C would run 12,000 extractions and 6,000 comparisons.
+max_projected_12000_extractions_seconds: "86400"
+max_projected_6000_comparisons_seconds: "21600"
+max_peak_ram_bytes: 34359738368
+max_artifact_disk_bytes: 10737418240
+
+# Worker lifecycle.
+max_worker_startup_seconds: "60"
+max_model_load_seconds: "300"
+
+# Per-operation deadlines. Every operation gets one; a timeout is a comparison
+# failure and there is no automatic retry (spec section 12).
+preprocess_deadline_seconds: "60"
+extract_deadline_seconds: "120"
+compare_deadline_seconds: "60"
+
+# Bitwise equality is the target. This may not be widened after a measurement
+# has been seen: a wider tolerance is a new runtime profile, declared in
+# advance (spec section 18).
+numeric_tolerance: "0"
+
+fingerprint: 75682ba09e82598c9088cac642f4673a9e3dc5652ddaa5243632b41c154face8

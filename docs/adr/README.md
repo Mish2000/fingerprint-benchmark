@@ -74,6 +74,10 @@ can be held to.
 | [0065](0065-raw-score-readiness-does-not-imply-decision-readiness.md) | Raw-score readiness does not imply decision readiness | Accepted, implemented |
 | [0066](0066-no-paper-reimplementation-is-accepted-as-an-upstream-algorithm.md) | No paper reimplementation is accepted as an upstream algorithm | Accepted, implemented |
 | [0067](0067-a-stage-boundary-audit-covers-its-own-span.md) | A stage boundary audit covers its own span, not everything after it | Accepted, implemented |
+| [0068](0068-local-execution-permission-is-not-a-licence-finding.md) | Local execution permission is not a licence finding | Accepted, implemented |
+| [0069](0069-the-executed-algorithm-is-one-implementation-of-one-variant.md) | The executed algorithm is one implementation of one variant | Accepted, implemented |
+| [0070](0070-one-extraction-is-a-duplicated-pair.md) | One extraction is a duplicated pair | **Proposed — needs review** |
+| [0071](0071-the-stage-8b-transform-is-declared-not-inherited.md) | The Stage 8B transform is declared, not inherited | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

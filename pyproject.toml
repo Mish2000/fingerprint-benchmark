@@ -45,4 +45,7 @@ markers = [
     "stage7d: the stage 7D workspace — NBIS decisions, NBIS metrics and the SourceAFIS/NBIS comparison over the real 6,000 (needs the finished chains of both algorithms)",
     "stage8a_contract: artifact qualification, hard gates, immutable identities, selection policy, offline probes and tampering (no ML runtime, network, dataset, or prior results)",
     "stage8a: the committed Stage 8A modern-matcher qualification and selection evidence gate (no dataset and no prior-result workspace)",
+    "stage8b_contract: the frozen Stage 8B protocol — identities, profile schemas, the transform rule, the score contract, the subprocess protocol, negative cases and tampering (no torch, no checkpoint, no network, no dataset)",
+    "flx_runtime: needs the pinned flx CPU runtime bundle and the local source and checkpoint (set FPBENCH_FLX_RUNTIME and FPBENCH_FLX_ARTIFACT_ROOT)",
+    "stage8b: the committed Stage 8B runtime-qualification evidence gate (no dataset and no prior-result workspace)",
 ]

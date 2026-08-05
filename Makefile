@@ -9,6 +9,7 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
         nbis-inspect nbis-seal nbis-fetch nbis-build nbis-certify nbis-verify \
         nbis-contract nbis-upstream nbis-canonical500-preflight \
         stage7d-contract stage7d-workspace stage8a-contract stage8a-workspace stage8a-status \
+        stage8b-contract stage8b-workspace stage8b-status \
         sourceafis-build sourceafis-java-test sourceafis-python-test \
         sourceafis-test sourceafis-sd300-smoke \
         research-prepare research-execute research-status research-finalize \
@@ -31,6 +32,9 @@ help:
 	@echo "stage8a-contract        modern artifact qualification and selection rules (offline, no data)"
 	@echo "stage8a-workspace       verify the committed Stage 8A evidence authority"
 	@echo "stage8a-status          re-derive and print the Stage 8A outcome"
+	@echo "stage8b-contract        the frozen flx protocol: identities, profiles, gates (no torch)"
+	@echo "stage8b-workspace       verify the committed Stage 8B runtime qualification"
+	@echo "stage8b-status          re-derive and print the Stage 8B outcome"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
 	@echo "sourceafis-java-test    Java unit tests"
 	@echo "sourceafis-python-test  Python SourceAFIS tests, excluding the dataset"
@@ -172,6 +176,21 @@ stage8a-workspace:
 
 stage8a-status:
 	python -m fpbench.experiments.stage8a_modern_matcher_selection status
+
+# ---------------------------------------------------------------- stage 8B
+
+# The frozen protocol only: identities, profile schemas, the declared transform,
+# the score contract, the subprocess protocol, negative cases and tampering.
+# No torch, no checkpoint, no network, no dataset — it runs anywhere.
+stage8b-contract:
+	pytest -m "stage8b_contract" -q
+
+# The committed evidence is mandatory and may never skip.
+stage8b-workspace:
+	pytest -m "stage8b" -q
+
+stage8b-status:
+	python -m fpbench.experiments.stage8b_flx_runtime_qualification status
 
 # ------------------------------------------------------------------- SourceAFIS
 

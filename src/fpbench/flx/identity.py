@@ -49,6 +49,8 @@ __all__ = [
     "SCORE_MAXIMUM",
     "SCORE_DIRECTION",
     "SCORE_RANGE_TOLERANCE",
+    "SCORE_RANGE_VALIDATION_TOLERANCE",
+    "SCORE_RANGE_VALIDATION_POLICY",
     "DECIMAL_SIGNIFICANT_DIGITS",
     "NUMERIC_TOLERANCE",
     "TRAINING_ONLY_CHECKPOINT_KEYS",
@@ -151,7 +153,13 @@ DECIMAL_SIGNIFICANT_DIGITS = 17
 #:
 #: This is emphatically **not** the determinism tolerance.  Two runs of the
 #: same comparison must still agree bit for bit; see NUMERIC_TOLERANCE.
-SCORE_RANGE_TOLERANCE = 2.0**-21
+SCORE_RANGE_VALIDATION_TOLERANCE = "0.000000476837158203125"
+SCORE_RANGE_VALIDATION_POLICY = (
+    "nominal_bounds_plus_symmetric_tolerance_no_clamp"
+)
+# Compatibility alias for callers that need a machine float.  The exact
+# decimal text above is the authoritative, fingerprinted contract.
+SCORE_RANGE_TOLERANCE = float(SCORE_RANGE_VALIDATION_TOLERANCE)
 
 #: Bitwise equality is the target on this profile.  Nothing may widen it after
 #: a measurement has been seen; a wider tolerance requires a new runtime

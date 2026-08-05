@@ -110,6 +110,20 @@ def test_an_asymmetric_comparison_fails_the_contract() -> None:
     assert _states(gates)[FlxGate.DETERMINISM] is FlxGateState.FAILED
 
 
+@pytest.mark.parametrize(
+    "change",
+    (
+        {"batch_context_texture_bitwise_equal": False},
+        {"batch_context_minutia_bitwise_equal": False},
+    ),
+)
+def test_batch_context_drift_in_either_branch_fails_the_contract(change) -> None:
+    gates = _gates(determinism=make_determinism(**change))
+
+    assert _states(gates)[FlxGate.DETERMINISM] is FlxGateState.FAILED
+    assert outcome_for(gates) is FlxOutcome.CONTRACT_FAILED
+
+
 def test_restart_drift_fails_the_contract() -> None:
     gates = _gates(determinism=make_determinism(process_restart_score_equal=False))
 
@@ -125,8 +139,12 @@ def test_a_self_contract_with_one_extraction_fails() -> None:
     assert _states(gates)[FlxGate.SELF_INDEPENDENCE] is FlxGateState.FAILED
 
 
-def test_an_observed_cache_lookup_fails_the_self_gate() -> None:
-    gates = _gates(self_independence=make_self_independence(cache_lookups_observed=1))
+def test_a_representation_cache_capability_fails_the_self_gate() -> None:
+    gates = _gates(
+        self_independence=make_self_independence(
+            representation_cache_capability_present=True
+        )
+    )
 
     assert _states(gates)[FlxGate.SELF_INDEPENDENCE] is FlxGateState.FAILED
 
@@ -153,12 +171,15 @@ def test_an_unrun_check_is_not_executed_rather_than_failed() -> None:
             extract_call_count=None,
             distinct_representation_objects=None,
             representations_equal=None,
-            cache_lookups_observed=None,
+            representation_cache_capability_present=None,
         ),
         determinism=make_determinism(
             tested=False,
             repeated_extraction_bitwise_equal=None,
             repeated_comparison_bitwise_equal=None,
+            batch_contexts=(),
+            batch_context_texture_bitwise_equal=None,
+            batch_context_minutia_bitwise_equal=None,
             process_restart_representation_equal=None,
             process_restart_score_equal=None,
             process_restart_runtime_metadata_equal=None,

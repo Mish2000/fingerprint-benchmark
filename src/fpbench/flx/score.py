@@ -79,14 +79,15 @@ def verify_nominal_range(score: Decimal) -> Decimal:
         raise FlxScoreError(
             f"the public compare API returns Decimal, not {type(score).__name__}"
         )
-    tolerance = Decimal(repr(identity.SCORE_RANGE_TOLERANCE))
+    tolerance = Decimal(identity.SCORE_RANGE_VALIDATION_TOLERANCE)
     minimum = Decimal(identity.SCORE_MINIMUM) - tolerance
     maximum = Decimal(identity.SCORE_MAXIMUM) + tolerance
     if not minimum <= score <= maximum:
         raise FlxScoreError(
             f"raw score {score} is outside the nominal range "
             f"[{identity.SCORE_MINIMUM}, {identity.SCORE_MAXIMUM}] by more than the "
-            f"{identity.SCORE_RANGE_TOLERANCE} float32 normalization allowance"
+            f"{identity.SCORE_RANGE_VALIDATION_TOLERANCE} float32 normalization "
+            f"allowance under {identity.SCORE_RANGE_VALIDATION_POLICY}"
         )
     return score
 
@@ -113,6 +114,8 @@ def build_score_profile() -> FlxScoreProfile:
         score_direction=identity.SCORE_DIRECTION,
         nominal_minimum=identity.SCORE_MINIMUM,
         nominal_maximum=identity.SCORE_MAXIMUM,
+        range_validation_tolerance=identity.SCORE_RANGE_VALIDATION_TOLERANCE,
+        range_validation_policy=identity.SCORE_RANGE_VALIDATION_POLICY,
         branch_weights=("1", "1"),
         serialization=build_score_serialization_profile(),
         returns_decimal=True,

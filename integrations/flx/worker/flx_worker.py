@@ -474,17 +474,9 @@ def preprocess(request: Mapping[str, Any]) -> Mapping[str, Any]:
 # ----------------------------------------------------------------- extract
 
 
-def extract(request: Mapping[str, Any]) -> Mapping[str, Any]:
-    """One model input -> one representation.
-
-    The batch carries the same tensor twice because the pinned texture branch
-    has no batch-of-one path (docs/adr/0070).  That the two rows agree is
-    asserted here rather than assumed, so the workaround stays a checked
-    invariant.
-    """
+def _model_input_tensor(request: Mapping[str, Any]):
     import torch
 
-    model = require_model()
     expected = [1, MODEL_INPUT_SIDE, MODEL_INPUT_SIDE]
     if list(request.get("shape", [])) != expected:
         raise WorkerFailure("EXTRACT_WRONG_INPUT_SHAPE", str(request.get("shape")))
@@ -494,11 +486,11 @@ def extract(request: Mapping[str, Any]) -> Mapping[str, Any]:
     if len(values) != 4 * MODEL_INPUT_SIDE * MODEL_INPUT_SIDE:
         raise WorkerFailure("EXTRACT_WRONG_INPUT_LENGTH", str(len(values)))
 
-    tensor = torch.frombuffer(bytearray(values), dtype=torch.float32).reshape(*expected)
-    batch = tensor.unsqueeze(0).repeat(INFERENCE_BATCH_ROWS, 1, 1, 1).contiguous()
+    return torch.frombuffer(bytearray(values), dtype=torch.float32).reshape(*expected)
 
-    with torch.inference_mode():
-        output = model(batch)
+
+def _representation_result(output: Any, *, batch_rows: int, row: int) -> Mapping[str, Any]:
+    import torch
 
     texture = output.texture_embeddings
     minutia = output.minutia_embeddings
@@ -508,17 +500,11 @@ def extract(request: Mapping[str, Any]) -> Mapping[str, Any]:
         ("texture", texture, TEXTURE_DIMENSIONS),
         ("minutia", minutia, MINUTIA_DIMENSIONS),
     ):
-        if tuple(branch.shape) != (INFERENCE_BATCH_ROWS, width):
+        if tuple(branch.shape) != (batch_rows, width):
             raise WorkerFailure("EXTRACT_WRONG_BRANCH_SHAPE", f"{name} {tuple(branch.shape)}")
         if branch.dtype is not torch.float32:
             raise WorkerFailure("EXTRACT_WRONG_BRANCH_DTYPE", f"{name} {branch.dtype}")
-        if not torch.equal(branch[0], branch[1]):
-            raise WorkerFailure(
-                "EXTRACT_DUPLICATE_ROWS_DIFFER",
-                f"{name}: the duplicated inference batch produced different rows",
-            )
 
-    row = REPRESENTED_ROW
     result = {}
     for name, branch in (("texture", texture), ("minutia", minutia)):
         vector = branch[row].detach().clone().contiguous()
@@ -528,6 +514,53 @@ def extract(request: Mapping[str, Any]) -> Mapping[str, Any]:
         result[name] = base64.b64encode(raw).decode("ascii")
         result[f"{name}_norm"] = float(torch.linalg.vector_norm(vector.to(torch.float64)))
     return result
+
+
+def extract(request: Mapping[str, Any]) -> Mapping[str, Any]:
+    """One model input -> one representation through the frozen duplicate rule."""
+    import torch
+
+    model = require_model()
+    tensor = _model_input_tensor(request)
+    batch = tensor.unsqueeze(0).repeat(INFERENCE_BATCH_ROWS, 1, 1, 1).contiguous()
+
+    with torch.inference_mode():
+        output = model(batch)
+
+    for name, branch in (
+        ("texture", output.texture_embeddings),
+        ("minutia", output.minutia_embeddings),
+    ):
+        if branch is None:
+            raise WorkerFailure("EXTRACT_MISSING_BRANCH", name)
+        if not torch.equal(branch[0], branch[1]):
+            raise WorkerFailure(
+                "EXTRACT_DUPLICATE_ROWS_DIFFER",
+                f"{name}: the duplicated inference batch produced different rows",
+            )
+
+    return _representation_result(
+        output, batch_rows=INFERENCE_BATCH_ROWS, row=REPRESENTED_ROW
+    )
+
+
+def probe_batch_context(request: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Return one row from the frozen two-image diagnostic batch."""
+    import torch
+
+    inputs = request.get("inputs")
+    if not isinstance(inputs, list) or len(inputs) != INFERENCE_BATCH_ROWS:
+        raise WorkerFailure("BATCH_CONTEXT_WRONG_SIZE", "expected exactly two inputs")
+    represented_row = request.get("represented_row")
+    if type(represented_row) is not int or not 0 <= represented_row < len(inputs):
+        raise WorkerFailure("BATCH_CONTEXT_WRONG_ROW", repr(represented_row))
+    tensors = [_model_input_tensor(item) for item in inputs]
+    batch = torch.stack(tensors, dim=0).contiguous()
+    with torch.inference_mode():
+        output = require_model()(batch)
+    return _representation_result(
+        output, batch_rows=len(inputs), row=represented_row
+    )
 
 
 # -------------------------------------------------------------- comparator
@@ -683,6 +716,7 @@ HANDLERS = {
     "validate_runtime": validate_runtime,
     "preprocess": preprocess,
     "extract": extract,
+    "probe_batch_context": probe_batch_context,
     "compare": compare,
 }
 

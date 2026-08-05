@@ -122,7 +122,8 @@ def evaluate_gates(
         _pass_or_fail(
             bool(probe.score_hashes),
             FlxGate.SCORE_CONTRACT,
-            "raw scores are finite Decimals inside the nominal range, with no threshold",
+            "raw scores are finite Decimals inside the nominal bounds plus the "
+            "fingerprinted symmetric tolerance, with no clamp or threshold",
             "the score contract did not hold",
             "FLX_SCORE_CONTRACT_FAILED",
         ),
@@ -142,10 +143,11 @@ def evaluate_gates(
                 independence.preprocess_call_count == 2
                 and independence.extract_call_count == 2
                 and bool(independence.distinct_representation_objects)
-                and independence.cache_lookups_observed == 0,
+                and independence.representation_cache_capability_present is False,
                 FlxGate.SELF_INDEPENDENCE,
                 "SELF ran two preprocess calls and two independent extractions, "
-                "returning distinct objects and consulting no cache",
+                "returning distinct objects through an adapter with no "
+                "representation-cache capability",
                 f"SELF made {independence.preprocess_call_count} preprocess and "
                 f"{independence.extract_call_count} extract calls",
                 "FLX_SELF_NOT_INDEPENDENT",
@@ -165,10 +167,13 @@ def evaluate_gates(
                 determinism.numeric_tolerance == identity.NUMERIC_TOLERANCE
                 and bool(determinism.repeated_extraction_bitwise_equal)
                 and bool(determinism.repeated_comparison_bitwise_equal)
+                and bool(determinism.batch_context_texture_bitwise_equal)
+                and bool(determinism.batch_context_minutia_bitwise_equal)
                 and bool(determinism.input_order_symmetric),
                 FlxGate.DETERMINISM,
-                "repeated extraction, repeated comparison and input order are "
-                f"bitwise equal at tolerance {identity.NUMERIC_TOLERANCE}",
+                "repeated extraction, repeated comparison, input order, and all "
+                "five legal ADR 0070 batch contexts in both branches are bitwise equal "
+                f"at tolerance {identity.NUMERIC_TOLERANCE}",
                 "the route is not bitwise deterministic at the frozen tolerance",
                 "FLX_NONDETERMINISTIC",
             )

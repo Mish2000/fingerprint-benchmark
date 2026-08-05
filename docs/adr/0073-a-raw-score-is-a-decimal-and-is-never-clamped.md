@@ -59,6 +59,17 @@ to the measurement:
 | score | `2**-21` | four float32 ulps at 1.0: two branches, each off by up to one ulp, doubled | `2**-23` |
 | tensor | `2**-20` | eight float32 ulps at 1.0 | `~3e-7` |
 
+The score allowance is embedded directly in `score-profile.json` as exact
+decimal text and an explicit policy:
+
+```
+range_validation_tolerance: "0.000000476837158203125"
+range_validation_policy: "nominal_bounds_plus_symmetric_tolerance_no_clamp"
+```
+
+Both fields participate in `score_profile_fingerprint`; changing either creates
+a different score identity.
+
 Neither value is clamped. Clamping the score would discard bits a later stage
 may need; clamping the tensor would change pixels in a step neither the spec
 nor upstream performs.

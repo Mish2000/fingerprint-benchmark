@@ -65,25 +65,25 @@
       "schema_version": "1",
       "gate": "score_contract",
       "state": "passed",
-      "detail": "raw scores are finite Decimals inside the nominal range, with no threshold",
+      "detail": "raw scores are finite Decimals inside the nominal bounds plus the fingerprinted symmetric tolerance, with no clamp or threshold",
       "failure_codes": [],
-      "fingerprint": "1ad002d418d82175952fff5a373a306de91c1558bdaa1d7830191591082d314f"
+      "fingerprint": "92d8fba50d3370108fb10e7e5afbdda85bc759681c635086ff1d338c9c4e99c7"
     },
     {
       "schema_version": "1",
       "gate": "self_independence",
       "state": "passed",
-      "detail": "SELF ran two preprocess calls and two independent extractions, returning distinct objects and consulting no cache",
+      "detail": "SELF ran two preprocess calls and two independent extractions, returning distinct objects through an adapter with no representation-cache capability",
       "failure_codes": [],
-      "fingerprint": "840c4a123086c647238f103cecc386c910fa737de61ed3c44f193119ffde5ac6"
+      "fingerprint": "d3278f45158e39cde20421887c0e43bf5c5e9acf0082b9eb808a86aeced1ef6c"
     },
     {
       "schema_version": "1",
       "gate": "determinism",
       "state": "passed",
-      "detail": "repeated extraction, repeated comparison and input order are bitwise equal at tolerance 0",
+      "detail": "repeated extraction, repeated comparison, input order, and all five legal ADR 0070 batch contexts in both branches are bitwise equal at tolerance 0",
       "failure_codes": [],
-      "fingerprint": "3a70b1c73a22785417a5761226fcd86815c1905734cd93fd53defdfc6aeaa213"
+      "fingerprint": "a05f30a8abd01ae9cc55c522b6e66cb1a5c06177e2791df55deadae45a9103f2"
     },
     {
       "schema_version": "1",
@@ -126,12 +126,12 @@
       "fingerprint": "379f6524797f08b20f7a6c432986b6e177cd8537e640eeab2c89fb64a833ae7b"
     }
   ],
-  "probe_fingerprint": "16ec4512ccb12116c711fd4a891c977ba9a8daafac7751895e7e5dd7b5471066",
+  "probe_fingerprint": "6de3eb50b6a840e0c110f847684d2ba80ccc38e36f01ee88433e8c6b0c344e6a",
   "weights_license_status": "unresolved",
   "redistribution_allowed": "not_established",
   "publication_permission": "not_established",
   "opens_stage_8c": true,
   "permits_decisions": false,
-  "qualified_utc": "2026-08-05T13:00:00+00:00",
-  "fingerprint": "db9b1075c1b8808affba2f1e36635f48a3b540e78bbac504a6b4f9f01eac9aa1"
+  "qualified_utc": "2026-08-05T17:43:51+00:00",
+  "fingerprint": "34db4383de318a9c864bcc1df2cede6568f96386ca6d86cea572ceb5d88a7713"
 }

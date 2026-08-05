@@ -65,7 +65,9 @@ def test_a_self_comparison_of_an_identical_image_is_two_within_float32(adapter) 
 
     score = adapter.compare(representation, representation)
 
-    assert abs(score - Decimal("2")) <= Decimal(repr(identity.SCORE_RANGE_TOLERANCE))
+    assert abs(score - Decimal("2")) <= Decimal(
+        identity.SCORE_RANGE_VALIDATION_TOLERANCE
+    )
 
 
 def test_the_comparison_is_symmetric(adapter) -> None:
@@ -125,7 +127,9 @@ def test_self_uses_two_preprocess_calls_and_two_extract_calls(adapter) -> None:
     assert left.texture_bytes is not right.texture_bytes
     # Equality between them is expected and allowed.
     assert left.content_hash == right.content_hash
-    assert abs(score - Decimal("2")) <= Decimal(repr(identity.SCORE_RANGE_TOLERANCE))
+    assert abs(score - Decimal("2")) <= Decimal(
+        identity.SCORE_RANGE_VALIDATION_TOLERANCE
+    )
 
 
 def test_a_second_extraction_is_not_served_from_an_image_cache(adapter) -> None:

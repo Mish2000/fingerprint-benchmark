@@ -101,7 +101,7 @@ def test_self_ran_two_preprocess_and_two_independent_extractions(probed) -> None
     assert independence.preprocess_call_count == 2
     assert independence.extract_call_count == 2
     assert independence.distinct_representation_objects is True
-    assert independence.cache_lookups_observed == 0
+    assert independence.representation_cache_capability_present is False
     # Equality between the two sides is expected, and is not the thing tested.
     assert independence.representations_equal is True
 
@@ -114,6 +114,15 @@ def test_the_route_is_bitwise_deterministic_at_the_frozen_tolerance(probed) -> N
     assert determinism.repeated_extraction_bitwise_equal is True
     assert determinism.repeated_comparison_bitwise_equal is True
     assert determinism.input_order_symmetric is True
+    assert determinism.batch_contexts == (
+        "A from [A, A] at row 0",
+        "A from [A, B] at row 0",
+        "A from [B, A] at row 1",
+        "A from [A, C] at row 0",
+        "A from [C, A] at row 1",
+    )
+    assert determinism.batch_context_texture_bitwise_equal is True
+    assert determinism.batch_context_minutia_bitwise_equal is True
 
 
 def test_a_fresh_process_reproduces_the_representation_score_and_metadata(probed) -> None:

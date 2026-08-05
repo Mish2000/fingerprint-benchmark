@@ -6,8 +6,9 @@ result is read, and nothing here can rank anything: a fixture proves that the
 contract holds, never that the algorithm is good.
 
 Two disciplines are carried from Stage 8A.  An unrun check is reported as *not
-executed*, never as an observed failure.  And every limit the measurements are
-judged against was frozen before the first timing was taken.
+executed*, never as an observed failure.  The operational limits were frozen
+before the authoritative Stage 8B qualification probe and before the published
+measurements.
 """
 
 from __future__ import annotations
@@ -40,7 +41,7 @@ from fpbench.flx.preprocessing import build_preprocessing_profile
 from fpbench.flx.representation import build_representation_profile
 from fpbench.flx.score import build_score_profile
 
-__all__ = ["ProbeInputs", "run_runtime_probe"]
+__all__ = ["BATCH_CONTEXTS", "ProbeInputs", "run_runtime_probe"]
 
 #: 12,000 extractions and 6,000 comparisons, the shape of a Stage 8C run.
 STAGE8C_EXTRACTIONS = 12000
@@ -53,6 +54,17 @@ _PROBE_FIXTURES = (
     "fixture_seeded_noise",
     "fixture_odd_padding",
     "fixture_landscape",
+)
+
+# A is fixture_synthetic_ridges, B is fixture_gradient, and C is
+# fixture_seeded_noise.  These labels are published in the determinism report,
+# while the branch values themselves remain private.
+BATCH_CONTEXTS = (
+    "A from [A, A] at row 0",
+    "A from [A, B] at row 0",
+    "A from [B, A] at row 1",
+    "A from [A, C] at row 0",
+    "A from [C, A] at row 1",
 )
 
 
@@ -191,7 +203,7 @@ def _probe_self_independence(
         extract_call_count=adapter.extract_calls - before_extract,
         distinct_representation_objects=distinct,
         representations_equal=left.content_hash == right.content_hash,
-        cache_lookups_observed=0,
+        representation_cache_capability_present=build_adapter_profile().caches_representations,
     )
 
 
@@ -211,6 +223,30 @@ def _probe_determinism(
     again = adapter.compare(left, right)
     backward = adapter.compare(right, left)
 
+    session = adapter._require_session()
+    a = adapter.preprocess(payloads["fixture_synthetic_ridges"])
+    b = adapter.preprocess(payloads["fixture_gradient"])
+    c = adapter.preprocess(payloads["fixture_seeded_noise"])
+    batch_context_representations = (
+        session.probe_batch_context(
+            (a, a), 0, deadline_seconds=float(inputs.policy.extract_deadline_seconds)
+        ),
+        session.probe_batch_context(
+            (a, b), 0, deadline_seconds=float(inputs.policy.extract_deadline_seconds)
+        ),
+        session.probe_batch_context(
+            (b, a), 1, deadline_seconds=float(inputs.policy.extract_deadline_seconds)
+        ),
+        session.probe_batch_context(
+            (a, c), 0, deadline_seconds=float(inputs.policy.extract_deadline_seconds)
+        ),
+        session.probe_batch_context(
+            (c, a), 1, deadline_seconds=float(inputs.policy.extract_deadline_seconds)
+        ),
+    )
+    texture_bytes = {item.texture_bytes for item in batch_context_representations}
+    minutia_bytes = {item.minutia_bytes for item in batch_context_representations}
+
     score_hashes = {
         "fixture_gradient__fixture_seeded_noise": _score_hash(forward),
         "fixture_synthetic_ridges__self": _score_hash(
@@ -221,6 +257,8 @@ def _probe_determinism(
         "repeated_extraction": first.content_hash == second.content_hash,
         "repeated_comparison": forward == again,
         "symmetric": forward == backward,
+        "batch_context_texture": len(texture_bytes) == 1,
+        "batch_context_minutia": len(minutia_bytes) == 1,
     }
     return observations, score_hashes
 
@@ -240,6 +278,9 @@ def _determinism_report(
         # and none is invented (docs/adr/0070).
         single_vs_batch_state=FlxGateState.NOT_APPLICABLE,
         single_vs_batch_bitwise_equal=None,
+        batch_contexts=BATCH_CONTEXTS,
+        batch_context_texture_bitwise_equal=observations["batch_context_texture"],
+        batch_context_minutia_bitwise_equal=observations["batch_context_minutia"],
         process_restart_representation_equal=restart["representation_equal"],
         process_restart_score_equal=restart["score_equal"],
         process_restart_runtime_metadata_equal=restart["metadata_equal"],

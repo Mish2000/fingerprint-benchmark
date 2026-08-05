@@ -1505,9 +1505,13 @@ process and nowhere else; the checkpoint is treated as untrusted input and loade
 with `weights_only=True` into a model built from pinned source, strictly.
 
 Determinism holds at tolerance zero — repeated extraction, repeated comparison,
-input order, and a process restart, all bitwise. Single-threaded extraction takes
-0.763 s, which projects to 2.54 h for a full Stage 8C run against a 24 h budget
-frozen before the first timing existed.
+input order, five legal ADR 0070 batch contexts in both branches, and a process
+restart, all bitwise. An out-of-contract batch-size-three diagnostic showed small
+float32 shape drift and is documented without widening the route's tolerance.
+The operational limits were frozen before the authoritative
+Stage 8B qualification probe and before the published measurements. A preliminary
+generated-fixture timing read no SD300 data and was not used to tune a limit from
+a biometric result.
 
 Three things had to be measured rather than assumed, and each is in an ADR: the
 pinned texture branch has no batch-of-one path, a SELF score is `2 + 2**-23` rather
@@ -1551,13 +1555,13 @@ metrics stay outside it — raw-score readiness is not decision readiness
 ([ADR 0065](docs/adr/0065-raw-score-readiness-does-not-imply-decision-readiness.md)),
 and the report that opened Stage 8C records `permits_decisions: false`.
 
-Two things Stage 8B left open on purpose.
-[ADR 0070](docs/adr/0070-one-extraction-is-a-duplicated-pair.md) is *Proposed —
-needs review*: one extraction is a duplicated pair, because the pinned texture
-branch has no batch-of-one path, and the alternative worth weighing is patching that
-one upstream line and recording the patch as part of the source identity. And the
-checkpoint's licence is unresolved, which does not block a local experiment but does
-block publishing anything derived from the weights themselves.
+**Stage 8B is closed and Stage 8C is open.**
+[ADR 0070](docs/adr/0070-one-extraction-is-a-duplicated-pair.md) is accepted
+after the real checkpoint produced bitwise-identical texture and minutia
+representations across all five legal content and position contexts at the
+frozen batch size of two. The checkpoint's licence remains unresolved; that
+does not block the instructed local experiment but does block publishing
+anything derived from the weights themselves.
 
 Reconsidering id3 Finger SDK or VeriFinger remains a separate stage with its own
 registry version and its own legal and runtime qualification. Neither it nor Stage 8C

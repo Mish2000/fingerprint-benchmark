@@ -77,6 +77,7 @@ def test_the_untouched_publication_verifies(published: Path) -> None:
         ("representation-profile.json", {"inference_batch_rows": 1}),
         ("score-profile.json", {"formula": "cosine(left, right)"}),
         ("score-profile.json", {"branch_weights": ["0.6", "0.4"]}),
+        ("score-profile.json", {"range_validation_tolerance": "0.000001"}),
         ("adapter-profile.json", {"adapter_version": 2}),
         ("adapter-profile.json", {"caches_representations": True}),
         ("runtime-probe.json", {"biometric_inputs_read": True}),

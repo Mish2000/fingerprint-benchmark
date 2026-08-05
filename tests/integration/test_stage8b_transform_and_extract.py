@@ -184,6 +184,38 @@ def test_repeated_extraction_in_one_process_is_bitwise_equal(loaded_session) -> 
     assert first is not second
 
 
+def test_a_representation_is_bitwise_invariant_to_batch_position_and_context(
+    loaded_session,
+) -> None:
+    inputs = {
+        symbol: loaded_session.preprocess(
+            fixtures.build_fixture(fixture_name), deadline_seconds=PREPROCESS_DEADLINE
+        )
+        for symbol, fixture_name in (
+            ("A", "fixture_synthetic_ridges"),
+            ("B", "fixture_gradient"),
+            ("C", "fixture_seeded_noise"),
+        )
+    }
+    contexts = (
+        ((inputs["A"], inputs["A"]), 0),
+        ((inputs["A"], inputs["B"]), 0),
+        ((inputs["B"], inputs["A"]), 1),
+        ((inputs["A"], inputs["C"]), 0),
+        ((inputs["C"], inputs["A"]), 1),
+    )
+
+    representations = tuple(
+        loaded_session.probe_batch_context(
+            batch, represented_row, deadline_seconds=EXTRACT_DEADLINE
+        )
+        for batch, represented_row in contexts
+    )
+
+    assert len({item.texture_bytes for item in representations}) == 1
+    assert len({item.minutia_bytes for item in representations}) == 1
+
+
 def test_each_extraction_returns_a_new_object(loaded_session) -> None:
     # Spec section 9: equality is allowed, sharing a mutable buffer is not.
     model_input = loaded_session.preprocess(

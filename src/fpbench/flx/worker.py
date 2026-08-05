@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from fpbench.core.flx_errors import FlxWorkerError, FlxWorkerTimeout
+from fpbench.flx import identity
 from fpbench.flx.artifacts import FlxRuntimeBundle
 from fpbench.flx.preprocessing import verify_model_input
 from fpbench.flx.representation import FlxRepresentation, ModelInput
@@ -274,5 +275,34 @@ class FlxWorkerSession:
     ) -> FlxRepresentation:
         payload = self.request(
             "extract", deadline_seconds=deadline_seconds, **model_input.as_request()
+        )["result"]
+        return FlxRepresentation.from_worker(payload)
+
+    def probe_batch_context(
+        self,
+        model_inputs: tuple[ModelInput, ...],
+        represented_row: int,
+        *,
+        deadline_seconds: float,
+    ) -> FlxRepresentation:
+        """Extract one selected row from a diagnostic multi-input batch.
+
+        This is deliberately a worker-session diagnostic, not a seventh public
+        adapter operation.  Stage 8B uses it only to prove ADR 0070 against the
+        real checkpoint.
+        """
+        if len(model_inputs) != identity.INFERENCE_BATCH_ROWS:
+            raise FlxWorkerError(
+                "a batch-context probe requires the frozen two-row inference batch"
+            )
+        if type(represented_row) is not int or not 0 <= represented_row < len(model_inputs):
+            raise FlxWorkerError("represented_row must identify one batch-context input")
+        if any(not isinstance(item, ModelInput) for item in model_inputs):
+            raise FlxWorkerError("a batch-context probe accepts only ModelInput values")
+        payload = self.request(
+            "probe_batch_context",
+            deadline_seconds=deadline_seconds,
+            inputs=[item.as_request() for item in model_inputs],
+            represented_row=represented_row,
         )["result"]
         return FlxRepresentation.from_worker(payload)

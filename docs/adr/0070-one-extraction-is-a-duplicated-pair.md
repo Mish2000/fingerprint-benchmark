@@ -1,6 +1,6 @@
 # 0070 — One extraction is a duplicated pair
 
-*Status: Proposed — needs review — 2026-08-05, stage 8B*
+*Status: Accepted — 2026-08-05, stage 8B*
 
 ## Context
 
@@ -57,12 +57,33 @@ implementation detail here.
 
 The duplication is a checked invariant, not an assumption. Every extraction
 asserts that the two rows are bitwise equal in both branches and fails the
-operation otherwise. Measured on the pinned runtime with random weights, they
-are, at one thread and at twenty-four, and row 0 of a batch of two also equals
-row 0 and row 2 of a batch of three.
+operation otherwise. The real-checkpoint review exercised content and position
+changes across five legal contexts using the frozen physical batch size of two:
 
-`describe_operation()` publishes the rule, so a reader of a Stage 8C score can
-see what produced it.
+```
+A from [A, A] at row 0
+A from [A, B] at row 0
+A from [B, A] at row 1
+A from [A, C] at row 0
+A from [C, A] at row 1
+```
+
+Here A, B and C are distinct generated, non-biometric fixtures. All five
+representations are bitwise identical in both branches. This proves that the
+represented row does not depend on its legal position or the other legal batch
+content.
+
+An additional out-of-contract diagnostic used `[C, A, B]`, a physical batch
+size the frozen route never executes. Relative to `[A, A]`, 103 texture values
+differed by at most `1.4901161193847656e-08`, and 183 minutia values differed by
+at most `2.9802322387695312e-08`. Deterministic algorithms and disabling oneDNN
+did not remove that batch-shape drift. It is recorded here rather than hidden,
+but it neither widens the zero tolerance nor becomes part of the executable
+route's contract.
+
+`describe_operation()` publishes the extraction rule, so a reader of a Stage
+8C score can see what produced it. The diagnostic batch-context operation is
+worker-internal and does not expand the adapter's six-operation public surface.
 
 ## Alternatives considered
 
@@ -74,8 +95,7 @@ be untested against an upstream that cannot run to compare against.
 **Run the stem once at batch one and duplicate only into the texture branch.**
 Saves roughly half the arithmetic and buys inconsistency: the two branches
 would then see different batch shapes, so any batch-dependent kernel choice
-would apply to one branch and not the other. The saving is not needed; see
-below.
+would apply to one branch and not the other. The saving is not needed.
 
 **Pad the batch with a different image.** Makes one extraction depend on an
 unrelated input, which is precisely what an extraction must not do.
@@ -86,20 +106,17 @@ functioning route for a reason that has nothing to do with its representations.
 
 ## Consequences
 
-Every extraction costs two forward rows instead of one. Measured with random
-weights on the pinned single-threaded runtime, one extraction takes 0.773 s,
-which projects to 2.58 hours for the 12,000 extractions of a full Stage 8C run
-against a frozen budget of 24 hours. The doubling is affordable and was
-measured before the rule was frozen, not after.
+Every extraction costs two forward rows instead of one. The authoritative
+qualification shows that the doubling remains inside the frozen 24-hour budget
+for the 12,000 extractions of a full Stage 8C run.
 
 Spec section 17.6 asks whether a single image's representation is stable across
 single-image, batch-of-one and in-batch positions. Batch-of-one does not exist
 here, so the qualification records that comparison as `not_applicable` rather
-than inventing an API for it, and instead proves position-invariance inside a
-multi-image batch.
+than inventing an API for it, and proves position and content invariance inside
+valid multi-image batches.
 
-**Open for the supervisor.** This is a workaround for an upstream defect, and
-it changes what "one extraction" means. The alternative worth weighing is
-patching the single line upstream and recording the patch as part of the source
-identity — which trades an unmodified artifact for a simpler contract. That
-choice is deliberately not made here.
+The workaround is accepted without patching upstream. The real-checkpoint proof
+makes the represented row bitwise independent of position and content within
+the only physical batch shape the route executes, while keeping the source
+unmodified and the extraction rule explicit in the representation identity.

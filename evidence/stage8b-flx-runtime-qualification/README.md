@@ -47,34 +47,38 @@ The checkpoint loaded as pure tensors under `weights_only=True`, and
 `DeepPrint_TexMinu(8000, 256, 256)` accepted its 1,170 state-dict entries under
 `strict=True` with **zero missing and zero unexpected keys**.
 
-Determinism holds at tolerance **zero**, which is where it was set before the
-probe ran: repeated extraction, repeated comparison and input order are bitwise
-equal, and a process that has never seen the first one reproduces the
-representation, the score and the metadata exactly.
+Determinism holds at tolerance **zero**: A's texture and minutia representations
+are bitwise identical in `[A, A]`, `[A, B]`, `[B, A]`, `[A, C]` and `[C, A]`.
+Repeated extraction, repeated comparison and input order are also bitwise equal,
+and a fresh process reproduces the representation, score and metadata exactly.
 
-SELF independence is an observation, not an assertion: two `preprocess` calls,
-two `extract` calls, distinct objects, distinct buffers, zero cache lookups.
-The two sides are equal, which is expected and is not the thing being tested.
+SELF independence records two `preprocess` calls, two `extract` calls, distinct
+objects and distinct buffers. The adapter profile structurally establishes
+`representation_cache_capability_present: false`; no constant is presented as a
+dynamic cache observation. The two sides are equal, which is expected and is
+not the thing being tested.
 
 Nothing attempted to reach the network.
 
 ## Measurements, against limits frozen first
 
-`stage8b_flx_runtime_policy_v1` was committed before the first timing existed,
-and inherits Stage 8A's three full-run budgets by fingerprint rather than
-restating them.
+The operational limits were frozen before the authoritative Stage 8B
+qualification probe and before the published measurements. A preliminary
+generated-fixture timing read no SD300 data and was not used to tune a limit
+from a biometric result. `stage8b_flx_runtime_policy_v1` inherits Stage 8A's
+three full-run budgets by fingerprint rather than restating them.
 
 | | measured | limit |
 | --- | --- | --- |
-| worker startup | 2.79 s | 60 s |
-| model load | 1.09 s | 300 s |
-| preprocess (median) | 3.8 ms | 60 s deadline |
-| extract (median) | 0.763 s | 120 s deadline |
-| compare (median) | 0.33 ms | 60 s deadline |
+| worker startup | 2.76 s | 60 s |
+| model load | 1.11 s | 300 s |
+| preprocess (median) | 4.89 ms | 60 s deadline |
+| extract (median) | 0.756 s | 120 s deadline |
+| compare (median) | 0.30 ms | 60 s deadline |
 | peak RAM | 1.20 GB | 32 GB |
 | bundle on disk | 2.06 GB | 10 GB |
-| projected 12,000 extractions | 9,160 s (2.54 h) | 86,400 s |
-| projected 6,000 comparisons | 2.0 s | 21,600 s |
+| projected 12,000 extractions | 9,069 s (2.52 h) | 86,400 s |
+| projected 6,000 comparisons | 1.81 s | 21,600 s |
 
 A projection is an operational gate. It is not a benchmark, not a quality
 claim and not a promised wall clock.
@@ -85,15 +89,21 @@ claim and not a promised wall clock.
 batch dimension away and then normalizes along `dim=1`, so a batch of one
 raises before any embedding exists. There is no single-image path in this
 artifact. Each extraction therefore feeds the identical tensor twice and
-represents row 0, asserting that the two rows are bitwise equal. Spec section
-17.6's single-versus-batch comparison is recorded as `not_applicable` rather
-than answered with an invented API. This is docs/adr/0070, and it is
-**Proposed — needs review**: it changes what "one extraction" means.
+represents row 0, asserting that the two rows are bitwise equal. The real
+checkpoint produced bitwise-identical texture and minutia representations for A
+across five legal content and position contexts at batch size two. An additional
+batch-size-three diagnostic drifted slightly and is documented in ADR 0070 as
+outside the fixed route. Spec section 17.6's
+single-versus-batch comparison is recorded as `not_applicable` rather than
+answered with an invented API. ADR 0070 is **Accepted** on the legal-context proof.
 
 **A SELF score is 2.0000001192092896, not 2.** The branches are normalized in
 float32, so each self-dot-product exceeds 1 by about an ulp. The declared range
-stays `[-2, 2]`; enforcement allows `2**-21`, four float32 ulps derived from
-the format rather than fitted to the measurement. The score is never clamped
+stays `[-2, 2]`; enforcement allows the exact decimal
+`0.000000476837158203125` (`2**-21`), four float32 ulps derived from the format
+rather than fitted to the measurement. `range_validation_tolerance` and
+`range_validation_policy: nominal_bounds_plus_symmetric_tolerance_no_clamp`
+are part of `score_profile_fingerprint`. The score is never clamped
 (docs/adr/0073).
 
 **An all-white image does not resize to a constant.** The antialiased bilinear

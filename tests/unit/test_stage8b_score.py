@@ -83,7 +83,7 @@ def test_the_range_allows_float32_normalization_slack_but_not_more() -> None:
     # A SELF comparison lands at 2 + 2**-23 because each branch is normalized
     # in float32; the allowance is 2**-21, derived from the format.
     assert verify_nominal_range(Decimal("2.0000001192092896"))
-    tolerance = Decimal(repr(identity.SCORE_RANGE_TOLERANCE))
+    tolerance = Decimal(identity.SCORE_RANGE_VALIDATION_TOLERANCE)
     assert verify_nominal_range(Decimal("2") + tolerance)
     with pytest.raises(FlxScoreError, match="normalization allowance"):
         verify_nominal_range(Decimal("2") + tolerance * 2)
@@ -92,7 +92,7 @@ def test_the_range_allows_float32_normalization_slack_but_not_more() -> None:
 def test_the_range_allowance_is_not_the_determinism_tolerance() -> None:
     # Two runs of the same comparison must still agree bit for bit.
     assert identity.NUMERIC_TOLERANCE == "0"
-    assert identity.SCORE_RANGE_TOLERANCE > 0
+    assert Decimal(identity.SCORE_RANGE_VALIDATION_TOLERANCE) > 0
 
 
 def test_a_python_float_is_refused_where_a_decimal_is_required() -> None:
@@ -139,6 +139,10 @@ def test_the_score_profile_carries_no_hidden_machinery() -> None:
     assert profile.branch_weights == ("1", "1")
     assert profile.score_direction == "higher_is_more_similar"
     assert (profile.nominal_minimum, profile.nominal_maximum) == ("-2", "2")
+    assert profile.range_validation_tolerance == "0.000000476837158203125"
+    assert profile.range_validation_policy == (
+        "nominal_bounds_plus_symmetric_tolerance_no_clamp"
+    )
     assert profile.returns_decimal is True
     assert profile.symmetric is True
     for field in ("calibration", "normalization", "threshold", "fallback_matcher",

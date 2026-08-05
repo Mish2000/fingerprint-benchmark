@@ -256,6 +256,8 @@ class FlxLearnedFingerprintIntegration:
             "upstream_study": identity.UPSTREAM_STUDY,
             "score_direction": identity.SCORE_DIRECTION,
             "nominal_score_range": [identity.SCORE_MINIMUM, identity.SCORE_MAXIMUM],
+            "range_validation_tolerance": identity.SCORE_RANGE_VALIDATION_TOLERANCE,
+            "range_validation_policy": identity.SCORE_RANGE_VALIDATION_POLICY,
             "inference_batch_rule": identity.INFERENCE_BATCH_RULE,
             "inference_batch_rows": identity.INFERENCE_BATCH_ROWS,
             "weights_license_status": identity.WEIGHTS_LICENSE_STATUS,

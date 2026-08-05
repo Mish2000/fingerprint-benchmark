@@ -327,6 +327,21 @@ def test_the_nominal_range_is_minus_two_to_two() -> None:
         make_score_profile(nominal_minimum="2", nominal_maximum="-2")
 
 
+def test_the_range_validation_contract_is_exact_and_fingerprinted() -> None:
+    profile = make_score_profile()
+    assert profile.range_validation_tolerance == "0.000000476837158203125"
+    assert profile.range_validation_policy == (
+        "nominal_bounds_plus_symmetric_tolerance_no_clamp"
+    )
+    assert make_score_profile(
+        range_validation_tolerance="0.00000095367431640625"
+    ).fingerprint != profile.fingerprint
+    with pytest.raises(ValueError, match="must be positive"):
+        make_score_profile(range_validation_tolerance="0")
+    with pytest.raises(ValueError, match="range_validation_policy must be"):
+        make_score_profile(range_validation_policy="nominal_bounds_then_clamp")
+
+
 def test_the_score_direction_cannot_be_inverted() -> None:
     with pytest.raises(ValueError, match="higher_is_more_similar"):
         make_score_profile(score_direction="lower_is_more_similar")
@@ -411,6 +426,8 @@ def test_a_tested_report_must_carry_every_observation() -> None:
         make_self_independence(extract_call_count=None)
     with pytest.raises(ValueError, match="must carry every observation"):
         make_determinism(input_order_symmetric=None)
+    with pytest.raises(ValueError, match="must name every batch context"):
+        make_determinism(batch_contexts=())
 
 
 def test_a_not_applicable_batch_comparison_carries_no_observation() -> None:

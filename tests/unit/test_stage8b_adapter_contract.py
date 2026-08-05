@@ -102,6 +102,10 @@ def test_describe_operation_publishes_identity_and_no_decision() -> None:
     assert described["adapter_version"] == identity.ADAPTER_VERSION
     assert described["checkpoint_sha256"] == identity.CHECKPOINT_SHA256
     assert described["weights_license_status"] == "unresolved"
+    assert described["range_validation_tolerance"] == (
+        identity.SCORE_RANGE_VALIDATION_TOLERANCE
+    )
+    assert described["range_validation_policy"] == identity.SCORE_RANGE_VALIDATION_POLICY
     for forbidden in (
         "threshold",
         "decision",

@@ -6,7 +6,7 @@
   "runtime_manifest_fingerprint": "948dd24f43835bc5a9777ef75e2ba4f31950d26a850bda971032d0ae08857a02",
   "preprocessing_profile_fingerprint": "9c0bbb9c5eabe646051fa659bee0aad7de50b7e56d566cc0d2d55fc4ab2e19f2",
   "representation_profile_fingerprint": "7b9f84b05feaf61d3050bd489561d52c80d825d449e11490360b4e197b3a25a5",
-  "score_profile_fingerprint": "ca03a74bdede7f322b67570057cd642e5792ade1e440cca89ec55f4b61d2fae2",
+  "score_profile_fingerprint": "69848f2416a997484430ce0f6b5cf054586cb0e58968e986479e90ddc6563a61",
   "adapter_profile_fingerprint": "dc4c0ccc1fdb4028584f38c340e1761bd3261bf01e42b965f1785425fcc7d84c",
   "fixture_ids": [
     "fixture_gradient",
@@ -49,8 +49,8 @@
     "extract_call_count": 2,
     "distinct_representation_objects": true,
     "representations_equal": true,
-    "cache_lookups_observed": 0,
-    "fingerprint": "c7f17f68c80291ad50b80d3bb016b72ebbd2fd81ab999fbb107b60676485d66a"
+    "representation_cache_capability_present": false,
+    "fingerprint": "63d090bb53e37c216407dc7e9abc0243061977de3922741cebf5aa364fa8d970"
   },
   "determinism": {
     "schema_version": "1",
@@ -61,11 +61,20 @@
     "repeated_comparison_bitwise_equal": true,
     "single_vs_batch_state": "not_applicable",
     "single_vs_batch_bitwise_equal": null,
+    "batch_contexts": [
+      "A from [A, A] at row 0",
+      "A from [A, B] at row 0",
+      "A from [B, A] at row 1",
+      "A from [A, C] at row 0",
+      "A from [C, A] at row 1"
+    ],
+    "batch_context_texture_bitwise_equal": true,
+    "batch_context_minutia_bitwise_equal": true,
     "process_restart_representation_equal": true,
     "process_restart_score_equal": true,
     "process_restart_runtime_metadata_equal": true,
     "input_order_symmetric": true,
-    "fingerprint": "7dcc0378daa624681fac32fcec75d80aed88284e215dc79fbfaefe5c4e359b13"
+    "fingerprint": "4bf6419e8e54105595e2dcd9c3f78b7e6d5173ab5459e4eae6a7f9387340c749"
   },
   "offline": {
     "schema_version": "1",
@@ -97,20 +106,20 @@
     "report_id": "flx_operational_v1",
     "measured": true,
     "policy_fingerprint": "75682ba09e82598c9088cac642f4673a9e3dc5652ddaa5243632b41c154face8",
-    "worker_startup_seconds": "2.8168293140000031",
-    "model_load_seconds": "1.0996483710000007",
-    "preprocess_seconds": "0.0040896934999992141",
-    "extract_seconds": "0.77360467449999248",
-    "compare_seconds": "0.00048028899999508212",
-    "peak_ram_bytes": 1197486080,
+    "worker_startup_seconds": "2.7629797049999922",
+    "model_load_seconds": "1.1119743080000148",
+    "preprocess_seconds": "0.0048900000000031696",
+    "extract_seconds": "0.75577461350000874",
+    "compare_seconds": "0.00030166299998768409",
+    "peak_ram_bytes": 1197662208,
     "artifact_disk_bytes": 2062600599,
-    "projected_12000_extractions_seconds": "9283.2560939999094",
-    "projected_6000_comparisons_seconds": "2.8817339999704927",
+    "projected_12000_extractions_seconds": "9069.2953620001044",
+    "projected_6000_comparisons_seconds": "1.8099779999261045",
     "within_limits": true,
-    "fingerprint": "02020b585fb02daef52df1597266e7268a4a3a61c07acafc8304fc3225eaf73b"
+    "fingerprint": "7fe36f9ae38adc6923c08f1357edf50cbd454a9dd305ff38b16d7a8ac2cef87c"
   },
   "biometric_inputs_read": false,
   "prior_results_read": false,
-  "created_utc": "2026-08-05T13:00:00+00:00",
-  "fingerprint": "16ec4512ccb12116c711fd4a891c977ba9a8daafac7751895e7e5dd7b5471066"
+  "created_utc": "2026-08-05T17:43:51+00:00",
+  "fingerprint": "6de3eb50b6a840e0c110f847684d2ba80ccc38e36f01ee88433e8c6b0c344e6a"
 }

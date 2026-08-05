@@ -238,6 +238,8 @@ def make_score_profile(**changes: Any) -> FlxScoreProfile:
         score_direction=identity.SCORE_DIRECTION,
         nominal_minimum=identity.SCORE_MINIMUM,
         nominal_maximum=identity.SCORE_MAXIMUM,
+        range_validation_tolerance=identity.SCORE_RANGE_VALIDATION_TOLERANCE,
+        range_validation_policy=identity.SCORE_RANGE_VALIDATION_POLICY,
         branch_weights=("1", "1"),
         serialization=make_score_serialization(),
         returns_decimal=True,
@@ -339,7 +341,7 @@ def make_self_independence(**changes: Any):
         extract_call_count=2,
         distinct_representation_objects=True,
         representations_equal=True,
-        cache_lookups_observed=0,
+        representation_cache_capability_present=False,
     )
     claims.update(changes)
     return FlxSelfIndependenceReport.create(**claims)
@@ -355,6 +357,15 @@ def make_determinism(**changes: Any) -> FlxDeterminismReport:
         repeated_comparison_bitwise_equal=True,
         single_vs_batch_state=FlxGateState.NOT_APPLICABLE,
         single_vs_batch_bitwise_equal=None,
+        batch_contexts=(
+            "A from [A, A] at row 0",
+            "A from [A, B] at row 0",
+            "A from [B, A] at row 1",
+            "A from [A, C] at row 0",
+            "A from [C, A] at row 1",
+        ),
+        batch_context_texture_bitwise_equal=True,
+        batch_context_minutia_bitwise_equal=True,
         process_restart_representation_equal=True,
         process_restart_score_equal=True,
         process_restart_runtime_metadata_equal=True,

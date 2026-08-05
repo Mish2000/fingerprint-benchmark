@@ -222,7 +222,7 @@ def _check_version(value: Any, what: str) -> None:
 
 @dataclass(frozen=True, slots=True)
 class FlxRuntimePolicy:
-    """Operational limits, frozen before a single measurement is taken.
+    """Operational limits, frozen before the authoritative qualification probe.
 
     The three projection limits are inherited from Stage 8A's selection policy
     by fingerprint rather than restated, so the two documents cannot drift into
@@ -743,6 +743,8 @@ class FlxScoreProfile:
     score_direction: str
     nominal_minimum: str
     nominal_maximum: str
+    range_validation_tolerance: str
+    range_validation_policy: str
     branch_weights: tuple[str, ...]
     serialization: FlxScoreSerializationProfile
     returns_decimal: bool
@@ -761,6 +763,7 @@ class FlxScoreProfile:
         for name in (
             "formula",
             "score_direction",
+            "range_validation_policy",
             "calibration",
             "normalization",
             "threshold",
@@ -771,6 +774,25 @@ class FlxScoreProfile:
             object.__setattr__(self, name, _require_text(getattr(self, name), name))
         for name in ("nominal_minimum", "nominal_maximum"):
             object.__setattr__(self, name, _decimal_text(getattr(self, name), name))
+        object.__setattr__(
+            self,
+            "range_validation_tolerance",
+            _decimal_text(
+                self.range_validation_tolerance,
+                "range_validation_tolerance",
+                non_negative=True,
+            ),
+        )
+        if Decimal(self.range_validation_tolerance) == 0:
+            raise ValueError("range_validation_tolerance must be positive")
+        if (
+            self.range_validation_policy
+            != "nominal_bounds_plus_symmetric_tolerance_no_clamp"
+        ):
+            raise ValueError(
+                "range_validation_policy must be "
+                "nominal_bounds_plus_symmetric_tolerance_no_clamp"
+            )
         if Decimal(self.nominal_minimum) >= Decimal(self.nominal_maximum):
             raise ValueError("nominal_minimum must be lower than nominal_maximum")
         weights = tuple(_decimal_text(value, "branch_weights") for value in self.branch_weights)
@@ -892,27 +914,31 @@ class FlxSelfIndependenceReport:
     extract_call_count: int | None
     distinct_representation_objects: bool | None
     representations_equal: bool | None
-    cache_lookups_observed: int | None
+    representation_cache_capability_present: bool | None
     fingerprint: str
 
     def __post_init__(self) -> None:
         _check_version(self.schema_version, "flx self independence report")
         validate_id(self.report_id)
         object.__setattr__(self, "tested", _require_bool(self.tested, "tested"))
-        for name in ("preprocess_call_count", "extract_call_count", "cache_lookups_observed"):
+        for name in ("preprocess_call_count", "extract_call_count"):
             value = getattr(self, name)
             if value is not None:
                 value = require_exact_int(value, name)
                 if value < 0:
                     raise ValueError(f"{name} must not be negative")
             object.__setattr__(self, name, value)
-        for name in ("distinct_representation_objects", "representations_equal"):
+        for name in (
+            "distinct_representation_objects",
+            "representations_equal",
+            "representation_cache_capability_present",
+        ):
             object.__setattr__(self, name, _optional_bool(getattr(self, name), name))
         observed = (
             self.preprocess_call_count,
             self.extract_call_count,
             self.distinct_representation_objects,
-            self.cache_lookups_observed,
+            self.representation_cache_capability_present,
         )
         if self.tested and any(value is None for value in observed):
             raise ValueError("a tested SELF report must carry every observation")
@@ -935,6 +961,9 @@ class FlxDeterminismReport:
     repeated_comparison_bitwise_equal: bool | None
     single_vs_batch_state: str
     single_vs_batch_bitwise_equal: bool | None
+    batch_contexts: tuple[str, ...]
+    batch_context_texture_bitwise_equal: bool | None
+    batch_context_minutia_bitwise_equal: bool | None
     process_restart_representation_equal: bool | None
     process_restart_score_equal: bool | None
     process_restart_runtime_metadata_equal: bool | None
@@ -953,10 +982,15 @@ class FlxDeterminismReport:
         object.__setattr__(
             self, "single_vs_batch_state", _enum(self.single_vs_batch_state, FlxGateState, "single_vs_batch_state")
         )
+        object.__setattr__(
+            self, "batch_contexts", _text_tuple(self.batch_contexts, "batch_contexts")
+        )
         for name in (
             "repeated_extraction_bitwise_equal",
             "repeated_comparison_bitwise_equal",
             "single_vs_batch_bitwise_equal",
+            "batch_context_texture_bitwise_equal",
+            "batch_context_minutia_bitwise_equal",
             "process_restart_representation_equal",
             "process_restart_score_equal",
             "process_restart_runtime_metadata_equal",
@@ -966,6 +1000,8 @@ class FlxDeterminismReport:
         required = (
             self.repeated_extraction_bitwise_equal,
             self.repeated_comparison_bitwise_equal,
+            self.batch_context_texture_bitwise_equal,
+            self.batch_context_minutia_bitwise_equal,
             self.process_restart_representation_equal,
             self.process_restart_score_equal,
             self.process_restart_runtime_metadata_equal,
@@ -973,8 +1009,12 @@ class FlxDeterminismReport:
         )
         if self.tested and any(value is None for value in required):
             raise ValueError("a tested determinism report must carry every observation")
+        if self.tested and not self.batch_contexts:
+            raise ValueError("a tested determinism report must name every batch context")
         if not self.tested and any(value is not None for value in required):
             raise ValueError("an untested determinism probe reports nothing, not nondeterminism")
+        if not self.tested and self.batch_contexts:
+            raise ValueError("an untested determinism probe names no batch contexts")
         if (
             self.single_vs_batch_state is FlxGateState.NOT_APPLICABLE
             and self.single_vs_batch_bitwise_equal is not None
@@ -1037,8 +1077,9 @@ class FlxOperationalReport:
     """Measurements, and the pre-frozen limits they are measured against.
 
     A projection is a gate, not a promise and not a quality claim: it says only
-    that a full Stage 8C run would fit inside limits chosen before any timing
-    was seen (spec section 19).
+    that a full Stage 8C run would fit inside limits frozen before the
+    authoritative Stage 8B qualification probe and the published measurements
+    (spec section 19).
     """
 
     schema_version: str

@@ -105,6 +105,10 @@ def test_the_score_contract_is_frozen() -> None:
     assert identity.SCORE_MAXIMUM == "2"
     assert identity.SCORE_DIRECTION == "higher_is_more_similar"
     assert identity.DECIMAL_SIGNIFICANT_DIGITS == 17
+    assert identity.SCORE_RANGE_VALIDATION_TOLERANCE == "0.000000476837158203125"
+    assert identity.SCORE_RANGE_VALIDATION_POLICY == (
+        "nominal_bounds_plus_symmetric_tolerance_no_clamp"
+    )
 
 
 def test_the_tolerance_is_bitwise_equality() -> None:

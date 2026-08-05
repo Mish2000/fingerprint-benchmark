@@ -73,6 +73,7 @@ can be held to.
 | [0064](0064-preprocessing-is-part-of-the-algorithm.md) | Preprocessing is part of the algorithm | Accepted, implemented |
 | [0065](0065-raw-score-readiness-does-not-imply-decision-readiness.md) | Raw-score readiness does not imply decision readiness | Accepted, implemented |
 | [0066](0066-no-paper-reimplementation-is-accepted-as-an-upstream-algorithm.md) | No paper reimplementation is accepted as an upstream algorithm | Accepted, implemented |
+| [0067](0067-a-stage-boundary-audit-covers-its-own-span.md) | A stage boundary audit covers its own span, not everything after it | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

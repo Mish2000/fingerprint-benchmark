@@ -23,12 +23,24 @@ from fpbench.storage.modern_matcher_store import Stage8AEvidenceStore
 
 __all__ = [
     "STAGE8A_BASELINE_COMMIT",
+    "STAGE8A_PUBLICATION_COMMIT",
     "file_sha256",
     "verify_stage8a_workspace_boundaries",
     "build_stage8a_finalization",
 ]
 
+#: Stage 8A began here — the commit that closed Stage 7D.
 STAGE8A_BASELINE_COMMIT = "f85e360439ea0d1eb66e2294fe570992fb868b9f"
+
+#: ...and ended here, when its evidence was last published.  The boundary
+#: audit asks what *Stage 8A* changed, so it must compare two fixed commits.
+#: Comparing against ``HEAD`` instead answered a different question — "has
+#: anything outside Stage 8A's allowlist changed since Stage 7D, ever" — which
+#: no later stage can satisfy and which Stage 8A was never entitled to assert.
+#: The claim that Stage 8A's own code has not moved is unaffected: it is
+#: enforced separately, and more strictly, by the verifier's authority-path
+#: comparison against ``verifier_source_commit`` (docs/adr/0067).
+STAGE8A_PUBLICATION_COMMIT = "f075dcb33eec2c44e597ad0506dbe8dd6def7bc6"
 
 _ALLOWED_EXACT_CHANGES = frozenset(
     {
@@ -58,6 +70,24 @@ _ALLOWED_CHANGE_PREFIXES = (
     "evidence/stage8a-modern-matcher-selection/",
     "integrations/modern-matchers/",
     "src/fpbench/modern_matchers/",
+)
+#: Paths Stage 8A owns outright, as opposed to the shared files above that it
+#: was merely allowed to touch.  Only these are scanned for uncommitted work:
+#: an untracked file here would be Stage 8A material outside its publication,
+#: while an untracked file anywhere else belongs to whoever is working now.
+_STAGE8A_OWNED_PREFIXES = (
+    "configs/modern-matchers/",
+    "evidence/stage8a-modern-matcher-selection/",
+    "integrations/modern-matchers/",
+    "src/fpbench/modern_matchers/",
+)
+_STAGE8A_OWNED_EXACT = frozenset(
+    {
+        "src/fpbench/core/modern_matcher_models.py",
+        "src/fpbench/experiments/stage8a_modern_matcher_selection.py",
+        "src/fpbench/storage/modern_matcher_store.py",
+        "tests/stage8aworld.py",
+    }
 )
 _FORBIDDEN_IMPORT_PREFIXES = (
     "fpbench.adapters",
@@ -114,11 +144,26 @@ def _is_allowed_stage8a_change(raw_path: str) -> bool:
         return True
     if any(path.startswith(prefix) for prefix in _ALLOWED_CHANGE_PREFIXES):
         return True
+    return _is_stage8a_named_test(path)
+
+
+def _is_stage8a_named_test(path: str) -> bool:
     return (
         path.startswith("tests/")
         and "stage8a" in PurePosixPath(path).name.lower()
         and path.endswith(".py")
     )
+
+
+def _is_stage8a_owned_path(raw_path: str) -> bool:
+    path = PurePosixPath(raw_path).as_posix()
+    if path != raw_path or path.startswith("../") or path.startswith("/"):
+        return False
+    if path in _STAGE8A_OWNED_EXACT:
+        return True
+    if any(path.startswith(prefix) for prefix in _STAGE8A_OWNED_PREFIXES):
+        return True
+    return _is_stage8a_named_test(path)
 
 
 def _stage8a_python_sources(repository_root: Path) -> tuple[Path, ...]:
@@ -185,7 +230,14 @@ def _audit_stage8a_source_boundaries(repository_root: Path) -> None:
 
 
 def verify_stage8a_workspace_boundaries(repository_root: Path) -> None:
-    """Prove that Stage 8A changed only its allowlisted surface and is isolated."""
+    """Prove that Stage 8A changed only its allowlisted surface and is isolated.
+
+    The audited span is fixed: ``STAGE8A_BASELINE_COMMIT`` to
+    ``STAGE8A_PUBLICATION_COMMIT``.  Work committed after the publication is
+    some other stage's, and is neither Stage 8A's to permit nor Stage 8A's to
+    forbid.  Both commits are still required to be in the current history, so
+    a rewritten or abandoned Stage 8A is caught rather than skipped.
+    """
     repository_root = Path(repository_root)
     roots = _git_output(repository_root, "rev-parse", "--show-toplevel")
     try:
@@ -204,6 +256,13 @@ def verify_stage8a_workspace_boundaries(repository_root: Path) -> None:
         "merge-base",
         "--is-ancestor",
         STAGE8A_BASELINE_COMMIT,
+        STAGE8A_PUBLICATION_COMMIT,
+    )
+    _git_output(
+        repository_root,
+        "merge-base",
+        "--is-ancestor",
+        STAGE8A_PUBLICATION_COMMIT,
         "HEAD",
     )
     changed = set(
@@ -213,15 +272,8 @@ def verify_stage8a_workspace_boundaries(repository_root: Path) -> None:
             "--name-only",
             "--diff-filter=ACDMRTUXB",
             STAGE8A_BASELINE_COMMIT,
+            STAGE8A_PUBLICATION_COMMIT,
             "--",
-        )
-    )
-    changed.update(
-        _git_output(
-            repository_root,
-            "ls-files",
-            "--others",
-            "--exclude-standard",
         )
     )
     forbidden_changes = sorted(
@@ -231,6 +283,21 @@ def verify_stage8a_workspace_boundaries(repository_root: Path) -> None:
         raise Stage8AFinalizationError(
             "prior-stage paths changed during Stage 8A: "
             f"{forbidden_changes}"
+        )
+    unpublished = sorted(
+        path
+        for path in _git_output(
+            repository_root,
+            "ls-files",
+            "--others",
+            "--exclude-standard",
+        )
+        if _is_stage8a_owned_path(path)
+    )
+    if unpublished:
+        raise Stage8AFinalizationError(
+            "Stage 8A material exists outside its publication: "
+            f"{unpublished}"
         )
     _audit_stage8a_source_boundaries(repository_root)
 

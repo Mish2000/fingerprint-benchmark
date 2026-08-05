@@ -15,7 +15,7 @@
     "mgvit_official_artifact": "b995363527ae98e5c08120db1059b6273425a762a515d1a90cf0c655b2ffb1c4"
   },
   "selection_decision_fingerprint": "3f42b1ef57e368acc85955a4a1beda643f13964a43fcc6dc355b79e877395a94",
-  "selection_decision_content_hash": "c2b6890a32340b8fee691005a18887a91a4f6e5cec80c97da2150337b7f6313c",
+  "selection_decision_content_hash": "135ccbd9c730789e0b8da495966159fc6f49a5ceba1214230fb2620948ed9aeb",
   "readme_content_hash": "cdf6bfffba64ae2c39587ec443d0277122425fcf7de420061fd544dcf1f0d68c",
   "selection_policy_fingerprint": "b61d85f8539d06df9984fa6ad95f21e40977edfda17225c53fdbfb2428b6f396",
   "required_local_artifact_fingerprints": {},
@@ -24,5 +24,5 @@
   "verifier_source_commit": "ce0458bd1925541275ef9da348d8a1138c461a78",
   "verifier_source_tree_clean": true,
   "created_utc": "2026-08-05T10:00:00+03:00",
-  "fingerprint": "6f2d87747934e526f8828fd9c759a26b80a4fc7b4c57594f17c0ed93840f67f6"
+  "fingerprint": "e8d3b645a6d4b3a62772a5d386c8385d1a65437a773ef78e956ef6d763c023fb"
 }

@@ -2,7 +2,7 @@
   "schema_version": "1",
   "kind": "stage_8b_finalization",
   "outcome": "FLX_RAW_SCORE_EXECUTION_READY",
-  "stage8a_finalization_fingerprint": "6f2d87747934e526f8828fd9c759a26b80a4fc7b4c57594f17c0ed93840f67f6",
+  "stage8a_finalization_fingerprint": "e8d3b645a6d4b3a62772a5d386c8385d1a65437a773ef78e956ef6d763c023fb",
   "source_archive_sha256": "60fa2c8894ea90efe2bb0553cd331d8ef84611b973b6126eaf6d162d1aa9b7e2",
   "checkpoint_sha256": "2683a04427bacd54adc00cfdc97474625b1e11e5a9e6672c5129f033018f8a28",
   "artifact_binding_fingerprint": "f51bca79bd2698a439becfe14930f49e04fd11bcfa830473928696cab84b766f",
@@ -30,5 +30,5 @@
   "biometric_inputs_read": false,
   "prior_stages_unchanged": true,
   "created_utc": "2026-08-05T14:00:00+00:00",
-  "fingerprint": "664273d243185df367b0435e0ead4b7eba726ff2ffd9c8c258d3add8f082be5c"
+  "fingerprint": "ad1682518b9a2d0d75336cbc6d8bd5978e78fc4692a070143f6a39834685545c"
 }

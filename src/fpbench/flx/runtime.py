@@ -27,6 +27,13 @@ __all__ = [
 #: Environment the worker must have pinned before anything numeric happened.
 REQUIRED_ENVIRONMENT_KEYS = ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "HF_HOME", "TORCH_HOME")
 
+#: Variables whose *value* is a machine-local path.  What matters for the
+#: evidence is that they were redirected into a controlled local directory, not
+#: where that directory happens to live on one machine — and a private absolute
+#: path may not be published at all (spec section 22).
+_PATH_VALUED_KEYS = ("HF_HOME", "TORCH_HOME")
+_REDIRECTED = "bundle_local_offline_cache"
+
 _REQUIRED_FIELDS = (
     "os_name",
     "os_version",
@@ -101,6 +108,20 @@ def verify_runtime_report(report: Mapping[str, Any], *, lock: RuntimeLock) -> No
     for key in ("OMP_NUM_THREADS", "MKL_NUM_THREADS"):
         if str(environment[key]) != "1":
             raise FlxRuntimeError(f"{key} is {environment[key]!r}, expected '1'")
+    for key in _PATH_VALUED_KEYS:
+        if not str(environment[key]).endswith("offline-cache"):
+            raise FlxRuntimeError(
+                f"{key} is not the worker's bundle-local offline cache"
+            )
+
+
+def _publishable_environment(report: Mapping[str, Any]) -> dict[str, str]:
+    """Record what was redirected, never a machine-local path."""
+    environment = report["environment"]
+    return {
+        key: _REDIRECTED if key in _PATH_VALUED_KEYS else str(environment[key])
+        for key in REQUIRED_ENVIRONMENT_KEYS
+    }
 
 
 def build_runtime_manifest(
@@ -132,8 +153,6 @@ def build_runtime_manifest(
         cuda_available=bool(report["cuda_available"]),
         dependency_lock_sha256=lock.sha256,
         dependencies=lock.pins(),
-        deterministic_environment={
-            key: str(report["environment"][key]) for key in REQUIRED_ENVIRONMENT_KEYS
-        },
+        deterministic_environment=_publishable_environment(report),
         created_utc=created_utc,
     )

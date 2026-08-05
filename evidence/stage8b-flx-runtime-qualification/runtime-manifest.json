@@ -139,11 +139,11 @@
     }
   ],
   "deterministic_environment": {
-    "HF_HOME": "/home/nbisbuild/.cache/fpbench/flx/flx_cpu_linux_x86_64_v1/offline-cache",
+    "HF_HOME": "bundle_local_offline_cache",
     "MKL_NUM_THREADS": "1",
     "OMP_NUM_THREADS": "1",
-    "TORCH_HOME": "/home/nbisbuild/.cache/fpbench/flx/flx_cpu_linux_x86_64_v1/offline-cache"
+    "TORCH_HOME": "bundle_local_offline_cache"
   },
-  "created_utc": "2026-08-05T12:00:00+00:00",
-  "fingerprint": "7a720482b43ce2efb5ac1f91623839e147468c8d814b7707d8482fd7127bd6ae"
+  "created_utc": "2026-08-05T13:00:00+00:00",
+  "fingerprint": "948dd24f43835bc5a9777ef75e2ba4f31950d26a850bda971032d0ae08857a02"
 }

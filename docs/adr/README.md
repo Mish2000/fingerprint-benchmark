@@ -79,6 +79,7 @@ can be held to.
 | [0070](0070-one-extraction-is-a-duplicated-pair.md) | One extraction is a duplicated pair | **Proposed — needs review** |
 | [0071](0071-the-stage-8b-transform-is-declared-not-inherited.md) | The Stage 8B transform is declared, not inherited | Accepted, implemented |
 | [0072](0072-the-flx-runtime-is-a-bundle-pinned-by-bytes.md) | The flx runtime is a bundle, pinned by bytes | Accepted, implemented |
+| [0073](0073-a-raw-score-is-a-decimal-and-is-never-clamped.md) | A raw score is a Decimal, and is never clamped | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

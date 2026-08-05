@@ -48,6 +48,7 @@ __all__ = [
     "SCORE_MINIMUM",
     "SCORE_MAXIMUM",
     "SCORE_DIRECTION",
+    "SCORE_RANGE_TOLERANCE",
     "DECIMAL_SIGNIFICANT_DIGITS",
     "NUMERIC_TOLERANCE",
     "TRAINING_ONLY_CHECKPOINT_KEYS",
@@ -134,6 +135,23 @@ SCORE_MINIMUM = "-2"
 SCORE_MAXIMUM = "2"
 SCORE_DIRECTION = "higher_is_more_similar"
 DECIMAL_SIGNIFICANT_DIGITS = 17
+
+#: Four float32 ulps at 1.0.
+#:
+#: [-2, 2] is the range for two exactly-unit vectors.  The branches are
+#: normalized in float32, so each norm is 1 within an ulp and each branch's
+#: self-dot-product can exceed 1 by about the same.  A SELF comparison
+#: therefore lands slightly above 2 — measured on the pinned runtime:
+#: 2.0000001192092896, which is 2 + 2**-23 exactly.
+#:
+#: Clamping the score would discard information a later stage may need, so the
+#: declared range stays [-2, 2] and the enforcement allows this much.  The
+#: bound is derived from the format — two branches, each off by up to one ulp,
+#: doubled for headroom — and not fitted to the measurement.
+#:
+#: This is emphatically **not** the determinism tolerance.  Two runs of the
+#: same comparison must still agree bit for bit; see NUMERIC_TOLERANCE.
+SCORE_RANGE_TOLERANCE = 2.0**-21
 
 #: Bitwise equality is the target on this profile.  Nothing may widen it after
 #: a measurement has been seen; a wider tolerance requires a new runtime

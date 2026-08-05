@@ -42,6 +42,7 @@ STAGE8B_BASELINE_COMMIT = "e065fad7162c3f584ded6ddcedd73aa0c84d9f54"
 
 _ALLOWED_EXACT_CHANGES = frozenset(
     {
+        ".gitattributes",
         ".github/workflows/stage8b-flx-runtime-qualification.yml",
         ".github/workflows/tests.yml",
         "Makefile",
@@ -54,6 +55,7 @@ _ALLOWED_EXACT_CHANGES = frozenset(
         "docs/adr/0071-the-stage-8b-transform-is-declared-not-inherited.md",
         "docs/adr/0072-the-flx-runtime-is-a-bundle-pinned-by-bytes.md",
         "docs/adr/0073-a-raw-score-is-a-decimal-and-is-never-clamped.md",
+        "evidence/stage8a-modern-matcher-selection/stage-8a-finalization.json",
         "src/fpbench/core/flx_errors.py",
         "src/fpbench/core/flx_models.py",
         "src/fpbench/experiments/stage8b_flx_runtime_qualification.py",
@@ -67,6 +69,16 @@ _ALLOWED_EXACT_CHANGES = frozenset(
         "tests/regression/test_sourceafis_unmoved_after_nbis.py",
     }
 )
+
+# These two paths changed after the Stage 8B baseline only to make the already
+# published Stage 8A/8B evidence byte-stable across Windows and Linux.  They are
+# allowed by exact Git blob identity, not as open-ended exceptions.
+_HISTORICAL_REPAIR_BLOBS = {
+    ".gitattributes": "3eaaa466802e78d34758bedc7a9d34c94478e7ff",
+    "evidence/stage8a-modern-matcher-selection/stage-8a-finalization.json": (
+        "4a4f8a08fdcdb636f69a8eb29e81aa774794feea"
+    ),
+}
 _ALLOWED_CHANGE_PREFIXES = (
     "configs/flx/",
     "evidence/stage8b-flx-runtime-qualification/",
@@ -275,6 +287,12 @@ def verify_stage8b_workspace_boundaries(
         raise Stage8BFinalizationError(
             f"paths outside Stage 8B changed during Stage 8B: {forbidden}"
         )
+    for path, expected_blob in _HISTORICAL_REPAIR_BLOBS.items():
+        actual = _git_output(repository_root, "rev-parse", f"{span_end_commit}:{path}")
+        if actual != (expected_blob,):
+            raise Stage8BFinalizationError(
+                f"historical evidence repair {path} is not the reviewed Git blob"
+            )
     unpublished = sorted(
         path
         for path in _git_output(

@@ -1,1 +1,3 @@
 evidence/stage8a-modern-matcher-selection/* text eol=lf
+configs/flx/* text eol=lf
+evidence/stage8b-flx-runtime-qualification/* text eol=lf

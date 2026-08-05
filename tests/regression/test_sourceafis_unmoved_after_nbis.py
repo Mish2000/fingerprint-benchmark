@@ -169,6 +169,22 @@ NBIS_EVIDENCE_DIRECTORIES = frozenset(
     }
 )
 
+#: Directories published *after* NBIS, which are therefore not "earlier
+#: receipts" and are not what this module is about. Stage 8B's adapter profile
+#: names `nbis_result` on purpose: it is one of the inputs the learned matcher
+#: must never receive, and listing it is the point.
+#:
+#: Without this the checks below read as "no evidence directory anywhere may
+#: contain the word", which no later stage can satisfy — the same widening
+#: mistake docs/adr/0067 corrected in Stage 8A's boundary audit.
+LATER_STAGE_EVIDENCE_DIRECTORIES = frozenset(
+    {
+        "stage8a-modern-matcher-selection",
+        "stage8b-flx-runtime-qualification",
+    }
+)
+EXEMPT_EVIDENCE_DIRECTORIES = NBIS_EVIDENCE_DIRECTORIES | LATER_STAGE_EVIDENCE_DIRECTORIES
+
 
 def test_no_earlier_receipt_was_upgraded_to_a_newer_schema():
     """Section 51: the receipts issued before NBIS stay exactly as they were.
@@ -178,7 +194,7 @@ def test_no_earlier_receipt_was_upgraded_to_a_newer_schema():
     it catches a re-issue, a re-render and a silent upgrade alike.
     """
     for directory in sorted(EVIDENCE.iterdir()):
-        if not directory.is_dir() or directory.name in NBIS_EVIDENCE_DIRECTORIES:
+        if not directory.is_dir() or directory.name in EXEMPT_EVIDENCE_DIRECTORIES:
             continue
         for path in sorted(directory.glob("*.json")):
             payload = json.loads(path.read_text(encoding="utf-8"))
@@ -194,7 +210,7 @@ def test_no_earlier_receipt_acquired_the_second_schema_version():
     (docs/adr/0055).
     """
     for directory in sorted(EVIDENCE.iterdir()):
-        if not directory.is_dir() or directory.name in NBIS_EVIDENCE_DIRECTORIES:
+        if not directory.is_dir() or directory.name in EXEMPT_EVIDENCE_DIRECTORIES:
             continue
         for path in sorted(directory.glob("*.json")):
             payload = json.loads(path.read_text(encoding="utf-8"))

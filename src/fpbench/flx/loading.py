@@ -208,6 +208,10 @@ def _stage8a_finalization_fingerprint(repository_root: Path) -> str:
         / "stage8a-modern-matcher-selection"
         / "stage-8a-finalization.json"
     )
+    if not path.is_file():
+        raise Stage8BFinalizationError(
+            "Stage 8B binds to the published Stage 8A finalization, which is not here"
+        )
     payload = _read_unique_json(path)
     fingerprint = str(payload.get("fingerprint", ""))
     if len(fingerprint) != 64:

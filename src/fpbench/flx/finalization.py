@@ -59,6 +59,12 @@ _ALLOWED_EXACT_CHANGES = frozenset(
         "src/fpbench/experiments/stage8b_flx_runtime_qualification.py",
         "src/fpbench/storage/flx_store.py",
         "tests/flxworld.py",
+        # A Stage 7B regression guard that treated every evidence directory as
+        # an earlier receipt. Stage 8B's adapter profile names `nbis_result` on
+        # purpose — it is an input the learned matcher must never receive — so
+        # the guard was taught which directories postdate NBIS. Its assertions
+        # over the seven SourceAFIS artefacts are untouched.
+        "tests/regression/test_sourceafis_unmoved_after_nbis.py",
     }
 )
 _ALLOWED_CHANGE_PREFIXES = (

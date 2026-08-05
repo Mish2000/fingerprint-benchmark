@@ -1,0 +1,149 @@
+# Stage 8C: the qualified flx route over the canonical SD300 comparisons
+# SourceAFIS and NBIS already ran.
+#
+# This file selects nothing. Every identifier in it names something that already
+# exists and was produced by an earlier, finalised stage: the reference run, its
+# plan, its result set, the immutable 500 ppi input set all three were built
+# from, and the Stage 8B qualification that decided this route may be executed at
+# benchmark scale at all. No cohort is chosen here, no pair is generated here,
+# and no new prepared image is materialised here — Stage 8C reuses the pair
+# manifest of run_4c59fa02a6ab, row for row, in its order (docs/adr/0074).
+#
+# There is no threshold in this file and there will not be one. The flx score is
+# dot(texture) + dot(minutia) in [-2, 2] from an author-supplied implementation
+# nobody has published an operating point for, and a threshold may not be chosen
+# from the SD300 scores this run is about to produce. What Stage 8C publishes is
+# 6,000 stored outcomes and the operational facts beside them — no distribution,
+# no summary statistic, no decision (docs/adr/0076, docs/adr/0003).
+#
+# The execution controls are *not* the reference run's, and that is deliberate
+# and checked. Everything that decides which pixels are opened is identical; the
+# job deadline is new, because 60 seconds was a budget chosen for a Java matcher
+# and this route spends five deadlined operations inside one job. See
+# configs/execution/flx_canonical500_sequential_no_retry_v1.yaml and
+# docs/adr/0074.
+
+experiment_id: flx_canonical500_full_v1
+kind: research
+replicate_index: 0
+
+dataset_config: configs/datasets/sd300.yaml
+protocol_config: configs/protocols/sd300_50_subjects.yaml
+algorithm_config: configs/algorithms/flx_deepprint_texminu_512_without_localization_v1.yaml
+
+# Every participating image must carry VERIFIED checksum evidence, exactly as
+# the reference run required.
+require_verified_checksums: true
+
+# ---------------------------------------------------------------------------
+# The Stage 8B qualification this run is bound to.
+#
+# Each value is re-derived at preparation time from the published Stage 8B
+# evidence and from this repository's own source, and preparation stops on any
+# mismatch — before a run exists, before an image is opened. Restating them here
+# is what makes the binding reviewable in a diff rather than only in code.
+# ---------------------------------------------------------------------------
+stage8b:
+  finalization_fingerprint: aa6897bf25c7b6565647da3566e6ab6446ae6104b2511034fed0fdb08cb13373
+  outcome: FLX_RAW_SCORE_EXECUTION_READY
+
+  algorithm_id: flx_deepprint_texminu_512_without_localization
+  adapter_id: flx_pytorch_subprocess
+  adapter_version: 1
+
+  runtime_profile_id: flx_cpu_linux_x86_64_v1
+  runtime_manifest_fingerprint: 948dd24f43835bc5a9777ef75e2ba4f31950d26a850bda971032d0ae08857a02
+
+  preprocessing_profile_id: fpbench_canonical500_to_flx299_squarepad_v1
+  preprocessing_profile_fingerprint: 9c0bbb9c5eabe646051fa659bee0aad7de50b7e56d566cc0d2d55fc4ab2e19f2
+
+  representation_profile_id: flx_texminu_256x2_v1
+  representation_profile_fingerprint: 7b9f84b05feaf61d3050bd489561d52c80d825d449e11490360b4e197b3a25a5
+
+  score_profile_id: flx_texminu_equal_branch_dot_v1
+  score_profile_fingerprint: 69848f2416a997484430ce0f6b5cf054586cb0e58968e986479e90ddc6563a61
+
+  adapter_profile_fingerprint: dc4c0ccc1fdb4028584f38c340e1761bd3261bf01e42b965f1785425fcc7d84c
+
+artifact:
+  # Never copied into the workspace and never published. Verified by full
+  # re-hash before every model load (docs/adr/0072, docs/adr/0077).
+  source_commit: 7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13
+  source_archive_sha256: 60fa2c8894ea90efe2bb0553cd331d8ef84611b973b6126eaf6d162d1aa9b7e2
+  checkpoint_filename: best_model.pyt
+  checkpoint_sha256: 2683a04427bacd54adc00cfdc97474625b1e11e5a9e6672c5129f033018f8a28
+  checkpoint_size_bytes: 875770140
+
+# ---------------------------------------------------------------------------
+# The canonical experiment this run is aligned against.
+# ---------------------------------------------------------------------------
+reference:
+  run_id: run_4c59fa02a6ab
+  plan_id: plan_b4ae66e91923
+  result_set_id: resultset_087b084fb8a8
+  cohort_id: sd300_50_subjects_test_22f8d52a7478
+  pair_manifest_hash: ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b
+
+preparation:
+  set_id: prepset_be560e047991
+  set_fingerprint: be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f
+  transform_profile_id: canonical_gray8_500ppi_lanczos3_v1
+  transform_profile_fingerprint: 28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373
+  transform_runtime_fingerprint: 31a0a4346a3dd07843513cc1de5b167d8f2795b230a82bac709913032b74579c
+  target_ppi: 500
+
+expected:
+  jobs: 6000
+  pairs_per_release_stage: 500
+  pairs_per_release: 2000
+  pairs_per_stage: 1500
+  releases: [SD300A, SD300B, SD300C]
+  subjects: 50
+  participating_images: 3000
+
+  # Which resolution each release's artefacts were scaled *from*. Checked
+  # through the preparation entries: by the time the adapter reads a file it is
+  # already 500 ppi and the source resolution is no longer inferable
+  # (docs/adr/0032).
+  source_ppi:
+    SD300A: 500
+    SD300B: 1000
+    SD300C: 2000
+
+# ---------------------------------------------------------------------------
+# The operations one job performs, and what they cost in model rows.
+#
+# Twelve thousand logical extractions, twenty-four thousand physical forward
+# rows, and the two are never conflated (docs/adr/0070, docs/adr/0075).
+# ---------------------------------------------------------------------------
+operations:
+  preprocess_calls_per_comparison: 2
+  logical_extractions_per_comparison: 2
+  comparisons_per_job: 1
+  inference_batch_rows: 2
+  inference_batch_rule: duplicate_pair_take_first_row
+  represented_row: 0
+
+execution:
+  profile_config: configs/execution/flx_canonical500_sequential_no_retry_v1.yaml
+  profile_id: flx_canonical500_sequential_no_retry_v1
+  sequential: true
+  max_workers: 1
+  retries: 0
+  job_deadline_seconds: 480
+
+runtime:
+  # The reference run's own policy, unchanged, so the two runs pin their
+  # runtimes the same way.
+  materialization_policy: content_addressed_copy_v1
+  research_mode: true
+
+  # Stage 8C materialises no image. Every pixel it reads belongs to
+  # prepset_be560e047991 and was written by Stage 6A (spec section 11).
+  image_materialization_policy: reference_existing_prepared_images
+
+reporting:
+  operational_summary: true   # timings, counts and failure codes only
+  biometric_metrics: false    # no FMR, no FNMR, no EER, no accuracy claim
+  score_statistics: false     # no mean, no median, no distribution of scores
+  score_export: false         # no score row leaves the workspace

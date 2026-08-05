@@ -48,4 +48,7 @@ markers = [
     "stage8b_contract: the frozen Stage 8B protocol — identities, profile schemas, the transform rule, the score contract, the subprocess protocol, negative cases and tampering (no torch, no checkpoint, no network, no dataset)",
     "flx_runtime: needs the pinned flx CPU runtime bundle and the local source and checkpoint (set FPBENCH_FLX_RUNTIME and FPBENCH_FLX_ARTIFACT_ROOT)",
     "stage8b: the committed Stage 8B runtime-qualification evidence gate (no dataset and no prior-result workspace)",
+    "stage8c_contract: the frozen Stage 8C protocol — identities, strict config, the 6,000-pair shape, the flx adapter contract, Decimal result semantics, alignment and finalization models, negative cases and tampering (no torch, no checkpoint, no dataset, no prior results)",
+    "stage8c_full_run: the stage 8C workspace — the canonical 6,000 comparisons under flx (needs the dataset, the pinned flx bundle and the finished SourceAFIS chain)",
+    "stage8c: the committed Stage 8C raw-run evidence gate (no dataset and no prior-result workspace)",
 ]

@@ -1,0 +1,153 @@
+# The flx learned-representation route, as Stage 8B qualified it.
+#
+# The algorithm is deliberately not called "DeepPrint". What runs is one
+# author-supplied implementation of one variant, from one pinned commit, with
+# one pinned checkpoint, and the identity says so (docs/adr/0066,
+# docs/adr/0069).
+#
+# Everything in this file is either an identity that must not drift or a
+# statement about what is deliberately *not* done. The adapter derives all of it
+# itself from `fpbench.flx.identity`, so a mistake here cannot change what runs
+# — it can only disagree with it, and a contract test says so.
+#
+# There is no threshold in this file and there will not be one. The score is
+# dot(texture) + dot(minutia) in [-2, 2] from an implementation nobody has
+# published an operating point for, and a threshold may not be chosen from the
+# SD300 scores this route is about to produce (docs/adr/0065, docs/adr/0076).
+
+algorithm:
+  id: flx_deepprint_texminu_512_without_localization
+  display_name: flx DeepPrint TexMinu 512 (without localization)
+  adapter_id: flx_pytorch_subprocess
+
+  # For reference only. The authority is fpbench.flx.identity.
+  adapter_version: "1"
+  implementation_version: "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+  implementation_origin: independent_reimplementation
+  upstream_study: Rohwedder et al., BIOSIG 2023
+  checkpoint_variant: DeepPrint_TexMinu_512_without_localization
+  score_direction: higher_is_more_similar
+
+  # The weights are executed locally under the project owner's explicit
+  # instruction. That permission is not a licence finding, and this file keeps
+  # saying so (docs/adr/0068).
+  weights_license_status: unresolved
+  redistribution_allowed: not_established
+
+artifacts:
+  # Re-stated from the Stage 8A acquisition manifest and re-verified by
+  # `verify_bundle_artifacts()` before every model load. A mismatch is an
+  # immediate failure, not a warning.
+  source_commit: 7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13
+  source_archive_sha256: 60fa2c8894ea90efe2bb0553cd331d8ef84611b973b6126eaf6d162d1aa9b7e2
+  checkpoint_filename: best_model.pyt
+  checkpoint_sha256: 2683a04427bacd54adc00cfdc97474625b1e11e5a9e6672c5129f033018f8a28
+  checkpoint_size_bytes: 875770140
+
+pipeline:
+  family_id: flx
+  pipeline_kind: extract_then_match
+
+  extractor_id: flx_texminu_extractor
+  matcher_id: flx_texminu_equal_branch_dot
+
+  implementation_language: python
+  integration_mode: single_persistent_worker_subprocess
+
+  # The canonical 500 ppi PNG is read as bytes and handed to the worker. The
+  # 299x299 tensor the worker builds from it is a temporary model input: it is
+  # never written to the workspace, never given a manifest and never shared
+  # between comparisons (docs/adr/0071, spec section 7).
+  input_mode: canonical_gray8_png_bytes_to_declared_transform
+  model_input_side: 299
+  pad_fill_value: 255
+
+  probe_side: left
+
+  representation_cache: disabled
+  representation_persistence: disabled
+  score_cache: disabled
+  seed_usage: ignored_route_is_deterministic_inference
+
+# What the pinned texture branch forces, and what the route does about it. One
+# logical extraction is two identical physical forward rows with the two output
+# rows asserted bitwise equal, and row 0 is represented. The two counts are
+# reported separately and never conflated (docs/adr/0070, docs/adr/0075).
+inference:
+  inference_batch_rows: 2
+  inference_batch_rule: duplicate_pair_take_first_row
+  represented_row: 0
+  batch_rows_are_asserted_bitwise_equal: true
+
+# The Stage 8B profiles this route is bound to. Each fingerprint is a published
+# Stage 8B document; the adapter recomputes all four from this repository's
+# source and refuses to run if any of them has moved.
+profiles:
+  runtime_profile_id: flx_cpu_linux_x86_64_v1
+  runtime_manifest_fingerprint: 948dd24f43835bc5a9777ef75e2ba4f31950d26a850bda971032d0ae08857a02
+
+  preprocessing_profile_id: fpbench_canonical500_to_flx299_squarepad_v1
+  preprocessing_profile_fingerprint: 9c0bbb9c5eabe646051fa659bee0aad7de50b7e56d566cc0d2d55fc4ab2e19f2
+
+  representation_profile_id: flx_texminu_256x2_v1
+  representation_profile_fingerprint: 7b9f84b05feaf61d3050bd489561d52c80d825d449e11490360b4e197b3a25a5
+
+  score_profile_id: flx_texminu_equal_branch_dot_v1
+  score_profile_fingerprint: 69848f2416a997484430ce0f6b5cf054586cb0e58968e986479e90ddc6563a61
+
+  score_serialization_profile_id: ieee_scalar_to_decimal17_v1
+  adapter_profile_fingerprint: dc4c0ccc1fdb4028584f38c340e1761bd3261bf01e42b965f1785425fcc7d84c
+
+# The score contract, restated for a reader. The authority is
+# fpbench.flx.identity and fpbench.flx.score; a test asserts they agree.
+score:
+  formula: dot(texture_left, texture_right) + dot(minutia_left, minutia_right)
+  branch_weights: ["1", "1"]
+  nominal_minimum: "-2"
+  nominal_maximum: "2"
+  range_validation_tolerance: "0.000000476837158203125"
+  range_validation_policy: nominal_bounds_plus_symmetric_tolerance_no_clamp
+  significant_digits: 17
+
+  # Everything a matcher usually does after the dot products, and does not do
+  # here (docs/adr/0065, docs/adr/0073).
+  calibration: none
+  normalization: none
+  clamping: none
+  fallback_matcher: none
+  quality_adjustment: none
+  realignment: none
+
+# The three files pinned into the runtime bundle. The source archive and the
+# checkpoint are pinned by frozen digest instead, and never enter the workspace:
+# copying 875 MB of licence-unresolved weights would be a redistribution nobody
+# has established permission for (docs/adr/0077, docs/adr/0068).
+#
+#   flx_worker_script    integrations/flx/worker/flx_worker.py
+#   flx_runtime_lock     configs/flx/flx_runtime_lock_v1.txt
+#   flx_runtime_policy   configs/flx/stage8b_flx_runtime_policy_v1.yaml
+#
+# Where the 2.06 GB bundle itself lives is a fact about a machine, so it is not
+# in this file: it comes from FPBENCH_FLX_BUNDLE or from the default cache path.
+adapter:
+  runtime_asset_roles:
+    - flx_worker_script
+    - flx_runtime_lock
+    - flx_runtime_policy
+  primary_runtime_asset_role: flx_worker_script
+  supported_targets:
+    - linux/x86_64
+
+  # Fields the adapter must never receive. Named so the exclusion is auditable
+  # rather than merely true today; the list is asserted against
+  # `fpbench.flx.integration.FORBIDDEN_INPUTS`.
+  forbidden_inputs:
+    - subject_id
+    - finger_position
+    - release
+    - pair_kind
+    - mated
+    - expected_decision
+    - threshold
+    - sourceafis_result
+    - nbis_result

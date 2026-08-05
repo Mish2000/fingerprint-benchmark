@@ -1,0 +1,49 @@
+# The execution profile for the Stage 8C flx run over canonical 500 ppi inputs.
+#
+# It is a new profile, not a copy of canonical_500_lanczos3_60s_v1, and the one
+# thing that differs is the budget. The reference profile gives an adapter 60
+# seconds per comparison, which was chosen for a Java matcher. The flx route
+# spends two preprocess calls, two extraction calls and one comparison inside a
+# single job, and Stage 8B already froze a deadline for each of those
+# separately. `timeout_seconds` here is the engine's *job* deadline and does not
+# replace them (docs/adr/0074, spec section 11).
+#
+#     2 x preprocess   2 x 60 s   = 120 s
+#     2 x extract      2 x 120 s  = 240 s
+#     1 x compare      1 x  60 s  =  60 s
+#     orchestration margin                60 s
+#                                        ----
+#     job deadline                        480 s
+#
+# Everything that decides *which pixels* are opened is identical to the
+# reference profile, character for character, because it names the same
+# immutable input set. Those parameters are what the alignment report checks and
+# what PreparedInputExpectations validates every stored result against.
+#
+# Every value under `parameters` is a string, because that is what
+# `ExecutionProfile` holds and the profile hash is taken over exactly those
+# strings.
+#
+# There is no threshold here, no decision profile and no retry count above zero.
+# A failed comparison is a recorded outcome; re-running only the failures would
+# produce a run whose results came from two attempts (docs/adr/0013).
+
+profile:
+  profile_id: flx_canonical500_sequential_no_retry_v1
+  preparer_id: canonical_500_png
+  timeout_seconds: 480
+  deterministic_seed: 0
+
+parameters:
+  resolution_mode: canonical_500
+  target_ppi: "500"
+
+  transform_profile_id: canonical_gray8_500ppi_lanczos3_v1
+  transform_profile_fingerprint: "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373"
+
+  preparation_set_id: "prepset_be560e047991"
+  preparation_set_fingerprint: "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f"
+
+  output_media_type: image/png
+  output_pixel_format: gray8
+  output_ppi_metadata_policy: fixed_500

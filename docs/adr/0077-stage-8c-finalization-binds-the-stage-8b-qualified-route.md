@@ -50,6 +50,16 @@ inside it, at one version and one wheel digest; the policy is every deadline it
 runs under. All three are small, committed, and byte-identical to what a
 reviewer can read in this repository.
 
+The lock and the policy are read from the bundle's own copies, so a run is
+literally driven by the dependency set and the deadlines it recorded. The worker
+script is treated differently: Stage 8B's `FlxLearnedFingerprintIntegration`
+starts it at its repository path, and Stage 8C does not reach into a qualified
+route to redirect it. Instead the pinned copy is proved byte-identical to the
+file that will execute, before the adapter exists. That establishes the same
+fact — the bytes in this run's bundle are the bytes that ran — without modifying
+anything the Stage 8B qualification rests on, and a repository script that
+differs from the pinned one is a hard failure rather than a warning.
+
 The source archive and the checkpoint are pinned by
 `fpbench.flx.identity.SOURCE_ARCHIVE_SHA256` and `CHECKPOINT_SHA256`, which are
 frozen constants re-verified by `verify_bundle_artifacts()` — full re-hash of

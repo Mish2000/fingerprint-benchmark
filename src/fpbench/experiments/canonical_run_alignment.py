@@ -83,6 +83,7 @@ __all__ = [
     "canonical_run_alignment_fingerprint",
     "load_candidate_alignment_side",
     "load_reference_alignment_side",
+    "require_canonical_input_controls_equal",
     "require_clean_alignment",
     "require_execution_controls_equal",
     "pair_semantics_row",
@@ -1000,6 +1001,110 @@ def require_execution_controls_equal(
         raise ResearchPreflightError(
             "the NBIS run does not reproduce the reference run's execution "
             f"controls: {'; '.join(differences)}"
+        )
+
+
+def require_canonical_input_controls_equal(
+    reference_run: RunDefinition,
+    candidate_spec: object,
+    *,
+    reference_materialization_policy: str | None = None,
+) -> None:
+    """The candidate run opens the reference run's pixels, under its own budget.
+
+    The narrower sibling of :func:`require_execution_controls_equal`, for a
+    candidate that cannot reproduce the reference run's *timeout* and must
+    reproduce everything else.
+
+    That case is real rather than hypothetical. The canonical execution profile
+    gives an adapter 60 seconds per comparison, which was chosen for a Java
+    matcher. A route that spends five separately deadlined operations inside one
+    job — two preprocess calls, two extractions and one comparison — would have
+    its outcome decided by whichever timeout fired first, so it declares its own
+    job deadline and reproduces every input control exactly (docs/adr/0074).
+
+    Checked here, and it is the complete list:
+
+    * the preparer, so the same code produced the bytes;
+    * every execution-profile parameter that names an input — the input set, its
+      fingerprint, the transform profile and its fingerprint, the target
+      resolution, the output format;
+    * the deterministic seed and the replicate index;
+    * research mode, and that the reference is a research run at all;
+    * the runtime materialization policy.
+
+    Deliberately *not* checked: ``profile_id`` and ``timeout_seconds``. Those are
+    the two the caller is declaring different, and a function that checked them
+    anyway would be the strict sibling under another name.
+
+    ``candidate_spec`` is duck-typed on purpose, exactly as its sibling is.
+
+    Raises:
+        ResearchPreflightError: any input control differs.
+    """
+    profile = getattr(candidate_spec, "execution_profile")
+    reference_profile = reference_run.execution_profile
+
+    differences: list[str] = []
+    if reference_profile.preparer_id != profile.preparer_id:
+        differences.append(
+            f"preparer_id: reference {reference_profile.preparer_id!r} vs "
+            f"candidate {profile.preparer_id!r}"
+        )
+    for label, first, second in (
+        (
+            "deterministic_seed",
+            str(reference_profile.deterministic_seed),
+            str(profile.deterministic_seed),
+        ),
+        (
+            "replicate_index",
+            str(reference_run.replicate_index),
+            str(getattr(candidate_spec, "replicate_index")),
+        ),
+    ):
+        if first != second:
+            differences.append(f"{label}: reference {first!r} vs candidate {second!r}")
+
+    # Every parameter, not a chosen subset. The profile's parameters are exactly
+    # the strings its hash is taken over, and any one of them naming a different
+    # input set, transform or resolution would mean two runs over two different
+    # sets of pixels (docs/adr/0031).
+    reference_parameters = dict(reference_profile.parameters)
+    candidate_parameters = dict(profile.parameters)
+    if reference_parameters != candidate_parameters:
+        keys = sorted(set(reference_parameters) | set(candidate_parameters))
+        changed = [
+            key
+            for key in keys
+            if reference_parameters.get(key) != candidate_parameters.get(key)
+        ]
+        differences.append(f"execution profile parameters differ in {changed}")
+
+    if not getattr(candidate_spec, "research_mode", False):
+        differences.append(
+            "research_mode: the reference run recorded research provenance and "
+            "the candidate declares research_mode=false"
+        )
+    if not reference_run.environment.runtime.get("fpbench.source.revision"):
+        differences.append(
+            "the reference run records no fpbench source revision, so it is not a "
+            "research run at all (docs/adr/0017)"
+        )
+
+    policy = getattr(candidate_spec, "materialization_policy", None)
+    if reference_materialization_policy is not None and policy != (
+        reference_materialization_policy
+    ):
+        differences.append(
+            f"materialization_policy: reference "
+            f"{reference_materialization_policy!r} vs candidate {policy!r}"
+        )
+
+    if differences:
+        raise ResearchPreflightError(
+            "the candidate run does not open the reference run's inputs under "
+            f"the reference run's input controls: {'; '.join(differences)}"
         )
 
 

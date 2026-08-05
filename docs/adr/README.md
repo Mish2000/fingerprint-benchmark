@@ -80,6 +80,10 @@ can be held to.
 | [0071](0071-the-stage-8b-transform-is-declared-not-inherited.md) | The Stage 8B transform is declared, not inherited | Accepted, implemented |
 | [0072](0072-the-flx-runtime-is-a-bundle-pinned-by-bytes.md) | The flx runtime is a bundle, pinned by bytes | Accepted, implemented |
 | [0073](0073-a-raw-score-is-a-decimal-and-is-never-clamped.md) | A raw score is a Decimal, and is never clamped | Accepted, implemented |
+| [0074](0074-stage-8c-reuses-the-canonical-pair-and-input-authority.md) | Stage 8C reuses the canonical pair and input authority | Accepted, implemented |
+| [0075](0075-logical-extractions-and-physical-forward-rows-are-different-counts.md) | Logical extractions and physical forward rows are different counts | Accepted, implemented |
+| [0076](0076-stage-8c-publishes-no-score-distribution-or-decision.md) | Stage 8C publishes no score distribution or decision | Accepted, implemented |
+| [0077](0077-stage-8c-finalization-binds-the-stage-8b-qualified-route.md) | Stage 8C finalization binds the Stage 8B qualified route | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

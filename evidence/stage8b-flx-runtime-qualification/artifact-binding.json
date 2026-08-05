@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "binding_id": "flx_artifact_binding_v1",
+  "algorithm_id": "flx_deepprint_texminu_512_without_localization",
+  "source_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+  "source_archive_sha256": "60fa2c8894ea90efe2bb0553cd331d8ef84611b973b6126eaf6d162d1aa9b7e2",
+  "source_tree_verified_files": 6,
+  "checkpoint_filename": "best_model.pyt",
+  "checkpoint_sha256": "2683a04427bacd54adc00cfdc97474625b1e11e5a9e6672c5129f033018f8a28",
+  "checkpoint_size_bytes": 875770140,
+  "checkpoint_variant": "DeepPrint_TexMinu_512_without_localization",
+  "implementation_origin": "independent_reimplementation",
+  "upstream_study": "Rohwedder et al., BIOSIG 2023",
+  "upstream_relationship": "author-supplied implementation for the BIOSIG 2023 study, independently reimplementing the DeepPrint architecture family",
+  "stage8a_manifest_fingerprint": "46b36b0266a3173f22289ce9c2262cc0812cb148d8e1c7b6a3da909a1d6927f3",
+  "weights_license_status": "unresolved",
+  "redistribution_allowed": "not_established",
+  "publication_permission": "not_established",
+  "checkpoint_committed_to_git": false,
+  "downloaded_during_inference": false,
+  "inspected_utc": "2026-08-05T12:00:00+00:00",
+  "fingerprint": "f51bca79bd2698a439becfe14930f49e04fd11bcfa830473928696cab84b766f"
+}

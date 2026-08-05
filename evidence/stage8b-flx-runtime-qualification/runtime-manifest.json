@@ -1,0 +1,149 @@
+{
+  "schema_version": "1",
+  "runtime_profile_id": "flx_cpu_linux_x86_64_v1",
+  "os_name": "Linux",
+  "os_version": "Ubuntu 24.04.4 LTS",
+  "kernel_release": "6.18.33.2-microsoft-standard-WSL2",
+  "cpu_architecture": "x86_64",
+  "cpu_model": "Intel(R) Core(TM) Ultra 9 275HX",
+  "python_version": "3.12.3",
+  "python_implementation": "CPython",
+  "torch_version": "2.13.0+cpu",
+  "torchvision_version": "0.28.0+cpu",
+  "numpy_version": "2.5.1",
+  "blas_implementation": "Intel(R) oneAPI Math Kernel Library Version 2024.2-Product Build 20240605 for Intel(R) 64 architecture applications",
+  "mkldnn_version": "Intel(R) MKL-DNN v3.12.0 (Git Hash 80afa71049cd69a3df32adcccb623b12cd7baa22)",
+  "parallel_backend": "OpenMP",
+  "torch_num_threads": 1,
+  "torch_num_interop_threads": 1,
+  "device": "cpu",
+  "cuda_available": false,
+  "dependency_lock_sha256": "e0ee3a5f902a84df000310d2d495cb433e1cd8bb3bc98d48475f9f552036d392",
+  "dependencies": [
+    {
+      "schema_version": "1",
+      "name": "filelock",
+      "version": "3.32.2",
+      "artifact_filename": "filelock-3.32.2-py3-none-any.whl",
+      "artifact_sha256": "87dd94cf281e586d135fa51132b8e3d9a598b316e90377a288663c9321036c82",
+      "source_index": "https://pypi.org/simple",
+      "fingerprint": "e35b3d8e21f0b5011cf78792f4b6c4c1e36c3e626cb35a2dd23452452aab37a7"
+    },
+    {
+      "schema_version": "1",
+      "name": "fsspec",
+      "version": "2026.7.0",
+      "artifact_filename": "fsspec-2026.7.0-py3-none-any.whl",
+      "artifact_sha256": "b57ddbafedfaef7018c1ecab32aa200a9d7ca26b77965f64e48b70061249d279",
+      "source_index": "https://pypi.org/simple",
+      "fingerprint": "029eb7f3fc33582b16a4b6b18d3805edb59eb019f4902c719678deac5f2afd11"
+    },
+    {
+      "schema_version": "1",
+      "name": "jinja2",
+      "version": "3.1.6",
+      "artifact_filename": "jinja2-3.1.6-py3-none-any.whl",
+      "artifact_sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+      "source_index": "https://pypi.org/simple",
+      "fingerprint": "774c7abc3d92e5184de0add68110f3049dc2be58ed0fa5e6303062d5c908c13d"
+    },
+    {
+      "schema_version": "1",
+      "name": "markupsafe",
+      "version": "3.0.3",
+      "artifact_filename": "markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "artifact_sha256": "d6dd0be5b5b189d31db7cda48b91d7e0a9795f31430b7f271219ab30f1d3ac9d",
+      "source_index": "https://pypi.org/simple",
+      "fingerprint": "57a05fbf0a3fb2dbe2469dc7114b7110531bfc1aa6ccfbd34e8ace7f211a65d0"
+    },
+    {
+      "schema_version": "1",
+      "name": "mpmath",
+      "version": "1.3.0",
+      "artifact_filename": "mpmath-1.3.0-py3-none-any.whl",
+      "artifact_sha256": "a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c",
+      "source_index": "https://pypi.org/simple",
+      "fingerprint": "0462de63f06eff80900ba16496d2e21a300ab329e9ba71707c50661d89258acd"
+    },
+    {
+      "schema_version": "1",
+      "name": "networkx",
+      "version": "3.6.1",
+      "artifact_filename": "networkx-3.6.1-py3-none-any.whl",
+      "artifact_sha256": "d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762",
+      "source_index": "https://pypi.org/simple",
+      "fingerprint": "b0f2880b8db9b7bd4e3e2bcd72ccad77773b7c9ba14b4051a4f6032ef1e8c6f8"
+    },
+    {
+      "schema_version": "1",
+      "name": "numpy",
+      "version": "2.5.1",
+      "artifact_filename": "numpy-2.5.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+      "artifact_sha256": "59fda5e192b570217ec2580c96f00e9a7e12ef6866a900eb089b62c1a32545ca",
+      "source_index": "https://pypi.org/simple",
+      "fingerprint": "058feab71629a9cdd13f456a8ddc05261cc59ae32d7cb6dac6814f67d02cfcd6"
+    },
+    {
+      "schema_version": "1",
+      "name": "pillow",
+      "version": "12.3.0",
+      "artifact_filename": "pillow-12.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+      "artifact_sha256": "78cb2c6865a35ab8ff8b75fd122f6033b92a62c82801110e48ddd6c936a45d91",
+      "source_index": "https://pypi.org/simple",
+      "fingerprint": "e58da63a3d438dd89b799ecae0bf95c9bed650deb0c50f73ca3a029908b519e3"
+    },
+    {
+      "schema_version": "1",
+      "name": "setuptools",
+      "version": "83.0.0",
+      "artifact_filename": "setuptools-83.0.0-py3-none-any.whl",
+      "artifact_sha256": "29b23c360f22f414dc7336bb39178cc7bcbf6021ed2733cde173f09dba19abb3",
+      "source_index": "https://pypi.org/simple",
+      "fingerprint": "7205d9d2d7c7baa3b2c8812e8ff41f540a8fc32e847fcf84e95c9c07f4cfc839"
+    },
+    {
+      "schema_version": "1",
+      "name": "sympy",
+      "version": "1.14.0",
+      "artifact_filename": "sympy-1.14.0-py3-none-any.whl",
+      "artifact_sha256": "e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5",
+      "source_index": "https://pypi.org/simple",
+      "fingerprint": "437d151ec87a76be03a7ebcd47673ed04a3988717a4fa8e36752bc8932542719"
+    },
+    {
+      "schema_version": "1",
+      "name": "torch",
+      "version": "2.13.0+cpu",
+      "artifact_filename": "torch-2.13.0+cpu-cp312-cp312-manylinux_2_28_x86_64.whl",
+      "artifact_sha256": "4ca4a9394b0c771238a4f73590fdbbc4debad85ed0fa63d026ae1b085da7d6e2",
+      "source_index": "https://download.pytorch.org/whl/cpu",
+      "fingerprint": "dafe224ac71d8a13e7777cb5a9b84af57847996ea1d23f6cc83633eeae070f0f"
+    },
+    {
+      "schema_version": "1",
+      "name": "torchvision",
+      "version": "0.28.0+cpu",
+      "artifact_filename": "torchvision-0.28.0+cpu-cp312-cp312-manylinux_2_28_x86_64.whl",
+      "artifact_sha256": "b545d46f4d2f9d30381281cf22874bfe1d32a8a7b0ee8396fccde89f30c6a9d9",
+      "source_index": "https://download.pytorch.org/whl/cpu",
+      "fingerprint": "4d884f50dd4b1169c6f4d1470be76e3f8cf3a933469899805056416aeaa56c89"
+    },
+    {
+      "schema_version": "1",
+      "name": "typing_extensions",
+      "version": "4.16.0",
+      "artifact_filename": "typing_extensions-4.16.0-py3-none-any.whl",
+      "artifact_sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+      "source_index": "https://pypi.org/simple",
+      "fingerprint": "3c306e8ed73abf59004203a8e39f3de3184842401a53ea297307c8ef934b24f7"
+    }
+  ],
+  "deterministic_environment": {
+    "HF_HOME": "/home/nbisbuild/.cache/fpbench/flx/flx_cpu_linux_x86_64_v1/offline-cache",
+    "MKL_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "TORCH_HOME": "/home/nbisbuild/.cache/fpbench/flx/flx_cpu_linux_x86_64_v1/offline-cache"
+  },
+  "created_utc": "2026-08-05T12:00:00+00:00",
+  "fingerprint": "7a720482b43ce2efb5ac1f91623839e147468c8d814b7707d8482fd7127bd6ae"
+}

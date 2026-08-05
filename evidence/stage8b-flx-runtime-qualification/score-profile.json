@@ -1,0 +1,30 @@
+{
+  "schema_version": "1",
+  "profile_id": "flx_texminu_equal_branch_dot_v1",
+  "formula": "dot(texture_left, texture_right) + dot(minutia_left, minutia_right)",
+  "score_direction": "higher_is_more_similar",
+  "nominal_minimum": "-2",
+  "nominal_maximum": "2",
+  "branch_weights": [
+    "1",
+    "1"
+  ],
+  "serialization": {
+    "schema_version": "1",
+    "profile_id": "ieee_scalar_to_decimal17_v1",
+    "significant_digits": 17,
+    "intermediate_form": "canonical decimal string with 17 significant digits, the digit count that always suffices to recover an IEEE double exactly",
+    "constructed_from": "the scalar returned by the pinned numpy.dot comparator",
+    "rounding_before_storage": false,
+    "fingerprint": "3df0dd3d6625362bed0ee9202471ec71ea88d1929c68bb7c6588f6711f2beedf"
+  },
+  "returns_decimal": true,
+  "symmetric": true,
+  "calibration": "none",
+  "normalization": "none",
+  "threshold": "none",
+  "fallback_matcher": "none",
+  "quality_adjustment": "none",
+  "realignment": "none",
+  "fingerprint": "ca03a74bdede7f322b67570057cd642e5792ade1e440cca89ec55f4b61d2fae2"
+}

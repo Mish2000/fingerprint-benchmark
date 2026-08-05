@@ -1,0 +1,137 @@
+{
+  "schema_version": "1",
+  "report_id": "flx_qualification_report_v1",
+  "protocol_id": "stage8b_flx_runtime_adapter_qualification_v1",
+  "algorithm_id": "flx_deepprint_texminu_512_without_localization",
+  "outcome": "FLX_RAW_SCORE_EXECUTION_READY",
+  "gates": [
+    {
+      "schema_version": "1",
+      "gate": "artifact_identity_verified",
+      "state": "passed",
+      "detail": "source archive, commit and checkpoint rehashed to the Stage 8A identities",
+      "failure_codes": [],
+      "fingerprint": "685e8ae84fbe4c14318bff8a8ed85fde9626e4c1c12ead45089940f6566f2ed9"
+    },
+    {
+      "schema_version": "1",
+      "gate": "runtime_identity_verified",
+      "state": "passed",
+      "detail": "the installed runtime is the locked one, single-threaded, CPU only",
+      "failure_codes": [],
+      "fingerprint": "25393878a767a6bf33c2986f10733c4f0e618d5a5a606595b9fcf80a58946ddc"
+    },
+    {
+      "schema_version": "1",
+      "gate": "checkpoint_loaded",
+      "state": "passed",
+      "detail": "the checkpoint loaded as pure tensors under weights_only",
+      "failure_codes": [],
+      "fingerprint": "20839613f01663237bf828558b2bf8fa456a57978a7060e4a2dca3550c0f1d59"
+    },
+    {
+      "schema_version": "1",
+      "gate": "model_variant_verified",
+      "state": "passed",
+      "detail": "the checkpoint identifies DeepPrint_TexMinu_512_without_localization",
+      "failure_codes": [],
+      "fingerprint": "df51edf2ce25b1638d423828c09893c72d03280db3084ecb0163dbe5a2319bbf"
+    },
+    {
+      "schema_version": "1",
+      "gate": "strict_key_validation",
+      "state": "passed",
+      "detail": "strict state-dict loading accepted every key with none left over",
+      "failure_codes": [],
+      "fingerprint": "544a6925ac01ce9cc4615e803838f2a9a627aa857a5a3b34d928c629639dd7fa"
+    },
+    {
+      "schema_version": "1",
+      "gate": "preprocessing_contract",
+      "state": "passed",
+      "detail": "the declared transform held on 6 synthetic fixtures",
+      "failure_codes": [],
+      "fingerprint": "a65601853c957835f9b482325cc0bcdd70de1de0b08cfac470ac129e25d7f886"
+    },
+    {
+      "schema_version": "1",
+      "gate": "representation_contract",
+      "state": "passed",
+      "detail": "every fixture produced a finite, normalized 256+256 representation from a model in eval mode with gradients disabled",
+      "failure_codes": [],
+      "fingerprint": "1cfa450a7bdf66f314e4a541e1f69e2a5a487c825122c5583bc511f4fa7b79bf"
+    },
+    {
+      "schema_version": "1",
+      "gate": "score_contract",
+      "state": "passed",
+      "detail": "raw scores are finite Decimals inside the nominal range, with no threshold",
+      "failure_codes": [],
+      "fingerprint": "1ad002d418d82175952fff5a373a306de91c1558bdaa1d7830191591082d314f"
+    },
+    {
+      "schema_version": "1",
+      "gate": "self_independence",
+      "state": "passed",
+      "detail": "SELF ran two preprocess calls and two independent extractions, returning distinct objects and consulting no cache",
+      "failure_codes": [],
+      "fingerprint": "840c4a123086c647238f103cecc386c910fa737de61ed3c44f193119ffde5ac6"
+    },
+    {
+      "schema_version": "1",
+      "gate": "determinism",
+      "state": "passed",
+      "detail": "repeated extraction, repeated comparison and input order are bitwise equal at tolerance 0",
+      "failure_codes": [],
+      "fingerprint": "3a70b1c73a22785417a5761226fcd86815c1905734cd93fd53defdfc6aeaa213"
+    },
+    {
+      "schema_version": "1",
+      "gate": "restart",
+      "state": "passed",
+      "detail": "a fresh process reproduced the representation, the score and the metadata",
+      "failure_codes": [],
+      "fingerprint": "c55851a17b415b33618a78fc7c1ca704255e76e88bcb2adc13cd3c5fadbf476d"
+    },
+    {
+      "schema_version": "1",
+      "gate": "offline_isolation",
+      "state": "passed",
+      "detail": "the network was sealed and nothing attempted to reach it",
+      "failure_codes": [],
+      "fingerprint": "d23698bd8336cdefe29f09fa446085a72563dbafc7a0d099c16db0900d08fbb9"
+    },
+    {
+      "schema_version": "1",
+      "gate": "operational",
+      "state": "passed",
+      "detail": "projections fit inside the limits frozen as stage8b_flx_runtime_policy_v1",
+      "failure_codes": [],
+      "fingerprint": "19cdeefd7299d3b7547d5c8ad602429ba158488c0e005da9e422a1054d44105a"
+    },
+    {
+      "schema_version": "1",
+      "gate": "architecture_fit",
+      "state": "passed",
+      "detail": "the route runs behind the existing adapter contract and read no benchmark input or prior result",
+      "failure_codes": [],
+      "fingerprint": "79ebebf4d45ae313b42e0dd8001a27ae2cb52a32b6900a38c790fcca8186a210"
+    },
+    {
+      "schema_version": "1",
+      "gate": "license_status",
+      "state": "passed",
+      "detail": "source licence clear; weights licence unresolved and recorded as such, with local execution instructed by the project owner and never presented as a licence finding (docs/adr/0068)",
+      "failure_codes": [],
+      "fingerprint": "379f6524797f08b20f7a6c432986b6e177cd8537e640eeab2c89fb64a833ae7b"
+    }
+  ],
+  "probe_fingerprint": "12462d875bb94a20817bbf73395fe3761584c489c7b005bd8aa78125191b9e5c",
+  "weights_license_status": "unresolved",
+  "redistribution_allowed": "not_established",
+  "publication_permission": "not_established",
+  "opens_stage_8c": true,
+  "permits_decisions": false,
+  "qualified_utc": "2026-08-05T12:00:00+00:00",
+  "fingerprint": "629f8a1f5dab8839b8ad435a2524ae910461766f58e60f30f59a353586174dec"
+}

@@ -1,0 +1,156 @@
+{
+  "schema_version": "1",
+  "profile_id": "fpbench_canonical500_to_flx299_squarepad_v1",
+  "input_contract": "canonical 500 ppi 8-bit grayscale PNG, one frame, non-interlaced",
+  "output_shape": [
+    1,
+    299,
+    299
+  ],
+  "output_dtype": "float32",
+  "value_minimum": "0",
+  "value_maximum": "1",
+  "padding_fill_value": 255,
+  "padding_parity_rule": "left_top_floor_right_bottom_remainder",
+  "resize_side": 299,
+  "interpolation": "torchvision.transforms.InterpolationMode.BILINEAR",
+  "antialias": true,
+  "dataset_independent": true,
+  "subject_independent": true,
+  "steps": [
+    {
+      "schema_version": "1",
+      "step_id": "decode",
+      "action": "decode the PNG container directly: signature, per-chunk CRC, IHDR, IEND",
+      "rationale": "a decoder handed a paletted or gamma-tagged file returns a grayscale raster anyway, having applied a colour policy this project never chose",
+      "fingerprint": "3dcccfe4e87756987719959acf0ff600ac157d444daae176bfb290149cc323e6"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "channel_count",
+      "action": "require exactly one channel (PNG colour type 0)",
+      "rationale": "a three-channel source would be silently averaged by most loaders",
+      "fingerprint": "c42209588d0b23e8b2531b5035fadd9048a195b164a046b23ccfb4f5d63fbdb5"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "bit_depth",
+      "action": "require exactly 8 bits per sample; 1, 2, 4 and 16 are refused",
+      "rationale": "libpng converts 16-bit down without saying so, which changes the pixels",
+      "fingerprint": "39623eab463301359492b876b7a3c73a1cdb58f27fbd3df970c18e57b3f385fa"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "polarity",
+      "action": "no inversion: ridges stay dark on a light background",
+      "rationale": "upstream trained on this polarity and nothing in the artifact declares another",
+      "fingerprint": "ecd52f663d34a67f544cd9cd0c00c34d4bca9b817ff193f4eae5ea506a2e1432"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "crop",
+      "action": "no crop",
+      "rationale": "every upstream crop rule is corpus-specific (SFinGe, MCYT)",
+      "fingerprint": "942c64c6dfaa945b0c518c2ded4be9f5044d9c4175993ccfc863fa372e33ec8d"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "localization",
+      "action": "none: this variant has no localization branch",
+      "rationale": "the checkpoint contains no localization weights",
+      "fingerprint": "d711c5dac80367c83614207168a8bc752fb8440790536a9676c0cd11e7b0f975"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "alignment",
+      "action": "no pose estimation, rotation correction or realignment",
+      "rationale": "alignment would be a component the artifact does not supply",
+      "fingerprint": "d4e1a37aad3ff3abf7068a17a1eef59ea87c099cbd57c329469c1876e844445e"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "padding",
+      "action": "pad symmetrically to a square of side max(width, height)",
+      "rationale": "the model asserts a square 299x299 input; the aspect ratio is preserved rather than stretched",
+      "fingerprint": "e151f52a92a4c5fe44d062c22e73b7238a95cb0648e5f7025e78956a67de7cb6"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "padding_fill",
+      "action": "fill with 255 in the 8-bit domain, which is exactly 1.0 after the conversion",
+      "rationale": "white is the background of a canonical fingerprint image; upstream pads with 1.0",
+      "fingerprint": "741e6b44757eb55994e3e6cb9e3fad389e4f52e16654507fb93fdb0a8cdac6dd"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "padding_parity",
+      "action": "left = top = floor(total / 2); right = bottom = total - left",
+      "rationale": "upstream applies the same floor to both sides and then asserts squareness, which cannot hold for an odd difference",
+      "fingerprint": "a103fc679e07411da68e405050de35010735b06fa9e551db0994053f3ce102fe"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "resize",
+      "action": "resize the square to 299x299",
+      "rationale": "DEEPPRINT_INPUT_SIZE is asserted by the pinned stem",
+      "fingerprint": "f01c6d5443e11ac0bac02d114f50677159176ba85dc3aec6471b6c3529ed4874"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "interpolation",
+      "action": "torchvision InterpolationMode.BILINEAR, named explicitly",
+      "rationale": "the library default is a library decision and can move between releases",
+      "fingerprint": "a3686c11f5ddc33cf76e9543f5264ddac45db66171f4031387d928559ab6551a"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "antialias",
+      "action": "antialias=True, named explicitly",
+      "rationale": "downsampling without it aliases ridge frequencies, and the default has changed before",
+      "fingerprint": "f9f04e60f9f7012a77e142edbf2552087b4bdccf11802a66a56f1025fda288eb"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "tensor_shape",
+      "action": "[1, 299, 299], channel first",
+      "rationale": "the pinned stem takes one channel",
+      "fingerprint": "3e3d667c06b124a2e180e3f1c431fe78c01fabe77d3d9e5e58907beb79d9072f"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "numeric_dtype",
+      "action": "float32",
+      "rationale": "the model's parameters are float32",
+      "fingerprint": "ad5c6773172ebe1b327ea62dc5b7047974497717643424f761ae5d45ec5c1d02"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "value_range",
+      "action": "[0, 1] by exact uint8 / 255, applied before padding and resizing; the antialiased resize may leave a sample up to 2**-20 outside that range and is not clamped",
+      "rationale": "converting first keeps the resize in float instead of quantizing through 8-bit intermediates, and matches upstream's own order; the resize computes its filter weights in float32 and they do not sum to exactly one, so a uniformly white image lands a few ulps either side of 1.0, and clamping it back would change pixels in a step neither the spec nor upstream performs",
+      "fingerprint": "9b58cb6efd10655d4ffbe0b6c50ca2f4b35bafb11b7c7bc0aa6f5ace0a13402e"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "normalization",
+      "action": "none: no mean, no standard deviation, no contrast or histogram transform, no ridge enhancement",
+      "rationale": "any of them would be an undeclared component of the algorithm",
+      "fingerprint": "5f8d396d2f79d9cab827a793b16907590c716a6e70f84586b840a90d81dd3a22"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "channel_replication",
+      "action": "none",
+      "rationale": "the stem takes one channel, not three",
+      "fingerprint": "b61a2137c6d226382585675e8dabcf39f7c65d25512628661f65c88063b83193"
+    },
+    {
+      "schema_version": "1",
+      "step_id": "re_encoding",
+      "action": "none: the canonical PNG bytes are decoded once and never re-encoded",
+      "rationale": "a round trip through an encoder could change a sample and would not be visible",
+      "fingerprint": "11b5ce8e6129b56225239ad562007345cb31e95e7e1fcb3fcaf2389bc1e38125"
+    }
+  ],
+  "fingerprint": "9c0bbb9c5eabe646051fa659bee0aad7de50b7e56d566cc0d2d55fc4ab2e19f2"
+}

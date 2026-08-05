@@ -1,0 +1,116 @@
+{
+  "schema_version": "1",
+  "probe_id": "flx_runtime_probe_v1",
+  "protocol_id": "stage8b_flx_runtime_adapter_qualification_v1",
+  "artifact_binding_fingerprint": "f51bca79bd2698a439becfe14930f49e04fd11bcfa830473928696cab84b766f",
+  "runtime_manifest_fingerprint": "7a720482b43ce2efb5ac1f91623839e147468c8d814b7707d8482fd7127bd6ae",
+  "preprocessing_profile_fingerprint": "9c0bbb9c5eabe646051fa659bee0aad7de50b7e56d566cc0d2d55fc4ab2e19f2",
+  "representation_profile_fingerprint": "7b9f84b05feaf61d3050bd489561d52c80d825d449e11490360b4e197b3a25a5",
+  "score_profile_fingerprint": "ca03a74bdede7f322b67570057cd642e5792ade1e440cca89ec55f4b61d2fae2",
+  "adapter_profile_fingerprint": "dc4c0ccc1fdb4028584f38c340e1761bd3261bf01e42b965f1785425fcc7d84c",
+  "fixture_ids": [
+    "fixture_gradient",
+    "fixture_landscape",
+    "fixture_odd_padding",
+    "fixture_seeded_noise",
+    "fixture_synthetic_ridges",
+    "fixture_white"
+  ],
+  "fixture_content_hashes": {
+    "fixture_gradient": "52e3c941cdfbb70be4b80f91ec6e51ecf007d50dd94fb6d292ae4cbbd77992dc",
+    "fixture_landscape": "ec6c0ac4fcf56dd22f412e02b39abe6aa16c4ecff9bbd84493b9ad94dcceba8d",
+    "fixture_odd_padding": "c1b893ece250acf0df875268c262fbbe50e7225eaf76c99aa1545c9173490a6d",
+    "fixture_seeded_noise": "331b7bb286dd659f1bd4ec1a7d8376938f3c1d0039d6e96a6760a2b73d7f2e90",
+    "fixture_synthetic_ridges": "44f7cebbc74e38573fe97c1722030adc8e955ba07729240f7d0cff8f0375c773",
+    "fixture_white": "9fde5213cbb020b3879cc8faffe50d1af62a3f012e7b55dc14859eb0c147fa38"
+  },
+  "representation_hashes": {
+    "fixture_gradient": "524020f514285bb461667eeb2cadab8cd1a3a591690affd08d35c46c0ec49a58",
+    "fixture_landscape": "ef1b05f832df860e1f440c4e396ecf3ebfb292783dbd69f3c9241cf2138e18bb",
+    "fixture_odd_padding": "0b656b2c3a00f601658f06c2727665c4e74d7be6d184b87fd27828a3413143be",
+    "fixture_seeded_noise": "c5bb039cbc04db364e0597cc1ff5567817a1b78d6c0b799038dc4ff865f1cea9",
+    "fixture_synthetic_ridges": "7fa16cbd5e0b5c6deeb4960100f600c924cad3d55c6ff2c8321742c001312e5d",
+    "fixture_white": "85d7d249f6b62c18895c4e12e53dbe3ccab0064bbc4279bb237b239bafdd1cfc"
+  },
+  "score_hashes": {
+    "fixture_gradient__fixture_seeded_noise": "dffcf9a6a8d0cad896ff75ab80479b62e778343c963eea0ea53ae4ac63f9f6e9",
+    "fixture_synthetic_ridges__self": "7c5afb13848456796a3b74f67d7fbd84d2c7c103921ff26c23ebe94bf4317756"
+  },
+  "checkpoint_loaded": true,
+  "model_in_eval_mode": true,
+  "gradients_disabled": true,
+  "unexpected_state_dict_keys": [],
+  "missing_state_dict_keys": [],
+  "self_independence": {
+    "schema_version": "1",
+    "report_id": "flx_self_independence_v1",
+    "tested": true,
+    "preprocess_call_count": 2,
+    "extract_call_count": 2,
+    "distinct_representation_objects": true,
+    "representations_equal": true,
+    "cache_lookups_observed": 0,
+    "fingerprint": "c7f17f68c80291ad50b80d3bb016b72ebbd2fd81ab999fbb107b60676485d66a"
+  },
+  "determinism": {
+    "schema_version": "1",
+    "report_id": "flx_determinism_v1",
+    "tested": true,
+    "numeric_tolerance": "0",
+    "repeated_extraction_bitwise_equal": true,
+    "repeated_comparison_bitwise_equal": true,
+    "single_vs_batch_state": "not_applicable",
+    "single_vs_batch_bitwise_equal": null,
+    "process_restart_representation_equal": true,
+    "process_restart_score_equal": true,
+    "process_restart_runtime_metadata_equal": true,
+    "input_order_symmetric": true,
+    "fingerprint": "7dcc0378daa624681fac32fcec75d80aed88284e215dc79fbfaefe5c4e359b13"
+  },
+  "offline": {
+    "schema_version": "1",
+    "report_id": "flx_offline_v1",
+    "tested": true,
+    "dns_blocked": true,
+    "socket_creation_blocked": true,
+    "proxy_variables_neutralized": [
+      "ALL_PROXY",
+      "HTTPS_PROXY",
+      "HTTP_PROXY",
+      "NO_PROXY",
+      "all_proxy",
+      "http_proxy",
+      "https_proxy",
+      "no_proxy"
+    ],
+    "model_hub_variables_redirected": [
+      "HF_HOME",
+      "HUGGINGFACE_HUB_CACHE",
+      "TORCH_HOME",
+      "XDG_CACHE_HOME"
+    ],
+    "network_attempts_observed": 0,
+    "fingerprint": "f52adaf8124d48dccf71fc754527b019a6e536c07e8f54cc842995f322f0d1a3"
+  },
+  "operational": {
+    "schema_version": "1",
+    "report_id": "flx_operational_v1",
+    "measured": true,
+    "policy_fingerprint": "75682ba09e82598c9088cac642f4673a9e3dc5652ddaa5243632b41c154face8",
+    "worker_startup_seconds": "2.7923814770000206",
+    "model_load_seconds": "1.0888255539999818",
+    "preprocess_seconds": "0.0038380984999974999",
+    "extract_seconds": "0.7633208074999942",
+    "compare_seconds": "0.00033297499999207503",
+    "peak_ram_bytes": 1197260800,
+    "artifact_disk_bytes": 2062600599,
+    "projected_12000_extractions_seconds": "9159.84968999993",
+    "projected_6000_comparisons_seconds": "1.9978499999524502",
+    "within_limits": true,
+    "fingerprint": "c01b0fb1c585898de0cc31feb6bd285de20e0e375452896b15446960483d3206"
+  },
+  "biometric_inputs_read": false,
+  "prior_results_read": false,
+  "created_utc": "2026-08-05T12:00:00+00:00",
+  "fingerprint": "12462d875bb94a20817bbf73395fe3761584c489c7b005bd8aa78125191b9e5c"
+}

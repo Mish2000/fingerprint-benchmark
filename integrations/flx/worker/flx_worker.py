@@ -631,6 +631,7 @@ def validate_runtime(request: Mapping[str, Any]) -> Mapping[str, Any]:
         "torch_num_interop_threads": torch.get_num_interop_threads(),
         "device": "cpu",
         "cuda_available": bool(torch.cuda.is_available()),
+        "peak_rss_bytes": _peak_rss_bytes(),
         "distributions": distributions,
         "environment": {
             name: os.environ.get(name, "")
@@ -647,6 +648,22 @@ def _os_release() -> str:
     except OSError:
         pass
     return platform.version()
+
+
+def _peak_rss_bytes() -> int:
+    """The high-water mark of *this* process, which is where the model lives."""
+    try:
+        for line in Path("/proc/self/status").read_text(encoding="utf-8").splitlines():
+            if line.startswith("VmHWM:"):
+                return int(line.split()[1]) * 1024
+    except (OSError, ValueError, IndexError):
+        pass
+    try:
+        import resource
+
+        return int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) * 1024
+    except Exception:  # pragma: no cover - not a Linux target
+        return 0
 
 
 def _cpu_model() -> str:

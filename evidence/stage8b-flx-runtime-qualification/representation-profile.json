@@ -1,0 +1,40 @@
+{
+  "schema_version": "1",
+  "profile_id": "flx_texminu_256x2_v1",
+  "branches": [
+    {
+      "schema_version": "1",
+      "branch_id": "texture",
+      "position": 0,
+      "dimensions": 256,
+      "dtype": "float32",
+      "normalization": "l2_per_branch",
+      "upstream_module": "flx.models.deep_print_arch._Branch_TextureEmbedding",
+      "fingerprint": "df8688dff91116bf3db45fe279398198e02167e6e5db8e70a0dc3a7c57aa951e"
+    },
+    {
+      "schema_version": "1",
+      "branch_id": "minutia",
+      "position": 1,
+      "dimensions": 256,
+      "dtype": "float32",
+      "normalization": "l2_per_branch",
+      "upstream_module": "flx.models.deep_print_arch._Branch_MinutiaEmbedding",
+      "fingerprint": "787f089e28a74ed88ef09fdc4de359d20023bbc7f06d4171b5f7c4f207e0d094"
+    }
+  ],
+  "concatenated_dimensions": 512,
+  "concatenation_order": [
+    "texture",
+    "minutia"
+  ],
+  "inference_batch_rows": 2,
+  "inference_batch_rule": "duplicate_pair_take_first_row",
+  "represented_row": 0,
+  "duplicate_rows_must_be_bitwise_equal": true,
+  "localization_used": false,
+  "pose_input_required": false,
+  "reweighting_applied": false,
+  "persisted": false,
+  "fingerprint": "7b9f84b05feaf61d3050bd489561d52c80d825d449e11490360b4e197b3a25a5"
+}

@@ -12,11 +12,11 @@ into an intermittent number (spec section 12).
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import queue
 import subprocess
-import sys
 import tempfile
 import threading
 from pathlib import Path
@@ -24,6 +24,8 @@ from typing import Any, Mapping
 
 from fpbench.core.flx_errors import FlxWorkerError, FlxWorkerTimeout
 from fpbench.flx.artifacts import FlxRuntimeBundle
+from fpbench.flx.preprocessing import verify_model_input
+from fpbench.flx.representation import FlxRepresentation, ModelInput
 
 __all__ = ["WORKER_SCRIPT", "FlxWorkerSession", "worker_environment"]
 
@@ -256,3 +258,21 @@ class FlxWorkerSession:
             source_tree=str(self.bundle.source_tree),
             checkpoint=str(self.bundle.checkpoint),
         )["result"]
+
+    def preprocess(self, image_bytes: bytes, *, deadline_seconds: float) -> ModelInput:
+        payload = self.request(
+            "preprocess",
+            deadline_seconds=deadline_seconds,
+            image_bytes=base64.b64encode(image_bytes).decode("ascii"),
+        )["result"]
+        model_input = ModelInput.from_worker(payload)
+        verify_model_input(model_input)
+        return model_input
+
+    def extract(
+        self, model_input: ModelInput, *, deadline_seconds: float
+    ) -> FlxRepresentation:
+        payload = self.request(
+            "extract", deadline_seconds=deadline_seconds, **model_input.as_request()
+        )["result"]
+        return FlxRepresentation.from_worker(payload)

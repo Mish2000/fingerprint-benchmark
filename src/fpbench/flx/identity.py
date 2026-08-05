@@ -44,6 +44,7 @@ __all__ = [
     "REPRESENTED_ROW",
     "MODEL_INPUT_SIDE",
     "PAD_FILL_VALUE",
+    "VALUE_RANGE_TOLERANCE",
     "SCORE_MINIMUM",
     "SCORE_MAXIMUM",
     "SCORE_DIRECTION",
@@ -112,6 +113,21 @@ REPRESENTED_ROW = 0
 # ------------------------------------------------------------- preprocessing
 MODEL_INPUT_SIDE = 299
 PAD_FILL_VALUE = 255
+
+#: Eight float32 ulps at 1.0.
+#:
+#: The exact ``uint8 / 255`` conversion lands every sample in [0, 1], but the
+#: antialiased bilinear resize that follows computes its filter weights in
+#: float32, and those weights do not sum to exactly one.  A uniformly white
+#: image therefore resizes to values a few ulps either side of 1.0 — measured
+#: on the pinned runtime: [0.9999997615814209, 1.0000003576278687].
+#:
+#: Clamping would remove the excursion by changing pixels, in a step neither
+#: the spec nor upstream performs.  The declared range stays [0, 1] and the
+#: excursion is bounded instead.  The bound is derived from the format, not
+#: fitted to the measurement: 2**-20 is about 9.5e-7, roughly three times the
+#: largest excursion observed, and it would not grow if the measurement did.
+VALUE_RANGE_TOLERANCE = 2.0**-20
 
 # --------------------------------------------------------------------- score
 SCORE_MINIMUM = "-2"

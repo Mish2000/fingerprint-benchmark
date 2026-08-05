@@ -18,13 +18,16 @@ on stdout.  The parent owns deadlines, exit status and cleanup.
 
 from __future__ import annotations
 
+import base64
 import faulthandler
 import hashlib
 import json
 import os
 import platform
+import struct
 import sys
 import time
+import zlib
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -255,6 +258,327 @@ def require_model():
     return _STATE["model"]
 
 
+# ------------------------------------------------------------------- decode
+
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+#: A source carrying any of these is ambiguous: it asks a decoder to apply a
+#: colour or transparency policy that this project never chose.
+AMBIGUOUS_CHUNKS = frozenset({b"PLTE", b"tRNS", b"gAMA", b"sRGB", b"iCCP", b"cHRM"})
+#: APNG.  A fingerprint is one image; a file that declares frames is refused
+#: rather than silently reduced to its first one.
+ANIMATION_CHUNKS = frozenset({b"acTL", b"fcTL", b"fdAT"})
+
+
+def decode_gray8_png(payload: bytes) -> tuple[int, int, bytearray]:
+    """Decode one non-interlaced 8-bit grayscale PNG, or refuse it.
+
+    Written against the container rather than handed to a library, for the same
+    reason ``fpbench.imaging.png_chunks`` is: Pillow would happily return an
+    ``L`` raster for a paletted, gamma-tagged or 16-bit source, having applied
+    a policy nobody chose, and that policy would silently become part of the
+    algorithm.
+    """
+    if not payload.startswith(PNG_SIGNATURE):
+        raise WorkerFailure("PNG_BAD_SIGNATURE", "not a PNG")
+    offset = len(PNG_SIGNATURE)
+    header: tuple[int, int] | None = None
+    idat = bytearray()
+    saw_end = False
+
+    while offset < len(payload):
+        if offset + 8 > len(payload):
+            raise WorkerFailure("PNG_TRUNCATED", f"chunk header at byte {offset}")
+        (length,) = struct.unpack(">I", payload[offset : offset + 4])
+        kind = payload[offset + 4 : offset + 8]
+        body_start = offset + 8
+        body_end = body_start + length
+        if body_end + 4 > len(payload):
+            raise WorkerFailure(
+                "PNG_TRUNCATED", f"{kind.decode('latin-1')} body at byte {body_start}"
+            )
+        body = payload[body_start:body_end]
+        (declared_crc,) = struct.unpack(">I", payload[body_end : body_end + 4])
+        if zlib.crc32(kind + body) & 0xFFFFFFFF != declared_crc:
+            raise WorkerFailure("PNG_BAD_CRC", kind.decode("latin-1"))
+        if saw_end:
+            raise WorkerFailure("PNG_TRAILING_DATA", "a chunk follows IEND")
+
+        if kind == b"IHDR":
+            if header is not None:
+                raise WorkerFailure("PNG_DUPLICATE_IHDR", "more than one header")
+            if length != 13:
+                raise WorkerFailure("PNG_BAD_IHDR", f"length {length}")
+            width, height, depth, colour, compression, filtering, interlace = struct.unpack(
+                ">IIBBBBB", body
+            )
+            if width == 0 or height == 0:
+                raise WorkerFailure("PNG_EMPTY_IMAGE", f"{width}x{height}")
+            if depth != 8:
+                raise WorkerFailure("PNG_UNEXPECTED_BIT_DEPTH", f"bit depth {depth}, expected 8")
+            if colour != 0:
+                raise WorkerFailure(
+                    "PNG_UNEXPECTED_COLOUR_TYPE", f"colour type {colour}, expected 0 (grayscale)"
+                )
+            if compression != 0 or filtering != 0:
+                raise WorkerFailure("PNG_UNSUPPORTED_CODEC", f"{compression}/{filtering}")
+            if interlace != 0:
+                raise WorkerFailure("PNG_INTERLACED", "interlaced PNG is refused")
+            header = (width, height)
+        elif kind in ANIMATION_CHUNKS:
+            raise WorkerFailure(
+                "PNG_MULTI_FRAME", f"{kind.decode('latin-1')}: a fingerprint is one image"
+            )
+        elif kind in AMBIGUOUS_CHUNKS:
+            raise WorkerFailure(
+                "PNG_AMBIGUOUS_CHUNK",
+                f"{kind.decode('latin-1')} would require a colour policy this project did not choose",
+            )
+        elif kind == b"IDAT":
+            if header is None:
+                raise WorkerFailure("PNG_IDAT_BEFORE_IHDR", "IDAT precedes IHDR")
+            idat += body
+        elif kind == b"IEND":
+            saw_end = True
+        offset = body_end + 4
+
+    if header is None:
+        raise WorkerFailure("PNG_NO_IHDR", "no header chunk")
+    if not saw_end:
+        raise WorkerFailure("PNG_NO_IEND", "the stream does not terminate")
+    if not idat:
+        raise WorkerFailure("PNG_NO_IDAT", "no image data")
+
+    width, height = header
+    try:
+        raw = zlib.decompress(bytes(idat))
+    except zlib.error as exc:
+        raise WorkerFailure("PNG_BAD_DEFLATE", str(exc)) from exc
+    expected = height * (width + 1)
+    if len(raw) != expected:
+        raise WorkerFailure(
+            "PNG_BAD_RASTER_LENGTH", f"expected {expected} filtered bytes, got {len(raw)}"
+        )
+    return width, height, _unfilter(raw, width, height)
+
+
+def _unfilter(raw: bytes, width: int, height: int) -> bytearray:
+    """Undo the per-scanline filters.  One byte per pixel, so bpp is 1."""
+    pixels = bytearray(width * height)
+    previous = bytearray(width)
+    position = 0
+    for row in range(height):
+        filter_type = raw[position]
+        position += 1
+        line = bytearray(raw[position : position + width])
+        position += width
+        if filter_type == 0:
+            pass
+        elif filter_type == 1:
+            for index in range(1, width):
+                line[index] = (line[index] + line[index - 1]) & 0xFF
+        elif filter_type == 2:
+            for index in range(width):
+                line[index] = (line[index] + previous[index]) & 0xFF
+        elif filter_type == 3:
+            for index in range(width):
+                left = line[index - 1] if index else 0
+                line[index] = (line[index] + ((left + previous[index]) >> 1)) & 0xFF
+        elif filter_type == 4:
+            for index in range(width):
+                left = line[index - 1] if index else 0
+                upper_left = previous[index - 1] if index else 0
+                above = previous[index]
+                estimate = left + above - upper_left
+                distance_left = abs(estimate - left)
+                distance_above = abs(estimate - above)
+                distance_upper_left = abs(estimate - upper_left)
+                if distance_left <= distance_above and distance_left <= distance_upper_left:
+                    predictor = left
+                elif distance_above <= distance_upper_left:
+                    predictor = above
+                else:
+                    predictor = upper_left
+                line[index] = (line[index] + predictor) & 0xFF
+        else:
+            raise WorkerFailure("PNG_BAD_FILTER", f"filter type {filter_type} on row {row}")
+        pixels[row * width : (row + 1) * width] = line
+        previous = line
+    return pixels
+
+
+# -------------------------------------------------------------- preprocess
+
+
+def preprocess(request: Mapping[str, Any]) -> Mapping[str, Any]:
+    """canonical gray8 PNG -> [1, 299, 299] float32 in [0, 1].
+
+    Order matters and is deliberate: the exact ``uint8 / 255`` conversion
+    happens *before* padding and resizing, as upstream does, so the fill value
+    255 enters as exactly 1.0 and the resize runs in float instead of
+    quantizing through 8-bit intermediates (docs/adr/0071).
+    """
+    import torch
+    import torchvision.transforms.functional as VTF
+    from torchvision.transforms import InterpolationMode
+
+    payload = base64.b64decode(request["image_bytes"], validate=True)
+    width, height, pixels = decode_gray8_png(payload)
+
+    tensor = torch.frombuffer(bytearray(pixels), dtype=torch.uint8).reshape(1, height, width)
+    tensor = tensor.to(torch.float32).div(255.0)
+
+    side = max(width, height)
+    horizontal, vertical = side - width, side - height
+    left, top = horizontal // 2, vertical // 2
+    right, bottom = horizontal - left, vertical - top
+    if left or top or right or bottom:
+        tensor = VTF.pad(tensor, padding=[left, top, right, bottom], fill=1.0)
+    if tensor.shape[1] != tensor.shape[2]:
+        raise WorkerFailure(
+            "PREPROCESS_NOT_SQUARE", f"padded to {tuple(tensor.shape)}"
+        )
+
+    tensor = VTF.resize(
+        tensor,
+        [MODEL_INPUT_SIDE, MODEL_INPUT_SIDE],
+        interpolation=InterpolationMode.BILINEAR,
+        antialias=True,
+    )
+    tensor = tensor.contiguous()
+
+    if tuple(tensor.shape) != (1, MODEL_INPUT_SIDE, MODEL_INPUT_SIDE):
+        raise WorkerFailure("PREPROCESS_WRONG_SHAPE", str(tuple(tensor.shape)))
+    if tensor.dtype is not torch.float32:
+        raise WorkerFailure("PREPROCESS_WRONG_DTYPE", str(tensor.dtype))
+    if not bool(torch.isfinite(tensor).all()):
+        raise WorkerFailure("PREPROCESS_NOT_FINITE", "the transform produced a non-finite sample")
+
+    values = tensor.numpy().tobytes()
+    return {
+        "shape": [1, MODEL_INPUT_SIDE, MODEL_INPUT_SIDE],
+        "dtype": "float32",
+        "source_width": width,
+        "source_height": height,
+        "padded_side": side,
+        "pad_left": left,
+        "pad_top": top,
+        "pad_right": right,
+        "pad_bottom": bottom,
+        "minimum": float(tensor.min()),
+        "maximum": float(tensor.max()),
+        "values": base64.b64encode(values).decode("ascii"),
+        "content_sha256": hashlib.sha256(values).hexdigest(),
+    }
+
+
+# ----------------------------------------------------------------- extract
+
+
+def extract(request: Mapping[str, Any]) -> Mapping[str, Any]:
+    """One model input -> one representation.
+
+    The batch carries the same tensor twice because the pinned texture branch
+    has no batch-of-one path (docs/adr/0070).  That the two rows agree is
+    asserted here rather than assumed, so the workaround stays a checked
+    invariant.
+    """
+    import torch
+
+    model = require_model()
+    expected = [1, MODEL_INPUT_SIDE, MODEL_INPUT_SIDE]
+    if list(request.get("shape", [])) != expected:
+        raise WorkerFailure("EXTRACT_WRONG_INPUT_SHAPE", str(request.get("shape")))
+    if str(request.get("dtype")) != "float32":
+        raise WorkerFailure("EXTRACT_WRONG_INPUT_DTYPE", str(request.get("dtype")))
+    values = base64.b64decode(request["values"], validate=True)
+    if len(values) != 4 * MODEL_INPUT_SIDE * MODEL_INPUT_SIDE:
+        raise WorkerFailure("EXTRACT_WRONG_INPUT_LENGTH", str(len(values)))
+
+    tensor = torch.frombuffer(bytearray(values), dtype=torch.float32).reshape(*expected)
+    batch = tensor.unsqueeze(0).repeat(INFERENCE_BATCH_ROWS, 1, 1, 1).contiguous()
+
+    with torch.inference_mode():
+        output = model(batch)
+
+    texture = output.texture_embeddings
+    minutia = output.minutia_embeddings
+    if texture is None or minutia is None:
+        raise WorkerFailure("EXTRACT_MISSING_BRANCH", "the model returned an empty branch")
+    for name, branch, width in (
+        ("texture", texture, TEXTURE_DIMENSIONS),
+        ("minutia", minutia, MINUTIA_DIMENSIONS),
+    ):
+        if tuple(branch.shape) != (INFERENCE_BATCH_ROWS, width):
+            raise WorkerFailure("EXTRACT_WRONG_BRANCH_SHAPE", f"{name} {tuple(branch.shape)}")
+        if branch.dtype is not torch.float32:
+            raise WorkerFailure("EXTRACT_WRONG_BRANCH_DTYPE", f"{name} {branch.dtype}")
+        if not torch.equal(branch[0], branch[1]):
+            raise WorkerFailure(
+                "EXTRACT_DUPLICATE_ROWS_DIFFER",
+                f"{name}: the duplicated inference batch produced different rows",
+            )
+
+    row = REPRESENTED_ROW
+    result = {}
+    for name, branch in (("texture", texture), ("minutia", minutia)):
+        vector = branch[row].detach().clone().contiguous()
+        if not bool(torch.isfinite(vector).all()):
+            raise WorkerFailure("REPRESENTATION_NOT_FINITE", name)
+        raw = vector.numpy().tobytes()
+        result[name] = base64.b64encode(raw).decode("ascii")
+        result[f"{name}_norm"] = float(torch.linalg.vector_norm(vector.to(torch.float64)))
+    return result
+
+
+# -------------------------------------------------------------- comparator
+
+
+def compare(request: Mapping[str, Any]) -> Mapping[str, Any]:
+    """raw_score = dot(texture) + dot(minutia), through upstream's own function.
+
+    ``numpy.dot`` is the comparator the pinned repository uses for a one-to-one
+    similarity.  Summing two 256-wide dot products in Python instead would be
+    mathematically equal and not bitwise equal, so the identified function is
+    the one that runs (spec section 10).
+    """
+    import numpy
+
+    scores = {}
+    for name, width in (("texture", TEXTURE_DIMENSIONS), ("minutia", MINUTIA_DIMENSIONS)):
+        left = _vector(request["left"][name], width, f"left {name}")
+        right = _vector(request["right"][name], width, f"right {name}")
+        scores[name] = float(numpy.dot(left, right))
+    raw = scores["texture"] + scores["minutia"]
+    if not _finite(raw):
+        raise WorkerFailure("SCORE_NOT_FINITE", repr(raw))
+    return {
+        "texture_score": _repr17(scores["texture"]),
+        "minutia_score": _repr17(scores["minutia"]),
+        "raw_score": _repr17(raw),
+    }
+
+
+def _vector(encoded: str, width: int, what: str):
+    import numpy
+
+    raw = base64.b64decode(encoded, validate=True)
+    if len(raw) != 4 * width:
+        raise WorkerFailure("COMPARE_WRONG_VECTOR_LENGTH", f"{what}: {len(raw)} bytes")
+    vector = numpy.frombuffer(raw, dtype=numpy.float32)
+    if not bool(numpy.isfinite(vector).all()):
+        raise WorkerFailure("COMPARE_VECTOR_NOT_FINITE", what)
+    return vector
+
+
+def _finite(value: float) -> bool:
+    return value == value and value not in (float("inf"), float("-inf"))
+
+
+def _repr17(value: float) -> str:
+    """The canonical 17-significant-digit decimal string (spec section 10)."""
+    return f"{value:.17g}"
+
+
 # -------------------------------------------------------------- describe
 
 
@@ -340,6 +664,9 @@ def _cpu_model() -> str:
 HANDLERS = {
     "load_runtime": load_runtime,
     "validate_runtime": validate_runtime,
+    "preprocess": preprocess,
+    "extract": extract,
+    "compare": compare,
 }
 
 

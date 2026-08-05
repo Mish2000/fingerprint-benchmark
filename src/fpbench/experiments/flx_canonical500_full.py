@@ -48,20 +48,31 @@ from typing import Any, Mapping
 
 import yaml
 
-from fpbench.core.errors import ConfigurationError
+from fpbench.core.errors import ConfigurationError, ResearchPreflightError
 from fpbench.core.execution_models import ExecutionProfile
 from fpbench.core.identifiers import validate_id
+from fpbench.core.imaging_models import PreparedImageEntry
 from fpbench.core.research_models import ResearchRunState
 from fpbench.core.run_state_models import IntegrityIssue
+from fpbench.core.serialization import read_json
+from fpbench.execution.batch_runner import RunExecutionSummary
 from fpbench.experiments.algorithm_research import (
     REPOSITORY_ROOT,
     AlgorithmResearchExperimentSpec,
+    PreparedAlgorithmResearchRun,
+    capture_research_provenance,
 )
 from fpbench.experiments.canonical_run_alignment import (
     SD300_CANONICAL_EXPECTATIONS,
     AlignmentExpectations,
     CanonicalRunAlignmentReport,
     ReferenceRunIdentity,
+    build_canonical_run_alignment_report,
+    canonical_run_alignment_fingerprint,
+    load_candidate_alignment_side,
+    load_reference_alignment_side,
+    require_canonical_input_controls_equal,
+    require_clean_alignment,
 )
 from fpbench.experiments.config_values import (
     reject_unknown_keys,
@@ -70,6 +81,14 @@ from fpbench.experiments.config_values import (
     require_yaml_mapping,
     require_yaml_non_empty_str,
 )
+from fpbench.experiments.flx_research import (
+    execute_flx_research_run,
+    inspect_flx_research_experiment,
+    prepare_flx_research_run,
+)
+from fpbench.experiments.flx_validation import SD300_CANONICAL500_INPUT_SET
+from fpbench.experiments.sd300_inputs import SD300Inputs, load_sd300_inputs
+from fpbench.experiments.stage8b_binding import require_stage8b_binding
 from fpbench.experiments.stage8c_identity import (
     ALIGNMENT_REPORT_NAME,
     EVIDENCE_DIRECTORY,
@@ -79,6 +98,12 @@ from fpbench.experiments.stage8c_identity import (
     REQUIRED_REPORTING_SWITCHES,
     STAGE_8C_FINALIZATION_NAME,
 )
+from fpbench.imaging.canonical500 import Canonical500ImagePreparer
+from fpbench.storage.plan_store import PlanStore
+from fpbench.storage.prepared_image_set_store import PreparedImageSetStore
+from fpbench.storage.result_set_store import ResultSetStore
+from fpbench.storage.result_store import ResultStore
+from fpbench.storage.runtime_bundle_store import RuntimeBundleStore
 
 __all__ = [
     "EXPERIMENT_ID",
@@ -97,6 +122,11 @@ __all__ = [
     "FlxCanonical500ExperimentState",
     "load_flx_canonical500_config",
     "build_flx_canonical500_spec",
+    "preflight_flx_canonical500_run",
+    "verify_flx_canonical500_alignment",
+    "prepare_flx_canonical500_run",
+    "execute_flx_canonical500_run",
+    "inspect_flx_canonical500_experiment",
 ]
 
 DEFAULT_EXPERIMENT_CONFIG = (
@@ -742,7 +772,881 @@ class FlxCanonical500ExperimentState:
         return self.research_state.status.value
 
 
+# ------------------------------------------------------------------ preflight
+
+
+def preflight_flx_canonical500_run(
+    *,
+    workspace: Path = DEFAULT_WORKSPACE,
+    dataset_root: Path | None = None,
+    config: FlxCanonical500ExperimentConfig | None = None,
+    repository_root: Path = REPOSITORY_ROOT,
+    bundle_root: Path | None = None,
+    require_clean_tree: bool = True,
+) -> Mapping[str, Any]:
+    """Check every input Stage 8C will read, and write nothing.
+
+    Everything ``prepare`` checks before it creates a run, run on its own so an
+    operator can find out that an artifact is missing without a half-prepared
+    workspace to clean up. It reads; it does not plan, does not materialise and
+    does not touch the executor (spec section 34).
+    """
+    workspace = Path(workspace)
+    repository_root = Path(repository_root)
+    config = config or load_flx_canonical500_config(repository_root=repository_root)
+
+    findings: dict[str, Any] = {"experiment_id": config.experiment_id}
+    if require_clean_tree:
+        software = capture_research_provenance(repository_root)
+        findings["source_commit"] = software.source_revision
+        findings["source_tree_clean"] = software.source_tree_clean
+
+    published = require_stage8b_binding(
+        config.stage8b, config.artifact, repository_root=repository_root
+    )
+    findings["stage8b_outcome"] = published.outcome
+    findings["stage8b_finalization_fingerprint"] = published.finalization_fingerprint
+
+    # The 2.06 GB runtime, rehashed in full: the archive, the five imported
+    # source files and all 875,770,140 checkpoint bytes. This is the one check
+    # that needs the bundle to be present, and it is the reason a missing
+    # checkpoint is one fault of the run (docs/adr/0072).
+    from fpbench.core.flx_errors import FlxError
+    from fpbench.experiments.flx_research import resolve_bundle_root
+    from fpbench.flx.artifacts import FlxRuntimeBundle, verify_bundle_artifacts
+
+    root = resolve_bundle_root(bundle_root)
+    try:
+        findings["artifacts"] = dict(
+            verify_bundle_artifacts(FlxRuntimeBundle(root))
+        )
+    except FlxError as exc:
+        raise ResearchPreflightError(
+            f"the pinned flx runtime bundle does not verify: {exc}"
+        ) from exc
+
+    context = _load_alignment_context(
+        workspace=workspace,
+        dataset_root=dataset_root,
+        config=config,
+        repository_root=repository_root,
+        run_id=None,
+    )
+    require_clean_alignment(context.report)
+    require_canonical_input_controls_equal(
+        context.reference_run,
+        build_flx_canonical500_spec(config),
+        reference_materialization_policy=context.reference_materialization_policy,
+    )
+    findings["alignment_fingerprint"] = context.report.alignment_fingerprint
+    findings["prepared_entries"] = len(context.prepared_entries)
+    findings["pairs"] = len(context.inputs.pairs)
+    findings["pair_manifest_hash"] = context.inputs.pair_manifest_hash
+    findings["planned_operations"] = {
+        "preprocess_calls": config.operations.planned_preprocess_calls,
+        "logical_extraction_calls": config.operations.planned_logical_extractions,
+        "physical_forward_rows": config.operations.planned_physical_forward_rows,
+        "comparison_calls": config.operations.planned_comparison_calls,
+    }
+    return findings
+
+
+# ------------------------------------------------------------------- alignment
+
+
+def verify_flx_canonical500_alignment(
+    *,
+    workspace: Path = DEFAULT_WORKSPACE,
+    dataset_root: Path | None = None,
+    config: FlxCanonical500ExperimentConfig | None = None,
+    repository_root: Path = REPOSITORY_ROOT,
+    run_id: str | None = None,
+    require_clean: bool = True,
+) -> CanonicalRunAlignmentReport:
+    """Prove the flx run is over the reference run's own inputs, row by row.
+
+    Loads both sides from the workspace's manifests and compares them; see
+    :mod:`fpbench.experiments.canonical_run_alignment` for what "compares" means
+    here, which is every field of every pair and every field of every prepared
+    image, never a count against a count (spec section 6).
+
+    Args:
+        run_id: The flx run to align. When it is ``None`` and no run has been
+            prepared yet, the candidate side is the pair manifest as the planner
+            will order it — which is what preparation checks *before* creating a
+            run.
+
+    Raises:
+        ResearchPreflightError: ``require_clean`` and the alignment is not clean.
+    """
+    config = config or load_flx_canonical500_config(repository_root=repository_root)
+    context = _load_alignment_context(
+        workspace=Path(workspace),
+        dataset_root=dataset_root,
+        config=config,
+        repository_root=Path(repository_root),
+        run_id=run_id,
+    )
+    report = context.report
+    if require_clean:
+        require_clean_alignment(report)
+    return report
+
+
+# ------------------------------------------------------------------- commands
+
+
+def prepare_flx_canonical500_run(
+    *,
+    workspace: Path = DEFAULT_WORKSPACE,
+    dataset_root: Path | None = None,
+    config: FlxCanonical500ExperimentConfig | None = None,
+    repository_root: Path = REPOSITORY_ROOT,
+    bundle_root: Path | None = None,
+) -> PreparedAlgorithmResearchRun:
+    """Check everything, then write the run, the plan and the runtime binding.
+
+    In order, and each step is a place the whole thing stops (spec section 21):
+
+    1. the working tree is clean and committed;
+    2. the Stage 8B finalization is read and its outcome permits execution;
+    3. the source archive and the checkpoint re-hash to their frozen digests;
+    4. the runtime bundle's three pinned files are present and committed;
+    5. every Stage 8B profile is rebuilt from this source and matches;
+    6. the prepared-image set verifies in full;
+    7. all 3,000 PNGs and their rasters are checked through it;
+    8. the reference SourceAFIS run is ``RESEARCH_READY``;
+    9. the pair manifest is loaded with ``allow_creation=False`` — not rebuilt;
+    10. the alignment report is derived;
+    11. it is clean, and the input controls match, or nothing further happens;
+    12. the engine creates the run;
+    13. the engine plans exactly 6,000 jobs;
+    14. the alignment is re-derived against the plan that now exists;
+    15. the derived report is stored in the workspace.
+
+    No raw result is written here, and none can be: this function never reaches
+    the executor.
+    """
+    workspace = Path(workspace)
+    repository_root = Path(repository_root)
+    config = config or load_flx_canonical500_config(repository_root=repository_root)
+
+    # 1-7. Everything about the route and the inputs, before a run exists.
+    preflight_flx_canonical500_run(
+        workspace=workspace,
+        dataset_root=dataset_root,
+        config=config,
+        repository_root=repository_root,
+        bundle_root=bundle_root,
+    )
+
+    # 8-11. The inputs again, kept this time so the comparison is not repeated.
+    context = _load_alignment_context(
+        workspace=workspace,
+        dataset_root=dataset_root,
+        config=config,
+        repository_root=repository_root,
+        run_id=None,
+    )
+    require_clean_alignment(context.report)
+    require_canonical_input_controls_equal(
+        context.reference_run,
+        build_flx_canonical500_spec(config),
+        reference_materialization_policy=context.reference_materialization_policy,
+    )
+
+    # 12-13. The general engine. Everything algorithm-specific arrives through
+    # the flx integration; nothing about this run is orchestrated here.
+    prepared = prepare_flx_research_run(
+        spec=build_flx_canonical500_spec(config),
+        preparer_factory=_preparer_factory,
+        workspace=workspace,
+        dataset_root=dataset_root,
+        repository_root=repository_root,
+        bundle_root=bundle_root,
+        expected_input_set=SD300_CANONICAL500_INPUT_SET,
+    )
+
+    # 14-15. The same comparison again, now against a plan that exists.
+    final = _rebuild_alignment(
+        context=context,
+        config=config,
+        run_id=prepared.run.run_id,
+        plan=prepared.plan,
+        result_set_id=None,
+    )
+    require_clean_alignment(final)
+    _write_alignment_report(workspace, prepared.run.run_id, final)
+    return prepared
+
+
+def execute_flx_canonical500_run(
+    *,
+    workspace: Path = DEFAULT_WORKSPACE,
+    dataset_root: Path | None = None,
+    config: FlxCanonical500ExperimentConfig | None = None,
+    repository_root: Path = REPOSITORY_ROOT,
+    run_id: str | None = None,
+    max_new_jobs: int | None = None,
+    bundle_root: Path | None = None,
+) -> RunExecutionSummary:
+    """Execute some or all of the prepared run, one comparison at a time.
+
+    May be stopped and resumed as often as necessary. A result that is already
+    stored is verified and skipped, never re-executed and never overwritten, so
+    resuming cannot change a number that has already been recorded. A resume
+    under a different source commit is refused by the engine, because a run
+    whose results came from two revisions is not one run (docs/adr/0005,
+    docs/adr/0017, spec section 13).
+    """
+    config = config or load_flx_canonical500_config(repository_root=repository_root)
+    return execute_flx_research_run(
+        spec=build_flx_canonical500_spec(config),
+        preparer_factory=_preparer_factory,
+        workspace=Path(workspace),
+        dataset_root=dataset_root,
+        repository_root=Path(repository_root),
+        run_id=run_id,
+        max_new_jobs=max_new_jobs,
+        bundle_root=bundle_root,
+        expected_input_set=SD300_CANONICAL500_INPUT_SET,
+    )
+
+
+def inspect_flx_canonical500_experiment(
+    *,
+    workspace: Path = DEFAULT_WORKSPACE,
+    dataset_root: Path | None = None,
+    config: FlxCanonical500ExperimentConfig | None = None,
+    repository_root: Path = REPOSITORY_ROOT,
+    run_id: str | None = None,
+    bundle_root: Path | None = None,
+) -> FlxCanonical500ExperimentState:
+    """Report where Stage 8C stands. Never writes.
+
+    Both halves are re-derived from the sources rather than read back: the
+    research state re-verifies the receipt and the marker against the stored
+    results, and the alignment report is rebuilt from the two pair manifests and
+    the prepared-set entries. A stored alignment report that was edited *and*
+    re-fingerprinted consistently still fails here, because it is compared with
+    one derived from the files it describes.
+
+    A dirty working tree does not skip any of it (spec section 23).
+    """
+    workspace = Path(workspace)
+    repository_root = Path(repository_root)
+    config = config or load_flx_canonical500_config(repository_root=repository_root)
+    spec = build_flx_canonical500_spec(config)
+
+    research_state = inspect_flx_research_experiment(
+        spec=spec,
+        preparer_factory=_preparer_factory,
+        workspace=workspace,
+        dataset_root=dataset_root,
+        repository_root=repository_root,
+        run_id=run_id,
+        bundle_root=bundle_root,
+        expected_input_set=SD300_CANONICAL500_INPUT_SET,
+    )
+    report = verify_flx_canonical500_alignment(
+        workspace=workspace,
+        dataset_root=dataset_root,
+        config=config,
+        repository_root=repository_root,
+        run_id=research_state.run_id,
+        require_clean=False,
+    )
+
+    issues: list[IntegrityIssue] = []
+    issues.extend(_compare_stored_alignment(workspace, research_state.run_id, report))
+    issues.extend(
+        _check_no_derivations(
+            workspace, research_state.run_id, repository_root=repository_root
+        )
+    )
+    return FlxCanonical500ExperimentState(
+        research_state=research_state,
+        alignment_report=report,
+        issues=tuple(issues),
+    )
+
+
 # ----------------------------------------------------------------- internals
+
+
+@dataclass(frozen=True, slots=True)
+class _AlignmentContext:
+    """Everything one alignment pass loaded, kept so it is loaded once.
+
+    Verifying the prepared set re-reads and re-hashes 3,000 PNGs, and loading
+    the reference run re-verifies its whole evidence chain. Preparation needs
+    the comparison twice — once before the run exists and once against the plan
+    that now does — and doing all of that twice would be minutes of work to
+    reach an answer already in memory.
+    """
+
+    inputs: SD300Inputs
+    prepared_entries: Mapping[str, PreparedImageEntry]
+    reference_run: Any
+    reference_side: Any
+    reference_materialization_policy: str | None
+    report: CanonicalRunAlignmentReport
+
+
+def _preparer_factory(
+    workspace: Path, spec: AlgorithmResearchExperimentSpec
+) -> Canonical500ImagePreparer:
+    """Bind a preparer to the exact set this run declares.
+
+    A constructor call rather than a search. The set is named by id *and* by
+    fingerprint, so a preparer that went looking would switch inputs the next
+    time somebody materialised a new one (docs/adr/0033).
+    """
+    return Canonical500ImagePreparer(
+        store=PreparedImageSetStore(Path(workspace)),
+        preparation_set_id=str(spec.preparation_set_id),
+        preparation_set_fingerprint=str(spec.preparation_set_fingerprint),
+    )
+
+
+def _load_alignment_context(
+    *,
+    workspace: Path,
+    dataset_root: Path | None,
+    config: FlxCanonical500ExperimentConfig,
+    repository_root: Path,
+    run_id: str | None,
+) -> _AlignmentContext:
+    """Load both sides once, from the manifests, and compare them."""
+    spec = build_flx_canonical500_spec(config)
+
+    # The pair manifest is *read*. ``allow_creation=False`` is what makes that
+    # true rather than intended: with it, a workspace missing the manifest is an
+    # error instead of an invitation to build a new one (spec section 21).
+    inputs = load_sd300_inputs(
+        workspace=workspace,
+        dataset_root=dataset_root,
+        dataset_config=config.dataset_config,
+        protocol_config=config.protocol_config,
+        require_verified_checksums=config.require_verified_checksums,
+        allow_creation=False,
+    )
+    if inputs.pair_manifest_hash != config.reference_pair_manifest_hash:
+        raise ResearchPreflightError(
+            f"the workspace pair manifest hashes to "
+            f"{inputs.pair_manifest_hash[:12]}..., but Stage 8C is defined "
+            f"against {config.reference_pair_manifest_hash[:12]}..."
+        )
+    if str(inputs.cohort.cohort_id) != config.reference_cohort_id:
+        raise ResearchPreflightError(
+            f"the workspace cohort is {inputs.cohort.cohort_id}, but Stage 8C is "
+            f"defined against {config.reference_cohort_id}"
+        )
+
+    preparer = _preparer_factory(workspace, spec)
+    preparer.preflight()
+    entries = preparer.prepared_entries()
+    runtime_fingerprint = str(
+        preparer.run_metadata().get("transform_runtime_fingerprint")
+    )
+    if runtime_fingerprint != config.transform_runtime_fingerprint:
+        raise ResearchPreflightError(
+            f"the prepared set was materialised by transform runtime "
+            f"{runtime_fingerprint[:12]}..., but Stage 8C is defined against "
+            f"{config.transform_runtime_fingerprint[:12]}..."
+        )
+
+    reference_state = _reference_research_state(
+        workspace=workspace,
+        dataset_root=dataset_root,
+        repository_root=repository_root,
+    )
+    reference_side = load_reference_alignment_side(
+        workspace=workspace,
+        expected=config.reference,
+        research_state=reference_state,
+    )
+
+    plan = None
+    result_set_id = None
+    if run_id:
+        plan = PlanStore(workspace).read_plan(run_id)
+        result_set_id = _result_set_id(workspace, run_id)
+
+    candidate_side = load_candidate_alignment_side(
+        pairs=inputs.pairs,
+        pair_manifest_hash=inputs.pair_manifest_hash,
+        protocol_id=inputs.protocol.protocol_id,
+        cohort_id=str(inputs.cohort.cohort_id),
+        preparation_set_id=config.preparation_set_id,
+        preparation_set_fingerprint=config.preparation_set_fingerprint,
+        prepared_entries=entries,
+        images=inputs.images,
+        plan=plan,
+        run_id=run_id,
+        result_set_id=result_set_id,
+    )
+    report = build_canonical_run_alignment_report(
+        reference=reference_side,
+        candidate=candidate_side,
+        expected_reference=config.reference,
+        expectations=config.alignment_expectations,
+    )
+
+    reference_run = ResultStore(workspace).read_run(config.reference.run_id)
+    return _AlignmentContext(
+        inputs=inputs,
+        prepared_entries=entries,
+        reference_run=reference_run,
+        reference_side=reference_side,
+        reference_materialization_policy=_materialization_policy(
+            workspace, config.reference.run_id
+        ),
+        report=report,
+    )
+
+
+def _rebuild_alignment(
+    *,
+    context: _AlignmentContext,
+    config: FlxCanonical500ExperimentConfig,
+    run_id: str,
+    plan: Any,
+    result_set_id: str | None,
+) -> CanonicalRunAlignmentReport:
+    """The same comparison, restated against a plan that now exists.
+
+    Cheap, because both sides are already in memory. It matters because the
+    order checked before ``prepare`` was the order the planner *would* impose,
+    and this is the order it did (spec section 21, step 14).
+    """
+    candidate_side = load_candidate_alignment_side(
+        pairs=context.inputs.pairs,
+        pair_manifest_hash=context.inputs.pair_manifest_hash,
+        protocol_id=context.inputs.protocol.protocol_id,
+        cohort_id=str(context.inputs.cohort.cohort_id),
+        preparation_set_id=config.preparation_set_id,
+        preparation_set_fingerprint=config.preparation_set_fingerprint,
+        prepared_entries=context.prepared_entries,
+        images=context.inputs.images,
+        plan=plan,
+        run_id=run_id,
+        result_set_id=result_set_id,
+    )
+    return build_canonical_run_alignment_report(
+        reference=context.reference_side,
+        candidate=candidate_side,
+        expected_reference=config.reference,
+        expectations=config.alignment_expectations,
+    )
+
+
+def _reference_research_state(
+    *,
+    workspace: Path,
+    dataset_root: Path | None,
+    repository_root: Path,
+) -> ResearchRunState:
+    """Ask the reference experiment's own wrapper how its run is doing.
+
+    Imported here rather than at module scope so that the dependency is visibly
+    one function wide. Stage 8C reads the reference run's *readiness*; it does
+    not import its adapter, its decision profile or its scores (spec section 18).
+    """
+    from fpbench.experiments.sourceafis_canonical500_full import (
+        inspect_sourceafis_canonical500_run,
+    )
+
+    return inspect_sourceafis_canonical500_run(
+        workspace=workspace,
+        dataset_root=dataset_root,
+        repository_root=repository_root,
+    )
+
+
+def _materialization_policy(workspace: Path, run_id: str) -> str | None:
+    try:
+        reference = ResultStore(workspace).read_runtime_reference(run_id)
+        return (
+            RuntimeBundleStore(workspace)
+            .read_bundle(reference.bundle_id)
+            .materialization_policy
+        )
+    except Exception:  # pragma: no cover - absence is reported by the alignment
+        return None
+
+
+def _result_set_id(workspace: Path, run_id: str) -> str | None:
+    try:
+        return ResultSetStore(workspace).read_manifest(run_id).result_set_id
+    except Exception:
+        return None
+
+
+def _write_alignment_report(
+    workspace: Path, run_id: str, report: CanonicalRunAlignmentReport
+) -> Path:
+    return ResultStore(workspace).write_derived(run_id, ALIGNMENT_REPORT_NAME, report)
+
+
+def _compare_stored_alignment(
+    workspace: Path, run_id: str, derived: CanonicalRunAlignmentReport
+) -> list[IntegrityIssue]:
+    """The stored report must be the one the files still produce."""
+    from fpbench.core.enums import IntegrityIssueCode, IntegritySeverity
+
+    path = ResultStore(workspace).derived_path(run_id, ALIGNMENT_REPORT_NAME)
+    if not path.is_file():
+        return [
+            IntegrityIssue(
+                code=IntegrityIssueCode.PLAN_CONFLICT,
+                severity=IntegritySeverity.ERROR,
+                message=(
+                    f"run {run_id} carries no stored alignment report; preparation "
+                    "writes one and finalization compares against it"
+                ),
+            )
+        ]
+    stored = read_json(path)
+    issues: list[IntegrityIssue] = []
+    try:
+        expectations = _alignment_expectations_from_plain(stored.get("expectations"))
+    except (KeyError, TypeError, ValueError) as exc:
+        return [
+            IntegrityIssue(
+                code=IntegrityIssueCode.PLAN_CONFLICT,
+                severity=IntegritySeverity.ERROR,
+                message=f"the stored alignment expectations are invalid: {exc}",
+                relative_path=str(path.relative_to(workspace)),
+            )
+        ]
+    recomputed = canonical_run_alignment_fingerprint(
+        reference_run_id=str(stored.get("reference_run_id")),
+        reference_plan_id=str(stored.get("reference_plan_id")),
+        reference_result_set_id=str(stored.get("reference_result_set_id")),
+        candidate_run_id=stored.get("candidate_run_id"),
+        candidate_plan_id=stored.get("candidate_plan_id"),
+        pair_manifest_hash=str(stored.get("pair_manifest_hash")),
+        preparation_set_id=str(stored.get("preparation_set_id")),
+        preparation_set_fingerprint=str(stored.get("preparation_set_fingerprint")),
+        reference_pair_count=int(stored.get("reference_pair_count", -1)),
+        candidate_pair_count=int(stored.get("candidate_pair_count", -1)),
+        equal_pair_ids=int(stored.get("equal_pair_ids", -1)),
+        equal_pair_semantics=int(stored.get("equal_pair_semantics", -1)),
+        reference_prepared_entries=int(stored.get("reference_prepared_entries", -1)),
+        candidate_prepared_entries=int(stored.get("candidate_prepared_entries", -1)),
+        equal_prepared_entries=int(stored.get("equal_prepared_entries", -1)),
+        pair_id_sequence_sha256=str(stored.get("pair_id_sequence_sha256")),
+        pair_semantics_sha256=str(stored.get("pair_semantics_sha256")),
+        prepared_entries_sha256=str(stored.get("prepared_entries_sha256")),
+        issues=_issues_from_plain(stored.get("issues") or []),
+        expectations=expectations,
+    )
+    if recomputed != stored.get("alignment_fingerprint"):
+        issues.append(
+            IntegrityIssue(
+                code=IntegrityIssueCode.PLAN_CONFLICT,
+                severity=IntegritySeverity.ERROR,
+                message=(
+                    "the stored alignment report does not fingerprint to what it "
+                    "carries; it has been edited since it was written"
+                ),
+            )
+        )
+    if expectations != derived.expectations:
+        issues.append(
+            IntegrityIssue(
+                code=IntegrityIssueCode.PLAN_CONFLICT,
+                severity=IntegritySeverity.ERROR,
+                message=(
+                    "the stored alignment expectations are not the experiment "
+                    "shape this workspace now derives"
+                ),
+                relative_path=str(path.relative_to(workspace)),
+            )
+        )
+    if stored.get("alignment_fingerprint") != derived.alignment_fingerprint:
+        issues.append(
+            IntegrityIssue(
+                code=IntegrityIssueCode.PLAN_CONFLICT,
+                severity=IntegritySeverity.ERROR,
+                message=(
+                    "the stored alignment report is not the one this workspace now "
+                    f"derives ({str(stored.get('alignment_fingerprint'))[:12]}... "
+                    f"vs {derived.alignment_fingerprint[:12]}...)"
+                ),
+            )
+        )
+    return issues
+
+
+def _alignment_expectations_from_plain(value: Any) -> AlignmentExpectations:
+    if not isinstance(value, Mapping):
+        raise TypeError("expectations must be an object")
+    return AlignmentExpectations(
+        pair_count=int(value["pair_count"]),
+        prepared_entry_count=int(value["prepared_entry_count"]),
+        pairs_per_release_stage=int(value["pairs_per_release_stage"]),
+        prepared_entries_per_release=int(value["prepared_entries_per_release"]),
+        releases=tuple(value["releases"]),
+    )
+
+
+def _issues_from_plain(items: Any) -> tuple[IntegrityIssue, ...]:
+    from fpbench.core.enums import IntegrityIssueCode, IntegritySeverity
+
+    rebuilt: list[IntegrityIssue] = []
+    for item in items or ():
+        rebuilt.append(
+            IntegrityIssue(
+                code=IntegrityIssueCode(item["code"]),
+                severity=IntegritySeverity(item["severity"]),
+                message=str(item["message"]),
+                job_id=item.get("job_id"),
+                relative_path=item.get("relative_path"),
+                details=dict(item.get("details") or {}),
+            )
+        )
+    return tuple(rebuilt)
+
+
+def _check_no_derivations(
+    workspace: Path,
+    run_id: str,
+    *,
+    permitted_experiments: frozenset[str] | None = None,
+    repository_root: Path = REPOSITORY_ROOT,
+) -> list[IntegrityIssue]:
+    """Nothing derives from this run, because nothing is entitled to yet.
+
+    Stage 8C produces raw scores and nothing else. A decision set over them
+    would mean somebody chose a threshold for the flx scale, and there is no
+    such threshold to choose: Stage 8D must freeze its source, comparator and
+    boundary semantics in a separate prior act, and may not choose one from
+    these scores (docs/adr/0076, spec sections 27 and 39).
+
+    The allowlist is data rather than a wildcard, so the day Stage 8D pins a
+    profile the rule becomes "accounted for by a named experiment" without this
+    function changing shape — which is exactly how Stage 7C's equivalent aged.
+
+    The check uses the real models and stores. A filename search would pass a
+    directory somebody renamed (spec section 27).
+    """
+    from fpbench.core.derivation_models import DerivationDefinition
+    from fpbench.core.enums import IntegrityIssueCode, IntegritySeverity
+    from fpbench.core.errors import StorageError
+    from fpbench.core.evaluation_models import MetricDerivationDefinition
+    from fpbench.storage import layout
+    from fpbench.storage.paired_evaluation_store import PairedEvaluationStore
+
+    if permitted_experiments is None:
+        permitted_experiments = PERMITTED_DOWNSTREAM_EXPERIMENTS
+
+    issues: list[IntegrityIssue] = []
+    derivations_root = layout.derivations_root(workspace)
+    accounted_for = False
+    if derivations_root.is_dir():
+        for path in sorted(derivations_root.rglob("definition.json")):
+            try:
+                payload = read_json(path)
+                definition = _load_downstream_definition(
+                    payload,
+                    decision_model=DerivationDefinition,
+                    metric_model=MetricDerivationDefinition,
+                )
+            except (OSError, StorageError, TypeError, ValueError) as exc:
+                issues.append(
+                    IntegrityIssue(
+                        code=IntegrityIssueCode.PLAN_CONFLICT,
+                        severity=IntegritySeverity.ERROR,
+                        message=f"unreadable downstream definition: {exc}",
+                        relative_path=path.relative_to(workspace).as_posix(),
+                    )
+                )
+                continue
+            if definition.run_id != run_id:
+                continue
+            owner = _owning_experiment_id(path, derivations_root)
+            if owner in permitted_experiments:
+                accounted_for = True
+                continue
+            kind = (
+                "decision/eligibility"
+                if isinstance(definition, DerivationDefinition)
+                else "metric"
+            )
+            issues.append(
+                IntegrityIssue(
+                    code=IntegrityIssueCode.PLAN_CONFLICT,
+                    severity=IntegritySeverity.ERROR,
+                    message=(
+                        f"{kind} definition {definition.definition_id} derives "
+                        f"from run {run_id} under experiment {owner!r}; Stage 8C "
+                        "permits no downstream derivation at all "
+                        "(docs/adr/0076)"
+                    ),
+                    relative_path=path.relative_to(workspace).as_posix(),
+                )
+            )
+
+    run_directory = ResultStore(workspace).run_dir(run_id)
+    if not accounted_for:
+        for name in ("decisions", "metrics", "eligibility"):
+            path = run_directory / name
+            if path.exists():
+                issues.append(
+                    IntegrityIssue(
+                        code=IntegrityIssueCode.PLAN_CONFLICT,
+                        severity=IntegritySeverity.ERROR,
+                        message=(
+                            f"run {run_id} carries a {name}/ directory that no "
+                            "pinned derivation accounts for; a threshold was "
+                            "applied outside an experiment (docs/adr/0076)"
+                        ),
+                        relative_path=f"results/{run_id}/{name}",
+                    )
+                )
+
+    paired_store = PairedEvaluationStore(workspace)
+    if paired_store.paired_root.is_dir():
+        try:
+            run_fingerprint = ResultStore(workspace).read_run(run_id).run_fingerprint
+        except StorageError as exc:
+            issues.append(
+                IntegrityIssue(
+                    code=IntegrityIssueCode.PLAN_CONFLICT,
+                    severity=IntegritySeverity.ERROR,
+                    message=f"cannot identify run {run_id} for paired checks: {exc}",
+                )
+            )
+            return issues
+        for directory in sorted(paired_store.paired_root.iterdir()):
+            paired_id = directory.name
+            if not paired_store.definition_path(paired_id).is_file():
+                continue
+            relative = (
+                paired_store.definition_path(paired_id)
+                .relative_to(workspace)
+                .as_posix()
+            )
+            try:
+                if paired_store.has_receipt(paired_id):
+                    receipt = paired_store.read_receipt(paired_id)
+                    cites_run = run_id in {
+                        receipt.native_run_id,
+                        receipt.canonical_run_id,
+                    }
+                else:
+                    definition = paired_store.read_definition(paired_id)
+                    cites_run = run_fingerprint in {
+                        definition.native_run_fingerprint,
+                        definition.canonical_run_fingerprint,
+                    }
+            except StorageError as exc:
+                issues.append(
+                    IntegrityIssue(
+                        code=IntegrityIssueCode.PLAN_CONFLICT,
+                        severity=IntegritySeverity.ERROR,
+                        message=f"unreadable paired evaluation: {exc}",
+                        relative_path=relative,
+                    )
+                )
+                continue
+            if cites_run:
+                issues.append(
+                    IntegrityIssue(
+                        code=IntegrityIssueCode.PLAN_CONFLICT,
+                        severity=IntegritySeverity.ERROR,
+                        message=(
+                            f"paired evaluation {paired_id} cites run {run_id}; "
+                            "Stage 8C has no paired evaluation"
+                        ),
+                        relative_path=relative,
+                    )
+                )
+
+    issues.extend(check_no_cross_algorithm_comparison(repository_root, run_id))
+    return issues
+
+
+def check_no_cross_algorithm_comparison(
+    repository_root: Path, run_id: str
+) -> list[IntegrityIssue]:
+    """No comparison of this run against SourceAFIS or NBIS exists.
+
+    Stage 7D built the cross-algorithm machinery, and it is exactly what must
+    not be pointed at these scores: a comparison needs both sides to have
+    decisions, and the flx side has none because no threshold exists for its
+    scale (docs/adr/0076, spec section 27).
+
+    A published comparison is a bundle under ``evidence/``, not a workspace
+    store, so that is where this looks. Each candidate is parsed with the real
+    :class:`~fpbench.core.cross_algorithm_models.CrossAlgorithmEvaluationDefinition`
+    and its two named run ids are compared — never a text search of the file and
+    never the directory's name (spec section 27).
+    """
+    from fpbench.core.cross_algorithm_models import CrossAlgorithmEvaluationDefinition
+    from fpbench.core.enums import IntegrityIssueCode, IntegritySeverity
+    from fpbench.core.errors import StorageError
+
+    issues: list[IntegrityIssue] = []
+    evidence_root = Path(repository_root) / "evidence"
+    if not evidence_root.is_dir():
+        return issues
+    for path in sorted(evidence_root.glob("*/algcompare_*.json")):
+        relative = path.relative_to(repository_root).as_posix()
+        try:
+            payload = read_json(path)
+            definition = CrossAlgorithmEvaluationDefinition(
+                **dict(payload["definition"])
+            )
+        except (OSError, StorageError, KeyError, TypeError, ValueError) as exc:
+            issues.append(
+                IntegrityIssue(
+                    code=IntegrityIssueCode.PLAN_CONFLICT,
+                    severity=IntegritySeverity.ERROR,
+                    message=f"unreadable cross-algorithm definition: {exc}",
+                    relative_path=relative,
+                )
+            )
+            continue
+        if run_id in {definition.left_run_id, definition.right_run_id}:
+            issues.append(
+                IntegrityIssue(
+                    code=IntegrityIssueCode.PLAN_CONFLICT,
+                    severity=IntegritySeverity.ERROR,
+                    message=(
+                        f"cross-algorithm comparison {definition.definition_id} "
+                        f"cites run {run_id}; Stage 8C publishes no comparison "
+                        "with another algorithm (docs/adr/0076)"
+                    ),
+                    relative_path=relative,
+                )
+            )
+    return issues
+
+
+def _owning_experiment_id(definition_path: Path, derivations_root: Path) -> str:
+    """Which experiment's directory a definition file sits under."""
+    try:
+        relative = definition_path.relative_to(derivations_root)
+    except ValueError:  # pragma: no cover - the caller globbed from this root
+        return ""
+    return relative.parts[0] if relative.parts else ""
+
+
+def _load_downstream_definition(
+    payload: Mapping[str, Any], *, decision_model: Any, metric_model: Any
+) -> Any:
+    from fpbench.core.errors import StorageError
+
+    errors: list[str] = []
+    for model in (decision_model, metric_model):
+        try:
+            return model(**payload)
+        except (KeyError, TypeError, ValueError) as exc:
+            errors.append(f"{model.__name__}: {exc}")
+    raise StorageError("; ".join(errors))
 
 
 def _require_frozen(label: str, value: Any, expected: Any, path: Path) -> None:

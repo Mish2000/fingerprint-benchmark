@@ -181,6 +181,12 @@ LATER_STAGE_EVIDENCE_DIRECTORIES = frozenset(
     {
         "stage8a-modern-matcher-selection",
         "stage8b-flx-runtime-qualification",
+        # Stage 8C's raw run. Its research finalization is schema 4, and its
+        # documents name NBIS because the run is aligned against the same
+        # canonical experiment NBIS used — neither of which says anything about
+        # whether an *earlier* receipt moved, which is the only question these
+        # two tests ask.
+        "flx-canonical500-raw",
     }
 )
 EXEMPT_EVIDENCE_DIRECTORIES = NBIS_EVIDENCE_DIRECTORIES | LATER_STAGE_EVIDENCE_DIRECTORIES
@@ -307,15 +313,20 @@ def test_the_paired_comparison_is_still_paired_evaluation_ready():
 
 
 @pytest.mark.dataset
-def test_the_only_new_run_is_the_one_stage_7c_prepared(tmp_path):
-    """Stage 7B added no run. Stage 7C adds exactly one, and says which.
+def test_every_run_beyond_the_two_originals_is_named_by_an_experiment(tmp_path):
+    """The two SourceAFIS runs are untouched, and nothing else is unexplained.
 
-    The original form of this test asserted that the workspace held only the two
-    SourceAFIS runs, which was stage 7B's whole point. Stage 7C's point is the
-    opposite — it runs NBIS over the same 6,000 comparisons — so what is checked
-    now is that the two originals are untouched and that any third run is the one
-    the Stage 7C experiment pointer names. An unexplained fourth run in a
-    workspace that publishes receipts is still a failure.
+    This test has now been widened twice by later stages, which is the signal
+    that its *shape* was wrong rather than its intent. The original asserted the
+    workspace held exactly the two SourceAFIS runs — true until Stage 7C added a
+    third. It was then changed to allow the run Stage 7C's experiment pointer
+    named — true until Stage 8C added a fourth.
+
+    So it no longer names an experiment at all. It asks the question it always
+    meant: are the two originals present, and is every other run in the
+    workspace declared by some experiment's own pointer? A stray run that no
+    experiment claims still fails, and the next stage needs no edit here
+    (docs/adr/0067).
     """
     if not WORKSPACE.is_dir():
         pytest.skip("no workspace in this checkout")
@@ -324,12 +335,16 @@ def test_the_only_new_run_is_the_one_stage_7c_prepared(tmp_path):
 
     from fpbench.core.errors import ResearchPreflightError
     from fpbench.experiments.algorithm_research import read_run_pointer
-    from fpbench.experiments.nbis_canonical500_full import EXPERIMENT_ID
 
-    try:
-        nbis_run = {read_run_pointer(WORKSPACE, EXPERIMENT_ID)}
-    except ResearchPreflightError:
-        nbis_run = set()
-    assert runs - {NATIVE_RUN_ID, CANONICAL_RUN_ID} <= nbis_run, sorted(
-        runs - {NATIVE_RUN_ID, CANONICAL_RUN_ID} - nbis_run
-    )
+    experiments = WORKSPACE / "experiments"
+    declared: set[str] = set()
+    for directory in sorted(experiments.iterdir()) if experiments.is_dir() else ():
+        if not directory.is_dir():
+            continue
+        try:
+            declared.add(read_run_pointer(WORKSPACE, directory.name))
+        except ResearchPreflightError:
+            continue
+
+    unexplained = runs - {NATIVE_RUN_ID, CANONICAL_RUN_ID} - declared
+    assert not unexplained, sorted(unexplained)

@@ -809,7 +809,35 @@ def preflight_flx_canonical500_run(
     workspace = Path(workspace)
     repository_root = Path(repository_root)
     config = config or load_flx_canonical500_config(repository_root=repository_root)
+    findings, context = _preflight_inputs(
+        workspace=workspace,
+        dataset_root=dataset_root,
+        config=config,
+        repository_root=repository_root,
+        bundle_root=bundle_root,
+        require_clean_tree=require_clean_tree,
+    )
+    return findings
 
+
+def _preflight_inputs(
+    *,
+    workspace: Path,
+    dataset_root: Path | None,
+    config: FlxCanonical500ExperimentConfig,
+    repository_root: Path,
+    bundle_root: Path | None,
+    require_clean_tree: bool,
+) -> tuple[dict[str, Any], "_AlignmentContext"]:
+    """Every check, and the loaded context, so a caller pays for it once.
+
+    ``prepare`` needs both the findings and the context the checks were made
+    against. Returning the context is not an optimisation of a fast function: on
+    this host the alignment pass re-reads and re-hashes 3,000 prepared PNGs and
+    re-verifies the reference run's complete chain — 6,000 stored results, some
+    gigabytes — and over a WSL ``/mnt/c`` mount that is tens of minutes. Doing it
+    twice would double the wait and prove nothing the first pass did not.
+    """
     findings: dict[str, Any] = {"experiment_id": config.experiment_id}
     if require_clean_tree:
         software = capture_research_provenance(repository_root)
@@ -863,7 +891,7 @@ def preflight_flx_canonical500_run(
         "physical_forward_rows": config.operations.planned_physical_forward_rows,
         "comparison_calls": config.operations.planned_comparison_calls,
     }
-    return findings
+    return findings, context
 
 
 # ------------------------------------------------------------------- alignment
@@ -946,28 +974,17 @@ def prepare_flx_canonical500_run(
     repository_root = Path(repository_root)
     config = config or load_flx_canonical500_config(repository_root=repository_root)
 
-    # 1-7. Everything about the route and the inputs, before a run exists.
-    preflight_flx_canonical500_run(
+    # 1-11. Everything about the route and the inputs, before a run exists. The
+    # loaded context comes back with the findings, because deriving it again
+    # would re-hash 3,000 PNGs and re-verify the reference run's 6,000 stored
+    # results to reach an answer already in memory.
+    _, context = _preflight_inputs(
         workspace=workspace,
         dataset_root=dataset_root,
         config=config,
         repository_root=repository_root,
         bundle_root=bundle_root,
-    )
-
-    # 8-11. The inputs again, kept this time so the comparison is not repeated.
-    context = _load_alignment_context(
-        workspace=workspace,
-        dataset_root=dataset_root,
-        config=config,
-        repository_root=repository_root,
-        run_id=None,
-    )
-    require_clean_alignment(context.report)
-    require_canonical_input_controls_equal(
-        context.reference_run,
-        build_flx_canonical500_spec(config),
-        reference_materialization_policy=context.reference_materialization_policy,
+        require_clean_tree=True,
     )
 
     # 12-13. The general engine. Everything algorithm-specific arrives through

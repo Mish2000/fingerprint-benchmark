@@ -1300,9 +1300,14 @@ def publish_flx_canonical500_evidence(
     validation = _stored_validation_report(
         workspace=workspace, run_id=resolved, config=config
     )
+    # ``run_<run_id>.json`` is deliberately absent from this list. The engine
+    # wrote it as the last act of finalization — it is the research receipt, and
+    # ``research-receipt.json`` below is the same document under the name a
+    # reader looks for. Writing a different document to that path here would
+    # replace the engine's own published copy with something no check has seen
+    # (spec section 28, and the convention Stage 7C established).
     written: list[Path] = []
     for name, value in (
-        (f"run_{resolved}.json", _run_document(workspace, resolved)),
         ("research-receipt.json", result_store.read_research_receipt(resolved)),
         (
             "research-finalization.json",
@@ -1325,9 +1330,21 @@ def publish_flx_canonical500_evidence(
     return tuple(written)
 
 
-def _run_document(workspace: Path, run_id: str) -> Mapping[str, Any]:
-    """The stored run definition, published unchanged."""
-    return to_plain(ResultStore(workspace).read_run(run_id))
+def _legacy_paired_definition_cites_run(path: Path, run_fingerprint: str) -> bool:
+    """Read only source identities from a pre-current paired definition.
+
+    Two named JSON fields, each validated as a complete digest, compared as
+    exact identities. It never greps or searches arbitrary JSON, and it answers
+    exactly one question: does this comparison name the run Stage 8C produced?
+    """
+    payload = read_json(path)
+    fingerprints: list[str] = []
+    for name in ("native_run_fingerprint", "canonical_run_fingerprint"):
+        value = str(payload[name]).strip().lower()
+        if len(value) != 64 or not set(value) <= set("0123456789abcdef"):
+            raise ValueError(f"{name} is not a 64-character hexadecimal digest")
+        fingerprints.append(value)
+    return run_fingerprint in fingerprints
 
 
 def _stored_validation_report(
@@ -2202,6 +2219,14 @@ def _check_no_derivations(
                 .relative_to(workspace)
                 .as_posix()
             )
+            # A finalised comparison is identified from its modelled receipt. An
+            # unfinished one is identified from its definition — and this
+            # workspace holds three whose definitions predate the current
+            # fingerprint schema, so ``read_definition`` refuses them. That is
+            # not a Stage 8C finding: those comparisons are Stage 6B's and have
+            # nothing to do with this run. The narrow fallback below reads two
+            # named fields and validates them as digests, exactly as Stage 7C
+            # does; it never greps arbitrary JSON.
             try:
                 if paired_store.has_receipt(paired_id):
                     receipt = paired_store.read_receipt(paired_id)
@@ -2210,12 +2235,18 @@ def _check_no_derivations(
                         receipt.canonical_run_id,
                     }
                 else:
-                    definition = paired_store.read_definition(paired_id)
-                    cites_run = run_fingerprint in {
-                        definition.native_run_fingerprint,
-                        definition.canonical_run_fingerprint,
-                    }
-            except StorageError as exc:
+                    try:
+                        definition = paired_store.read_definition(paired_id)
+                    except StorageError as exc:
+                        cites_run = _legacy_paired_definition_cites_run(
+                            paired_store.definition_path(paired_id), run_fingerprint
+                        )
+                    else:
+                        cites_run = run_fingerprint in {
+                            definition.native_run_fingerprint,
+                            definition.canonical_run_fingerprint,
+                        }
+            except (StorageError, KeyError, TypeError, ValueError) as exc:
                 issues.append(
                     IntegrityIssue(
                         code=IntegrityIssueCode.PLAN_CONFLICT,

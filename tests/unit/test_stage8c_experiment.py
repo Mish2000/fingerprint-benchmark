@@ -195,6 +195,83 @@ def test_nothing_is_entitled_to_derive_from_this_run_yet() -> None:
     assert frozen.PERMITTED_DOWNSTREAM_EXPERIMENTS == frozenset()
 
 
+# ------------------------------------------- pre-current paired definitions
+
+
+def test_a_paired_definition_the_current_schema_refuses_is_still_readable(
+    tmp_path: Path,
+) -> None:
+    """The fallback that keeps Stage 6B's comparisons from becoming findings.
+
+    Three paired definitions in the real workspace predate the current
+    fingerprint schema, so ``read_definition`` refuses them. They are Stage 6B's
+    and have nothing to do with this run, and treating "I cannot parse this" as
+    "this derives from my run" would block finalization over someone else's
+    artefact — which is exactly what happened before this existed.
+    """
+    from fpbench.experiments.flx_canonical500_full import (
+        _legacy_paired_definition_cites_run,
+    )
+
+    path = tmp_path / "definition.json"
+    path.write_text(
+        json.dumps(
+            {
+                "native_run_fingerprint": "a" * 64,
+                "canonical_run_fingerprint": "b" * 64,
+                "some_field_the_current_schema_added": "unparseable",
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert _legacy_paired_definition_cites_run(path, "a" * 64) is True
+    assert _legacy_paired_definition_cites_run(path, "b" * 64) is True
+    assert _legacy_paired_definition_cites_run(path, "c" * 64) is False
+
+
+def test_the_fallback_reads_two_named_fields_and_never_greps(tmp_path: Path) -> None:
+    """A digest mentioned anywhere else in the document must not count."""
+    from fpbench.experiments.flx_canonical500_full import (
+        _legacy_paired_definition_cites_run,
+    )
+
+    path = tmp_path / "definition.json"
+    path.write_text(
+        json.dumps(
+            {
+                "native_run_fingerprint": "a" * 64,
+                "canonical_run_fingerprint": "b" * 64,
+                "notes": "this text mentions " + "c" * 64,
+                "unrelated": {"nested_fingerprint": "c" * 64},
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert _legacy_paired_definition_cites_run(path, "c" * 64) is False
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"canonical_run_fingerprint": "b" * 64},
+        {"native_run_fingerprint": "a" * 64},
+        {"native_run_fingerprint": "short", "canonical_run_fingerprint": "b" * 64},
+        {"native_run_fingerprint": "z" * 64, "canonical_run_fingerprint": "b" * 64},
+    ],
+)
+def test_a_definition_without_two_valid_digests_is_refused(
+    tmp_path: Path, payload: dict
+) -> None:
+    from fpbench.experiments.flx_canonical500_full import (
+        _legacy_paired_definition_cites_run,
+    )
+
+    path = tmp_path / "definition.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises((KeyError, ValueError)):
+        _legacy_paired_definition_cites_run(path, "a" * 64)
+
+
 # -------------------------------------------------------- the pair manifest
 
 

@@ -1,0 +1,84 @@
+{
+  "schema_version": "1",
+  "kind": "stage_8c_runtime_provenance",
+  "statement": "This receipt proves execution completeness and provenance. It contains no biometric performance conclusion.",
+  "experiment_id": "flx_canonical500_full_v1",
+  "source_commit": "ec8881a34c8d6b00060ee5868c77aeaf9344c7cf",
+  "run_id": "run_902136b3b8ae",
+  "run_fingerprint": "902136b3b8ae72747959395fb06bd9586a911505adb8b9e7a1d1e13bb32da884",
+  "algorithm": {
+    "algorithm_id": "flx_deepprint_texminu_512_without_localization",
+    "adapter_id": "flx_pytorch_subprocess",
+    "adapter_version": "1",
+    "adapter_contract_version": "1",
+    "implementation_version": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+    "score_direction": "higher_is_better",
+    "descriptor_fingerprint": "fab45bd80425c4909d87212c5680bf6a5505fc416415adb5580248af8eb27134"
+  },
+  "integration": {
+    "integration_id": "flx_deepprint_texminu_research_v1",
+    "integration_fingerprint": "2fe9e121a6533e72454fdac3078b3aee8516af4033f90a45987e6fd4b8f3214b"
+  },
+  "runtime": {
+    "bundle_id": "runtime_6885b26bb4da",
+    "bundle_fingerprint": "6885b26bb4dad7711ad694c6c191ce6cb0bc6396b76c0ebd10ccf887ea53c5b4",
+    "asset_sha256s": {
+      "flx_runtime_lock": "e0ee3a5f902a84df000310d2d495cb433e1cd8bb3bc98d48475f9f552036d392",
+      "flx_runtime_policy": "ae93f6849ee6bbb832d002fed0fd94b95081bbf5d3c5cda28424e9ebe1269c42",
+      "flx_worker_script": "2d6fbf50b7ad76bbdedd78640f6c9f5729f42e128a6a4861d5f7c0661ac9a7da"
+    },
+    "runtime_profile_id": "flx_cpu_linux_x86_64_v1",
+    "runtime_manifest_fingerprint": "948dd24f43835bc5a9777ef75e2ba4f31950d26a850bda971032d0ae08857a02",
+    "device": "cpu",
+    "torch_num_threads": "1",
+    "torch_version": "2.13.0+cpu",
+    "numpy_version": "2.5.1",
+    "blas_implementation": "Intel(R) oneAPI Math Kernel Library Version 2024.2-Product Build 20240605 for Intel(R) 64 architecture applications",
+    "dependency_lock_sha256": "e0ee3a5f902a84df000310d2d495cb433e1cd8bb3bc98d48475f9f552036d392"
+  },
+  "artifacts": {
+    "source_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+    "source_archive_sha256": "60fa2c8894ea90efe2bb0553cd331d8ef84611b973b6126eaf6d162d1aa9b7e2",
+    "checkpoint_filename": "best_model.pyt",
+    "checkpoint_sha256": "2683a04427bacd54adc00cfdc97474625b1e11e5a9e6672c5129f033018f8a28",
+    "checkpoint_size_bytes": 875770140,
+    "checkpoint_published": false,
+    "weights_license_status": "unresolved"
+  },
+  "profiles": {
+    "preprocessing_profile_fingerprint": "9c0bbb9c5eabe646051fa659bee0aad7de50b7e56d566cc0d2d55fc4ab2e19f2",
+    "representation_profile_fingerprint": "7b9f84b05feaf61d3050bd489561d52c80d825d449e11490360b4e197b3a25a5",
+    "score_profile_fingerprint": "69848f2416a997484430ce0f6b5cf054586cb0e58968e986479e90ddc6563a61",
+    "adapter_profile_fingerprint": "dc4c0ccc1fdb4028584f38c340e1761bd3261bf01e42b965f1785425fcc7d84c"
+  },
+  "stage8b": {
+    "finalization_fingerprint": "aa6897bf25c7b6565647da3566e6ab6446ae6104b2511034fed0fdb08cb13373",
+    "outcome": "FLX_RAW_SCORE_EXECUTION_READY"
+  },
+  "execution_profile": {
+    "profile_id": "flx_canonical500_sequential_no_retry_v1",
+    "profile_hash": "62b6f6626ee395b7f839ec4721f0c9f76b937c19a938f523ebc7c03bdd026674",
+    "preparer_id": "canonical_500_png",
+    "job_deadline_seconds": "480.0",
+    "deterministic_seed": "0",
+    "replicate_index": "0",
+    "max_workers": "1",
+    "retries": "0"
+  },
+  "inputs": {
+    "protocol_id": "sd300_50_subjects",
+    "cohort_id": "sd300_50_subjects_test_22f8d52a7478",
+    "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+    "preparation_set_id": "prepset_be560e047991",
+    "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+    "transform_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+    "transform_profile_fingerprint": "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373",
+    "transform_runtime_fingerprint": "31a0a4346a3dd07843513cc1de5b167d8f2795b230a82bac709913032b74579c"
+  },
+  "reference": {
+    "run_id": "run_4c59fa02a6ab",
+    "plan_id": "plan_b4ae66e91923",
+    "result_set_id": "resultset_087b084fb8a8"
+  },
+  "alignment_fingerprint": "7091b2d8ea150674ddfd1e4e51274078af4022b12aa34e637ae01c70a964770f"
+}

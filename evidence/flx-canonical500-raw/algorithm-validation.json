@@ -1,0 +1,15 @@
+{
+  "run_id": "run_902136b3b8ae",
+  "plan_id": "plan_b1e805736760",
+  "total_results": 6000,
+  "successful_results": 6000,
+  "algorithmic_failures": 0,
+  "blocking_failures": 0,
+  "failure_counts": {},
+  "issues": [],
+  "preprocess_calls": 12000,
+  "logical_extraction_calls": 12000,
+  "physical_forward_rows": 24000,
+  "comparison_calls": 6000,
+  "validation_fingerprint": "4091da39b1b44d12e5828b599cb12b4ff485fa406dcb876184b2b5219f3d55ee"
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": "4",
+  "finalization_id": "finalization_310e10a32d17",
+  "finalization_fingerprint": "310e10a32d17a159f8872e6485f62fbc04281fcb65bccd64f2e17bc01af7be54",
+  "run_id": "run_902136b3b8ae",
+  "run_fingerprint": "902136b3b8ae72747959395fb06bd9586a911505adb8b9e7a1d1e13bb32da884",
+  "plan_id": "plan_b1e805736760",
+  "plan_fingerprint": "b1e8057367602c784652fa509bf6be8f4564e52077f1f3351891b258d47cdd98",
+  "environment_fingerprint": "bfa2fb8fcb5fd7a2b63b73e570aa048e76539598cdf41fc56b8f0f863c3ce996",
+  "integration_id": "flx_deepprint_texminu_research_v1",
+  "integration_fingerprint": "2fe9e121a6533e72454fdac3078b3aee8516af4033f90a45987e6fd4b8f3214b",
+  "runtime_reference_fingerprint": "4c1f10c1b417bcf6571b1f4ebb24041544579fad0faf9e49b586562a86ea2f8e",
+  "result_set_fingerprint": "d63e523e04369ee4e7d57ed63bac3980e656425a832759b71315ca3fc155be5a",
+  "audit_fingerprint": "936a6ca06e82e3505058b0169e67477a226b0e5c3021605d2c035060f8bb4f85",
+  "algorithm_validation_fingerprint": "4091da39b1b44d12e5828b599cb12b4ff485fa406dcb876184b2b5219f3d55ee",
+  "completion_fingerprint": "a9aac00c283ac5624ced6227e85a9d38f097dcce6a7a989e1a771a417df19365",
+  "receipt_fingerprint": "59d47c558bbcfc0acbfd25f04e578a6f75e9029a1e49b9810c1db2e869b4fb04",
+  "receipt_content_hash": "0559bb324f4b709104cb20723177559f6c2b2f1ccbcc2bdf561b2fdb5182ff8d",
+  "verifier_source_commit": "f1de94ed437651e5ad8d969295cfde6d0db2da83",
+  "verifier_source_tree_clean": true,
+  "created_utc": "2026-08-06T13:03:47.803788+00:00"
+}

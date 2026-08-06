@@ -1,0 +1,147 @@
+{
+  "schema_version": "2",
+  "kind": "operational_summary",
+  "statement": "This receipt proves execution completeness and provenance. It contains no biometric performance conclusion.",
+  "run_id": "run_902136b3b8ae",
+  "plan_id": "plan_b1e805736760",
+  "result_set_id": "resultset_d63e523e0436",
+  "runtime_bundle_id": "runtime_6885b26bb4da",
+  "counts": {
+    "planned_jobs": 6000,
+    "stored_results": 6000,
+    "missing_results": 0,
+    "success_count": 6000,
+    "failure_count": 0
+  },
+  "failure_counts": {},
+  "failure_counts_by_failure_stage": {},
+  "failure_counts_by_detail": {},
+  "failure_counts_by_release": {},
+  "failure_counts_by_protocol_stage": {},
+  "release_counts": {
+    "SD300A": 2000,
+    "SD300B": 2000,
+    "SD300C": 2000
+  },
+  "stage_counts": {
+    "plain_roll_mated": 1500,
+    "plain_roll_non_mated": 1500,
+    "plain_self": 1500,
+    "roll_self": 1500
+  },
+  "timings_ms": {
+    "adapter": {
+      "count": 6000,
+      "min": 1481.529,
+      "median": 1651.892,
+      "p95": 5220.082,
+      "p99": 5954.506,
+      "max": 6294.42,
+      "sum": 14474807.762
+    },
+    "job_total": {
+      "count": 6000,
+      "min": 1498.422,
+      "median": 1669.098,
+      "p95": 5341.521,
+      "p99": 6082.086,
+      "max": 6462.605,
+      "sum": 14844399.533
+    },
+    "bridge_total": {
+      "count": 0
+    },
+    "compare_ms": {
+      "count": 6000,
+      "min": 0.235,
+      "median": 0.471,
+      "p95": 0.985,
+      "p99": 1.27,
+      "max": 2.708,
+      "sum": 3226.619
+    },
+    "left_extract_ms": {
+      "count": 6000,
+      "min": 709.183,
+      "median": 751.483,
+      "p95": 2468.636,
+      "p99": 2868.326,
+      "max": 3031.694,
+      "sum": 6812493.836
+    },
+    "left_input_read": {
+      "count": 0
+    },
+    "left_preprocess_ms": {
+      "count": 6000,
+      "min": 6.704,
+      "median": 44.886,
+      "p95": 182.073,
+      "p99": 233.093,
+      "max": 273.77,
+      "sum": 358214.375
+    },
+    "left_template_extraction": {
+      "count": 0
+    },
+    "matcher_initialization": {
+      "count": 0
+    },
+    "matching": {
+      "count": 0
+    },
+    "right_extract_ms": {
+      "count": 6000,
+      "min": 710.588,
+      "median": 766.537,
+      "p95": 2438.709,
+      "p99": 2879.605,
+      "max": 3051.187,
+      "sum": 6688714.675
+    },
+    "right_input_read": {
+      "count": 0
+    },
+    "right_preprocess_ms": {
+      "count": 6000,
+      "min": 6.858,
+      "median": 76.733,
+      "p95": 188.824,
+      "p99": 235.309,
+      "max": 298.386,
+      "sum": 492376.038
+    },
+    "right_template_extraction": {
+      "count": 0
+    }
+  },
+  "first_started_utc": "2026-08-06T07:11:11.233271+00:00",
+  "last_finished_utc": "2026-08-06T11:38:00.166775+00:00",
+  "wall_clock_span_seconds": 16008.934,
+  "generated_utc": "2026-08-06T13:51:37.698329+00:00",
+  "algorithm_operations": {
+    "planned": {
+      "preprocess_calls": 12000,
+      "logical_extraction_calls": 12000,
+      "physical_forward_rows": 24000,
+      "comparison_calls": 6000
+    },
+    "measured": {
+      "preprocess_calls": 12000,
+      "logical_extraction_calls": 12000,
+      "physical_forward_rows": 24000,
+      "comparison_calls": 6000
+    },
+    "batch_rule": {
+      "inference_batch_rows": 2,
+      "inference_batch_rule": "duplicate_pair_take_first_row",
+      "represented_row": 0,
+      "statement": "one logical extraction is one representation and two physical forward rows; the two counts are never conflated (docs/adr/0070, docs/adr/0075)"
+    },
+    "worker": {
+      "max_workers": 1,
+      "job_deadline_seconds": 480,
+      "retries": 0
+    }
+  }
+}

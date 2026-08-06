@@ -1,0 +1,34 @@
+{
+  "reference_run_id": "run_4c59fa02a6ab",
+  "reference_plan_id": "plan_b4ae66e91923",
+  "reference_result_set_id": "resultset_087b084fb8a8",
+  "candidate_run_id": "run_902136b3b8ae",
+  "candidate_plan_id": "plan_b1e805736760",
+  "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "preparation_set_id": "prepset_be560e047991",
+  "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+  "reference_pair_count": 6000,
+  "candidate_pair_count": 6000,
+  "equal_pair_ids": 6000,
+  "equal_pair_semantics": 6000,
+  "reference_prepared_entries": 3000,
+  "candidate_prepared_entries": 3000,
+  "equal_prepared_entries": 3000,
+  "pair_id_sequence_sha256": "1aef4e3942eaf2f30412081221db58e6167013e597139a048465acfbef5174c2",
+  "pair_semantics_sha256": "5ee307a00dee1a4c04fa3e85aeccc5d54492011ad2e9848c79d1ad2520c146b9",
+  "prepared_entries_sha256": "c5f66f7a011f482f4c18bf7bf85203a7f77fd280904fa45595dddd60b0f3351e",
+  "issues": [],
+  "alignment_fingerprint": "7091b2d8ea150674ddfd1e4e51274078af4022b12aa34e637ae01c70a964770f",
+  "inspected_utc": "2026-08-06T13:50:59.144623+00:00",
+  "expectations": {
+    "pair_count": 6000,
+    "prepared_entry_count": 3000,
+    "pairs_per_release_stage": 500,
+    "prepared_entries_per_release": 1000,
+    "releases": [
+      "SD300A",
+      "SD300B",
+      "SD300C"
+    ]
+  }
+}

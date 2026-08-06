@@ -66,8 +66,8 @@
     "run_902136b3b8ae.json": "6640f4c3adb76c0cc40ad663093997c70c50e46d913f5d1f4e1b626fbd98ccae",
     "runtime-provenance.json": "d47ac13b1748a9c99af6967feb3c04c8f9b7a33ec97be269105a189fe52acce5"
   },
-  "verifier_source_commit": "6163e58414b03a524f2fa6d6862c96ddf55419a3",
+  "verifier_source_commit": "c4c9552bf9be913430479fa199ba5df519a72cad",
   "verifier_source_tree_clean": true,
-  "stage_8c_finalization_fingerprint": "73e333f4346bb29f67b1ea325eaca548020b75b1247f61a71e553bb61dee06c5",
+  "stage_8c_finalization_fingerprint": "0c09483efb92b3e6689cb202f2ce0af193e237791c40ed95ff3a698f179abec2",
   "created_utc": "2026-08-06T14:09:10.143789+00:00"
 }

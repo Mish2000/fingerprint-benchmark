@@ -490,12 +490,95 @@ def test_success_plus_algorithmic_failure_accounts_for_every_planned_job(world, 
 # ------------------------------------------------------------- the input set
 
 
-def test_a_run_from_another_input_set_is_a_finding(world, stub):
+def _expectations(world, **overrides):
+    """What a set-backed run's results must claim about their inputs.
+
+    Built over the world's own images so the entries actually resolve. This
+    exists because the ``preparation is not None`` branch is the one finalize
+    takes, and a validator tested only with ``preparation=None`` leaves it
+    unexecuted — which is exactly how a missing keyword argument survived the
+    whole contract suite and surfaced only when the real run finalised.
+    """
+    import hashlib
+
+    from fpbench.core.imaging_models import (
+        PreparedImageEntry,
+        prepared_image_entry_hash,
+    )
     from fpbench.experiments.prepared_input_validation import PreparedInputExpectations
 
+    def digest(label: str) -> str:
+        return hashlib.sha256(label.encode()).hexdigest()
+
+    class _Draft:
+        def __init__(self, **fields: object) -> None:
+            for name, value in fields.items():
+                setattr(self, name, value)
+
+    entries = {}
+    for ordinal, image_id in enumerate(sorted(world.image_index)):
+        fields = dict(
+            ordinal=ordinal,
+            image_id=image_id,
+            source_record_fingerprint=digest(f"{image_id}-source-record"),
+            source_expected_sha256=digest(f"{image_id}-source"),
+            source_size_bytes=1024,
+            source_effective_ppi=1000,
+            source_declared_ppi="1000",
+            source_width=800,
+            source_height=800,
+            source_pixel_sha256=digest(f"{image_id}-source-pixels"),
+            transform_profile_id=SD300_CANONICAL500_INPUT_SET.transform_profile_id,
+            transform_profile_fingerprint=digest("profile"),
+            transform_runtime_fingerprint=digest("runtime"),
+            transform_action="downsample_lanczos3",
+            scale_numerator=500,
+            scale_denominator=1000,
+            output_width=400,
+            output_height=400,
+            output_effective_ppi=500,
+            output_pixel_sha256=digest(f"{image_id}-out-pixels"),
+            output_encoded_sha256=digest(f"{image_id}-out-encoded"),
+            output_size_bytes=512,
+            output_media_type="image/png",
+            relative_path=f"prepared-images/set/{image_id}.png",
+        )
+        entries[image_id] = PreparedImageEntry(
+            **fields, entry_hash=prepared_image_entry_hash(_Draft(**fields))
+        )
+    settings: dict[str, object] = {
+        "execution_profile_id": world.run.execution_profile.profile_id,
+        "preparer_id": "canonical_500_png",
+        "preparer_version": "1",
+        "runner_metadata_schema": "canonical_prepared_v1",
+        "preparation_set_id": SD300_CANONICAL500_INPUT_SET.preparation_set_id,
+        "preparation_set_fingerprint": digest("set"),
+        "transform_profile_id": SD300_CANONICAL500_INPUT_SET.transform_profile_id,
+        "transform_profile_fingerprint": digest("profile"),
+        "transform_runtime_fingerprint": digest("runtime"),
+        "target_ppi": 500,
+        "entries": entries,
+    }
+    settings.update(overrides)
+    return PreparedInputExpectations(**settings)  # type: ignore[arg-type]
+
+
+def test_the_set_backed_branch_runs_at_all(world):
+    """The branch finalize takes, executed rather than assumed.
+
+    It does not matter here whether the synthetic world's releases satisfy the
+    resolution rule — what matters is that the code path executes end to end
+    and returns a report instead of raising.
+    """
+    report = validate(world, preparation=_expectations(world))
+    assert report.total_results == world.plan.total_jobs
+    assert isinstance(report.validation_fingerprint, str)
+
+
+def test_a_run_from_another_input_set_is_a_finding(world):
     report = validate(
         world,
-        preparation=None,
+        preparation=_expectations(world),
         expected_input_set=ExpectedInputSet(
             preparation_set_id="prepset_somewhere_else",
             transform_profile_id="another_transform_v1",
@@ -503,10 +586,37 @@ def test_a_run_from_another_input_set_is_a_finding(world, stub):
             entry_count=17,
         ),
     )
-    # With no preparation expectations there is nothing to compare against, so
-    # this stays clean: the check is only meaningful for a set-backed run.
-    assert report.is_clean
-    del PreparedInputExpectations
+    assert not report.is_clean
+    assert IntegrityIssueCode.RESULT_PIPELINE_MISMATCH in codes(report)
+
+
+def test_the_declared_input_set_is_accepted(world):
+    report = validate(
+        world,
+        preparation=_expectations(world),
+        expected_input_set=ExpectedInputSet(
+            preparation_set_id=SD300_CANONICAL500_INPUT_SET.preparation_set_id,
+            transform_profile_id=SD300_CANONICAL500_INPUT_SET.transform_profile_id,
+            target_ppi=500,
+            entry_count=len(world.image_index),
+        ),
+    )
+    assert not any(
+        issue.code is IntegrityIssueCode.RESULT_PIPELINE_MISMATCH
+        and "input set" in issue.message
+        for issue in report.issues
+    )
+
+
+def test_expected_source_ppi_is_checked_when_the_run_declares_one(world):
+    """The exact call that was missing a keyword argument."""
+    report = validate(
+        world,
+        preparation=_expectations(
+            world, expected_source_ppi={"SD300A": 500, "SD300B": 1000, "SD300C": 2000}
+        ),
+    )
+    assert isinstance(report.validation_fingerprint, str)
 
 
 def test_the_canonical_input_set_is_the_one_stage_6a_materialised():

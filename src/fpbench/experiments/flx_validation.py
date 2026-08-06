@@ -442,7 +442,17 @@ def _check_input_set(
                 f"the input set holds {len(preparation.entries)} entries, not "
                 f"{expected_input_set.entry_count}",
             )
-    yield from check_release_source_resolutions(pairs=pairs, preparation=preparation)
+    # Which resolution each release was scaled *from*, joined back through the
+    # pair manifest rather than read off adapter metadata — which by
+    # construction says one value for every release after canonicalisation
+    # (docs/adr/0032). Skipped when the run declares no expectation, exactly as
+    # the NBIS validator does.
+    if preparation.expected_source_ppi:
+        yield from check_release_source_resolutions(
+            pairs=pairs,
+            preparation=preparation,
+            expected_source_ppi=preparation.expected_source_ppi,
+        )
 
 
 def _check_identity(record: RawResultRecord) -> Iterable[IntegrityIssue]:

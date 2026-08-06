@@ -1525,6 +1525,64 @@ with:
 python -m fpbench.experiments.stage8b_flx_runtime_qualification verify
 ```
 
+## Stage 8C: the same 6,000 comparisons, under the third algorithm
+
+`FLX_CANONICAL500_RAW_READY`. The route Stage 8B qualified ran the canonical
+SD300 experiment SourceAFIS and NBIS already ran — the same 6,000 pairs, in the
+same order, over the same 3,000 immutable 500 ppi PNGs.
+
+```
+6,000 planned      6,000 stored      6,000 raw scores
+0 algorithmic failures               0 blocking failures
+run_902136b3b8ae / plan_b1e805736760 / resultset_d63e523e0436
+```
+
+Nothing here selects a cohort, generates a pair or writes a PNG. The pair
+manifest is loaded with `allow_creation=False`, and a
+`CanonicalRunAlignmentReport` compares the two runs record by record — every
+field of every pair and every field of all 3,000 prepared entries, positionally
+in the plan's order — rather than count against count.
+
+The two extraction counts stay distinct, because conflating them either doubles
+the number of representations the run produced or halves its measured
+throughput: **12,000 logical extractions, 24,000 physical forward rows**. The
+pinned texture branch cannot process a batch of one, so one extraction feeds the
+identical tensor twice and represents row 0 after asserting the rows are bitwise
+equal ([ADR 0070](docs/adr/0070-one-extraction-is-a-duplicated-pair.md),
+[ADR 0075](docs/adr/0075-logical-extractions-and-physical-forward-rows-are-different-counts.md)).
+Every one of the 6,000 results records its own counts, measured from the route,
+and all 6,000 show two preprocess calls and two logical extractions — SELF pairs
+included, where both sides point at one PNG and are still read, preprocessed and
+extracted independently.
+
+The score reaches the general schema as the IEEE double it already is, with its
+canonical 17-significant-digit text beside it. Seventeen digits always recovers
+a double exactly, so nothing is truncated and no historical result fingerprint
+moved; the validator re-derives the text from the stored double for all 6,000
+rows rather than trusting the adapter that wrote it
+([ADR 0077](docs/adr/0077-stage-8c-finalization-binds-the-stage-8b-qualified-route.md)).
+
+**What it does not publish**: no threshold, no decision, no eligibility, no
+metric, no distribution, no summary statistic and no example score. The flx
+scale has no operating point anybody has published, and one may not be chosen
+from these scores — SD300 is the evaluation set, and fitting a parameter to it
+makes the resulting rate an upper bound on nothing
+([ADR 0076](docs/adr/0076-stage-8c-publishes-no-score-distribution-or-decision.md)).
+The prohibition is enforced in three independent places: a config loader that
+refuses threshold-shaped keys at any depth, an AST boundary check, and a
+finalization that refuses to complete while anything derives from the run.
+
+Details: [the Stage 8C evidence report](evidence/flx-canonical500-raw/README.md)
+and [ADRs 0074–0077](docs/adr/README.md). Verify it — with no dataset, no
+weights, no torch and no workspace — with:
+
+```bash
+make stage8c-evidence
+```
+
+That verification says what it verified and no more: `algorithm_executed` is
+always false, and CI does not run the 6,000 comparisons.
+
 ## Architecture note: where the models live
 
 Several containers sit in `core` rather than in the package that derives them:
@@ -1544,29 +1602,39 @@ one experiment, and it needs somewhere to live that is not the planner.
 
 ## Next stage
 
-**Stage 8C — flx canonical_500 raw run.** Opened by Stage 8B's
-`FLX_RAW_SCORE_EXECUTION_READY`: 6,000 comparisons and 12,000 independent
-extractions over the same 3,000 prepared canonical inputs, the same pair manifest,
-the same order, the same probe/gallery direction and the same failure policy as the
-SourceAFIS and NBIS runs.
+**Stage 8D — flx decisions, eligibility and metrics.** Opened by Stage 8C's
+`FLX_CANONICAL500_RAW_READY`, which records `permits_decisions: false` and
+`opens_stage_8d: true`.
 
-It produces raw scores and nothing else. Thresholds, decisions, eligibility and
-metrics stay outside it — raw-score readiness is not decision readiness
-([ADR 0065](docs/adr/0065-raw-score-readiness-does-not-imply-decision-readiness.md)),
-and the report that opened Stage 8C records `permits_decisions: false`.
+Before a single decision is derived, Stage 8D has to freeze — in a separate,
+prior act — where its threshold comes from, which comparator applies, what the
+boundary semantics are, whether the score is calibrated, how a failure maps to
+UNDECIDABLE, what the SELF eligibility rule is, and what the resulting numbers
+may not be used to claim.
 
-**Stage 8B is closed and Stage 8C is open.**
-[ADR 0070](docs/adr/0070-one-extraction-is-a-duplicated-pair.md) is accepted
-after the real checkpoint produced bitwise-identical texture and minutia
-representations across all five legal content and position contexts at the
-frozen batch size of two. The checkpoint's licence remains unresolved; that
-does not block the instructed local experiment but does block publishing
-anything derived from the weights themselves.
+**The one thing it may not do is choose that threshold from the 6,000 scores
+Stage 8C produced.** SD300 is the evaluation set; a threshold fitted to it makes
+the resulting rate an upper bound on nothing. That is why Stage 8C publishes no
+distribution and no summary statistic — not to be coy, but because a histogram
+is a threshold in disguise
+([ADR 0076](docs/adr/0076-stage-8c-publishes-no-score-distribution-or-decision.md)).
+SourceAFIS and NBIS each had a documented operating point published by someone
+else; flx has none, so Stage 8D will have to say plainly where its number comes
+from or admit it does not have one.
+
+**Stage 8C is closed.** The checkpoint's licence remains unresolved; that does
+not block the instructed local experiment but does block publishing anything
+derived from the weights themselves — no embedding, no representation hash and
+no score row appears under `evidence/`.
 
 Reconsidering id3 Finger SDK or VeriFinger remains a separate stage with its own
-registry version and its own legal and runtime qualification. Neither it nor Stage 8C
-may weaken Stage 8A retroactively or use SD300 to repair a missing preprocessing,
-threshold or runtime claim.
+registry version and its own legal and runtime qualification. Neither it nor
+Stage 8D may weaken Stage 8A retroactively or use SD300 to repair a missing
+preprocessing, threshold or runtime claim.
+
+Also outstanding from earlier stages: a real FMR needs a cross-subject
+negative-pair design chosen for estimation — a new pair manifest and a new run,
+not a new metric over this one.
 
 ## Longer-term backlog from earlier stages
 

@@ -16,20 +16,30 @@ convenient `execute` verb is exactly how that happens by accident.
 ## Where it runs
 
 The flx runtime is a 2.06 GB bundle — a virtual environment, an extracted source
-tree and an 875 MB checkpoint — and it is a Linux x86_64 runtime profile. On this
-machine it lives in the `NBIS-BUILD-V1` WSL distribution:
+tree and an 875 MB checkpoint — and `flx_cpu_linux_x86_64_v1` is a Linux x86_64
+profile. So the run happens in the local Linux environment, at:
 
 ```
 ~/.cache/fpbench/flx/flx_cpu_linux_x86_64_v1/
 ```
 
-`FPBENCH_FLX_BUNDLE` overrides the location. Nothing about the bundle is
-searched for: an explicit path, then that variable, then the default cache
-directory, and no fallback.
+On this Windows host that environment is a WSL distribution whose name,
+`NBIS-BUILD-V1`, predates flx entirely: it was created in stage 7B to build
+NBIS, and stage 8B later put the flx bundle inside it. The name says nothing
+about what Stage 8C runs, and Stage 8C reads nothing of NBIS's — an AST check
+refuses an import of any NBIS module from a Stage 8C source, and the boundary
+audit refuses any change to `evidence/nbis-*` (spec sections 18 and 31).
+
+`FPBENCH_FLX_BUNDLE` overrides the location, and it is the setting to prefer
+over remembering a distribution name. Nothing about the bundle is searched for:
+an explicit path, then that variable, then the default cache directory, and no
+fallback.
 
 The orchestration runs in the same place as the runtime, because the adapter
 starts the worker with the bundle's own interpreter. The repository and the
-dataset are reachable from the distribution through `/mnt/c`.
+dataset are reachable from the distribution through `/mnt/c`, and the harness
+needs `pyarrow`, `PyYAML` and `Pillow==12.3.0` there — the same versions as the
+host, so the prepared set's transform runtime fingerprint still verifies.
 
 ## Before anything
 

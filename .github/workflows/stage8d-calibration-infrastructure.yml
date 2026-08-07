@@ -1,0 +1,143 @@
+name: Stage 8D calibration infrastructure
+
+# What this workflow proves, and what it deliberately does not.
+#
+# It runs the whole Stage 8D contract — exact rate arithmetic, observed-score
+# boundaries, tie atomicity, both score directions, both comparator kinds,
+# development-role enforcement, protected-identity refusal, the DecisionProfile
+# bridge, strict parsing, determinism — and the regression suites of every layer
+# Stage 8D touched.
+#
+# All of it is pure Python over synthetic fixtures. There is no dataset here, no
+# torch, no checkpoint, no Java, no NBIS binary and no workspace, because a
+# calibration engine that needed any of them in order to be qualified would be an
+# engine nobody could re-qualify later.
+#
+# It does **not** calibrate anything. No development dataset is selected, no
+# SD300 score is read and no production threshold is produced — and the last step
+# of the job says so out loud, because a green tick on a workflow named
+# "calibration" is exactly the kind of thing that gets misread a year later
+# (docs/adr/0078).
+
+on:
+  push:
+    paths:
+      - "src/fpbench/calibration/**"
+      - "src/fpbench/core/calibration_models.py"
+      - "src/fpbench/core/calibration_errors.py"
+      - "src/fpbench/core/decision_models.py"
+      - "src/fpbench/core/enums.py"
+      - "src/fpbench/storage/calibration_store.py"
+      - "src/fpbench/storage/decision_set_store.py"
+      - "src/fpbench/storage/layout.py"
+      - "src/fpbench/experiments/stage8d_identity.py"
+      - "src/fpbench/experiments/stage8d_calibration_infrastructure.py"
+      - "src/fpbench/experiments/stage8d_finalization.py"
+      - "evidence/stage8d-calibration-infrastructure/**"
+      - "tests/**stage8d**"
+      - "tests/unit/test_calibration_*.py"
+      - "tests/unit/test_strict_threshold_comparators.py"
+      - "tests/regression/test_legacy_decision_profile_identities.py"
+      - "docs/calibration/**"
+      - "docs/experiments/stage8d-calibration-infrastructure.md"
+      - "pyproject.toml"
+      - "Makefile"
+      - ".github/workflows/stage8d-calibration-infrastructure.yml"
+  pull_request:
+    paths:
+      - "src/fpbench/calibration/**"
+      - "src/fpbench/core/calibration_models.py"
+      - "src/fpbench/core/calibration_errors.py"
+      - "src/fpbench/core/decision_models.py"
+      - "src/fpbench/core/enums.py"
+      - "src/fpbench/storage/calibration_store.py"
+      - "src/fpbench/storage/decision_set_store.py"
+      - "src/fpbench/storage/layout.py"
+      - "src/fpbench/experiments/stage8d_identity.py"
+      - "src/fpbench/experiments/stage8d_calibration_infrastructure.py"
+      - "src/fpbench/experiments/stage8d_finalization.py"
+      - "evidence/stage8d-calibration-infrastructure/**"
+      - "tests/**stage8d**"
+      - "tests/unit/test_calibration_*.py"
+      - "tests/unit/test_strict_threshold_comparators.py"
+      - "tests/regression/test_legacy_decision_profile_identities.py"
+      - "docs/calibration/**"
+      - "docs/experiments/stage8d-calibration-infrastructure.md"
+      - "pyproject.toml"
+      - "Makefile"
+      - ".github/workflows/stage8d-calibration-infrastructure.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  calibration-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[dev]"
+
+      - name: The frozen calibration contract
+        run: pytest -m "stage8d_contract" -q
+
+      - name: Committed Stage 8D evidence gate
+        run: pytest -m "stage8d" -q
+
+      - name: No test in either Stage 8D suite is skipped
+        # A suite that quietly skipped would look identical to one that passed,
+        # and the acceptance condition is that neither of these has anything to
+        # skip: the contract needs no dataset, no runtime and no optional
+        # dependency, and the evidence gate skips only while the publication does
+        # not exist — which, on a merged tree, it does.
+        run: |
+          pytest -m "stage8d_contract or stage8d" -q -rs 2>&1 | tee /tmp/stage8d.txt
+          if grep -qiE '[0-9]+ skipped' /tmp/stage8d.txt; then
+            echo "the Stage 8D suites must not skip anything"
+            exit 1
+          fi
+
+      - name: The decision layer Stage 8D extended still holds
+        run: |
+          pytest -m "decisions" -q
+          pytest tests/regression/test_legacy_decision_profile_identities.py -q
+
+      - name: Regression suites for the prior stages
+        run: |
+          pytest -m "stage7d_contract" -q
+          pytest -m "stage8a_contract or stage8a" -q
+          pytest -m "stage8b_contract or stage8b" -q
+          pytest -m "stage8c_contract or stage8c" -q
+          pytest -m "metrics or imaging or paired_evaluation" -q
+          pytest -m "adapter_contract or nbis_contract" -q
+
+      - name: Nothing was calibrated here, and this job makes no claim that it was
+        run: |
+          python - <<'PY'
+          import importlib.util
+
+          for name in ("torch", "torchvision", "numpy", "scipy", "sklearn"):
+              assert importlib.util.find_spec(name) is None, f"{name} is installed"
+
+          from fpbench.experiments.stage8d_calibration_infrastructure import (
+              run_synthetic_qualification,
+          )
+
+          qualification = run_synthetic_qualification()
+          print(
+              f"{len(qualification.cases)} synthetic cases: "
+              f"{qualification.selection_cases} selections, "
+              f"{qualification.refusal_cases} refusals, "
+              f"{qualification.identity_cases} identities."
+          )
+          print()
+          print("Calibration infrastructure was qualified on synthetic data only.")
+          print("No development dataset was selected.")
+          print("No SD300 score was read.")
+          print("No production threshold was produced.")
+          PY

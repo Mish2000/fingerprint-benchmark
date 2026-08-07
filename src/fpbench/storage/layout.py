@@ -66,6 +66,12 @@ __all__ = [
     "prepared_image_set_directory",
     "paired_evaluations_root",
     "paired_evaluation_directory",
+    "calibration_root",
+    "calibration_protocols_directory",
+    "calibration_source_bindings_directory",
+    "calibration_operating_points_directory",
+    "calibration_receipts_directory",
+    "calibration_finalizations_directory",
     "VIEW_DIRECTORY_NAMES",
 ]
 
@@ -305,3 +311,48 @@ def paired_evaluations_root(root: Path) -> Path:
 
 def paired_evaluation_directory(root: Path, paired_evaluation_id: str) -> Path:
     return paired_evaluations_root(root) / validate_id(paired_evaluation_id)
+
+
+# --------------------------------------------------------------- calibration
+#
+# A calibration belongs to no run. It is chosen on a *development* cohort and
+# then applied to evaluation runs it was deliberately not drawn from, so filing
+# it under a run would put it inside the thing it must stay outside of
+# (docs/adr/0079)::
+#
+#     <workspace>/calibration/
+#     ├── protocols/<protocol_id>.json
+#     ├── source-bindings/<binding_id>.json
+#     ├── operating-points/<operating_point_id>.json
+#     ├── receipts/<operating_point_id>.json
+#     └── finalizations/<name>.json
+#
+# Flat directories rather than a hierarchy, because none of the four nests inside
+# another: one protocol is meant to be run over many source bindings, and one
+# source binding can be calibrated under several protocols. Each file is named by
+# an id that is derived from a digest of its own contents, so a collision is a
+# genuine conflict rather than a naming accident.
+
+
+def calibration_root(root: Path) -> Path:
+    return Path(root) / "calibration"
+
+
+def calibration_protocols_directory(root: Path) -> Path:
+    return calibration_root(root) / "protocols"
+
+
+def calibration_source_bindings_directory(root: Path) -> Path:
+    return calibration_root(root) / "source-bindings"
+
+
+def calibration_operating_points_directory(root: Path) -> Path:
+    return calibration_root(root) / "operating-points"
+
+
+def calibration_receipts_directory(root: Path) -> Path:
+    return calibration_root(root) / "receipts"
+
+
+def calibration_finalizations_directory(root: Path) -> Path:
+    return calibration_root(root) / "finalizations"

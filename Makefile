@@ -11,6 +11,7 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
         stage7d-contract stage7d-workspace stage8a-contract stage8a-workspace stage8a-status \
         stage8b-contract stage8b-workspace stage8b-status \
         stage8c-contract stage8c-evidence stage8c-workspace stage8c-verify \
+        stage8d-contract stage8d-evidence stage8d-qualify \
         sourceafis-build sourceafis-java-test sourceafis-python-test \
         sourceafis-test sourceafis-sd300-smoke \
         research-prepare research-execute research-status research-finalize \
@@ -38,6 +39,9 @@ help:
 	@echo "stage8b-status          re-derive and print the Stage 8B outcome"
 	@echo "stage8c-contract        the frozen Stage 8C protocol: identities, config, adapter, alignment (no torch)"
 	@echo "stage8c-evidence        verify the committed Stage 8C raw-run evidence (no dataset, no runtime)"
+	@echo "stage8d-contract        the generic calibration engine: rates, boundaries, ties, leakage (synthetic only)"
+	@echo "stage8d-evidence        verify the committed Stage 8D calibration-infrastructure evidence"
+	@echo "stage8d-qualify         re-run the synthetic qualification and print its fingerprint"
 	@echo "stage8c-workspace       Stage 8C alignment and preflight over the real inputs"
 	@echo "stage8c-verify          re-derive and print the Stage 8C evidence-only verification"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
@@ -215,6 +219,22 @@ stage8c-workspace:
 
 stage8c-verify:
 	python -c "from fpbench.experiments.stage8c_verify import verify_stage8c_evidence as v; print(v())"
+
+# ------------------------------------------------------------------ Stage 8D
+
+# Everything here is pure Python over synthetic fixtures. There is no dataset, no
+# runtime, no checkpoint and no workspace target, because Stage 8D calibrates
+# nothing — and a `stage8d-calibrate` target is exactly how that would stop being
+# true by accident (docs/adr/0078).
+stage8d-contract:
+	pytest -m "stage8d_contract" -q
+
+# The committed evidence is mandatory and may never skip.
+stage8d-evidence:
+	pytest -m "stage8d" -q
+
+stage8d-qualify:
+	python -c "from fpbench.experiments.stage8d_calibration_infrastructure import run_synthetic_qualification as q; r = q(); print(r.qualification_fingerprint, len(r.cases), 'cases')"
 
 # ------------------------------------------------------------------- SourceAFIS
 

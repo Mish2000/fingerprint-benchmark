@@ -4,7 +4,7 @@
   "outcome": "CALIBRATION_INFRASTRUCTURE_READY",
   "stage8c_finalization_fingerprint": "0c09483efb92b3e6689cb202f2ce0af193e237791c40ed95ff3a698f179abec2",
   "stage8c_outcome": "FLX_CANONICAL500_RAW_READY",
-  "calibration_model_fingerprint": "e9d49888e3d81486e5673cea08fd2ff24673968c2c2fbd0e6efc07cd30c6bfc2",
+  "calibration_model_fingerprint": "229572b482f9f93b52327200b7618091fc3cfec84d94fcc641d1469dc1bf3bdd",
   "selection_engine_fingerprint": "127bed37e9cc6b3e6821da4563e8e389cbd3249ec76f02ce71299906c5c9107f",
   "protected_evaluation_registry_fingerprint": "626f6b833d3563911b2f3101426a4be83556034a3eb788450941062d490feb0d",
   "synthetic_qualification_fingerprint": "36d033a1a667faa84066a065b1b4c83d1c1cea824ea180ce4134ef7ba3126969",
@@ -24,14 +24,14 @@
   "opens_algorithm_expansion": true,
   "evidence_content_hashes": {
     "README.md": "c197dbd3f57dd19368ecc0ee24b4aaf8c07399a978970bc3239120a36d4d9634",
-    "calibration-contract-report.json": "4bd60e4fc4725e7f26a4b48f97ad80456bf1059a2649c6623b15f161f482a210",
+    "calibration-contract-report.json": "fd62a3d554fe8ad5c10c340d8d9cae02439892393094093274c49519878c8595",
     "protected-evaluation-registry.json": "316970577a6b6765dcd6307db8aa27e1ca8cb26e7e7c3278d5de17ba982cb942",
     "synthetic-qualification.json": "0135dd3c6f89d7afb59d52ac43b6012441f7fe93222673a3dd619fe73c9ed28f"
   },
-  "source_commit": "c128d27f3e100bfe6d87ad4f25b029c91efa8fa4",
+  "source_commit": "d65fd3f13f760b16e8a67017dc7e469d03b7ba6a",
   "source_tree_clean": true,
-  "verifier_source_commit": "c128d27f3e100bfe6d87ad4f25b029c91efa8fa4",
+  "verifier_source_commit": "d65fd3f13f760b16e8a67017dc7e469d03b7ba6a",
   "verifier_source_tree_clean": true,
-  "stage_8d_finalization_fingerprint": "4f53f1d67969bcc3f023bb7e201b0b046e624a5c4833ad6cd67fae5d401b05e8",
-  "created_utc": "2026-08-07T10:33:04Z"
+  "stage_8d_finalization_fingerprint": "6210b36b4b63be4340ebb479d0e299c0f9840f013d1bc80f86fb16928b82d623",
+  "created_utc": "2026-08-07T10:47:46Z"
 }

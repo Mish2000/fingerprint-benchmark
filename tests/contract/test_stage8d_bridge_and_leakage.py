@@ -365,6 +365,36 @@ PUBLISHED_PROFILE_FINGERPRINTS = {
 }
 
 
+#: The NBIS profile, which is the schema-2 one. Spec section 22 names both the
+#: SourceAFIS "at least 40" and the NBIS "greater than 40", and they exercise
+#: different fingerprint mappings, so both are pinned.
+NBIS_ALGORITHM_FINGERPRINT = (
+    "41ebe6eeda877e959d58df40d007daab74a8a1a560462984a6f58a444dbfebc5"
+)
+NBIS_PROFILE = "nbis_mindtct_bozorth3_5_0_0_nistir7391_gt40_canonical500_v1.yaml"
+NBIS_PROFILE_FINGERPRINT = (
+    "2aca865177dddbfda5d2037520531a29472bc78af0af980b3018a08d1449eb20"
+)
+
+
+def test_the_published_schema_two_profile_has_not_moved() -> None:
+    """The documented "greater than 40", under the mapping schema 3 sits beside."""
+    from pathlib import Path
+
+    import fpbench
+    from fpbench.core.enums import ThresholdComparator
+    from fpbench.decisions import load_decision_profile
+
+    configs = Path(fpbench.__file__).resolve().parents[2] / "configs" / "decisions"
+    profile = load_decision_profile(
+        configs / NBIS_PROFILE, algorithm_fingerprint=NBIS_ALGORITHM_FINGERPRINT
+    )
+    assert profile.schema_version == "2"
+    assert profile.comparator is ThresholdComparator.GREATER_THAN
+    assert profile.threshold == "40"
+    assert profile.profile_fingerprint == NBIS_PROFILE_FINGERPRINT
+
+
 def test_the_two_published_schema_one_profiles_have_not_moved() -> None:
     from pathlib import Path
 

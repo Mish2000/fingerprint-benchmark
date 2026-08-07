@@ -328,9 +328,10 @@ def test_every_run_beyond_the_two_originals_is_named_by_an_experiment(tmp_path):
     experiment claims still fails, and the next stage needs no edit here
     (docs/adr/0067).
     """
-    if not WORKSPACE.is_dir():
-        pytest.skip("no workspace in this checkout")
-    runs = {path.name for path in (WORKSPACE / "results").iterdir() if path.is_dir()}
+    results = WORKSPACE / "results"
+    if not results.is_dir():
+        pytest.skip("no result workspace in this checkout")
+    runs = {path.name for path in results.iterdir() if path.is_dir()}
     assert {NATIVE_RUN_ID, CANONICAL_RUN_ID} <= runs, sorted(runs)
 
     from fpbench.core.errors import ResearchPreflightError

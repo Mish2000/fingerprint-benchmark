@@ -51,6 +51,7 @@ __all__ = [
     "calibration_model_fingerprint",
     "selection_engine_fingerprint",
     "file_sha256",
+    "source_file_sha256",
     "published_evidence_names",
     "require_expected_evidence_files",
     "require_no_forbidden_published_data",
@@ -264,25 +265,37 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def source_file_sha256(path: Path) -> str:
+    """A digest of one source file, with newlines normalised to ``\\n``.
+
+    The normalisation is what makes the value portable. ``core.autocrlf`` is on
+    for this repository, so the same committed blob is LF in one checkout and
+    CRLF in another, and a raw digest would name the checkout rather than the
+    code. Evidence files are different — ``.gitattributes`` pins them to LF — and
+    those are hashed raw by :func:`file_sha256`.
+    """
+    try:
+        content = Path(path).read_bytes().replace(b"\r\n", b"\n")
+    except OSError as exc:
+        raise Stage8DFinalizationError(
+            f"cannot hash Stage 8D source {path}: {exc}"
+        ) from exc
+    return hashlib.sha256(content).hexdigest()
+
+
 def _source_family_fingerprint(
     repository_root: Path, relatives: tuple[str, ...], *, schema: str
 ) -> str:
-    """A digest over the exact bytes of a named family of source files.
+    """A digest over a named family of source files.
 
-    Text is read as bytes with newlines normalised, so a checkout that converted
-    line endings does not change the identity of the code. What it does change —
-    a character of logic — changes it immediately.
+    Each file is hashed by :func:`source_file_sha256`, so a checkout that
+    converted line endings does not change the identity of the code. What it does
+    change — a character of logic — changes it immediately.
     """
-    digests = {}
-    for relative in relatives:
-        path = Path(repository_root) / PurePosixPath(relative)
-        try:
-            content = path.read_bytes().replace(b"\r\n", b"\n")
-        except OSError as exc:
-            raise Stage8DFinalizationError(
-                f"cannot fingerprint Stage 8D source {relative}: {exc}"
-            ) from exc
-        digests[relative] = hashlib.sha256(content).hexdigest()
+    digests = {
+        relative: source_file_sha256(Path(repository_root) / PurePosixPath(relative))
+        for relative in relatives
+    }
     return stable_hash({"schema": schema, "files": digests}, length=64)
 
 

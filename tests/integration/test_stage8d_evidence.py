@@ -166,6 +166,34 @@ def test_the_marker_pins_the_engine_source_it_was_produced_by() -> None:
 
 
 @requires_publication
+def test_the_contract_report_re_derives_from_source_too() -> None:
+    """Every digest in it, not only the two the marker happens to pin.
+
+    The module digests were published from a raw byte hash, which names the
+    *checkout* rather than the code: ``core.autocrlf`` is on for this repository,
+    so the same committed blob is LF in one working tree and CRLF in another.
+    Nothing compared them, so nothing noticed. This is that comparison.
+    """
+    from fpbench.experiments.stage8d_finalization import source_file_sha256
+
+    report = json.loads(
+        (EVIDENCE / frozen.CONTRACT_REPORT_NAME).read_text(encoding="utf-8")
+    )
+    assert report["calibration_model_fingerprint"] == (
+        calibration_model_fingerprint(REPOSITORY_ROOT)
+    )
+    assert report["selection_engine_fingerprint"] == (
+        selection_engine_fingerprint(REPOSITORY_ROOT)
+    )
+
+    package = REPOSITORY_ROOT / "src" / "fpbench" / "calibration"
+    published = report["calibration_package"]["module_sha256"]
+    assert set(published) == set(frozen.CALIBRATION_PACKAGE_MODULES)
+    for name, digest in published.items():
+        assert digest == source_file_sha256(package / name), name
+
+
+@requires_publication
 def test_the_published_bytes_have_not_moved_since_finalization() -> None:
     marker = read_marker()
     for name, digest in marker.evidence_content_hashes.items():

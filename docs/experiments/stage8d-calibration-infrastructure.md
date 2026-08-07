@@ -65,18 +65,21 @@ See [the architecture](../calibration/architecture.md) and
 
 ## The synthetic qualification
 
-26 fixtures, each small enough that its expected answer is worked out in the
+28 fixtures, each small enough that its expected answer is worked out in the
 case's own description. Nothing in it touches a dataset, a runtime, a checkpoint,
 a prior result set or a workspace: it is pure Python over numbers that were never
 measured.
 
 **Selection cases** — a higher-is-better matcher reaching a `1/4` ceiling exactly;
 a lower-is-better matcher selecting `<= 5` under the same ceiling; a ceiling
-undershot to zero because two equal `0.7`s cannot be split; an operating point
-that admits no impostor at all; a population where every score is identical, whose
-answer is a strict boundary at the only score that exists; duplicate scores
-counted once each and decided together; comparisons that produced no score,
-excluded from the rate and reported beside it.
+undershot to zero at `> 0.7` because two equal `0.7`s cannot be split; an
+operating point that admits no impostor at all; a population where every score is
+identical, whose answer is a strict boundary at the only score that exists;
+duplicate scores counted once each and decided together; comparisons that
+produced no score, excluded from the rate and reported beside it; and a pair of
+cases sharing one impostor population under two very different genuine ones —
+one above every impostor, one interleaved between them — which must select the
+same boundary and differ only in the mated counts measured at it.
 
 **Identity cases** — 25 rotations of the same rows producing one operating point;
 a JSON round trip changing nothing; verification re-deriving the stored answer

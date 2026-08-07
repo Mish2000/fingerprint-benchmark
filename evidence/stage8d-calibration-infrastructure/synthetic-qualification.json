@@ -1,0 +1,268 @@
+{
+  "schema_version": "1",
+  "statement": "Every claim Stage 8D makes about the calibration engine, exercised on fixtures built from nothing. No dataset, no runtime, no checkpoint, no prior result set and no workspace was involved. Each case publishes a fingerprint and counts, never a threshold and never a score: the operating-point fingerprint covers both, so a verifier that re-runs a fixture compares identities exactly (docs/adr/0078).",
+  "qualification_fingerprint": "36d033a1a667faa84066a065b1b4c83d1c1cea824ea180ce4134ef7ba3126969",
+  "case_count": 26,
+  "selection_cases": 7,
+  "refusal_cases": 15,
+  "identity_cases": 4,
+  "cases": [
+    {
+      "case_id": "higher_is_better_exact_target",
+      "claim": "a higher-is-better matcher reaches a 1/4 ceiling exactly, at >= 4",
+      "kind": "selection",
+      "outcome": "b4d45366ff5226a7c36dcd0bd28b116472422fd33b91f8d0d1ea850677f2a42e",
+      "counts": {
+        "comparator_is_strict": 0,
+        "impostor_attempts": 4,
+        "impostor_failures": 0,
+        "impostor_matches": 1,
+        "impostor_scored": 4,
+        "mated_attempts": 4,
+        "mated_failures": 0,
+        "mated_matches": 4,
+        "mated_non_matches": 0,
+        "mated_scored": 4
+      }
+    },
+    {
+      "case_id": "lower_is_better_runs_the_other_way",
+      "claim": "a lower-is-better matcher selects <= 5 under the same 1/4 ceiling",
+      "kind": "selection",
+      "outcome": "7047363e9492d819b87cc02f1029ab0c0fb8f57c1d9ec73f3e9b734930791a7b",
+      "counts": {
+        "comparator_is_strict": 0,
+        "impostor_attempts": 4,
+        "impostor_failures": 0,
+        "impostor_matches": 1,
+        "impostor_scored": 4,
+        "mated_attempts": 4,
+        "mated_failures": 0,
+        "mated_matches": 4,
+        "mated_non_matches": 0,
+        "mated_scored": 4
+      }
+    },
+    {
+      "case_id": "target_undershot_because_ties_are_atomic",
+      "claim": "a 1/5 ceiling is undershot to zero rather than splitting two equal 0.7s",
+      "kind": "selection",
+      "outcome": "79cb3725f0d090342488f94a84df7328e995319d59ea64a0ef0db806f4716905",
+      "counts": {
+        "comparator_is_strict": 0,
+        "impostor_attempts": 5,
+        "impostor_failures": 0,
+        "impostor_matches": 0,
+        "impostor_scored": 5,
+        "mated_attempts": 2,
+        "mated_failures": 0,
+        "mated_matches": 2,
+        "mated_non_matches": 0,
+        "mated_scored": 2
+      }
+    },
+    {
+      "case_id": "zero_impostor_match_operating_point",
+      "claim": "an operating point that admits no impostor is a normal outcome",
+      "kind": "selection",
+      "outcome": "79cb3725f0d090342488f94a84df7328e995319d59ea64a0ef0db806f4716905",
+      "counts": {
+        "impostor_matches": 0,
+        "impostor_scored": 5
+      }
+    },
+    {
+      "case_id": "all_scores_equal_selects_a_strict_boundary",
+      "claim": "with one distinct score the answer is > 1, without inventing a number",
+      "kind": "selection",
+      "outcome": "fd345d39811372e6ef84277d40d172205b5b59e82c386778d2a75814f7c51c9b",
+      "counts": {
+        "comparator_is_strict": 1,
+        "impostor_attempts": 4,
+        "impostor_failures": 0,
+        "impostor_matches": 0,
+        "impostor_scored": 4,
+        "mated_attempts": 4,
+        "mated_failures": 0,
+        "mated_matches": 0,
+        "mated_non_matches": 4,
+        "mated_scored": 4
+      }
+    },
+    {
+      "case_id": "duplicate_scores_are_counted_and_never_separated",
+      "claim": "three impostors at 0.4 count three times and receive one decision",
+      "kind": "selection",
+      "outcome": "65f0aacfb33476132929cd91e0755cf30053c6b3a5c10abb19be2cd00803b8be",
+      "counts": {
+        "comparator_is_strict": 0,
+        "impostor_attempts": 4,
+        "impostor_failures": 0,
+        "impostor_matches": 1,
+        "impostor_scored": 4,
+        "mated_attempts": 1,
+        "mated_failures": 0,
+        "mated_matches": 1,
+        "mated_non_matches": 0,
+        "mated_scored": 1
+      }
+    },
+    {
+      "case_id": "failures_are_excluded_from_the_rate_and_reported_beside_it",
+      "claim": "a comparison with no score is in no numerator, no denominator, and is counted",
+      "kind": "selection",
+      "outcome": "736bece387b47cebfdeeada7bc70ebc34c627ad681997b7a561e66a7bd226569",
+      "counts": {
+        "comparator_is_strict": 0,
+        "impostor_attempts": 4,
+        "impostor_failures": 1,
+        "impostor_matches": 1,
+        "impostor_scored": 3,
+        "mated_attempts": 3,
+        "mated_failures": 1,
+        "mated_matches": 2,
+        "mated_non_matches": 0,
+        "mated_scored": 2
+      }
+    },
+    {
+      "case_id": "row_order_does_not_change_the_identity",
+      "claim": "25 rotations of the same rows produce one identical operating point",
+      "kind": "identity",
+      "outcome": "eb471fbe6d4d3763b8d385a1da846542e06831a9a9e3491fbbee9194356a26ae",
+      "counts": {
+        "permutations": 25
+      }
+    },
+    {
+      "case_id": "json_round_trip_preserves_the_identity",
+      "claim": "serialising and strictly re-reading an operating point changes nothing",
+      "kind": "identity",
+      "outcome": "eb471fbe6d4d3763b8d385a1da846542e06831a9a9e3491fbbee9194356a26ae",
+      "counts": {}
+    },
+    {
+      "case_id": "verification_re_derives_the_stored_answer",
+      "claim": "verification recomputes the selection rather than reading it back",
+      "kind": "identity",
+      "outcome": "eb471fbe6d4d3763b8d385a1da846542e06831a9a9e3491fbbee9194356a26ae",
+      "counts": {
+        "candidates": 16
+      }
+    },
+    {
+      "case_id": "operating_point_becomes_a_calibrated_decision_profile",
+      "claim": "an operating point becomes a schema-3 CALIBRATED_DEVELOPMENT profile",
+      "kind": "identity",
+      "outcome": "5f5c90436ad359b3738534006828ebae3e9a04e94cdd6f2990f64f15e8e0c778",
+      "counts": {
+        "links": 3
+      }
+    },
+    {
+      "case_id": "evaluation_role_is_refused",
+      "claim": "a binding declared on the evaluation cohort is refused",
+      "kind": "refusal",
+      "outcome": "CalibrationLeakageError",
+      "counts": {}
+    },
+    {
+      "case_id": "protected_result_set_is_refused",
+      "claim": "a binding resolving to a registered evaluation result set is refused",
+      "kind": "refusal",
+      "outcome": "CalibrationLeakageError",
+      "counts": {}
+    },
+    {
+      "case_id": "development_claim_over_protected_cohort_is_refused",
+      "claim": "claiming development over a registered evaluation cohort is refused",
+      "kind": "refusal",
+      "outcome": "CalibrationLeakageError",
+      "counts": {}
+    },
+    {
+      "case_id": "running_without_the_registry_is_refused",
+      "claim": "a selection with no protected registry loaded is refused",
+      "kind": "refusal",
+      "outcome": "CalibrationLeakageError",
+      "counts": {}
+    },
+    {
+      "case_id": "mixed_score_directions_are_refused",
+      "claim": "a binding and its results must agree about which way the scale runs",
+      "kind": "refusal",
+      "outcome": "CalibrationSourceError",
+      "counts": {}
+    },
+    {
+      "case_id": "missing_impostor_population_is_refused",
+      "claim": "a protocol over cross-subject impostors refuses a set without any",
+      "kind": "refusal",
+      "outcome": "CalibrationInputError",
+      "counts": {}
+    },
+    {
+      "case_id": "missing_genuine_population_is_refused",
+      "claim": "a set with no mated comparisons cannot report genuine performance",
+      "kind": "refusal",
+      "outcome": "CalibrationInputError",
+      "counts": {}
+    },
+    {
+      "case_id": "wholly_failed_impostor_population_has_no_rate",
+      "claim": "an impostor population that produced no score is not a low rate",
+      "kind": "refusal",
+      "outcome": "CalibrationSelectionError",
+      "counts": {}
+    },
+    {
+      "case_id": "duplicate_pair_ids_are_refused",
+      "claim": "one comparison appearing twice would be counted twice",
+      "kind": "refusal",
+      "outcome": "CalibrationInputError",
+      "counts": {}
+    },
+    {
+      "case_id": "non_finite_score_is_refused",
+      "claim": "NaN and the infinities divide nothing into matches and non-matches",
+      "kind": "refusal",
+      "outcome": "CalibrationInputError",
+      "counts": {}
+    },
+    {
+      "case_id": "malformed_decimal_is_refused",
+      "claim": "a score that is not a decimal number is refused rather than coerced",
+      "kind": "refusal",
+      "outcome": "CalibrationInputError",
+      "counts": {}
+    },
+    {
+      "case_id": "binary_float_score_is_refused",
+      "claim": "a score that arrived as a double has already lost what was measured",
+      "kind": "refusal",
+      "outcome": "CalibrationInputError",
+      "counts": {}
+    },
+    {
+      "case_id": "wrong_result_set_binding_is_refused",
+      "claim": "verifying against a binding that names another result set is refused",
+      "kind": "refusal",
+      "outcome": "CalibrationVerificationError",
+      "counts": {}
+    },
+    {
+      "case_id": "wrong_pair_manifest_binding_is_refused",
+      "claim": "verifying against a binding that names another pair manifest is refused",
+      "kind": "refusal",
+      "outcome": "CalibrationVerificationError",
+      "counts": {}
+    },
+    {
+      "case_id": "wrong_protocol_is_refused",
+      "claim": "verifying against a protocol the point was not selected under is refused",
+      "kind": "refusal",
+      "outcome": "CalibrationVerificationError",
+      "counts": {}
+    }
+  ]
+}

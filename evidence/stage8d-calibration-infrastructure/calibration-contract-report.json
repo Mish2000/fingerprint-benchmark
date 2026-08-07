@@ -1,0 +1,106 @@
+{
+  "schema_version": "1",
+  "statement": "The structural facts the Stage 8D contract suite enforces. Everything here is a property of the source, not a measurement.",
+  "calibration_model_fingerprint": "e9d49888e3d81486e5673cea08fd2ff24673968c2c2fbd0e6efc07cd30c6bfc2",
+  "selection_engine_fingerprint": "127bed37e9cc6b3e6821da4563e8e389cbd3249ec76f02ce71299906c5c9107f",
+  "calibration_package": {
+    "modules": [
+      "__init__.py",
+      "models.py",
+      "protocol.py",
+      "selection.py",
+      "validation.py",
+      "profiles.py",
+      "verify.py"
+    ],
+    "module_sha256": {
+      "__init__.py": "9a0ca4b82c47ec299bf14792c108bfd0ce28b45846319af3755c78f3139b7075",
+      "models.py": "7fee14c797027401270906ed96fed39927ea0ec6b2852570e1fd7c32f7ebb7fc",
+      "protocol.py": "54777ed65fe4d3d8688640cea17840282f712ddd538ef059014d6755c7a55dbc",
+      "selection.py": "1b99012a19700ad7c1f93ca1708ff96dff1e3052668a48e10a7b13b8b00650d4",
+      "validation.py": "d7be3053116f067357004e2153775d59ce450c929275061c03b64f3acbb5418c",
+      "profiles.py": "ba4def0a06d0f4a4003880db8dea347aa0d22283eb1b6725716962a8c8c44561",
+      "verify.py": "28130ea8f8dd573a42eb279a975032a7fe4fb2b4f86b780d8d3c6c6794906431"
+    }
+  },
+  "enforced_absences": {
+    "forbidden_import_roots": [
+      "sourceafis",
+      "nbis",
+      "flx",
+      "fpbench.sourceafis",
+      "fpbench.nbis",
+      "fpbench.flx",
+      "torch",
+      "fpbench.adapters",
+      "fpbench.cross_algorithm",
+      "fpbench.datasets",
+      "fpbench.decisions",
+      "fpbench.derivations",
+      "fpbench.eligibility",
+      "fpbench.evaluation",
+      "fpbench.execution",
+      "fpbench.experiments",
+      "fpbench.imaging",
+      "fpbench.metrics",
+      "fpbench.modern_matchers",
+      "fpbench.paired",
+      "fpbench.protocols",
+      "fpbench.storage"
+    ],
+    "forbidden_normalization_symbols": [
+      "normalize_scores",
+      "normalise_scores",
+      "min_max_normalize",
+      "minmax_normalize",
+      "z_score",
+      "zscore",
+      "standardize_scores",
+      "platt_scale",
+      "platt_scaling",
+      "sigmoid_calibrate",
+      "fuse_scores",
+      "score_fusion",
+      "map_score_scale",
+      "rescale_score"
+    ],
+    "binary_floating_point_in_package": false,
+    "numeric_library_imports": [],
+    "algorithm_names_in_package": [],
+    "score_normalization_implementations": 0,
+    "algorithm_specific_branches": 0
+  },
+  "decision_profile_schema": {
+    "versions": [
+      "1",
+      "2",
+      "3"
+    ],
+    "added_by_stage_8d": "3",
+    "frozen_mapping_probe_digests": {
+      "1": "25699d667ff5cb3ce7592f6f8d1a4d739da841dbb3c2902f56ccb97c0e422698",
+      "2": "d680435dd6599cb87c979616848e5f5c3a87f5929091f1d16c39d986bb824656"
+    },
+    "published_profiles_unmoved": {
+      "sourceafis_java_3_18_1_documented_40_v1.yaml": "02be9e07d28522b657f4fed3ee930b4c117573403926ad919b745274d6b6de4c",
+      "sourceafis_java_3_18_1_documented_40_canonical500_v1.yaml": "a9550e9dfd0ce54f6538d395a32c5e354db3bd4a9cbafff4cf0268e88fc78b75"
+    }
+  },
+  "supported_semantics": {
+    "score_directions": [
+      "higher_is_better",
+      "lower_is_better"
+    ],
+    "comparators": [
+      "greater_than_or_equal",
+      "greater_than",
+      "less_than_or_equal",
+      "less_than"
+    ],
+    "rate_arithmetic": "exact_integer_cross_multiplication",
+    "candidate_boundaries": "observed_score_boundaries",
+    "tie_handling": "atomic_prefer_inclusive",
+    "quality_filtering": false,
+    "score_normalization": "none"
+  }
+}

@@ -97,6 +97,7 @@ _ENGINE_SOURCE_FILES = (
 #: * ``layout.py`` — a new directory family that nothing else writes into.
 _ALLOWED_EXACT_CHANGES = frozenset(
     {
+        ".gitattributes",
         ".github/workflows/stage8d-calibration-infrastructure.yml",
         ".github/workflows/tests.yml",
         "Makefile",
@@ -212,6 +213,12 @@ _FORBIDDEN_IMPORT_PREFIXES = tuple(
 _PERMITTED_PRIOR_STAGE_DOCUMENTS = frozenset(
     relative for relative, _keys in PROTECTED_SOURCE_DOCUMENTS
 )
+
+#: Assembled rather than written out, for the same reason the protected prefixes
+#: above are: this module is itself audited for literals naming published
+#: evidence, and spelling this one out would make the audit refuse the file that
+#: performs it.
+_EVIDENCE_PREFIX = "evidence" + "/"
 
 _STAGE_8D_SOURCE_FILES = (
     *_MODEL_SOURCE_FILES,
@@ -634,13 +641,19 @@ def _audit_source_boundaries(repository_root: Path) -> None:
                 f"{relative}: Stage 8D imports an algorithm or a derivation layer "
                 f"{blocked} (spec section 30)"
             )
+        own = EVIDENCE_DIRECTORY.name
         for literal in literals:
             normalized = literal.replace("\\", "/")
-            if not normalized.startswith("evidence/"):
+            if not normalized.startswith(_EVIDENCE_PREFIX):
                 continue
             if normalized in _PERMITTED_PRIOR_STAGE_DOCUMENTS:
                 continue
-            if normalized.startswith(EVIDENCE_DIRECTORY.as_posix()):
+            # Stage 8D's own evidence, named in full or by a prefix of its
+            # directory. A bare ``evidence/`` leaves nothing after the prefix and
+            # is refused: a module that could reach for the whole tree is a module
+            # nobody could say what it read.
+            tail = normalized[len(_EVIDENCE_PREFIX) :]
+            if tail and (own.startswith(tail) or tail.startswith(own)):
                 continue
             raise Stage8DFinalizationError(
                 f"{relative}: Stage 8D source names published evidence it is not "

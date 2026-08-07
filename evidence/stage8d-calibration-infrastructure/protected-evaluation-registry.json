@@ -1,0 +1,80 @@
+{
+  "statement": "The identities a calibration may never draw a threshold from. Identities only: this document holds no score, no count of scores and no statistic derived from any (docs/adr/0079).",
+  "registry_id": "fpbench_protected_evaluation_v1",
+  "registry_version": "1",
+  "entries": [
+    {
+      "kind": "cohort",
+      "identity": "sd300_50_subjects_test_22f8d52a7478",
+      "fingerprint": "3648aa599b07828638742c102f2ab25bb1ac4a9630f1058adc62359164c456f4",
+      "label": "the 50-subject evaluation cohort; the only cohort drawn so far"
+    },
+    {
+      "kind": "dataset",
+      "identity": "sd300",
+      "fingerprint": "c2ab03a5bb20ccef2c00e5f0522b641941cb93e2676a506eae192b6251813ba9",
+      "label": "NIST SD300, by the image manifest hash of the release this project reads"
+    },
+    {
+      "kind": "pair_manifest",
+      "identity": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+      "fingerprint": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+      "label": "the frozen 6,000-comparison pair manifest every algorithm was given"
+    },
+    {
+      "kind": "preparation_set",
+      "identity": "prepset_be560e047991",
+      "fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+      "label": "the shared canonical 500 ppi prepared-image set"
+    },
+    {
+      "kind": "result_set",
+      "identity": "resultset_087b084fb8a8",
+      "fingerprint": "087b084fb8a8001eb92e20d4900dfc759dc5abbc9d5346144c83f5298f61e38b",
+      "label": "the SourceAFIS canonical_500 result set"
+    },
+    {
+      "kind": "result_set",
+      "identity": "resultset_73a9d93a8528",
+      "fingerprint": "73a9d93a8528e95322b69c64af416a234e7bd100cbb6556e66f1ae8c1cdd7fff",
+      "label": "the NBIS canonical_500 result set"
+    },
+    {
+      "kind": "result_set",
+      "identity": "resultset_d63e523e0436",
+      "fingerprint": "d63e523e04369ee4e7d57ed63bac3980e656425a832759b71315ca3fc155be5a",
+      "label": "the flx canonical_500 result set"
+    },
+    {
+      "kind": "run",
+      "identity": "run_4c59fa02a6ab",
+      "fingerprint": "4c59fa02a6ab0471bdd46e134c61d74a7b6463276bf7c1bb6bd2e217622ceb5a",
+      "label": "the SourceAFIS canonical_500 run"
+    },
+    {
+      "kind": "run",
+      "identity": "run_902136b3b8ae",
+      "fingerprint": "902136b3b8ae72747959395fb06bd9586a911505adb8b9e7a1d1e13bb32da884",
+      "label": "the flx canonical_500 run"
+    },
+    {
+      "kind": "run",
+      "identity": "run_f0468f28ffba",
+      "fingerprint": "f0468f28ffba544fc7f2df0d4e9844cc0c6f0ed8e5359fd338d49ab6e8022c9f",
+      "label": "the NBIS canonical_500 run"
+    }
+  ],
+  "registry_fingerprint": "626f6b833d3563911b2f3101426a4be83556034a3eb788450941062d490feb0d",
+  "schema_version": "1",
+  "coverage": {
+    "total": 10,
+    "by_kind": {
+      "cohort": 1,
+      "dataset": 1,
+      "pair_manifest": 1,
+      "preparation_set": 1,
+      "result_set": 3,
+      "run": 3
+    }
+  }
+}

@@ -138,6 +138,42 @@ def test_a_successful_command_reports_its_output_and_exit_code(tmp_path):
     assert not result.timed_out and not result.launch_failed
 
 
+def test_a_finished_windows_process_survives_the_job_assignment_race(monkeypatch):
+    """A tool may exit after CreateProcess but before it enters the Job Object."""
+    import ctypes
+
+    from fpbench.adapters.support import process as process_module
+
+    class FailedAssignment:
+        argtypes = None
+        restype = None
+
+        def __call__(self, _job, _process):
+            return False
+
+    class Kernel32:
+        AssignProcessToJobObject = FailedAssignment()
+
+    class FinishedProcess:
+        _handle = 123
+
+        @staticmethod
+        def poll():
+            return 0
+
+        @staticmethod
+        def kill():
+            raise AssertionError("a completed process must not be killed")
+
+    monkeypatch.setattr(
+        ctypes,
+        "WinDLL",
+        lambda *_args, **_kwargs: Kernel32(),
+        raising=False,
+    )
+    process_module._assign_windows_job(1, FinishedProcess())
+
+
 def test_a_non_zero_exit_is_a_result_and_not_an_exception(tmp_path):
     """Whether exit 3 means "no minutiae" is the adapter's business, not this one's."""
     result = run_external_command(

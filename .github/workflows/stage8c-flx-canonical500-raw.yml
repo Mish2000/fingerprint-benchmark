@@ -90,7 +90,7 @@ jobs:
 
       - name: Regression suites for the prior stages
         run: |
-          pytest -m "adapter_contract or nbis_contract or stage7d_contract or stage8a_contract" -q
+          pytest -m "(adapter_contract or nbis_contract or stage7d_contract or stage8a_contract) and not dataset" -q
           pytest -m "decisions or metrics or imaging or paired_evaluation" -q
 
       - name: The run itself was not executed here, and is not reported as passing

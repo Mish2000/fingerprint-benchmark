@@ -251,11 +251,15 @@ def test_stage_7a_produced_no_run_of_its_own():
 
     from fpbench.core.errors import ResearchPreflightError
     from fpbench.experiments.algorithm_research import read_run_pointer
-    from fpbench.experiments.nbis_canonical500_full import EXPERIMENT_ID
 
-    try:
-        accounted = {read_run_pointer(WORKSPACE, EXPERIMENT_ID)}
-    except ResearchPreflightError:
-        accounted = set()
+    accounted: set[str] = set()
+    experiments = WORKSPACE / "experiments"
+    for pointer in experiments.glob("*/current-run.json"):
+        try:
+            accounted.add(read_run_pointer(WORKSPACE, pointer.parent.name))
+        except ResearchPreflightError:
+            # A malformed pointer cannot account for a stored run. The inventory
+            # assertion below still rejects that run as unexplained.
+            continue
     unexplained = stored - {NATIVE_RUN, CANONICAL_RUN} - accounted
     assert unexplained == set(), sorted(unexplained)

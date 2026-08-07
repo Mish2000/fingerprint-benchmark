@@ -270,7 +270,11 @@ def run_external_command(command: ExternalCommand) -> ExternalCommandResult:
                 duration_ms=(perf_counter_ns() - started) / _NS_PER_MS,
             )
 
-        if windows_job is not None:
+        # A tiny tool can finish between CreateProcess and job assignment. Avoid
+        # asking Windows to assign a process that is already known to be done;
+        # _assign_windows_job repeats this check if the process exits during the
+        # assignment call itself.
+        if windows_job is not None and process.poll() is None:
             _assign_windows_job(windows_job, process)
 
         timed_out = False
@@ -439,6 +443,11 @@ def _assign_windows_job(
     if not kernel32.AssignProcessToJobObject(
         wintypes.HANDLE(job), wintypes.HANDLE(int(process._handle))  # type: ignore[attr-defined]
     ):
+        # AssignProcessToJobObject fails once a very short-lived process has
+        # already exited. That is a successful command result, not a process-tree
+        # containment failure, and killing/raising here would discard it.
+        if process.poll() is not None:
+            return
         process.kill()
         process.wait(timeout=TERMINATE_GRACE_SECONDS)
         _close_windows_job(job)

@@ -1639,12 +1639,17 @@ enforced structurally rather than by review. Each algorithm gets a threshold on
 its own scale; what is shared is the *policy*, never the number
 ([ADR 0080](docs/adr/0080-calibration-selects-native-score-boundaries-without-score-normalization.md)).
 
-Boundaries come from the observed scores — `>= s` and `> s`, or `<= s` and `< s`
-— so "accept everything" and "accept nothing" are both expressible without
-inventing a number no comparison produced. Rates are pairs of integers compared
-by cross-multiplication, because `0.001` is not one thousandth. Ties are atomic:
-five impostors scoring `0.4, 0.4, 0.4, 0.7, 0.7` under a ceiling of one in five
-produce a boundary that admits *none* of them, because admitting one of the two
+Boundaries come from the observed **impostor** scores — `>= s` and `> s`, or
+`<= s` and `< s` — so both extremes of the impostor rate are expressible without
+inventing a number no comparison produced. Mated scores generate no candidate,
+determine no permissiveness and break no tie; a value only a genuine comparison
+produced cannot become a threshold, because a boundary standing there would have
+been placed by the population the rule is not allowed to optimise for.
+
+Rates are pairs of integers compared by cross-multiplication, because `0.001` is
+not one thousandth, and a target is bounded by `[0, 1]`. Ties are atomic: five
+impostors scoring `0.4, 0.4, 0.4, 0.7, 0.7` under a ceiling of one in five
+produce `> 0.7`, which admits *none* of them, because admitting one of the two
 `0.7`s is not something a threshold can express.
 
 Development data is enforced twice, not declared once

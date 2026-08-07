@@ -72,10 +72,24 @@ accept one of three identical `0.4`s.
 
 This has a visible cost: a target rate is usually undershot rather than reached.
 Given five impostor comparisons scoring `0.4, 0.4, 0.4, 0.7, 0.7`, a ceiling of
-one in five is satisfied by admitting *none* of them, because admitting one of
-the two `0.7`s is not something a threshold can express. The alternative —
-breaking the tie by `pair_id`, or at random with a fixed seed — would decide
-identical evidence differently, and that is not a threshold.
+one in five is satisfied only by `> 0.7`, which admits *none* of them, because
+admitting one of the two `0.7`s is not something a threshold can express. The
+alternative — breaking the tie by `pair_id`, or at random with a fixed seed —
+would decide identical evidence differently, and that is not a threshold.
+
+## The genuine population does not choose the boundary
+
+The selection is defined over the impostor population and nothing else: the
+candidate boundaries, the admissibility test, the permissiveness ordering and the
+tie-break. Mated scores are read exactly once, at the end, to count what the
+chosen boundary does to them.
+
+That is stricter than it first sounds. A value only a mated comparison produced
+cannot become a threshold at all — `>= 0.9` is not on the table when 0.9 is a
+mated-only score. Without that restriction the genuine population selects the
+boundary through the permissiveness ordering, which is the optimisation
+docs/adr/0080 exists to refuse; the ADR's *Consequences* section records the
+concrete case where it did.
 
 ## Test data cannot select a threshold
 

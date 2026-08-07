@@ -42,9 +42,10 @@ contains no normalization of any kind — no min-max, no z-score, no Platt
 scaling, no fusion, no cross-algorithm mapping — and there is a structural test
 that says so.
 
-**Boundaries come from the observed scores, never from an epsilon.** For each
-distinct score `s` in the development population, and for a higher-is-better
-matcher, the candidate boundaries are
+**Boundaries come from the observed impostor scores, never from an epsilon and
+never from the genuine population.** For each distinct score `s` that a *scored
+`CROSS_SUBJECT_IMPOSTOR` comparison* produced in the development population, and
+for a higher-is-better matcher, the candidate boundaries are
 
 ```
 score >= s
@@ -58,9 +59,16 @@ score <= s
 score <  s
 ```
 
-That set is closed: `>= min` accepts everything and `> max` accepts nothing, so
-"accept all" and "accept none" are representable without inventing a number that
-is not a score.
+Mated scores do not generate candidate boundaries, do not determine
+permissiveness, and do not participate in tie-breaking. They are evaluated only
+after the boundary has been selected.
+
+That set is closed over the quantity being constrained: `>= min` admits every
+impostor and `> max` admits none, so both extremes of the impostor rate are
+representable without inventing a number that is not a score. A boundary *below*
+the lowest impostor score is deliberately unreachable — the only motivation for
+moving there is to admit more mated comparisons, which is the objective this ADR
+refuses.
 
 **A threshold is a boundary, not a number.** An operating point carries a
 `threshold` *and* a `comparator`, because `>= 40` and `> 40` are different rules
@@ -89,10 +97,21 @@ a/b <= c/d      is evaluated as      a*d <= c*b
 
 **The objective is fixed in advance.** The selection rule is
 "the most permissive boundary whose observed impostor match rate does not exceed
-the target". Genuine performance at that boundary is measured and recorded; it is
-never a second objective, and there is no search over rules to find the one with
-the best FNMR. A selector that optimised two things would be fitting the
-development set rather than applying a policy to it.
+the target", where *permissive* counts admitted impostor evidence and nothing
+else. Genuine performance at that boundary is measured and recorded; it is never
+a second objective, and there is no search over rules to find the one with the
+best FNMR. A selector that optimised two things would be fitting the development
+set rather than applying a policy to it.
+
+Restricting the candidates and the ordering to the impostor population is what
+makes that statement true rather than merely intended. It was not true in the
+first implementation: candidates were drawn from every observed score, so over
+impostors `1, 2, 3, 4` under a ceiling of one in four, mated scores of `5, 6, 7`
+selected `>= 4` while mated scores of `2.5, 3.5, 100` selected `>= 3.5`. Same
+impostor evidence, two thresholds, and the second one a number no impostor
+comparison ever produced. The genuine population had chosen the boundary through
+the permissiveness ordering, which is precisely the optimisation this decision
+forbids.
 
 ## Alternatives considered
 
@@ -126,6 +145,11 @@ docs/adr/0058 forbids has nowhere to be expressed.
 An observed rate will usually sit strictly below the target, and the operating
 point records both the target and the observed counts so the gap is visible
 rather than implied.
+
+A target rate is bounded by `[0, 1]`. `0/1` and `1/1` are both meaningful — admit
+no impostor, admit every impostor — and anything above 1 is refused, because it
+constrains nothing: every boundary satisfies it, so a protocol carrying it would
+report a selection nobody constrained.
 
 Achieving a specific FMR *exactly* is not possible in general and is not
 attempted. A future protocol that needs a different objective — a nearest-rate

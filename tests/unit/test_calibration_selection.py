@@ -339,6 +339,49 @@ def test_the_inclusive_spelling_wins_when_two_boundaries_decide_identically() ->
     assert outcome.boundary.canonical_threshold == "0.7"
 
 
+# --------------------------------------------------- one objective, not two
+
+
+def test_the_mated_scores_do_not_influence_which_boundary_is_chosen() -> None:
+    """Spec section 16: genuine performance is measured, never optimised for.
+
+    Two fixtures with identical impostor scores and wildly different mated ones.
+    If the selector were weighing genuine performance at all — even as a
+    tie-break — these would diverge. They do not: the boundary, the comparator
+    and the impostor counts are identical, and only the mated counts differ.
+    """
+    protocol = impostor_ceiling_protocol(
+        protocol_id="quarter_v1", numerator=1, denominator=4
+    )
+    impostor = ["1", "2", "3", "4"]
+    generous = results_from(HIGHER, mated=["5", "6", "7", "8"], impostor=impostor)
+    dismal = results_from(HIGHER, mated=["1", "1", "1", "2"], impostor=impostor)
+
+    first, second = choose(protocol, generous), choose(protocol, dismal)
+    assert first.threshold == second.threshold
+    assert first.comparator is second.comparator
+    assert first.observed_impostor_matches == second.observed_impostor_matches
+    # The consequence is recorded, and it is a consequence: four mated matches
+    # under one fixture, none under the other, at the very same boundary.
+    assert first.observed_mated_matches == 4
+    assert second.observed_mated_matches == 0
+    assert second.observed_mated_non_matches == 4
+
+
+def test_there_is_exactly_one_selection_rule_to_apply() -> None:
+    """A second rule would be a second protocol, not a setting on this one."""
+    from fpbench.core.enums import ThresholdSelectionRule
+
+    assert len(list(ThresholdSelectionRule)) == 1
+    protocol = impostor_ceiling_protocol(
+        protocol_id="quarter_v1", numerator=1, denominator=4
+    )
+    assert (
+        protocol.threshold_selection_rule
+        is ThresholdSelectionRule.MOST_PERMISSIVE_WITHIN_IMPOSTOR_CEILING
+    )
+
+
 # ------------------------------------------------------------------ failures
 
 

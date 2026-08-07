@@ -46,6 +46,17 @@ __all__ = [
     "FORBIDDEN_IMPORT_ROOTS",
     "FORBIDDEN_NORMALIZATION_TOKENS",
     "CALIBRATION_SCHEMA_VERSION",
+    "CalibrationOperatingPoint",
+    "CalibrationProtocol",
+    "CalibrationSourceBinding",
+    "CandidateBoundary",
+    "LabeledResults",
+    "LabeledScore",
+    "ProtectedEvaluationIdentity",
+    "ProtectedEvaluationRegistry",
+    "VerificationReport",
+    "select_operating_point",
+    "verify_operating_point",
 ]
 
 #: The calibration schema generation. Bumped when the meaning of a stored
@@ -104,4 +115,23 @@ FORBIDDEN_NORMALIZATION_TOKENS: tuple[str, ...] = (
     "score_fusion",
     "map_score_scale",
     "rescale_score",
+)
+
+# Imported last, and deliberately after the constants above: the structural test
+# that enforces the boundary reads those tuples out of this module, so they have
+# to exist before anything else in the package is loaded.
+from fpbench.calibration.models import (  # noqa: E402
+    CalibrationOperatingPoint,
+    CalibrationProtocol,
+    CalibrationSourceBinding,
+    CandidateBoundary,
+    LabeledResults,
+    LabeledScore,
+    ProtectedEvaluationIdentity,
+    ProtectedEvaluationRegistry,
+)
+from fpbench.calibration.selection import select_operating_point  # noqa: E402
+from fpbench.calibration.verify import (  # noqa: E402
+    VerificationReport,
+    verify_operating_point,
 )

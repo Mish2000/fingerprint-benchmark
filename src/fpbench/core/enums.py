@@ -46,6 +46,17 @@ __all__ = [
     "CrossAlgorithmPopulation",
     "CrossAlgorithmTransitionFamily",
     "CrossAlgorithmStatus",
+    "CalibrationPairTruth",
+    "CalibrationTargetMetric",
+    "CalibrationTargetPopulation",
+    "ThresholdSelectionRule",
+    "CandidateBoundaryPolicy",
+    "CalibrationTiePolicy",
+    "ScorePopulationPolicy",
+    "CalibrationFailurePolicy",
+    "ScoreNormalizationPolicy",
+    "ProtectedIdentityKind",
+    "CalibrationInfrastructureStatus",
 ]
 
 
@@ -123,10 +134,34 @@ class CohortRole(str, Enum):
 
     The distinction exists to make threshold-calibration leakage detectable in
     code rather than in review: calibration must refuse a TEST cohort.
+
+    ``EVALUATION`` is an *alias* of ``TEST``, not a third role. The calibration
+    literature calls the protected split "evaluation", and stage 8D's engine
+    reads better for saying so — but the serialized value stays ``"test"``,
+    because it is inside ``sd300_50_subjects_test_22f8d52a7478`` and therefore
+    inside every cohort, run, plan, result-set and preparation-set fingerprint
+    this project has published (docs/adr/0079)::
+
+        CohortRole.EVALUATION is CohortRole.TEST    # True
+        CohortRole.EVALUATION.value == "test"       # unchanged
     """
 
     TEST = "test"
     DEVELOPMENT = "development"
+
+    #: The same member under the name the calibration vocabulary uses. Python
+    #: makes a duplicate value an alias, so this adds a spelling and not a role.
+    EVALUATION = "test"
+
+    @property
+    def permits_threshold_selection(self) -> bool:
+        """Whether a threshold may be chosen from scores drawn under this role.
+
+        Only DEVELOPMENT. Choosing a threshold on the cohort it will later be
+        reported on is the one form of leakage that invalidates the whole study,
+        and it is refused here rather than in review (docs/adr/0021).
+        """
+        return self is CohortRole.DEVELOPMENT
 
 
 class ChecksumStatus(str, Enum):
@@ -698,6 +733,165 @@ class CrossAlgorithmStatus(str, Enum):
     AGGREGATES_READY = "aggregates_ready"
     REPORT_READY = "report_ready"
     CROSS_ALGORITHM_READY = "cross_algorithm_ready"
+    INVALID = "invalid"
+
+
+# ----------------------------------------------------------------- calibration
+#
+# The vocabulary of choosing a threshold from labelled scores. Every member here
+# is algorithm-neutral by construction: nothing in this section names a matcher,
+# a score scale or a dataset, because the whole point of the layer is that one
+# policy is applied to each algorithm's own numbers separately (docs/adr/0080).
+#
+# It is also the only vocabulary in this project that is allowed to know ground
+# truth. An adapter may never know whether a pair is mated; a calibration must,
+# or it has nothing to count (docs/adr/0010).
+
+
+class CalibrationPairTruth(str, Enum):
+    """What a labelled calibration comparison is known to be.
+
+    Two members, and deliberately no third. This project's protocol also
+    generates same-subject different-finger comparisons, and those are registered
+    as a *sanity check* rather than as an impostor sample: 1,500 cyclic
+    within-subject comparisons do not estimate the rate at which two different
+    people are confused, and bounding a "false match rate" with them would bound
+    a different quantity under the right name (docs/adr/0079).
+    """
+
+    MATED = "mated"
+    CROSS_SUBJECT_IMPOSTOR = "cross_subject_impostor"
+
+    @property
+    def is_impostor(self) -> bool:
+        return self is CalibrationPairTruth.CROSS_SUBJECT_IMPOSTOR
+
+
+class CalibrationTargetMetric(str, Enum):
+    """Which rate a calibration protocol constrains.
+
+    One member in v1. A protocol that constrained something else — an equal
+    error rate, a genuine acceptance rate — is a different protocol with a
+    different selection rule, not this one with a different number.
+    """
+
+    #: The share of impostor comparisons the boundary calls a match. Constrained
+    #: as a ceiling: the chosen boundary may not exceed it.
+    IMPOSTOR_MATCH_RATE = "impostor_match_rate"
+
+
+class CalibrationTargetPopulation(str, Enum):
+    """What the target rate is a rate *of*, named rather than implied.
+
+    A comparison that produced no score cannot be thresholded, so it is neither
+    an impostor match nor a non-match. Whether it sits in the denominator changes
+    what the target means, and a rate whose denominator is implied is a rate
+    nobody can check (docs/adr/0027).
+    """
+
+    #: Only comparisons that produced a usable finite score.
+    SCORED_COMPARISONS = "scored_comparisons"
+
+
+class ThresholdSelectionRule(str, Enum):
+    """The fixed objective, chosen before any score is read.
+
+    Fixed in advance on purpose. A selector that searched over rules and kept the
+    one with the best genuine performance would be fitting the development set
+    rather than applying a policy to it (docs/adr/0080).
+    """
+
+    #: Of the boundaries whose observed impostor match rate does not exceed the
+    #: target, take the one that accepts the most.
+    MOST_PERMISSIVE_WITHIN_IMPOSTOR_CEILING = (
+        "most_permissive_within_impostor_ceiling"
+    )
+
+
+class CandidateBoundaryPolicy(str, Enum):
+    """Where candidate boundaries come from.
+
+    From the observed scores, so that no epsilon is ever invented. ``s + 1e-9``
+    is a different boundary on a ``[0, 1]`` scale than on a ``[0, 10000]`` one,
+    and on some scales it is not a different boundary at all (docs/adr/0080).
+    """
+
+    OBSERVED_SCORE_BOUNDARIES = "observed_score_boundaries"
+
+
+class CalibrationTiePolicy(str, Enum):
+    """What happens when two boundaries are equally good.
+
+    Equal scores are always decided together — that is a property of comparing by
+    value, not a policy — so this names only what to do when two *different*
+    boundaries produce literally the same set of decisions. The canonical one is
+    chosen so that identity is stable, and no decision moves.
+    """
+
+    ATOMIC_TIES_PREFER_INCLUSIVE = "atomic_ties_prefer_inclusive"
+
+
+class ScorePopulationPolicy(str, Enum):
+    """Which stored results reach the boundary computation.
+
+    A raw result with no score is not a non-match and cannot become one
+    (docs/adr/0006). It is excluded from the selection and counted separately, so
+    that it stays visible in the operating point rather than disappearing.
+    """
+
+    SUCCESSFUL_FINITE_SCORES_ONLY = "successful_finite_scores_only"
+
+
+class CalibrationFailurePolicy(str, Enum):
+    """What an operating point does about comparisons that produced no score."""
+
+    FAILURES_EXCLUDED_AND_COUNTED = "failures_excluded_and_counted"
+
+
+class ScoreNormalizationPolicy(str, Enum):
+    """Which transformation is applied to a raw score before selection.
+
+    One member, and it is ``NONE``. Min-max, z-score, Platt scaling and score
+    fusion are absent from ``fpbench.calibration`` rather than merely disabled in
+    it, and a structural test says so (docs/adr/0080).
+    """
+
+    NONE = "none"
+
+
+class ProtectedIdentityKind(str, Enum):
+    """What kind of thing a protected evaluation identity names.
+
+    Identities only. The registry that uses these holds no score, no count of
+    scores and no statistic — its whole job is to let a source binding be refused
+    on the strength of what it points at (docs/adr/0079).
+    """
+
+    DATASET = "dataset"
+    COHORT = "cohort"
+    PAIR_MANIFEST = "pair_manifest"
+    PREPARATION_SET = "preparation_set"
+    RUN = "run"
+    RESULT_SET = "result_set"
+
+
+class CalibrationInfrastructureStatus(str, Enum):
+    """How much of stage 8D's chain is in place.
+
+    The same shape as every other status ladder in this project, and for the same
+    reason: everything before the finalization marker is retryable work.
+
+    ``CALIBRATION_INFRASTRUCTURE_READY`` means the machinery exists and was
+    qualified on synthetic fixtures. It never means a threshold was chosen, a
+    development cohort was drawn, or any real score was read (docs/adr/0078).
+    """
+
+    NOT_PREPARED = "not_prepared"
+    MODELS_READY = "models_ready"
+    SELECTION_READY = "selection_ready"
+    BRIDGE_READY = "bridge_ready"
+    QUALIFICATION_READY = "qualification_ready"
+    CALIBRATION_INFRASTRUCTURE_READY = "calibration_infrastructure_ready"
     INVALID = "invalid"
 
 

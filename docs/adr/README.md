@@ -84,6 +84,9 @@ can be held to.
 | [0075](0075-logical-extractions-and-physical-forward-rows-are-different-counts.md) | Logical extractions and physical forward rows are different counts | Accepted, implemented |
 | [0076](0076-stage-8c-publishes-no-score-distribution-or-decision.md) | Stage 8C publishes no score distribution or decision | Accepted, implemented |
 | [0077](0077-stage-8c-finalization-binds-the-stage-8b-qualified-route.md) | Stage 8C finalization binds the Stage 8B qualified route | Accepted, implemented |
+| [0078](0078-stage-8d-builds-calibration-infrastructure-without-calibrating.md) | Stage 8D builds calibration infrastructure without calibrating | Accepted, implemented |
+| [0079](0079-calibration-data-must-be-development-not-evaluation.md) | Calibration data must be development data, not evaluation data | Accepted, implemented |
+| [0080](0080-calibration-selects-native-score-boundaries-without-score-normalization.md) | Calibration selects native score boundaries, without score normalization | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

@@ -48,11 +48,12 @@ pytestmark = [pytest.mark.dataset, pytest.mark.adapter_contract]
 REPO = Path(__file__).resolve().parents[2]
 WORKSPACE = REPO / "workspace"
 
-if not (WORKSPACE / "results").is_dir():
-    pytest.skip(
-        "no persisted results workspace is available",
-        allow_module_level=True,
-    )
+
+@pytest.fixture(scope="module", autouse=True)
+def require_results_workspace():
+    """Skip only when this module's tests are selected, not during collection."""
+    if not (WORKSPACE / "results").is_dir():
+        pytest.skip("no persisted results workspace is available")
 
 NATIVE_RUN = "run_7ac1cecc0bb3"
 NATIVE_RESULT_SET = "resultset_2bf3cacfd806"

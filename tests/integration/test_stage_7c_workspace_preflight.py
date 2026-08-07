@@ -35,10 +35,12 @@ pytestmark = [pytest.mark.dataset, pytest.mark.nbis_full_run]
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 WORKSPACE = REPOSITORY_ROOT / "workspace"
 
-if not (WORKSPACE / "results").is_dir():
-    pytest.skip(
-        "no persisted results workspace is available", allow_module_level=True
-    )
+
+@pytest.fixture(scope="module", autouse=True)
+def require_results_workspace():
+    """Skip only when this module's tests are selected, not during collection."""
+    if not (WORKSPACE / "results").is_dir():
+        pytest.skip("no persisted results workspace is available")
 
 REFERENCE_RUN = "run_4c59fa02a6ab"
 REFERENCE_PLAN = "plan_b4ae66e91923"

@@ -61,6 +61,31 @@ __all__ = [
 #: Stage 8D began here: the approved HEAD that closed Stage 8C.
 STAGE_8D_BASELINE_COMMIT = "a27104b244489c02240c345ad4cee7e0d1a2cb3d"
 
+#: Commits inside Stage 8D's span that are **not** Stage 8D's work.
+#:
+#: Two repairs to earlier stages' surfaces landed between the baseline and the
+#: publication: a race in the external process runner, and two workspace guards
+#: that crashed instead of skipping. Both were found *by* Stage 8D and fixed
+#: *outside* it, on their own, because Stage 8D is not entitled to edit
+#: `adapters/support/process.py` or Stage 7A's acceptance tests.
+#:
+#: Because history is linear, `git diff BASELINE..PUBLICATION` attributes their
+#: changes to this stage. It should not: the audit's question is "which paths did
+#: Stage 8D change?", and a span is only a proxy for that. So the audit walks the
+#: span commit by commit and skips these two, which is the difference between
+#: answering the question and answering a convenient approximation of it.
+#:
+#: The list is closed. The span ends at the published marker's commit, so no
+#: future commit can enter it (docs/adr/0067).
+_NON_STAGE_8D_COMMITS_IN_SPAN = frozenset(
+    {
+        # Fix Windows process and workspace regressions
+        "29a1b041b1f9f44610d82169dda00472293743e7",
+        # Avoid module-level workspace skips
+        "9f571d53da56338c0df7d802712ccc095a4f054d",
+    }
+)
+
 _HEX = frozenset("0123456789abcdef")
 
 #: The source whose bytes ``calibration_model_fingerprint`` covers: the artifacts
@@ -687,6 +712,51 @@ def _audit_source_boundaries(repository_root: Path) -> None:
             )
 
 
+def _stage_8d_changed_paths(
+    repository_root: Path, span_end_commit: str
+) -> tuple[str, ...]:
+    """Every path Stage 8D's own commits changed, across its span.
+
+    Commit by commit rather than endpoint to endpoint, so that a repair to an
+    earlier stage that happened to land in the middle of this span is attributed
+    to whoever made it. A merge commit has no single parent to diff against and
+    there are none in this history; if one appears, it is reported rather than
+    silently skipped.
+    """
+    revisions = _git_output(
+        repository_root,
+        "rev-list",
+        "--no-merges",
+        f"{STAGE_8D_BASELINE_COMMIT}..{span_end_commit}",
+    )
+    all_revisions = _git_output(
+        repository_root, "rev-list", f"{STAGE_8D_BASELINE_COMMIT}..{span_end_commit}"
+    )
+    merges = sorted(set(all_revisions) - set(revisions))
+    if merges:
+        raise Stage8DFinalizationError(
+            f"Stage 8D's span contains merge commits, which it cannot attribute: "
+            f"{merges}"
+        )
+
+    changed: set[str] = set()
+    for revision in revisions:
+        if revision in _NON_STAGE_8D_COMMITS_IN_SPAN:
+            continue
+        changed.update(
+            _git_output(
+                repository_root,
+                "diff-tree",
+                "--no-commit-id",
+                "--name-only",
+                "-r",
+                "--diff-filter=ACDMRTUXB",
+                revision,
+            )
+        )
+    return tuple(sorted(changed))
+
+
 def verify_stage8d_workspace_boundaries(
     repository_root: Path, *, span_end_commit: str
 ) -> None:
@@ -717,15 +787,7 @@ def verify_stage8d_workspace_boundaries(
         span_end_commit,
     )
     _git_output(repository_root, "merge-base", "--is-ancestor", span_end_commit, "HEAD")
-    changed = _git_output(
-        repository_root,
-        "diff",
-        "--name-only",
-        "--diff-filter=ACDMRTUXB",
-        STAGE_8D_BASELINE_COMMIT,
-        span_end_commit,
-        "--",
-    )
+    changed = _stage_8d_changed_paths(repository_root, span_end_commit)
     protected = sorted(
         path
         for path in changed

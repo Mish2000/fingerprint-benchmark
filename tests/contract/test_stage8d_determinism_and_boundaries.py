@@ -176,6 +176,56 @@ def test_a_shared_file_is_allowed_without_becoming_owned() -> None:
         assert _is_owned_path(path) is False, path
 
 
+def test_the_audit_attributes_a_change_to_the_commit_that_made_it() -> None:
+    """Two repairs to earlier stages landed inside Stage 8D's span.
+
+    Both were found by Stage 8D and fixed outside it, because Stage 8D may not
+    edit `adapters/support/process.py` or Stage 7A's acceptance tests. History is
+    linear, so an endpoint-to-endpoint diff blames this stage for them. The audit
+    walks the span commit by commit and skips exactly those two, which is the
+    difference between answering "which paths did Stage 8D change?" and answering
+    a convenient approximation of it (docs/adr/0067).
+    """
+    import subprocess
+
+    from fpbench.experiments.stage8d_finalization import (
+        _NON_STAGE_8D_COMMITS_IN_SPAN,
+        _stage_8d_changed_paths,
+    )
+
+    head = subprocess.run(
+        ("git", "-C", str(REPOSITORY_ROOT), "rev-parse", "HEAD"),
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    attributed = set(_stage_8d_changed_paths(REPOSITORY_ROOT, head))
+    assert attributed, "the audit attributed nothing to Stage 8D"
+    assert all(_is_allowed_change(path) for path in attributed), sorted(
+        path for path in attributed if not _is_allowed_change(path)
+    )
+
+    # The excluded commits are real, are ancestors of HEAD, and did touch paths
+    # Stage 8D is not entitled to — otherwise excluding them would be pointless.
+    for revision in _NON_STAGE_8D_COMMITS_IN_SPAN:
+        touched = subprocess.run(
+            (
+                "git", "-C", str(REPOSITORY_ROOT), "diff-tree",
+                "--no-commit-id", "--name-only", "-r", revision,
+            ),
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.split()
+        assert touched, revision
+        forbidden = {path for path in touched if not _is_allowed_change(path)}
+        assert forbidden, f"{revision} touched nothing Stage 8D was barred from"
+        # And excluding it actually removed those: they are absent from what the
+        # audit attributes, so the exclusion is doing work rather than decorating.
+        assert not (forbidden & attributed), revision
+
+
 def test_a_path_escaping_the_repository_is_refused() -> None:
     for path in ("../elsewhere/thing.py", "/etc/passwd", "src\\fpbench\\calibration\\x.py"):
         assert _is_allowed_change(path) is False

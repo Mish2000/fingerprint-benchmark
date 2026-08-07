@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "statement": "The structural facts the Stage 8D contract suite enforces. Everything here is a property of the source, not a measurement.",
-  "calibration_model_fingerprint": "e9d49888e3d81486e5673cea08fd2ff24673968c2c2fbd0e6efc07cd30c6bfc2",
+  "calibration_model_fingerprint": "229572b482f9f93b52327200b7618091fc3cfec84d94fcc641d1469dc1bf3bdd",
   "selection_engine_fingerprint": "127bed37e9cc6b3e6821da4563e8e389cbd3249ec76f02ce71299906c5c9107f",
   "calibration_package": {
     "modules": [
@@ -15,7 +15,7 @@
     ],
     "module_sha256": {
       "__init__.py": "9a0ca4b82c47ec299bf14792c108bfd0ce28b45846319af3755c78f3139b7075",
-      "models.py": "7fee14c797027401270906ed96fed39927ea0ec6b2852570e1fd7c32f7ebb7fc",
+      "models.py": "9ad88b19d4dab685efb5e0e5ca392788cd0907029f80965aa553d77c6ee0b58a",
       "protocol.py": "54777ed65fe4d3d8688640cea17840282f712ddd538ef059014d6755c7a55dbc",
       "selection.py": "1b99012a19700ad7c1f93ca1708ff96dff1e3052668a48e10a7b13b8b00650d4",
       "validation.py": "d7be3053116f067357004e2153775d59ce450c929275061c03b64f3acbb5418c",

@@ -30,6 +30,10 @@ from fpbench.core.calibration_models import (
     CalibrationOperatingPoint,
     CalibrationProtocol,
     CalibrationSourceBinding,
+    read_calibration_operating_point,
+    read_calibration_protocol,
+    read_calibration_source_binding,
+    strict_json_document,
 )
 from fpbench.core.errors import StorageError
 from fpbench.core.identifiers import validate_id
@@ -156,21 +160,11 @@ class CalibrationStore:
     # -------------------------------------------------------------- read
 
     def read_protocol(self, protocol_id: str) -> CalibrationProtocol:
-        from fpbench.calibration.models import (
-            read_calibration_protocol,
-            strict_json_document,
-        )
-
         return read_calibration_protocol(
             strict_json_document(self._read_text(self.protocol_path(protocol_id)))
         )
 
     def read_source_binding(self, binding_id: str) -> CalibrationSourceBinding:
-        from fpbench.calibration.models import (
-            read_calibration_source_binding,
-            strict_json_document,
-        )
-
         return read_calibration_source_binding(
             strict_json_document(
                 self._read_text(self.source_binding_path(binding_id))
@@ -180,11 +174,6 @@ class CalibrationStore:
     def read_operating_point(
         self, operating_point_id: str
     ) -> CalibrationOperatingPoint:
-        from fpbench.calibration.models import (
-            read_calibration_operating_point,
-            strict_json_document,
-        )
-
         return read_calibration_operating_point(
             strict_json_document(
                 self._read_text(self.operating_point_path(operating_point_id))

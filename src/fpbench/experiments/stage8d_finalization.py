@@ -142,6 +142,11 @@ _ALLOWED_EXACT_CHANGES = frozenset(
         # that predate NBIS, which is a closed list nothing can join
         # (docs/adr/0067).
         "tests/regression/test_sourceafis_unmoved_after_nbis.py",
+        # "storage may import only core" was a stated rule that nothing checked.
+        # Stage 8D's store was first written with a deferred import of its own
+        # parser from `fpbench.calibration`, which inverts the layering the whole
+        # model/factory split rests on. Now enforced over the syntax tree.
+        "tests/unit/test_import_boundaries.py",
     }
 )
 _ALLOWED_CHANGE_PREFIXES = ("evidence/stage8d-calibration-infrastructure/",)

@@ -145,6 +145,51 @@ def test_the_engine_does_import_the_integration_it_is_driven_by():
     assert "fpbench.experiments.research_integration" in imported
 
 
+# ------------------------------------------------------------- the stores
+
+
+def test_storage_imports_core_and_itself_and_nothing_else_of_fpbench():
+    """The rule that decides where every persisted model lives.
+
+    ``storage`` may import only ``core``, which is why the containers sit in
+    ``core`` and the rules for deriving them sit in the package that owns them.
+    A store that imported its own parser from a derivation package would invert
+    that: the layer underneath would depend on the layer above, and the argument
+    for splitting model from factory would stop holding.
+
+    It was a stated rule and nothing checked it. Stage 8D's calibration store was
+    first written with a deferred ``from fpbench.calibration.models import ...``
+    inside three methods — deferred, so an import cycle would not have caught it
+    either. It now reads its parser from ``core``, where the containers already
+    live.
+
+    One exception is recorded rather than hidden, and it is recorded so that a
+    second one has to be argued for rather than merged.
+    """
+    #: `PreparedImageSetStore.verify` re-decodes a stored PNG to check it is the
+    #: raster its entry records, and the decoder is `imaging.canonical`. Deferred
+    #: to the method, and left alone here: moving a PNG decoder into `core` to
+    #: satisfy the rule would put image handling in the module that is supposed to
+    #: import nothing outside the standard library, which is a worse trade.
+    KNOWN_EXCEPTIONS = {
+        "storage/prepared_image_set_store.py -> fpbench.imaging.canonical",
+    }
+    offenders: list[str] = []
+    for path in python_files("fpbench.storage"):
+        for module in imports_of(path):
+            if not module.startswith("fpbench"):
+                continue
+            if module.startswith(("fpbench.core", "fpbench.storage")):
+                continue
+            if module == "fpbench":
+                continue
+            relative = path.relative_to(SOURCE_ROOT).as_posix()
+            offenders.append(f"{relative} -> {module}")
+    assert set(offenders) <= KNOWN_EXCEPTIONS, (
+        f"storage reached above core: {sorted(set(offenders) - KNOWN_EXCEPTIONS)}"
+    )
+
+
 # ------------------------------------------------------- the shared modules
 
 

@@ -209,7 +209,7 @@ def test_the_allowed_comparator_tables_are_exactly_the_specified_ones():
     )
 
 
-@pytest.mark.parametrize("version", ["0", "3", "2.0", "", "latest"])
+@pytest.mark.parametrize("version", ["0", "4", "2.0", "", "latest"])
 def test_an_unknown_profile_schema_version_is_refused(version):
     with pytest.raises(DecisionProfileError, match="not supported"):
         _profile(
@@ -306,8 +306,18 @@ def test_the_schema_one_fingerprint_mapping_is_byte_for_byte_what_it_was():
     assert decision_profile_fingerprint(profile) == expected
 
 
-def test_the_schema_version_is_one_of_exactly_two():
-    assert DECISION_PROFILE_SCHEMA_VERSIONS == ("1", "2")
+def test_the_schema_version_catalogue_is_closed_and_ordered():
+    """Three grammars now, and stage 7D owns the first two.
+
+    Stage 8D added schema 3 for the links a calibrated threshold has to carry
+    (docs/adr/0079). What stage 7D asserted here — that the catalogue is a fixed,
+    ordered list rather than anything a document may declare — is unchanged, and
+    the two versions it published still mean exactly what they meant: the tests
+    above pin schema 1's and schema 2's comparator tables and fingerprint
+    mappings, and none of them moved.
+    """
+    assert DECISION_PROFILE_SCHEMA_VERSIONS == ("1", "2", "3")
+    assert DECISION_PROFILE_SCHEMA_VERSIONS[:2] == ("1", "2")
 
 
 def test_strictness_is_a_property_of_the_comparator_not_of_the_caller():

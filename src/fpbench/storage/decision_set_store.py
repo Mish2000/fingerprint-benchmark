@@ -186,6 +186,20 @@ class DecisionSetStore:
                 schema_version=payload.get(
                     "schema_version", DECISION_PROFILE_SCHEMA_VERSION
                 ),
+                # Absent from every profile written before stage 8D, and absent
+                # is what a non-calibrated profile carries. Read with ``get`` for
+                # the same reason ``schema_version`` is: a stored schema-1 or
+                # schema-2 document does not have the keys, and reconstructing it
+                # must produce exactly the profile it was written as.
+                calibration_operating_point_fingerprint=payload.get(
+                    "calibration_operating_point_fingerprint"
+                ),
+                calibration_protocol_fingerprint=payload.get(
+                    "calibration_protocol_fingerprint"
+                ),
+                calibration_source_binding_fingerprint=payload.get(
+                    "calibration_source_binding_fingerprint"
+                ),
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise StorageError(f"{path}: unreadable decision profile ({exc})") from exc

@@ -112,9 +112,14 @@ PROTECTED_IDENTITIES: tuple[tuple[ProtectedIdentityKind, str, str, str], ...] = 
         "3648aa599b07828638742c102f2ab25bb1ac4a9630f1058adc62359164c456f4",
         "the 50-subject evaluation cohort; the only cohort drawn so far",
     ),
+    # Identified by its hash on both sides, because that is the only identity
+    # this project ever gave it: every document that cites the canonical pair
+    # manifest cites ``pair_manifest_hash``, and there is no ``pair_manifest_id``
+    # anywhere to copy. Inventing a readable name here would be inventing an
+    # identity, which is the one thing a protected-identity list must not do.
     (
         ProtectedIdentityKind.PAIR_MANIFEST,
-        "canonical_500_pair_manifest",
+        "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
         "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
         "the frozen 6,000-comparison pair manifest every algorithm was given",
     ),

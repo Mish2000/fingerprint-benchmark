@@ -84,7 +84,13 @@ DECISION_PROFILE_SCHEMA_VERSION = "1"
 #: published SourceAFIS artefacts already cite. It is frozen.
 #: **2** — inclusive *or* strict comparators, under a fingerprint mapping of its
 #: own, so that a schema-2 profile can never collide with a schema-1 one.
-DECISION_PROFILE_SCHEMA_VERSIONS: tuple[str, ...] = ("1", "2")
+#: **3** — schema 2 plus the three links a calibrated threshold has to carry: the
+#: operating point it came from, the protocol that selected it, and the
+#: development source it was selected on. Added rather than folded into schema 2
+#: for exactly the reason schema 2 was added rather than folded into schema 1 —
+#: a field inside a fingerprint mapping cannot appear later without moving every
+#: identity computed under it (docs/adr/0055, docs/adr/0079).
+DECISION_PROFILE_SCHEMA_VERSIONS: tuple[str, ...] = ("1", "2", "3")
 
 #: Bumped when the meaning of a decision set changes.
 DECISION_SET_SCHEMA_VERSION = "1"
@@ -113,6 +119,20 @@ COMPARATORS_FOR_DIRECTION: Mapping[
         ),
     },
     "2": {
+        ScoreDirection.HIGHER_IS_BETTER: frozenset(
+            {
+                ThresholdComparator.GREATER_THAN,
+                ThresholdComparator.GREATER_THAN_OR_EQUAL,
+            }
+        ),
+        ScoreDirection.LOWER_IS_BETTER: frozenset(
+            {ThresholdComparator.LESS_THAN, ThresholdComparator.LESS_THAN_OR_EQUAL}
+        ),
+    },
+    # Schema 3 admits exactly what schema 2 does. A calibrated boundary is a
+    # boundary like any other, and the selector produces both spellings
+    # (docs/adr/0080).
+    "3": {
         ScoreDirection.HIGHER_IS_BETTER: frozenset(
             {
                 ThresholdComparator.GREATER_THAN,
@@ -251,6 +271,15 @@ class DecisionProfile:
     #: carries the key — keeps the exact identity it was published under.
     schema_version: str = DECISION_PROFILE_SCHEMA_VERSION
 
+    #: The three links a calibrated threshold has to carry, and which only a
+    #: schema-3 profile may hold: *which* boundary was selected, *under which
+    #: policy*, and *from which development scores*. All three default to absent,
+    #: so a schema-1 or schema-2 profile is byte-for-byte what it always was and
+    #: fingerprints under a mapping that never sees them (docs/adr/0079).
+    calibration_operating_point_fingerprint: str | None = None
+    calibration_protocol_fingerprint: str | None = None
+    calibration_source_binding_fingerprint: str | None = None
+
     def __post_init__(self) -> None:
         object.__setattr__(
             self, "schema_version", require_comparator_schema_version(self.schema_version)
@@ -332,6 +361,8 @@ class DecisionProfile:
                 f"origin {self.origin.value!r} cannot carry a calibration manifest"
             )
 
+        self._validate_calibration_links(manifest)
+
         object.__setattr__(self, "metadata", freeze_str_mapping(self.metadata))
 
         recomputed = decision_profile_fingerprint(self)
@@ -339,6 +370,59 @@ class DecisionProfile:
             raise DecisionProfileError(
                 "profile_fingerprint does not cover the profile it is attached to"
             )
+
+    def _validate_calibration_links(self, manifest: str | None) -> None:
+        """Schema 3 carries the three links; schemas 1 and 2 cannot carry them.
+
+        The second half is what keeps the older grammars frozen. A schema-1
+        profile that acquired a calibration link would be asserting something its
+        fingerprint mapping does not cover — a claim in the file that the
+        identity does not stand behind, which is worse than not making it
+        (docs/adr/0055).
+        """
+        links = (
+            "calibration_operating_point_fingerprint",
+            "calibration_protocol_fingerprint",
+            "calibration_source_binding_fingerprint",
+        )
+        if self.schema_version != "3":
+            present = sorted(name for name in links if getattr(self, name) is not None)
+            if present:
+                raise DecisionProfileError(
+                    f"profile schema {self.schema_version} has no place for "
+                    f"{present}; a calibrated threshold needs schema 3, where the "
+                    "links are inside the fingerprint"
+                )
+            return
+
+        for name in links:
+            value = getattr(self, name)
+            if value is not None:
+                object.__setattr__(self, name, _require_digest(value, name))
+
+        if self.origin is ThresholdOrigin.CALIBRATED_DEVELOPMENT:
+            missing = sorted(name for name in links if getattr(self, name) is None)
+            if missing:
+                raise DecisionProfileError(
+                    f"a calibrated threshold must name {missing}. Without all "
+                    "three there is no evidence of which boundary was selected, "
+                    "under which policy, or from which development scores "
+                    "(docs/adr/0079)"
+                )
+            if manifest != self.calibration_operating_point_fingerprint:
+                raise DecisionProfileError(
+                    "for a calibrated profile the calibration manifest *is* the "
+                    "operating point it was derived from; naming two different "
+                    "artefacts would leave a reader to guess which one the "
+                    "threshold came from"
+                )
+        else:
+            present = sorted(name for name in links if getattr(self, name) is not None)
+            if present:
+                raise DecisionProfileError(
+                    f"origin {self.origin.value!r} did not come from a calibration "
+                    f"and must not cite one: {present}"
+                )
 
     @property
     def threshold_value(self) -> Decimal:
@@ -355,14 +439,19 @@ def decision_profile_fingerprint(profile: DecisionProfile) -> str:
     invalidate decisions derived under it. So are timestamps and file paths —
     the same profile, written in two repositories, is the same profile.
 
-    **Two mappings, and the first one is frozen.** A schema-1 profile hashes
+    **Three mappings, and the first two are frozen.** A schema-1 profile hashes
     exactly the fields, under exactly the tag, that the four published SourceAFIS
     decision sets were derived under; that mapping is not allowed to acquire a
     field, because six committed artefacts cite digests produced by it. A
     schema-2 profile hashes under a tag of its own, so a schema-2 profile whose
     every other field is identical to a schema-1 one is a *different* profile
-    rather than a silently upgraded one (docs/adr/0055).
+    rather than a silently upgraded one. Schema 3 does the same again for the
+    calibration links: adding them to the schema-2 mapping would have moved the
+    NBIS profile's identity, and with it every artefact stage 7D published
+    (docs/adr/0055, docs/adr/0079).
     """
+    if profile.schema_version == "3":
+        return _decision_profile_fingerprint_v3(profile)
     if profile.schema_version != "1":
         return _decision_profile_fingerprint_v2(profile)
     return stable_hash(
@@ -421,6 +510,52 @@ def _decision_profile_fingerprint_v2(profile: DecisionProfile) -> str:
             "calibration_performed": profile.calibration_performed,
             "calibration_manifest_fingerprint": (
                 profile.calibration_manifest_fingerprint
+            ),
+            "metadata": dict(profile.metadata),
+        },
+        length=64,
+    )
+
+
+def _decision_profile_fingerprint_v3(profile: "DecisionProfile") -> str:
+    """The schema-3 mapping: schema 2, plus where the threshold was chosen.
+
+    The three links are what separate a calibrated threshold from a number
+    somebody typed. They are inside the identity rather than beside it, so a
+    profile cannot be repointed at a different operating point — or quietly
+    stripped of the link entirely — while still being the profile a published
+    decision set cites (docs/adr/0079).
+    """
+    return stable_hash(
+        {
+            "schema": "decision_profile_fingerprint_v3",
+            "decision_profile_schema_version": profile.schema_version,
+            "profile_id": profile.profile_id,
+            "profile_version": profile.profile_version,
+            "algorithm_id": profile.algorithm_id,
+            "implementation_version": profile.implementation_version,
+            "algorithm_fingerprint": profile.algorithm_fingerprint,
+            "score_direction": profile.score_direction.value,
+            "comparator": profile.comparator.value,
+            "comparator_is_strict": profile.comparator.is_strict,
+            "threshold": profile.threshold,
+            "origin": profile.origin.value,
+            "source_kind": profile.source_kind,
+            "source_reference": profile.source_reference,
+            "source_version": profile.source_version,
+            "allowed_execution_profiles": list(profile.allowed_execution_profiles),
+            "calibration_performed": profile.calibration_performed,
+            "calibration_manifest_fingerprint": (
+                profile.calibration_manifest_fingerprint
+            ),
+            "calibration_operating_point_fingerprint": (
+                profile.calibration_operating_point_fingerprint
+            ),
+            "calibration_protocol_fingerprint": (
+                profile.calibration_protocol_fingerprint
+            ),
+            "calibration_source_binding_fingerprint": (
+                profile.calibration_source_binding_fingerprint
             ),
             "metadata": dict(profile.metadata),
         },

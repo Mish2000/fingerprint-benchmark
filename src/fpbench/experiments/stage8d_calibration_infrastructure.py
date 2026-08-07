@@ -552,6 +552,10 @@ def run_synthetic_qualification(
     # impostor match in five would satisfy it and no boundary produces one:
     # ">= 0.7" admits both 0.7s. Accepting one of them is not something a
     # threshold can express, so the selection undershoots to zero.
+    #
+    # The answer is "> 0.7", the strictest boundary the impostor scores express.
+    # Not ">= 0.9": 0.9 is a mated-only value, and a threshold standing there
+    # would have been placed by the genuine population (docs/adr/0080).
     point, case = _selection_case(
         "target_undershot_because_ties_are_atomic",
         "a 1/5 ceiling is undershot to zero rather than splitting two equal 0.7s",
@@ -562,7 +566,12 @@ def run_synthetic_qualification(
         ),
         registry,
     )
-    expect(point.threshold == "0.9", case.case_id, "expected a boundary at 0.9")
+    expect(point.threshold == "0.7", case.case_id, "expected a boundary at 0.7")
+    expect(
+        point.comparator is ThresholdComparator.GREATER_THAN,
+        case.case_id,
+        "expected a strict comparator",
+    )
     expect(
         point.observed_impostor_matches == 0,
         case.case_id,
@@ -572,6 +581,11 @@ def run_synthetic_qualification(
         point.observed_impostor_scored == 5,
         case.case_id,
         "expected all five impostors to be counted",
+    )
+    expect(
+        point.observed_mated_matches == 2,
+        case.case_id,
+        "expected both mated comparisons to clear the boundary",
     )
     cases.append(case)
 
@@ -628,6 +642,59 @@ def run_synthetic_qualification(
         "expected four impostor comparisons",
     )
     cases.append(case)
+
+    # The regression case. Both sides share impostors 1, 2, 3, 4 under a ceiling
+    # of one in four; the mated populations are wildly different, and the second
+    # one sits *between* impostor values on purpose. When candidates were drawn
+    # from every observed score, ">= 3.5" was a legal boundary — it admitted the
+    # same single impostor as ">= 4" while accepting one more mated comparison,
+    # so it looked more permissive and won. 3.5 is a number no impostor
+    # comparison ever produced (docs/adr/0080).
+    above, above_case = _selection_case(
+        "mated_scores_above_every_impostor",
+        "with mated 5, 6, 7 the 1/4 ceiling selects >= 4",
+        _protocol(1, 4),
+        _binding(registry),
+        _results(higher, mated=["5", "6", "7"], impostor=["1", "2", "3", "4"]),
+        registry,
+    )
+    interleaved, interleaved_case = _selection_case(
+        "mated_scores_interleaved_with_impostors",
+        "with mated 2.5, 3.5, 100 the same ceiling still selects >= 4",
+        _protocol(1, 4),
+        _binding(registry),
+        _results(higher, mated=["2.5", "3.5", "100"], impostor=["1", "2", "3", "4"]),
+        registry,
+    )
+    for candidate_case, point_under_test in (
+        (above_case, above),
+        (interleaved_case, interleaved),
+    ):
+        expect(
+            point_under_test.threshold == "4",
+            candidate_case.case_id,
+            f"expected a boundary at 4, got {point_under_test.threshold}",
+        )
+        expect(
+            point_under_test.comparator is ThresholdComparator.GREATER_THAN_OR_EQUAL,
+            candidate_case.case_id,
+            "expected an inclusive comparator",
+        )
+    expect(
+        above.threshold == interleaved.threshold
+        and above.comparator is interleaved.comparator
+        and above.observed_impostor_matches == interleaved.observed_impostor_matches
+        and above.observed_impostor_scored == interleaved.observed_impostor_scored,
+        "mated_scores_interleaved_with_impostors",
+        "the genuine population moved the boundary or the impostor counts",
+    )
+    expect(
+        above.observed_mated_matches == 3 and interleaved.observed_mated_matches == 1,
+        "mated_scores_interleaved_with_impostors",
+        "the genuine performance was not measured at the chosen boundary",
+    )
+    cases.append(above_case)
+    cases.append(interleaved_case)
 
     # Four impostor attempts, one of which failed; three mated, one failed. The
     # ceiling applies to what produced a score, and the failures stay visible

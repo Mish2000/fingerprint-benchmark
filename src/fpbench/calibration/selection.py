@@ -12,11 +12,16 @@ development set rather than applying a policy to it (docs/adr/0080).
 
 Three properties make the result citable.
 
-**The candidates come from the data.** For each distinct score ``s``, and for a
-higher-is-better matcher, ``score >= s`` and ``score > s``. That family is closed
-under the two extremes — ``>= min`` accepts everything, ``> max`` accepts nothing
-— so no epsilon is ever invented, and none of the arithmetic depends on the scale
-the matcher happens to use.
+**The candidates come from the impostor data, and only from it.** For each
+distinct score ``s`` that a *scored cross-subject impostor* comparison produced,
+and for a higher-is-better matcher, ``score >= s`` and ``score > s``. That family
+is closed over the quantity being constrained — ``>= min`` admits every impostor,
+``> max`` admits none — so no epsilon is ever invented, and none of the
+arithmetic depends on the scale the matcher happens to use.
+
+Mated scores generate no candidate, contribute nothing to permissiveness, and
+break no tie. They are counted once, at the end, at whichever boundary was
+chosen.
 
 **Ties are atomic.** A boundary is a predicate over a score's *value*, so two
 comparisons that scored the same are always decided the same way. That is why a
@@ -90,14 +95,19 @@ COMPARATORS_FOR_DIRECTION = {
 class BoundaryOutcome:
     """What one candidate boundary would do to one body of labelled results.
 
-    ``accepted_scores`` is the boundary's identity as far as the selection is
-    concerned: two boundaries with the same accepted set produce literally the
-    same decisions, and choosing between them is a naming question rather than a
-    threshold question.
+    ``accepted_impostor_scores`` is the boundary's identity as far as the
+    selection is concerned: two boundaries that admit the same impostor evidence
+    are one threshold with two names, and choosing between them is a naming
+    question rather than a threshold question.
+
+    The mated counts are here too, and they are output. Nothing in the selection
+    reads them — permissiveness, admissibility and the tie-break are all defined
+    over impostor evidence alone, so the genuine population cannot move the
+    boundary even by a tie (docs/adr/0080).
     """
 
     boundary: CandidateBoundary
-    accepted_scores: frozenset[Decimal]
+    accepted_impostor_scores: frozenset[Decimal]
     impostor_matches: int
     impostor_scored: int
     mated_matches: int
@@ -105,27 +115,37 @@ class BoundaryOutcome:
 
     @property
     def permissiveness(self) -> int:
-        """How many distinct scores this boundary calls a match.
+        """How many distinct *impostor* scores this boundary calls a match.
 
         A faithful ordering, not an approximation. For one score direction the
         accepted sets are all upward-closed (or all downward-closed), and those
         form a chain under inclusion — so a larger accepted set is always a
         superset, and two of equal size are always equal.
         """
-        return len(self.accepted_scores)
+        return len(self.accepted_impostor_scores)
 
 
 def candidate_boundaries(results: LabeledResults) -> tuple[CandidateBoundary, ...]:
-    """Every boundary the observed scores can express, in a fixed order.
+    """Every boundary the observed *impostor* scores can express, in a fixed order.
 
-    Ordered by threshold then by inclusiveness so that the tuple itself is
-    deterministic — the selection does not depend on this order, but a published
+    Impostor-only, and that is the whole of it. A candidate drawn from a value
+    only a mated comparison produced is a threshold the genuine population chose,
+    which is the optimisation the selection rule exists to refuse.
+
+    The family is still closed over the quantity being constrained: ``>= min``
+    admits every impostor and ``> max`` admits none, so both extremes of the
+    impostor rate are reachable without inventing a number. A boundary *below*
+    the lowest impostor score is deliberately not representable — the only reason
+    to move there would be to admit more mated comparisons (docs/adr/0080).
+
+    Ordered by threshold then by inclusiveness so the tuple itself is
+    deterministic. The selection does not depend on this order, but a published
     count of candidates should not wobble.
     """
     comparators = COMPARATORS_FOR_DIRECTION[results.score_direction]
     return tuple(
         CandidateBoundary(threshold=score, comparator=comparator)
-        for score in results.distinct_scores
+        for score in results.distinct_scores_of(IMPOSTOR)
         for comparator in comparators
     )
 
@@ -144,8 +164,10 @@ def evaluate_boundary(
     mated_rows = results.scored_of(MATED)
     return BoundaryOutcome(
         boundary=boundary,
-        accepted_scores=frozenset(
-            score for score in results.distinct_scores if boundary.decides(score)
+        accepted_impostor_scores=frozenset(
+            score
+            for score in results.distinct_scores_of(IMPOSTOR)
+            if boundary.decides(score)
         ),
         impostor_matches=sum(1 for row in impostor_rows if boundary.decides(row.score)),
         impostor_scored=len(impostor_rows),
@@ -218,11 +240,16 @@ def select_boundary(
     best = max(outcome.permissiveness for outcome in admissible)
     tied = [outcome for outcome in admissible if outcome.permissiveness == best]
 
-    # Two boundaries can produce the same decisions — ``>= 0.7`` and ``> 0.4``
-    # over scores {0.4, 0.7} both accept exactly {0.7}. The canonical one is
-    # chosen so the identity is stable; no decision moves either way. Inclusive
-    # first, then Decimal ordering of the threshold; the second key is defensive,
-    # because exactly one inclusive boundary represents each accepted set.
+    # Two boundaries can admit the same impostor evidence — ``>= 0.7`` and
+    # ``> 0.4`` over impostor scores {0.4, 0.7} both accept exactly {0.7}. The
+    # canonical one is chosen so the identity is stable; no impostor decision
+    # moves either way. Inclusive first, then Decimal ordering of the threshold;
+    # the second key is defensive, because exactly one inclusive boundary
+    # represents each accepted impostor set.
+    #
+    # The mated population is not consulted, not even here. A tie-break that
+    # preferred whichever spelling happened to admit more genuine comparisons
+    # would be a second objective wearing a naming rule's clothes.
     chosen = sorted(
         tied,
         key=lambda outcome: (

@@ -225,14 +225,40 @@ class LabeledResults:
 
     @property
     def distinct_scores(self) -> tuple[Decimal, ...]:
-        """Every distinct score, ascending.
+        """Every distinct score, ascending, whatever population produced it.
 
         Grouped by *value*, so ``0.40`` and ``0.4`` are one score. That is what
         makes ties atomic: a boundary is a predicate over the value, and two
         comparisons with the same value cannot be separated by one
         (docs/adr/0080).
+
+        Reporting only. A selection must never draw candidate boundaries from
+        this — see :meth:`distinct_scores_of`.
         """
         return tuple(sorted({row.score for row in self.rows if row.is_scored}))
+
+    def distinct_scores_of(
+        self, truth: CalibrationPairTruth
+    ) -> tuple[Decimal, ...]:
+        """Every distinct score one population produced, ascending.
+
+        The selection draws its candidates from the *impostor* population and
+        from nothing else. Drawing them from every score lets a value that only
+        a mated comparison ever produced become a threshold — and then the
+        genuine population has chosen where the boundary sits, which is the one
+        thing the selection rule exists to prevent (docs/adr/0080).
+
+        It is not a hypothetical. Over impostors ``1, 2, 3, 4`` under a ceiling
+        of one in four, mated scores of ``5, 6, 7`` select ``>= 4`` and mated
+        scores of ``2.5, 3.5, 100`` select ``>= 3.5`` — the same impostor
+        evidence, two different thresholds, one of them a number no impostor
+        comparison ever scored.
+        """
+        if not isinstance(truth, CalibrationPairTruth):
+            raise CalibrationInputError("truth must be a CalibrationPairTruth")
+        return tuple(
+            sorted({row.score for row in self.rows if row.is_scored and row.truth is truth})
+        )
 
     def content_hash(self) -> str:
         """A digest of the labelled results, independent of the order given.

@@ -175,28 +175,48 @@ def choose(protocol, results, **overrides):
 # ---------------------------------------------------------------- boundaries
 
 
-def test_boundaries_come_from_the_scores_and_span_both_extremes() -> None:
-    """docs/adr/0080: no epsilon, and the family is closed.
+def test_boundaries_come_from_the_impostor_scores_and_span_both_extremes() -> None:
+    """docs/adr/0080: no epsilon, impostor-only, and the family is closed.
 
-    Over the scores {1, 2, 3} the six candidates are >=1, >1, >=2, >2, >=3, >3.
-    ``>= 1`` accepts everything and ``> 3`` accepts nothing, so both extremes are
-    reachable without inventing a number no comparison produced.
+    Impostors score 1 and 2; a mated comparison scores 3. The four candidates are
+    >=1, >1, >=2, >2 — and *not* >=3 or >3, because 3 is a value no impostor ever
+    produced. ``>= 1`` admits every impostor and ``> 2`` admits none, so both
+    extremes of the constrained quantity are reachable without inventing a number.
     """
     results = results_from(HIGHER, mated=["3"], impostor=["1", "2"])
     boundaries = candidate_boundaries(results)
-    assert len(boundaries) == 6
+    assert len(boundaries) == 4
     assert {(b.canonical_threshold, b.comparator.value) for b in boundaries} == {
         ("1", "greater_than_or_equal"),
         ("1", "greater_than"),
         ("2", "greater_than_or_equal"),
         ("2", "greater_than"),
-        ("3", "greater_than_or_equal"),
-        ("3", "greater_than"),
     }
     accepts_all = evaluate_boundary(boundaries[0], results)
-    assert accepts_all.permissiveness == 3
+    assert accepts_all.permissiveness == 2
     accepts_none = evaluate_boundary(boundaries[-1], results)
     assert accepts_none.permissiveness == 0
+
+
+def test_a_mated_only_score_can_never_become_a_threshold() -> None:
+    """The value 100 belongs to no impostor, so no candidate stands at it."""
+    results = results_from(HIGHER, mated=["2.5", "100"], impostor=["1", "2"])
+    thresholds = {b.canonical_threshold for b in candidate_boundaries(results)}
+    assert thresholds == {"1", "2"}
+    assert "2.5" not in thresholds
+    assert "100" not in thresholds
+
+
+def test_permissiveness_counts_impostor_evidence_and_nothing_else() -> None:
+    """A mated score on the accepting side must not make a boundary look wider."""
+    sparse = results_from(HIGHER, mated=["9"], impostor=["1", "2"])
+    crowded = results_from(HIGHER, mated=["3", "4", "5", "9"], impostor=["1", "2"])
+    boundary = candidate_boundaries(sparse)[0]  # >= 1
+    assert (
+        evaluate_boundary(boundary, sparse).permissiveness
+        == evaluate_boundary(boundary, crowded).permissiveness
+        == 2
+    )
 
 
 def test_a_lower_is_better_matcher_gets_the_other_two_comparators() -> None:
@@ -238,6 +258,10 @@ def test_a_target_undershot_because_ties_cannot_be_split() -> None:
     Accepting one of the two 0.7s is not available, because a boundary decides a
     *value*. So the selection undershoots to zero rather than splitting the tie
     (docs/adr/0080).
+
+    The answer is ``> 0.7``, the strictest boundary the impostor scores can
+    express. It is not ``>= 0.9``: 0.9 is a mated-only value, and a threshold
+    standing there would have been placed by the genuine population.
     """
     protocol = impostor_ceiling_protocol(
         protocol_id="fifth_v1", numerator=1, denominator=5
@@ -246,9 +270,11 @@ def test_a_target_undershot_because_ties_cannot_be_split() -> None:
         HIGHER, mated=["0.9", "0.9"], impostor=["0.4", "0.4", "0.4", "0.7", "0.7"]
     )
     point = choose(protocol, results)
-    assert point.threshold == "0.9"
-    assert point.comparator is GE
+    assert point.threshold == "0.7"
+    assert point.comparator is GT
     assert point.observed_impostor_matches == 0
+    assert point.observed_impostor_scored == 5
+    # Both mated comparisons still clear it, and that is measured afterwards.
     assert point.observed_mated_matches == 2
 
 
@@ -324,19 +350,41 @@ def test_duplicate_scores_are_counted_and_never_separated() -> None:
 
 
 def test_the_inclusive_spelling_wins_when_two_boundaries_decide_identically() -> None:
-    """Over {0.4, 0.7}, ``>= 0.7`` and ``> 0.4`` accept exactly the same score.
+    """Over impostor scores {0.4, 0.7}, ``>= 0.7`` and ``> 0.4`` admit the same one.
 
     They are one threshold with two names. The canonical one is the inclusive
-    spelling, so the operating point has a stable identity and no decision moves
-    either way.
+    spelling, so the operating point has a stable identity and no impostor
+    decision moves either way. ``>= 0.4`` would admit both, which is 2/2 and
+    outside a ceiling of one in two.
     """
     protocol = impostor_ceiling_protocol(
-        protocol_id="tenth_v1", numerator=1, denominator=10
+        protocol_id="half_v1", numerator=1, denominator=2
     )
-    results = results_from(HIGHER, mated=["0.7"], impostor=["0.4", "0.4"])
+    results = results_from(HIGHER, mated=["0.9"], impostor=["0.4", "0.7"])
     outcome = select_boundary(protocol, results)
     assert outcome.boundary.comparator is GE
     assert outcome.boundary.canonical_threshold == "0.7"
+    assert outcome.impostor_matches == 1
+
+
+def test_the_tie_break_ignores_the_mated_population_entirely() -> None:
+    """The same tie, resolved the same way, under two genuine populations.
+
+    A tie-break that preferred whichever spelling admitted more mated
+    comparisons would be a second objective wearing a naming rule's clothes.
+    Here ``>= 0.7`` and ``> 0.4`` admit the same impostor either way, and a mated
+    score sitting at 0.5 — between the two spellings — changes nothing.
+    """
+    protocol = impostor_ceiling_protocol(
+        protocol_id="half_v1", numerator=1, denominator=2
+    )
+    impostor = ["0.4", "0.7"]
+    for mated in (["0.9"], ["0.5", "0.9"], ["0.45", "0.5", "0.9"]):
+        outcome = select_boundary(
+            protocol, results_from(HIGHER, mated=mated, impostor=impostor)
+        )
+        assert outcome.boundary.canonical_threshold == "0.7"
+        assert outcome.boundary.comparator is GE
 
 
 # --------------------------------------------------- one objective, not two
@@ -345,27 +393,53 @@ def test_the_inclusive_spelling_wins_when_two_boundaries_decide_identically() ->
 def test_the_mated_scores_do_not_influence_which_boundary_is_chosen() -> None:
     """Spec section 16: genuine performance is measured, never optimised for.
 
-    Two fixtures with identical impostor scores and wildly different mated ones.
-    If the selector were weighing genuine performance at all — even as a
-    tie-break — these would diverge. They do not: the boundary, the comparator
-    and the impostor counts are identical, and only the mated counts differ.
+    The fixture matters more than the assertion. Both sides share impostors
+    1, 2, 3, 4 under a ceiling of one in four, so ``>= 4`` admits exactly one
+    impostor and ``>= 3`` admits two.
+
+    The second mated population is chosen to sit *between* impostor values —
+    2.5, 3.5, 100 — because that is what exposes the defect this test was
+    written to catch. When candidates were drawn from every observed score,
+    ``>= 3.5`` was a legal boundary: it admitted the same single impostor as
+    ``>= 4`` while accepting one more mated comparison, so it looked more
+    permissive and won. 3.5 is a number no impostor comparison ever produced,
+    and it became the threshold purely because of where the genuine scores fell.
+
+    An earlier version of this test used mated scores above every impostor, and
+    passed against the broken selector.
     """
     protocol = impostor_ceiling_protocol(
         protocol_id="quarter_v1", numerator=1, denominator=4
     )
     impostor = ["1", "2", "3", "4"]
-    generous = results_from(HIGHER, mated=["5", "6", "7", "8"], impostor=impostor)
-    dismal = results_from(HIGHER, mated=["1", "1", "1", "2"], impostor=impostor)
+    above = results_from(HIGHER, mated=["5", "6", "7"], impostor=impostor)
+    interleaved = results_from(HIGHER, mated=["2.5", "3.5", "100"], impostor=impostor)
 
-    first, second = choose(protocol, generous), choose(protocol, dismal)
-    assert first.threshold == second.threshold
-    assert first.comparator is second.comparator
-    assert first.observed_impostor_matches == second.observed_impostor_matches
-    # The consequence is recorded, and it is a consequence: four mated matches
-    # under one fixture, none under the other, at the very same boundary.
-    assert first.observed_mated_matches == 4
-    assert second.observed_mated_matches == 0
-    assert second.observed_mated_non_matches == 4
+    first, second = choose(protocol, above), choose(protocol, interleaved)
+    assert first.threshold == second.threshold == "4"
+    assert first.comparator is second.comparator is GE
+    assert first.observed_impostor_matches == second.observed_impostor_matches == 1
+    assert first.observed_impostor_scored == second.observed_impostor_scored == 4
+
+    # The consequence is recorded, and it is a consequence: three mated matches
+    # under one fixture, one under the other, at the very same boundary.
+    assert first.observed_mated_matches == 3
+    assert first.observed_mated_non_matches == 0
+    assert second.observed_mated_matches == 1
+    assert second.observed_mated_non_matches == 2
+
+
+def test_a_dismal_genuine_population_does_not_move_the_boundary_either() -> None:
+    """The other direction: mated scores below every impostor change nothing."""
+    protocol = impostor_ceiling_protocol(
+        protocol_id="quarter_v1", numerator=1, denominator=4
+    )
+    impostor = ["1", "2", "3", "4"]
+    point = choose(protocol, results_from(HIGHER, mated=["1", "1", "1", "2"], impostor=impostor))
+    assert point.threshold == "4"
+    assert point.comparator is GE
+    assert point.observed_mated_matches == 0
+    assert point.observed_mated_non_matches == 4
 
 
 def test_there_is_exactly_one_selection_rule_to_apply() -> None:

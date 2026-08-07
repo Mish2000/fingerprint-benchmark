@@ -4,12 +4,12 @@
   "outcome": "CALIBRATION_INFRASTRUCTURE_READY",
   "stage8c_finalization_fingerprint": "0c09483efb92b3e6689cb202f2ce0af193e237791c40ed95ff3a698f179abec2",
   "stage8c_outcome": "FLX_CANONICAL500_RAW_READY",
-  "calibration_model_fingerprint": "229572b482f9f93b52327200b7618091fc3cfec84d94fcc641d1469dc1bf3bdd",
-  "selection_engine_fingerprint": "127bed37e9cc6b3e6821da4563e8e389cbd3249ec76f02ce71299906c5c9107f",
+  "calibration_model_fingerprint": "64beaea8f2af3dbc2e26217225f3afa7cb86dde4d1e7da153f619e9ba268e57c",
+  "selection_engine_fingerprint": "56f52f28e1cb3dc19f2aa82d142a8733546c8bcc04e3d217e59fe648c3ea4f8a",
   "protected_evaluation_registry_fingerprint": "626f6b833d3563911b2f3101426a4be83556034a3eb788450941062d490feb0d",
-  "synthetic_qualification_fingerprint": "36d033a1a667faa84066a065b1b4c83d1c1cea824ea180ce4134ef7ba3126969",
-  "synthetic_case_count": 26,
-  "synthetic_selection_cases": 7,
+  "synthetic_qualification_fingerprint": "1fe81924a04f4b7df932d1dfc84aa8a60a757a5044bf673fb5eabed759c6762d",
+  "synthetic_case_count": 28,
+  "synthetic_selection_cases": 9,
   "synthetic_refusal_cases": 15,
   "synthetic_identity_cases": 4,
   "protected_identity_count": 10,
@@ -23,15 +23,15 @@
   "stage8c_evidence_changed": false,
   "opens_algorithm_expansion": true,
   "evidence_content_hashes": {
-    "README.md": "c197dbd3f57dd19368ecc0ee24b4aaf8c07399a978970bc3239120a36d4d9634",
-    "calibration-contract-report.json": "fd62a3d554fe8ad5c10c340d8d9cae02439892393094093274c49519878c8595",
+    "README.md": "83f76be576bebebd868e5b91af7245407c567079053d3384b76a2258328c361b",
+    "calibration-contract-report.json": "55c5245a794121615111dbb2ead20c3de9bb1ca6720ab2fe0ef6ec12fdd2a975",
     "protected-evaluation-registry.json": "316970577a6b6765dcd6307db8aa27e1ca8cb26e7e7c3278d5de17ba982cb942",
-    "synthetic-qualification.json": "0135dd3c6f89d7afb59d52ac43b6012441f7fe93222673a3dd619fe73c9ed28f"
+    "synthetic-qualification.json": "ffc9cbbfb7c1600e6bb141f02e7f64eb0039c490f86862a24323460fe0a65d83"
   },
-  "source_commit": "8e14e0e3b2ad797294835c5ada29185da94ff033",
+  "source_commit": "e4b845401175a1918e535a48424157bdad24b626",
   "source_tree_clean": true,
-  "verifier_source_commit": "8e14e0e3b2ad797294835c5ada29185da94ff033",
+  "verifier_source_commit": "e4b845401175a1918e535a48424157bdad24b626",
   "verifier_source_tree_clean": true,
-  "stage_8d_finalization_fingerprint": "a9cb4933b1ecaa8d9f6be1fa1cc6512f0b7b1260d5c93f9e369b5d6eed50f561",
-  "created_utc": "2026-08-07T10:47:46Z"
+  "stage_8d_finalization_fingerprint": "06265f90893fa8ba182935cfa67ac2bb159f3d92e58122fa3e7a86e109d23106",
+  "created_utc": "2026-08-07T16:47:46Z"
 }

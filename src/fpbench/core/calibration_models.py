@@ -187,6 +187,12 @@ class ExactRate:
     and ``2/2000`` are different observations — one impostor match in a thousand
     comparisons is not two in two thousand — so counts are carried as counts and
     reduced nowhere (spec section 9).
+
+    This is a *rate*, not a general ratio, so it is bounded by ``[0, 1]``.
+    ``0/1`` and ``1/1`` are both meaningful — admit no impostor, admit every
+    impostor — and ``5/4`` is not a lax target, it is a target that says nothing:
+    every boundary satisfies it, including the one that admits everything, so a
+    protocol carrying it would report a selection nobody constrained.
     """
 
     numerator: int
@@ -199,6 +205,12 @@ class ExactRate:
             raise ValueError("a rate needs a positive denominator")
         if numerator < 0:
             raise ValueError("a rate must not be negative")
+        if numerator > denominator:
+            raise ValueError(
+                f"a rate must not exceed 1, and {numerator}/{denominator} does. "
+                "A target above 1 constrains nothing: every boundary satisfies "
+                "it, including the one that admits every impostor"
+            )
         divisor = gcd(numerator, denominator) or 1
         object.__setattr__(self, "numerator", numerator // divisor)
         object.__setattr__(self, "denominator", denominator // divisor)

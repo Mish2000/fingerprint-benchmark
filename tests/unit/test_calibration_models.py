@@ -167,6 +167,57 @@ def test_a_rate_needs_a_positive_denominator() -> None:
         ExactRate(numerator=-1, denominator=1000)
 
 
+@pytest.mark.parametrize(
+    "numerator, denominator", [(0, 1), (0, 1000), (1, 1000), (1, 4), (1, 1)]
+)
+def test_a_rate_inside_zero_and_one_is_accepted(numerator, denominator) -> None:
+    """Both ends are meaningful: admit no impostor, admit every impostor."""
+    rate = ExactRate(numerator=numerator, denominator=denominator)
+    assert rate.numerator <= rate.denominator
+
+
+@pytest.mark.parametrize(
+    "numerator, denominator", [(2, 1), (1001, 1000), (5, 4), (3, 2)]
+)
+def test_a_rate_above_one_is_refused(numerator, denominator) -> None:
+    """It is not a lax target; it is a target that constrains nothing."""
+    with pytest.raises(ValueError, match="must not exceed 1"):
+        ExactRate(numerator=numerator, denominator=denominator)
+
+
+def test_a_protocol_cannot_be_built_with_a_target_above_one() -> None:
+    """Refused through the public builder, not only by direct construction."""
+    from fpbench.calibration.protocol import impostor_ceiling_protocol
+
+    with pytest.raises(ValueError, match="must not exceed 1"):
+        impostor_ceiling_protocol(
+            protocol_id="impossible_v1", numerator=2, denominator=1
+        )
+    with pytest.raises(ValueError, match="must not exceed 1"):
+        impostor_ceiling_protocol(
+            protocol_id="impossible_v1", numerator=1001, denominator=1000
+        )
+
+
+def test_a_protocol_may_target_zero_or_one() -> None:
+    from fpbench.calibration.protocol import impostor_ceiling_protocol
+
+    strictest = impostor_ceiling_protocol(
+        protocol_id="admit_nothing_v1", numerator=0, denominator=1
+    )
+    laxest = impostor_ceiling_protocol(
+        protocol_id="admit_everything_v1", numerator=1, denominator=1
+    )
+    assert strictest.permits(0, 100) is True
+    assert strictest.permits(1, 100) is False
+    assert laxest.permits(100, 100) is True
+
+
+def test_an_operating_point_cannot_carry_a_target_above_one() -> None:
+    with pytest.raises(ValueError, match="must not exceed 1"):
+        an_operating_point(target_rate_numerator=2, target_rate_denominator=1)
+
+
 def test_rate_comparison_is_exact_where_a_float_would_not_be() -> None:
     """The case the whole rational representation exists for.
 

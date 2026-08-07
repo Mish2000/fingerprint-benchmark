@@ -108,13 +108,17 @@ jobs:
           pytest tests/regression/test_legacy_decision_profile_identities.py -q
 
       - name: Regression suites for the prior stages
+        # `and not dataset` on the last line, matching adapter-contract.yml.
+        # Some `adapter_contract` tests are also marked `dataset` and read
+        # `workspace/results/` directly rather than through the `sd300_root`
+        # fixture, so they neither skip nor pass on a runner that has neither.
         run: |
           pytest -m "stage7d_contract" -q
           pytest -m "stage8a_contract or stage8a" -q
           pytest -m "stage8b_contract or stage8b" -q
           pytest -m "stage8c_contract or stage8c" -q
           pytest -m "metrics or imaging or paired_evaluation" -q
-          pytest -m "adapter_contract or nbis_contract" -q
+          pytest -m "(adapter_contract or nbis_contract) and not dataset" -q
 
       - name: Nothing was calibrated here, and this job makes no claim that it was
         run: |

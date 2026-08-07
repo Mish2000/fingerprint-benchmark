@@ -134,6 +134,14 @@ _ALLOWED_EXACT_CHANGES = frozenset(
         # It holds three now, and the test still pins that the first two are the
         # ones stage 7D published (spec section 22).
         "tests/unit/test_strict_threshold_comparators.py",
+        # The "no earlier receipt moved" guard was phrased as "every directory
+        # except these exemptions", so Stage 8A, 8B and 8C had each come back to
+        # add themselves. Stage 8D would have been the fourth — its protected
+        # registry names all three executed algorithms because that is what the
+        # artifact is for. It is now stated positively over the eight directories
+        # that predate NBIS, which is a closed list nothing can join
+        # (docs/adr/0067).
+        "tests/regression/test_sourceafis_unmoved_after_nbis.py",
     }
 )
 _ALLOWED_CHANGE_PREFIXES = ("evidence/stage8d-calibration-infrastructure/",)

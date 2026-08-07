@@ -1600,27 +1600,98 @@ and what an algorithm is. That is what makes it possible for
 everywhere else: "run SourceAFIS over SD300 at native resolution" is a sentence about
 one experiment, and it needs somewhere to live that is not the planner.
 
+## Stage 8D: build the calibration machinery, and calibrate nothing
+
+`CALIBRATION_INFRASTRUCTURE_READY`.
+
+Stage 8C opened Stage 8D expecting flx decisions, and closed with the sentence
+that made them impossible: SourceAFIS and NBIS each had an operating point
+published by someone else, flx has none, and so Stage 8D would have to *choose*
+one — from the same 6,000 evaluation scores the resulting rate would be reported
+on. A threshold fitted to the evaluation set makes that rate an upper bound on
+nothing.
+
+Two further facts settled it. The algorithm list is not final — five are intended
+and two are not yet identified, so their score directions and scales are unknown.
+And no development cohort has ever been drawn; this project has one cohort and
+its role is `TEST`.
+
+So Stage 8D kept its name and changed its scope
+([ADR 0078](docs/adr/0078-stage-8d-builds-calibration-infrastructure-without-calibrating.md)).
+It built the machinery a real calibration will run on, qualified it on synthetic
+fixtures, and performed no calibration. Its marker denies, in fields rather than
+in prose, everything it did not do:
+
+```
+real_calibration_performed           false
+real_development_dataset_selected    false
+production_threshold_count           0
+production_decision_profile_count    0
+evaluation_score_rows_read           false
+historical_decision_profiles_changed false
+stage8c_evidence_changed             false
+opens_algorithm_expansion            true
+```
+
+`fpbench.calibration` imports `core` and nothing else, names no algorithm,
+contains no floating-point value and defines no score normalizer — all four
+enforced structurally rather than by review. Each algorithm gets a threshold on
+its own scale; what is shared is the *policy*, never the number
+([ADR 0080](docs/adr/0080-calibration-selects-native-score-boundaries-without-score-normalization.md)).
+
+Boundaries come from the observed scores — `>= s` and `> s`, or `<= s` and `< s`
+— so "accept everything" and "accept nothing" are both expressible without
+inventing a number no comparison produced. Rates are pairs of integers compared
+by cross-multiplication, because `0.001` is not one thousandth. Ties are atomic:
+five impostors scoring `0.4, 0.4, 0.4, 0.7, 0.7` under a ceiling of one in five
+produce a boundary that admits *none* of them, because admitting one of the two
+`0.7`s is not something a threshold can express.
+
+Development data is enforced twice, not declared once
+([ADR 0079](docs/adr/0079-calibration-data-must-be-development-not-evaluation.md)).
+The cohort role is checked before a single row is read, and a
+`ProtectedEvaluationRegistry` binds the identities of the evaluation material —
+the dataset, the cohort, the pair manifest, the shared prepared-image set, and
+the canonical run and `ResultSet` of all three executed algorithms. A binding
+that resolves to any of them is refused *whatever role it claims*, and running
+with no registry loaded is refused too.
+
+`DecisionProfile` gained schema 3, which carries the three links a calibrated
+threshold has to name, under a fingerprint mapping of its own. Schemas 1 and 2
+are untouched: the two documented "at least 40" profiles and the documented
+"greater than 40" one are pinned by literal digest and verified against the
+pre-Stage-8D code.
+
+Details: [the Stage 8D evidence report](evidence/stage8d-calibration-infrastructure/README.md),
+[the calibration architecture](docs/calibration/architecture.md),
+[how a boundary is selected](docs/calibration/operating-point-selection.md) and
+[ADRs 0078–0080](docs/adr/README.md). Verify it — no dataset, no runtime, no
+weights, no workspace — with:
+
+```bash
+make stage8d-evidence
+```
+
 ## Next stage
 
-**Stage 8D — flx decisions, eligibility and metrics.** Opened by Stage 8C's
-`FLX_CANONICAL500_RAW_READY`, which records `permits_decisions: false` and
-`opens_stage_8d: true`.
+**Stage 9A — algorithm 4, artifact qualification.** Stage 8D records
+`opens_algorithm_expansion: true` rather than opening a calibration stage,
+because opening one would be the decision it deliberately defers.
 
-Before a single decision is derived, Stage 8D has to freeze — in a separate,
-prior act — where its threshold comes from, which comparator applies, what the
-boundary semantics are, whether the score is calibrated, how a failure maps to
-UNDECIDABLE, what the SELF eligibility rule is, and what the resulting numbers
-may not be used to claim.
+```
+Stage 9A   algorithm 4 — artifact qualification
+Stage 9B   algorithm 4 — runtime and adapter qualification
+Stage 9C   algorithm 4 — canonical_500 raw run
+```
 
-**The one thing it may not do is choose that threshold from the 6,000 scores
-Stage 8C produced.** SD300 is the evaluation set; a threshold fitted to it makes
-the resulting rate an upper bound on nothing. That is why Stage 8C publishes no
-distribution and no summary statistic — not to be coy, but because a histogram
-is a threshold in disguise
-([ADR 0076](docs/adr/0076-stage-8c-publishes-no-score-distribution-or-decision.md)).
-SourceAFIS and NBIS each had a documented operating point published by someone
-else; flx has none, so Stage 8D will have to say plainly where its number comes
-from or admit it does not have one.
+and the same three for algorithm 5. No calibration and no new decisions along the
+way.
+
+**A real calibration stage opens only when the algorithm list is declared
+final.** It will choose a development cohort, a pair-generation protocol and a
+target operating point *once*, and then run exactly the Stage 8D methodology over
+every algorithm — which is the whole reason that methodology was built before any
+of it was needed.
 
 **Stage 8C is closed.** The checkpoint's licence remains unresolved; that does
 not block the instructed local experiment but does block publishing anything
@@ -1628,9 +1699,9 @@ derived from the weights themselves — no embedding, no representation hash and
 no score row appears under `evidence/`.
 
 Reconsidering id3 Finger SDK or VeriFinger remains a separate stage with its own
-registry version and its own legal and runtime qualification. Neither it nor
-Stage 8D may weaken Stage 8A retroactively or use SD300 to repair a missing
-preprocessing, threshold or runtime claim.
+registry version and its own legal and runtime qualification. No later stage may
+weaken Stage 8A retroactively or use SD300 to repair a missing preprocessing,
+threshold or runtime claim.
 
 Also outstanding from earlier stages: a real FMR needs a cross-subject
 negative-pair design chosen for estimation — a new pair manifest and a new run,

@@ -151,45 +151,57 @@ def test_the_committed_evidence_still_names_the_same_artefacts():
         assert payload[key] == path.stem, path
 
 
-#: The evidence directories that are *about* NBIS and say so: stage 7C's raw
-#: scores, stage 7D's decisions and counts over them, and the comparison that
-#: names both algorithms in its own title. Every other directory under evidence/
-#: predates the second algorithm and must not have acquired a word of its
-#: vocabulary.
+#: The eight evidence directories that existed *before* NBIS — the ones these two
+#: tests are about. Every one of them was published by SourceAFIS-era work or by
+#: the shared image pipeline, and none may have acquired a word of the second
+#: algorithm's vocabulary or a later stage's schema number.
 #:
-#: An allowlist rather than a prefix rule, because the comparison directory
-#: begins with ``sourceafis-`` and would otherwise be checked for the word it
-#: exists to use.
-NBIS_EVIDENCE_DIRECTORIES = frozenset(
+#: Stated positively, and this is the point. It used to be stated as "every
+#: directory except these exemptions", which meant every stage after NBIS had to
+#: come back and add itself: Stage 8A, then 8B, then 8C, and Stage 8D would have
+#: been the fourth — its protected-evaluation registry names all three executed
+#: algorithms *because that is what the artifact is for*. A guard phrased as
+#: "everything else" is a guard that grows without bound and eventually gets
+#: widened by someone who only wants their own stage to pass. This list is closed:
+#: no directory can join it, because nothing new can predate NBIS.
+#:
+#: The same widening mistake docs/adr/0067 corrected in Stage 8A's boundary audit,
+#: in the one place it survived.
+PRE_NBIS_EVIDENCE_DIRECTORIES = frozenset(
     {
-        "nbis-canonical500-raw",
-        "nbis-canonical500-decisions",
-        "nbis-canonical500-evaluation",
-        "sourceafis-vs-nbis-canonical500",
+        "sd300-canonical500-images",
+        "sourceafis-canonical500-decisions",
+        "sourceafis-canonical500-evaluation",
+        "sourceafis-canonical500-full",
+        "sourceafis-native-decisions",
+        "sourceafis-native-evaluation",
+        "sourceafis-native-full",
+        "sourceafis-native-vs-canonical500",
     }
 )
 
-#: Directories published *after* NBIS, which are therefore not "earlier
-#: receipts" and are not what this module is about. Stage 8B's adapter profile
-#: names `nbis_result` on purpose: it is one of the inputs the learned matcher
-#: must never receive, and listing it is the point.
-#:
-#: Without this the checks below read as "no evidence directory anywhere may
-#: contain the word", which no later stage can satisfy — the same widening
-#: mistake docs/adr/0067 corrected in Stage 8A's boundary audit.
-LATER_STAGE_EVIDENCE_DIRECTORIES = frozenset(
-    {
-        "stage8a-modern-matcher-selection",
-        "stage8b-flx-runtime-qualification",
-        # Stage 8C's raw run. Its research finalization is schema 4, and its
-        # documents name NBIS because the run is aligned against the same
-        # canonical experiment NBIS used — neither of which says anything about
-        # whether an *earlier* receipt moved, which is the only question these
-        # two tests ask.
-        "flx-canonical500-raw",
+
+def earlier_evidence_documents():
+    """Every JSON document published before NBIS, with its directory present.
+
+    A missing directory fails rather than silently narrowing the check. A guard
+    that quietly stopped covering something would be worse than one that never
+    covered it.
+    """
+    for name in sorted(PRE_NBIS_EVIDENCE_DIRECTORIES):
+        directory = EVIDENCE / name
+        assert directory.is_dir(), f"pre-NBIS evidence directory {name} is missing"
+        for path in sorted(directory.glob("*.json")):
+            yield path
+
+
+def test_the_pre_nbis_evidence_is_all_still_present():
+    """The positive list is only a guard if what it names still exists."""
+    published = {
+        path.name for path in EVIDENCE.iterdir() if path.is_dir()
     }
-)
-EXEMPT_EVIDENCE_DIRECTORIES = NBIS_EVIDENCE_DIRECTORIES | LATER_STAGE_EVIDENCE_DIRECTORIES
+    assert PRE_NBIS_EVIDENCE_DIRECTORIES <= published
+    assert len(list(earlier_evidence_documents())) > 0
 
 
 def test_no_earlier_receipt_was_upgraded_to_a_newer_schema():
@@ -199,12 +211,9 @@ def test_no_earlier_receipt_was_upgraded_to_a_newer_schema():
     vocabulary, so the check is for the word rather than for a schema number:
     it catches a re-issue, a re-render and a silent upgrade alike.
     """
-    for directory in sorted(EVIDENCE.iterdir()):
-        if not directory.is_dir() or directory.name in EXEMPT_EVIDENCE_DIRECTORIES:
-            continue
-        for path in sorted(directory.glob("*.json")):
-            payload = json.loads(path.read_text(encoding="utf-8"))
-            assert "nbis" not in json.dumps(payload, sort_keys=True).lower(), path
+    for path in earlier_evidence_documents():
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        assert "nbis" not in json.dumps(payload, sort_keys=True).lower(), path
 
 
 def test_no_earlier_receipt_acquired_the_second_schema_version():
@@ -215,20 +224,17 @@ def test_no_earlier_receipt_acquired_the_second_schema_version():
     schema 1 — an upgrade would change the digest its finalization marker cites
     (docs/adr/0055).
     """
-    for directory in sorted(EVIDENCE.iterdir()):
-        if not directory.is_dir() or directory.name in EXEMPT_EVIDENCE_DIRECTORIES:
-            continue
-        for path in sorted(directory.glob("*.json")):
-            payload = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(payload, dict) and "schema_version" in payload:
-                assert str(payload["schema_version"]) in {"1", "2", "3"}, path
-            for name in (
-                "source_stage_finalization_kind",
-                "derivation_definition_fingerprint",
-            ):
-                assert name not in json.dumps(payload), (
-                    f"{path} acquired the stage 7D receipt field {name!r}"
-                )
+    for path in earlier_evidence_documents():
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(payload, dict) and "schema_version" in payload:
+            assert str(payload["schema_version"]) in {"1", "2", "3"}, path
+        for name in (
+            "source_stage_finalization_kind",
+            "derivation_definition_fingerprint",
+        ):
+            assert name not in json.dumps(payload), (
+                f"{path} acquired the stage 7D receipt field {name!r}"
+            )
 
 
 # ------------------------------------------------------------- the chains

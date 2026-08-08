@@ -91,6 +91,10 @@ can be held to.
 | [0082](0082-third-party-license-observation-is-separate-from-local-research-use.md) | A licence observation is separate from a local research-use decision | Accepted, implemented |
 | [0083](0083-third-party-bytes-are-never-redistributed-by-fpbench.md) | Third-party bytes are never redistributed by fpbench | Accepted, implemented |
 | [0084](0084-ambiguous-upstream-rights-may-be-risk-accepted-without-becoming-a-license-finding.md) | Ambiguous upstream rights may be risk-accepted without becoming a licence finding | Accepted, implemented |
+| [0085](0085-stage-9-selects-the-full-flare-route.md) | Stage 9 selects the full FLARE route, not a runnable subset of it | Accepted, implemented |
+| [0086](0086-flare-identity-is-fdd-d6-dualpose-dualenh-maxcosine.md) | The FLARE candidate identity is FDD D=6, dual-pose × dual-enhancement, max overlap-masked cosine | Accepted, implemented |
+| [0087](0087-flare-score-affecting-upstream-gaps-must-not-be-guessed.md) | A score-affecting gap in the upstream sources is a blocker, not a decision for fpbench to take | Accepted, implemented |
+| [0088](0088-flare-paper-route-and-public-code-must-resolve-to-one-transform-graph.md) | The paper route and the public code must resolve to one transform graph | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

@@ -876,6 +876,60 @@ def test_a_blocked_marker_is_a_complete_and_legal_outcome() -> None:
 # ------------------------------------------------------- the qualification
 
 
+def test_qualification_identity_ignores_partial_local_cache_population() -> None:
+    def blocker(affected_component: str) -> qualification.BlockerDetail:
+        return qualification.BlockerDetail(
+            blocker_code=frozen.BlockerCode.REQUIRED_ARTIFACT_MISSING.value,
+            affected_component=affected_component,
+            evidence="artifact-manifest.json local_status",
+            why_score_fidelity_cannot_be_established="required bytes are absent",
+        )
+
+    gates: dict[str, bool | int] = {
+        "all_identities_established": False,
+        "all_locally_verified": False,
+        "research_use_opens_execution": False,
+        "checkpoint_compatibility_established": False,
+        "paper_route_resolved": True,
+        "public_code_route_resolved": False,
+        "transform_graph_resolved": False,
+        "parameter_provenance_complete": False,
+        "route_model_holds": True,
+        "training_overlap_found": False,
+        "flare_bytes_in_git": 0,
+    }
+    fixed = {
+        "outcome": frozen.STAGE_9A_BLOCKED_OUTCOME,
+        "gate_conclusions": gates,
+        "graph_fingerprint": "a" * 64,
+        "audit_fingerprint": "b" * 64,
+        "usage_audit_fingerprint": "c" * 64,
+        "route_model_fingerprint": "d" * 64,
+    }
+
+    empty_store = qualification._qualification_fingerprint(
+        blockers=(blocker("all ten required artifacts"),), **fixed
+    )
+    partial_store = qualification._qualification_fingerprint(
+        blockers=(blocker("the six artifacts not present on this machine"),),
+        **fixed,
+    )
+    assert empty_store == partial_store
+
+    closed_gates = dict(gates)
+    closed_gates["all_locally_verified"] = True
+    fully_verified = qualification._qualification_fingerprint(
+        outcome=frozen.STAGE_9A_BLOCKED_OUTCOME,
+        blockers=(),
+        gate_conclusions=closed_gates,
+        graph_fingerprint="a" * 64,
+        audit_fingerprint="b" * 64,
+        usage_audit_fingerprint="c" * 64,
+        route_model_fingerprint="d" * 64,
+    )
+    assert fully_verified != partial_store
+
+
 def test_the_outcome_is_derived_from_the_gates_rather_than_supplied() -> None:
     outcome = qualification.build_qualification_report(
         repository_root=REPOSITORY_ROOT

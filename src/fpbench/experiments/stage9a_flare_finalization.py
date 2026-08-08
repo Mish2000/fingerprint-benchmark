@@ -68,10 +68,15 @@ __all__ = [
 #: Stage 9A began here: the approved HEAD that closed Stage 8E.
 STAGE_9A_BASELINE_COMMIT = "c74b219f5125a4fd91fafcdec0d9ad6c660611cd"
 
-#: Commits inside Stage 9A's span that are **not** Stage 9A's work. Empty, and a
-#: set rather than nothing so that a repair to an earlier stage landing mid-span
-#: has somewhere to go (docs/adr/0067).
-_NON_STAGE_9A_COMMITS_IN_SPAN: frozenset[str] = frozenset()
+#: Commits inside Stage 9A's span that are **not** Stage 9A's work. These two
+#: repair earlier-stage regression guards and therefore are excluded explicitly
+#: rather than widening Stage 9A's allowed path set (docs/adr/0067).
+_NON_STAGE_9A_COMMITS_IN_SPAN: frozenset[str] = frozenset(
+    {
+        "fe9666c54f282791a10a5f610050182a74fd294c",
+        "881978655013b2337479f0626552721e543beb59",
+    }
+)
 
 _HEX = frozenset("0123456789abcdef")
 

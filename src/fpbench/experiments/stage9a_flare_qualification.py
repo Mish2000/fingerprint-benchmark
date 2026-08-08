@@ -1432,6 +1432,40 @@ class BlockerDetail:
     why_score_fidelity_cannot_be_established: str
 
 
+def _qualification_fingerprint(
+    *,
+    outcome: str,
+    blockers: Sequence[BlockerDetail],
+    gate_conclusions: Mapping[str, bool | int],
+    graph_fingerprint: str,
+    audit_fingerprint: str,
+    usage_audit_fingerprint: str,
+    route_model_fingerprint: str,
+) -> str:
+    """Identify the qualification's conclusions, not one machine's cache.
+
+    The evidence documents retain the exact missing-artifact population and
+    checkpoint-inspection details observed by their producer.  Those local
+    details must not make the qualification itself differ between an empty CI
+    store and a partially populated workstation while both reach the same gate
+    conclusions.  Closing a gate, removing a blocker, or changing any
+    source-derived route conclusion still changes this fingerprint.
+    """
+    return stable_hash(
+        {
+            "schema": "stage_9a_qualification_v2",
+            "outcome": outcome,
+            "blocker_codes": sorted(item.blocker_code for item in blockers),
+            "gate_conclusions": dict(gate_conclusions),
+            "graph_fingerprint": graph_fingerprint,
+            "audit_fingerprint": audit_fingerprint,
+            "usage_audit_fingerprint": usage_audit_fingerprint,
+            "route_model_fingerprint": route_model_fingerprint,
+        },
+        length=64,
+    )
+
+
 def build_qualification_report(
     *, repository_root: Path, root: Path | None = None
 ) -> QualificationOutcome:
@@ -1624,6 +1658,19 @@ def build_qualification_report(
         if ordered or not model.all_hold or byte_audit.findings
         else frozen.STAGE_9A_READY_OUTCOME
     )
+    gate_conclusions = {
+        "all_identities_established": inventory.all_identities_established,
+        "all_locally_verified": inventory.all_locally_verified,
+        "research_use_opens_execution": usage.opens_execution,
+        "checkpoint_compatibility_established": compatibility.all_established,
+        "paper_route_resolved": True,
+        "public_code_route_resolved": audit.resolved,
+        "transform_graph_resolved": graph.resolved,
+        "parameter_provenance_complete": not graph.unresolved_parameters,
+        "route_model_holds": model.all_hold,
+        "training_overlap_found": bool(provenance["sd300_training_overlap_found"]),
+        "flare_bytes_in_git": len(byte_audit.findings),
+    }
     return QualificationOutcome(
         outcome=outcome,
         blockers=ordered,
@@ -1638,24 +1685,14 @@ def build_qualification_report(
         route_model_holds=model.all_hold,
         training_overlap_found=bool(provenance["sd300_training_overlap_found"]),
         flare_bytes_in_git=len(byte_audit.findings),
-        qualification_fingerprint=stable_hash(
-            {
-                "schema": "stage_9a_qualification_v1",
-                "outcome": outcome,
-                "blockers": [
-                    {
-                        "blocker_code": item.blocker_code,
-                        "affected_component": item.affected_component,
-                    }
-                    for item in ordered
-                ],
-                "graph_fingerprint": graph.graph_fingerprint,
-                "audit_fingerprint": audit.audit_fingerprint,
-                "usage_audit_fingerprint": usage.audit_fingerprint,
-                "compatibility_fingerprint": compatibility.report_fingerprint,
-                "route_model_fingerprint": model.qualification_fingerprint,
-            },
-            length=64,
+        qualification_fingerprint=_qualification_fingerprint(
+            outcome=outcome,
+            blockers=ordered,
+            gate_conclusions=gate_conclusions,
+            graph_fingerprint=graph.graph_fingerprint,
+            audit_fingerprint=audit.audit_fingerprint,
+            usage_audit_fingerprint=usage.audit_fingerprint,
+            route_model_fingerprint=model.qualification_fingerprint,
         ),
     )
 

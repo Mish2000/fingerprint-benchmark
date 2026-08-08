@@ -138,7 +138,26 @@ def test_a_workspace_with_no_pair_manifest_is_an_error_not_an_invitation(
 
 @pytest.mark.flx_runtime
 def test_the_pinned_runtime_bundle_verifies_in_full(workspace: Path, config) -> None:
-    """The archive, the six source files and all 875,770,140 checkpoint bytes."""
+    """The archive, the six source files and all 875,770,140 checkpoint bytes.
+
+    Skipped where the bundle is *absent*, and only there. The module guards on
+    the reference run, but ``stage8c_full_run`` promises three things — the
+    dataset, the pinned flx bundle and the finished SourceAFIS chain — and a
+    machine can easily have the run without the 2.06 GB bundle, which is the
+    case on the Windows side of this project where the bundle lives in WSL.
+
+    A bundle that is present and *wrong* still fails, which is the whole point
+    of the test: absence is not applicability, a mismatch is a finding.
+    """
+    from fpbench.flx.artifacts import FlxRuntimeBundle
+
+    bundle = FlxRuntimeBundle.from_environment()
+    if not bundle.root.is_dir():
+        pytest.skip(
+            "the pinned flx runtime bundle is not on this machine; set "
+            "FPBENCH_FLX_BUNDLE"
+        )
+
     from fpbench.experiments.flx_canonical500_full import preflight_flx_canonical500_run
 
     findings = preflight_flx_canonical500_run(

@@ -1,0 +1,413 @@
+{
+  "schema": "stage_9a_checkpoint_compatibility_v1",
+  "upstream_strictness": "load_state_dict(strict=True), the PyTorch default",
+  "fpbench_relaxes_strictness": false,
+  "fpbench_filters_keys": false,
+  "fpbench_substitutes_its_own_loader": false,
+  "torch_available_on_this_machine": false,
+  "all_bindings_established": false,
+  "unestablished": [
+    "flare_fdd_checkpoint",
+    "flare_prior_codebook_checkpoint",
+    "flare_priorenh_checkpoint",
+    "flare_regression_pose_checkpoint",
+    "flare_unetenh_checkpoint",
+    "flare_voting_pose_checkpoint"
+  ],
+  "report_fingerprint": "1384aa15619cb2a11884b4dbbb84a21d37e70796df3b9ce96b9f7929aba041f9",
+  "bindings": [
+    {
+      "artifact_id": "flare_fdd_checkpoint",
+      "intended_model_class": "FDD",
+      "model_module": "models.model_zoo",
+      "construction_locator": "Yu-Yy/FLARE@7d13ca72:extract_FDD.py::extracting",
+      "constructor_arguments": [
+        {
+          "name": "ndim_feat",
+          "value": "6",
+          "source": "model_weights/desc_configs.yaml MODEL.ndim_feat"
+        },
+        {
+          "name": "input_norm",
+          "value": "False",
+          "source": "model_weights/desc_configs.yaml MODEL.input_norm"
+        },
+        {
+          "name": "tar_shape",
+          "value": "(256, 256)",
+          "source": "model_weights/desc_configs.yaml MODEL.tar_shape"
+        }
+      ],
+      "wrapped_in_data_parallel": true,
+      "loader_function": "load_model",
+      "loader_locator": "Yu-Yy/FLARE@7d13ca72:utils/misc.py::load_model",
+      "top_level_structure": "a mapping, either a state dict or a training checkpoint",
+      "state_dict_path": "checkpoint[\"model\"] if present, else the checkpoint itself",
+      "key_transformation_behaviour": [
+        {
+          "transformation": "the state dict is taken from checkpoint['model']",
+          "condition": "'model' is a top-level key; otherwise the checkpoint itself is used",
+          "upstream_location": "Yu-Yy/FLARE@7d13ca72:utils/misc.py::load_model"
+        },
+        {
+          "transformation": "every key's second dotted component is removed, so 'module.layer0.0.weight' becomes 'layer0.0.weight'",
+          "condition": "the substring 'module' appears anywhere in the first key of the state dict; the test is on one key and the transformation is then applied to all of them",
+          "upstream_location": "load_model::remove_module_string"
+        }
+      ],
+      "strictness": "load_state_dict(strict=True), the PyTorch default",
+      "inference_role": "descriptor and foreground mask, via FDD.get_embedding",
+      "notes": [
+        "The load is present and active at the pinned commit: the model is built, moved to CUDA, wrapped in DataParallel, and load_model is called on model_weights/desc_model.pth.tar.",
+        "get_embedding returns feature.flatten(1) and mask.flatten(1); with ndim_feat 6 and tar_shape 256 that is 3072 and 256 scalars."
+      ]
+    },
+    {
+      "artifact_id": "flare_voting_pose_checkpoint",
+      "intended_model_class": "GRIDNET4",
+      "model_module": "models.model_zoo",
+      "construction_locator": "Yu-Yy/FLARE@7d13ca72:extract_VotingPose.py::main",
+      "constructor_arguments": [
+        {
+          "name": "num_pose_2d",
+          "value": "(33, 33, 1)",
+          "source": "a literal in the script"
+        },
+        {
+          "name": "num_layers",
+          "value": "(64, 128, 256, 512)",
+          "source": "a literal in the script"
+        },
+        {
+          "name": "img_ppi",
+          "value": "500",
+          "source": "a literal in the script"
+        },
+        {
+          "name": "middle_shape",
+          "value": "numpy.array([512, 512])",
+          "source": "a literal in the script"
+        },
+        {
+          "name": "activate",
+          "value": "'sigmoid'",
+          "source": "a literal in the script"
+        },
+        {
+          "name": "bin_type",
+          "value": "'invprop'",
+          "source": "a literal in the script"
+        },
+        {
+          "name": "with_tv",
+          "value": "True",
+          "source": "a literal in the script"
+        }
+      ],
+      "wrapped_in_data_parallel": true,
+      "loader_function": "load_model",
+      "loader_locator": "Yu-Yy/FLARE@7d13ca72:utils/misc.py::load_model",
+      "top_level_structure": "a mapping, either a state dict or a training checkpoint",
+      "state_dict_path": "checkpoint[\"model\"] if present, else the checkpoint itself",
+      "key_transformation_behaviour": [
+        {
+          "transformation": "the state dict is taken from checkpoint['model']",
+          "condition": "'model' is a top-level key; otherwise the checkpoint itself is used",
+          "upstream_location": "Yu-Yy/FLARE@7d13ca72:utils/misc.py::load_model"
+        },
+        {
+          "transformation": "every key's second dotted component is removed, so 'module.layer0.0.weight' becomes 'layer0.0.weight'",
+          "condition": "the substring 'module' appears anywhere in the first key of the state dict; the test is on one key and the transformation is then applied to all of them",
+          "upstream_location": "load_model::remove_module_string"
+        }
+      ],
+      "strictness": "load_state_dict(strict=True), the PyTorch default",
+      "inference_role": "pose_2d = (x, y, theta) in the 512x512 aligned frame",
+      "notes": []
+    },
+    {
+      "artifact_id": "flare_regression_pose_checkpoint",
+      "intended_model_class": "FingerPose_2D_Single",
+      "model_module": "models.model_zoo",
+      "construction_locator": "Yu-Yy/FLARE@7d13ca72:extract_RegressionPose.py::main",
+      "constructor_arguments": [
+        {
+          "name": "inp_mode",
+          "value": "'fp'",
+          "source": "a literal in the script"
+        },
+        {
+          "name": "trans_out_form",
+          "value": "'claSum'",
+          "source": "a literal in the script"
+        },
+        {
+          "name": "trans_num_classes",
+          "value": "512",
+          "source": "a literal in the script"
+        },
+        {
+          "name": "rot_out_form",
+          "value": "'claSum'",
+          "source": "a literal in the script"
+        },
+        {
+          "name": "rot_num_classes",
+          "value": "180",
+          "source": "a literal in the script"
+        }
+      ],
+      "wrapped_in_data_parallel": true,
+      "loader_function": "load_model",
+      "loader_locator": "Yu-Yy/FLARE@7d13ca72:extract_RegressionPose.py::load_model",
+      "top_level_structure": "a mapping, either a state dict or a training checkpoint",
+      "state_dict_path": "checkpoint[\"model\"] if present, else the checkpoint itself",
+      "key_transformation_behaviour": [
+        {
+          "transformation": "the state dict is taken from checkpoint['model']",
+          "condition": "'model' is a top-level key; otherwise the checkpoint itself is used",
+          "upstream_location": "Yu-Yy/FLARE@7d13ca72:utils/misc.py::load_model"
+        },
+        {
+          "transformation": "every key's second dotted component is removed, so 'module.layer0.0.weight' becomes 'layer0.0.weight'",
+          "condition": "the substring 'module' appears anywhere in the first key of the state dict; the test is on one key and the transformation is then applied to all of them",
+          "upstream_location": "load_model::remove_module_string"
+        }
+      ],
+      "strictness": "load_state_dict(strict=True), the PyTorch default",
+      "inference_role": "classify2vector_trans and classify2vector_rot produce (x, y) and theta; x and y are offset by +256 into the 512x512 frame",
+      "notes": [
+        "This script does not import utils.misc.load_model; it defines its own with an identical body plus a by_name shape filter that its call does not use. The duplication is upstream's and is recorded rather than unified."
+      ]
+    },
+    {
+      "artifact_id": "flare_unetenh_checkpoint",
+      "intended_model_class": "SqueezeUNet",
+      "model_module": "model.network",
+      "construction_locator": "Yu-Yy/FLARE_ENH@ee735b03:deploy_unetenh.py::deploy_enh",
+      "constructor_arguments": [
+        {
+          "name": "input_channels",
+          "value": "1",
+          "source": "a literal in the script"
+        },
+        {
+          "name": "num_classes",
+          "value": "2",
+          "source": "a literal in the script"
+        },
+        {
+          "name": "pre_enh",
+          "value": "False",
+          "source": "the -e command-line flag, which defaults to false"
+        }
+      ],
+      "wrapped_in_data_parallel": false,
+      "loader_function": "load_model",
+      "loader_locator": "Yu-Yy/FLARE_ENH@ee735b03:utils/misc.py::load_model",
+      "top_level_structure": "a mapping with a \"model\" key",
+      "state_dict_path": "checkpoint[\"model\"]",
+      "key_transformation_behaviour": [
+        {
+          "transformation": "the state dict is taken from checkpoint['model']",
+          "condition": "unconditional in this repository's loader — there is no fallback to the checkpoint root, so a checkpoint without that key raises",
+          "upstream_location": "Yu-Yy/FLARE_ENH@ee735b03:utils/misc.py::load_model"
+        },
+        {
+          "transformation": "every key's second dotted component is removed, so 'module.layer0.0.weight' becomes 'layer0.0.weight'",
+          "condition": "the substring 'module' appears anywhere in the first key of the state dict; the test is on one key and the transformation is then applied to all of them",
+          "upstream_location": "load_model::remove_module_string"
+        }
+      ],
+      "strictness": "load_state_dict(strict=True), the PyTorch default",
+      "inference_role": "two output channels, split [1, 1]; the first is the enhanced image in (0, 1) after the network's sigmoid",
+      "notes": [
+        "No DataParallel wrapper here, unlike the three FLARE models. This repository's loader also has no fallback when 'model' is absent."
+      ]
+    },
+    {
+      "artifact_id": "flare_priorenh_checkpoint",
+      "intended_model_class": "VQFPEnhancer_PCNN",
+      "model_module": "model.network",
+      "construction_locator": "Yu-Yy/FLARE_ENH@ee735b03:deploy_priorenh.py::deploy_enh",
+      "constructor_arguments": [
+        {
+          "name": "hdconfig",
+          "value": "the hdconfig mapping",
+          "source": "pretrained_model/priorenh/vq.yaml"
+        },
+        {
+          "name": "ldconfig",
+          "value": "the ldconfig mapping",
+          "source": "pretrained_model/priorenh/vq.yaml"
+        },
+        {
+          "name": "n_embed",
+          "value": "4096",
+          "source": "pretrained_model/priorenh/vq.yaml n_codebook"
+        },
+        {
+          "name": "embed_dim",
+          "value": "3",
+          "source": "pretrained_model/priorenh/vq.yaml embed_dim"
+        },
+        {
+          "name": "pcn_embed",
+          "value": "64",
+          "source": "pretrained_model/priorenh/vq.yaml pcn_embed"
+        },
+        {
+          "name": "ckpt_path",
+          "value": "pretrained_model/priorenh/Prior.ckpt",
+          "source": "pretrained_model/priorenh/vq.yaml ckpt_path"
+        },
+        {
+          "name": "pre_enh",
+          "value": "False",
+          "source": "the -e command-line flag, which defaults to false"
+        }
+      ],
+      "wrapped_in_data_parallel": false,
+      "loader_function": "load_model",
+      "loader_locator": "Yu-Yy/FLARE_ENH@ee735b03:utils/misc.py::load_model",
+      "top_level_structure": "a mapping with a \"model\" key",
+      "state_dict_path": "checkpoint[\"model\"]",
+      "key_transformation_behaviour": [
+        {
+          "transformation": "the state dict is taken from checkpoint['model']",
+          "condition": "unconditional in this repository's loader — there is no fallback to the checkpoint root, so a checkpoint without that key raises",
+          "upstream_location": "Yu-Yy/FLARE_ENH@ee735b03:utils/misc.py::load_model"
+        },
+        {
+          "transformation": "every key's second dotted component is removed, so 'module.layer0.0.weight' becomes 'layer0.0.weight'",
+          "condition": "the substring 'module' appears anywhere in the first key of the state dict; the test is on one key and the transformation is then applied to all of them",
+          "upstream_location": "load_model::remove_module_string"
+        }
+      ],
+      "strictness": "load_state_dict(strict=True), the PyTorch default",
+      "inference_role": "enhance(x, w) returns the decoded image, clamped to [-1, 1] by the caller",
+      "notes": [
+        "The constructor asserts ckpt_path is not None and loads the Prior artifact before this checkpoint is applied, so PriorEnh needs two sets of weights and the second is named only by vq.yaml."
+      ]
+    },
+    {
+      "artifact_id": "flare_prior_codebook_checkpoint",
+      "intended_model_class": "VQFPEnhancer_PCNN.save_dict_to_prior",
+      "model_module": "model.network",
+      "construction_locator": "Yu-Yy/FLARE_ENH@ee735b03:model/network.py::VQFPEnhancer_PCNN.__init__",
+      "constructor_arguments": [
+        {
+          "name": "map_location",
+          "value": "'cpu'",
+          "source": "a literal in the constructor"
+        }
+      ],
+      "wrapped_in_data_parallel": false,
+      "loader_function": "save_dict_to_prior",
+      "loader_locator": "Yu-Yy/FLARE_ENH@ee735b03:model/network.py::VQFPEnhancer_PCNN.save_dict_to_prior",
+      "top_level_structure": "a mapping with a \"state_dict\" key",
+      "state_dict_path": "checkpoint[\"state_dict\"]",
+      "key_transformation_behaviour": [
+        {
+          "transformation": "keys are routed into five sub-modules by prefix — encoder., decoder., quantize., quant_conv., post_quant_conv. — and the prefix is stripped from each",
+          "condition": "the key starts with one of those five prefixes",
+          "upstream_location": "save_dict_to_prior"
+        },
+        {
+          "transformation": "a key matching none of the five prefixes is dropped, silently: the routing has no else branch",
+          "condition": "always",
+          "upstream_location": "save_dict_to_prior"
+        }
+      ],
+      "strictness": "load_state_dict(strict=True), the PyTorch default",
+      "inference_role": "the frozen VQ-VAE codebook and high-resolution decoder that guide PriorEnh; every parameter has requires_grad set to False after loading",
+      "notes": [
+        "A different top-level structure from the other five, and a different loader. The silent drop is why this stage counts skipped keys independently of what the loader reports (spec section 21)."
+      ]
+    }
+  ],
+  "compatibility": [
+    {
+      "artifact_id": "flare_fdd_checkpoint",
+      "model_class": "FDD",
+      "established": false,
+      "inspection_performed": false,
+      "reason": "torch is not installed here; the runtime question is Stage 9B's",
+      "loaded_parameters": 0,
+      "unexplained_missing_parameters": 0,
+      "unexplained_shape_mismatches": 0,
+      "unexplained_skipped_inference_affecting_keys": 0,
+      "explained_non_model_keys": [],
+      "findings": []
+    },
+    {
+      "artifact_id": "flare_prior_codebook_checkpoint",
+      "model_class": "VQFPEnhancer_PCNN.save_dict_to_prior",
+      "established": false,
+      "inspection_performed": false,
+      "reason": "torch is not installed here; the runtime question is Stage 9B's",
+      "loaded_parameters": 0,
+      "unexplained_missing_parameters": 0,
+      "unexplained_shape_mismatches": 0,
+      "unexplained_skipped_inference_affecting_keys": 0,
+      "explained_non_model_keys": [],
+      "findings": []
+    },
+    {
+      "artifact_id": "flare_priorenh_checkpoint",
+      "model_class": "VQFPEnhancer_PCNN",
+      "established": false,
+      "inspection_performed": false,
+      "reason": "torch is not installed here; the runtime question is Stage 9B's",
+      "loaded_parameters": 0,
+      "unexplained_missing_parameters": 0,
+      "unexplained_shape_mismatches": 0,
+      "unexplained_skipped_inference_affecting_keys": 0,
+      "explained_non_model_keys": [],
+      "findings": []
+    },
+    {
+      "artifact_id": "flare_regression_pose_checkpoint",
+      "model_class": "FingerPose_2D_Single",
+      "established": false,
+      "inspection_performed": false,
+      "reason": "torch is not installed here; the runtime question is Stage 9B's",
+      "loaded_parameters": 0,
+      "unexplained_missing_parameters": 0,
+      "unexplained_shape_mismatches": 0,
+      "unexplained_skipped_inference_affecting_keys": 0,
+      "explained_non_model_keys": [],
+      "findings": []
+    },
+    {
+      "artifact_id": "flare_unetenh_checkpoint",
+      "model_class": "SqueezeUNet",
+      "established": false,
+      "inspection_performed": false,
+      "reason": "torch is not installed here; the runtime question is Stage 9B's",
+      "loaded_parameters": 0,
+      "unexplained_missing_parameters": 0,
+      "unexplained_shape_mismatches": 0,
+      "unexplained_skipped_inference_affecting_keys": 0,
+      "explained_non_model_keys": [],
+      "findings": []
+    },
+    {
+      "artifact_id": "flare_voting_pose_checkpoint",
+      "model_class": "GRIDNET4",
+      "established": false,
+      "inspection_performed": false,
+      "reason": "torch is not installed here; the runtime question is Stage 9B's",
+      "loaded_parameters": 0,
+      "unexplained_missing_parameters": 0,
+      "unexplained_shape_mismatches": 0,
+      "unexplained_skipped_inference_affecting_keys": 0,
+      "explained_non_model_keys": [],
+      "findings": []
+    }
+  ],
+  "notes": [
+    "Upstream's loader semantics are preserved rather than replaced. Both repositories unwrap a 'model' key and strip a 'module.' prefix before load_state_dict, and neither passes strict=False.",
+    "The Prior artifact is loaded by a different path from the other five — checkpoint['state_dict'], routed into five sub-modules by prefix — and a key matching none of those prefixes is dropped without comment. That is why skipped keys are counted here rather than taken from the loader."
+  ]
+}

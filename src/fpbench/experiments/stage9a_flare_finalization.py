@@ -91,6 +91,7 @@ _STAGE_9A_SOURCE_FILES = (
 #: an existing one, and adds no package: it is a qualification, not a layer.
 _ALLOWED_EXACT_CHANGES = frozenset(
     {
+        ".gitattributes",
         ".github/workflows/stage9a-flare-artifact-qualification.yml",
         "Makefile",
         "README.md",

@@ -1,0 +1,321 @@
+{
+  "schema": "stage_9a_public_code_route_audit_v1",
+  "audit_fingerprint": "db50faf0dc4ffcdc7f257b7be9681e28f250cd6fd9a88b44c7beefa5bb85a906",
+  "row_count": 18,
+  "resolved": false,
+  "score_affecting_ambiguous": [
+    "aligned_crop_border_fill",
+    "downsample_to_fdrn_input",
+    "four_branch_orchestration"
+  ],
+  "score_affecting_contradictory": [
+    "alignment_then_enhancement_ordering"
+  ],
+  "glue_required_operations": [
+    "alignment_then_enhancement_ordering",
+    "aligned_crop_border_fill",
+    "enhancer_input_geometry",
+    "downsample_to_fdrn_input",
+    "fdrn_input_presentation",
+    "four_branch_orchestration",
+    "max_fusion"
+  ],
+  "rows": [
+    {
+      "operation": "input_resolution",
+      "paper_statement": "Given a 500 ppi query image I_q and a gallery image I_g",
+      "paper_source": "arXiv:2505.03597v2 §III-E",
+      "official_code_location": "Yu-Yy/FLARE@7d13ca72:model_weights/desc_configs.yaml DATASET.PPI 500; FingerPoseEvalDataset is constructed with img_ppi=500",
+      "artifact_dependencies": [
+        "flare_desc_configs"
+      ],
+      "parameter_sources": [
+        "paper §III-E",
+        "desc_configs.yaml DATASET.PPI"
+      ],
+      "resolution": "EXACT_MATCH",
+      "score_affecting": true,
+      "fpbench_glue_required": false,
+      "detail": ""
+    },
+    {
+      "operation": "two_pose_estimators",
+      "paper_statement": "FLARE first estimates the 2D pose using two complementary estimators",
+      "paper_source": "arXiv:2505.03597v2 §III, pipeline overview",
+      "official_code_location": "Yu-Yy/FLARE@7d13ca72:extract_VotingPose.py and extract_RegressionPose.py",
+      "artifact_dependencies": [
+        "flare_voting_pose_checkpoint",
+        "flare_regression_pose_checkpoint"
+      ],
+      "parameter_sources": [
+        "literals in both scripts"
+      ],
+      "resolution": "EXACT_MATCH",
+      "score_affecting": true,
+      "fpbench_glue_required": false,
+      "detail": "Both estimators exist and both write the same pose file format. The README presents them as alternatives, but that is an instruction about how to run one script, not a claim about the method."
+    },
+    {
+      "operation": "pose_preprocessing_geometry",
+      "paper_statement": "random geometric transformations are applied to the fingerprints of size 512x512 at 500 ppi",
+      "paper_source": "arXiv:2505.03597v2 §IV, training configuration",
+      "official_code_location": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py::FingerPoseEvalDataset.process_img, middle_shape (512, 512)",
+      "artifact_dependencies": [
+        "flare_source_archive"
+      ],
+      "parameter_sources": [
+        "middle_shape literal (512, 512)",
+        "borderValue 255",
+        "cv2.INTER_LINEAR"
+      ],
+      "resolution": "IMPLEMENTATION_SUPPLIES_DETAIL",
+      "score_affecting": true,
+      "fpbench_glue_required": false,
+      "detail": "The paper gives the geometry; the implementation gives the centring rule, the fill value and the interpolation."
+    },
+    {
+      "operation": "pose_output_convention",
+      "paper_statement": "aligns the image into standardized spatial configurations according to each estimator's interpretation",
+      "paper_source": "arXiv:2505.03597v2 §III",
+      "official_code_location": "Yu-Yy/FLARE@7d13ca72:extract_RegressionPose.py::valid_pose, back projection through T_inv and the wrap to [-180, 180)",
+      "artifact_dependencies": [
+        "flare_source_archive"
+      ],
+      "parameter_sources": [
+        "the wrap (theta + 180) % 360 - 180"
+      ],
+      "resolution": "IMPLEMENTATION_SUPPLIES_DETAIL",
+      "score_affecting": true,
+      "fpbench_glue_required": false,
+      "detail": ""
+    },
+    {
+      "operation": "alignment_then_enhancement_ordering",
+      "paper_statement": "we first apply pose estimation and alignment, followed by cropping to 512x512 pixels. The aligned images are then enhanced ... each enhanced image is downsampled to 256x256 pixels before being input to the FDRN",
+      "paper_source": "arXiv:2505.03597v2 §III-E",
+      "official_code_location": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py::Descdataset.process_img, which builds one affine with scale = tar_shape/middle_shape = 256/512 and warps the original image straight to 256x256",
+      "artifact_dependencies": [
+        "flare_source_archive",
+        "flare_desc_configs"
+      ],
+      "parameter_sources": [
+        "paper §III-E for the order",
+        "desc_configs.yaml middle_shape and tar_shape for the fused scale"
+      ],
+      "resolution": "CONTRADICTORY",
+      "score_affecting": true,
+      "fpbench_glue_required": true,
+      "detail": "The paper puts enhancement between alignment and the downsample. The only upstream code that aligns performs the alignment and the downsample as a single interpolation of the unenhanced original, leaving no 512x512 image and no point of insertion. The code path corresponds to the earlier unenhanced FDD route rather than to this paper's inference route, and nothing upstream composes the two."
+    },
+    {
+      "operation": "aligned_crop_border_fill",
+      "paper_statement": "cropping to 512x512 pixels — the paper does not say what surrounds the fingerprint in that crop",
+      "paper_source": "arXiv:2505.03597v2 §III-E",
+      "official_code_location": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py: Descdataset.process_img passes no borderValue and fills with 0 after normalising, while FingerPoseEvalDataset.process_img fills with 255",
+      "artifact_dependencies": [
+        "flare_source_archive"
+      ],
+      "parameter_sources": [
+        "two upstream warps that disagree"
+      ],
+      "resolution": "AMBIGUOUS",
+      "score_affecting": true,
+      "fpbench_glue_required": true,
+      "detail": "Whichever fill is chosen becomes part of the enhancer's input. A mid-grey frame and a white frame are different images to a network trained on fingerprints, and the descriptor that follows differs."
+    },
+    {
+      "operation": "enhancer_input_geometry",
+      "paper_statement": "the aligned images are then enhanced; PriorEnh's input is 512x512",
+      "paper_source": "arXiv:2505.03597v2 §III-E and Table XI",
+      "official_code_location": "Yu-Yy/FLARE_ENH@ee735b03:deploy_unetenh.py::image_read and deploy_priorenh.py::image_read, both of which take whole original images from a folder",
+      "artifact_dependencies": [
+        "flare_enh_source_archive",
+        "flare_unetenh_checkpoint",
+        "flare_priorenh_checkpoint"
+      ],
+      "parameter_sources": [
+        "paper Table XI for 512x512",
+        "the deploy scripts for their own resizing"
+      ],
+      "resolution": "IMPLEMENTATION_SUPPLIES_DETAIL",
+      "score_affecting": true,
+      "fpbench_glue_required": true,
+      "detail": "On a 512x512 input both scripts' preprocessing and postprocessing reduce to exact identities: the multiple-of-16 resize is a no-op, the square padding is zero-width, and both inverse resizes return the same size. So the paper's aligned crop composes with the official enhancer entry points without any fpbench-chosen resampling at this boundary — which is what makes this row resolvable while the two around it are not."
+    },
+    {
+      "operation": "priorenh_cft_weight",
+      "paper_statement": "w in [0, 1] is a weighting factor that controls the degree of influence — the paper gives no inference value",
+      "paper_source": "arXiv:2505.03597v2 §III-B, Eq. 1",
+      "official_code_location": "Yu-Yy/FLARE_ENH@ee735b03:deploy_priorenh.py, --w default 0.5, passed explicitly into enhance()",
+      "artifact_dependencies": [
+        "flare_priorenh_checkpoint"
+      ],
+      "parameter_sources": [
+        "the official CLI default"
+      ],
+      "resolution": "IMPLEMENTATION_SUPPLIES_DETAIL",
+      "score_affecting": true,
+      "fpbench_glue_required": false,
+      "detail": "The paper is silent on the value and the pinned inference entry point sets one unambiguously, which is the case the authority hierarchy allows the implementation to fill."
+    },
+    {
+      "operation": "enhancer_contrast_pre_enhancement",
+      "paper_statement": "the paper does not mention a CLAHE pre-enhancement step",
+      "paper_source": "arXiv:2505.03597v2 §III-B",
+      "official_code_location": "Yu-Yy/FLARE_ENH@ee735b03: both deploy scripts default pre_enh to false; -e turns it on",
+      "artifact_dependencies": [
+        "flare_enh_source_archive"
+      ],
+      "parameter_sources": [
+        "the official CLI default, false"
+      ],
+      "resolution": "IMPLEMENTATION_SUPPLIES_DETAIL",
+      "score_affecting": true,
+      "fpbench_glue_required": false,
+      "detail": ""
+    },
+    {
+      "operation": "downsample_to_fdrn_input",
+      "paper_statement": "each enhanced image is downsampled to 256x256 pixels before being input to the FDRN",
+      "paper_source": "arXiv:2505.03597v2 §III-E",
+      "official_code_location": "none. Neither repository contains a 512-to-256 reduction of an enhanced image; the only 2:1 factor upstream is the scale inside Descdataset's single warp of the unenhanced original",
+      "artifact_dependencies": [
+        "flare_source_archive"
+      ],
+      "parameter_sources": [],
+      "resolution": "AMBIGUOUS",
+      "score_affecting": true,
+      "fpbench_glue_required": true,
+      "detail": "One function call, at least four reasonable spellings — cv2.INTER_LINEAR, cv2.INTER_AREA, scipy.ndimage.zoom(order=1), a second warpAffine at scale 0.5 — and different pixels from each. The paper states the target size and not the kernel."
+    },
+    {
+      "operation": "fdrn_input_presentation",
+      "paper_statement": "before being input to the FDRN",
+      "paper_source": "arXiv:2505.03597v2 §III-E",
+      "official_code_location": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py::Descdataset.process_img normalises with (x - 127.5)/127.5; input_norm is false in desc_configs.yaml so FDD.img_norm is not applied",
+      "artifact_dependencies": [
+        "flare_desc_configs"
+      ],
+      "parameter_sources": [
+        "desc_configs.yaml MODEL.input_norm"
+      ],
+      "resolution": "IMPLEMENTATION_SUPPLIES_DETAIL",
+      "score_affecting": true,
+      "fpbench_glue_required": true,
+      "detail": "Descdataset has no path that accepts an already-aligned image: with a pose file it warps by the pose, and without one it warps by coarse_center with theta 0. Presenting a pre-aligned 256x256 image to FDD therefore needs fpbench code, though the normalisation it would apply is fully specified."
+    },
+    {
+      "operation": "descriptor_and_mask_shape",
+      "paper_statement": "dense descriptors f in R^{2D x 16 x 16} and foreground masks S in R^{1 x 16 x 16}, with D set to 6",
+      "paper_source": "arXiv:2505.03597v2 §III-E and §IV",
+      "official_code_location": "Yu-Yy/FLARE@7d13ca72:models/model_zoo.py::FDD.get_embedding with ndim_feat 6 from desc_configs.yaml",
+      "artifact_dependencies": [
+        "flare_fdd_checkpoint",
+        "flare_desc_configs"
+      ],
+      "parameter_sources": [
+        "paper §IV",
+        "desc_configs.yaml MODEL.ndim_feat"
+      ],
+      "resolution": "EXACT_MATCH",
+      "score_affecting": true,
+      "fpbench_glue_required": false,
+      "detail": ""
+    },
+    {
+      "operation": "mask_semantics",
+      "paper_statement": "matching is performed only within the overlapping foreground regions",
+      "paper_source": "arXiv:2505.03597v2 §III-E, Eq. 7",
+      "official_code_location": "Yu-Yy/FLARE@7d13ca72:extract_FDD.py::calculate_score, continuous branch: the mask values enter the numerator and both denominator terms without being thresholded",
+      "artifact_dependencies": [
+        "flare_source_archive"
+      ],
+      "parameter_sources": [
+        "the continuous branch of calculate_score"
+      ],
+      "resolution": "IMPLEMENTATION_SUPPLIES_DETAIL",
+      "score_affecting": true,
+      "fpbench_glue_required": false,
+      "detail": "The paper's Eq. 7 reads as written under binary masks. The mask is a sigmoid output, and the implementation generalises the same formula to continuous values by keeping it linear in each mask. Thresholding appears only in the binary branch, which this identity excludes."
+    },
+    {
+      "operation": "branch_score_formula",
+      "paper_statement": "the cosine similarity between the flattened dense representations, where only the overlapping foreground regions are considered",
+      "paper_source": "arXiv:2505.03597v2 §III-E, Eq. 7",
+      "official_code_location": "Yu-Yy/FLARE@7d13ca72:extract_FDD.py::calculate_score, including the np.tile of the mask across 2D channels and the clip(1e-3, None) on the product of the two denominator terms",
+      "artifact_dependencies": [
+        "flare_source_archive"
+      ],
+      "parameter_sources": [
+        "calculate_score"
+      ],
+      "resolution": "IMPLEMENTATION_SUPPLIES_DETAIL",
+      "score_affecting": true,
+      "fpbench_glue_required": false,
+      "detail": ""
+    },
+    {
+      "operation": "four_branch_orchestration",
+      "paper_statement": "producing four augmented versions of each image ... the four sets of descriptors are independently compared, yielding four similarity scores",
+      "paper_source": "arXiv:2505.03597v2 §III-E",
+      "official_code_location": "none. extract_FDD.py takes one -p pose and no enhancement, and neither repository contains a script that builds four branches",
+      "artifact_dependencies": [
+        "flare_source_archive",
+        "flare_enh_source_archive"
+      ],
+      "parameter_sources": [
+        "paper §III-E"
+      ],
+      "resolution": "AMBIGUOUS",
+      "score_affecting": true,
+      "fpbench_glue_required": true,
+      "detail": "The branch construction is unresolved only because the transform graph it repeats is unresolved. Given a settled graph, applying it for each of the two poses and each of the two enhancers is arithmetic."
+    },
+    {
+      "operation": "max_fusion",
+      "paper_statement": "the final matching score is obtained by taking the maximum over the four matching scores",
+      "paper_source": "arXiv:2505.03597v2 §III-E, Eq. 8",
+      "official_code_location": "none, and none is needed: there is one way to take a maximum",
+      "artifact_dependencies": [],
+      "parameter_sources": [
+        "paper Eq. 8"
+      ],
+      "resolution": "INTEGRATION_NEUTRAL_GLUE",
+      "score_affecting": true,
+      "fpbench_glue_required": true,
+      "detail": ""
+    },
+    {
+      "operation": "binary_route",
+      "paper_statement": "the paper's Eq. 7 is continuous; no binary representation is part of the reported method",
+      "paper_source": "arXiv:2505.03597v2 §III-E, Eq. 7",
+      "official_code_location": "Yu-Yy/FLARE@7d13ca72:extract_FDD.py, the -b flag and the binary branch of calculate_score with its 0.5 and 0.2 mask thresholds",
+      "artifact_dependencies": [
+        "flare_source_archive"
+      ],
+      "parameter_sources": [
+        "the README, which presents -b as optional"
+      ],
+      "resolution": "EXACT_MATCH",
+      "score_affecting": true,
+      "fpbench_glue_required": false,
+      "detail": "Excluded from the identity, so the disagreement never arises."
+    },
+    {
+      "operation": "degenerate_overlap",
+      "paper_statement": "the paper does not state what the score is when two foregrounds barely overlap",
+      "paper_source": "arXiv:2505.03597v2 §III-E, Eq. 7",
+      "official_code_location": "Yu-Yy/FLARE@7d13ca72:extract_FDD.py::calculate_score, x12 / (x1 * x2).clip(1e-3, None)",
+      "artifact_dependencies": [
+        "flare_source_archive"
+      ],
+      "parameter_sources": [
+        "the clip literal 1e-3"
+      ],
+      "resolution": "IMPLEMENTATION_SUPPLIES_DETAIL",
+      "score_affecting": true,
+      "fpbench_glue_required": false,
+      "detail": "As the overlap vanishes the numerator goes to zero and the clipped denominator stays at 1e-3, so the score goes to zero and stays finite. The behaviour is defined by the pinned source and needs no new policy here."
+    }
+  ]
+}

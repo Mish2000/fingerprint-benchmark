@@ -1,0 +1,112 @@
+{
+  "schema": "stage_9a_paper_route_contract_v1",
+  "paper": "Pan, Guan, Duan, Feng and Zhou, 'Fixed-Length Dense Fingerprint Representation with Alignment and Robust Enhancement', IEEE TIFS vol. 21 (2026) pp. 1751-1765",
+  "preprint": "arXiv:2505.03597v2",
+  "algorithm_candidate": "flare_fdd_d6_dualpose_dualenh_maxcosine",
+  "display_name": "FLARE FDD D=6 / Dual-Pose × Dual-Enhancement / Max Overlap-Masked Cosine",
+  "input_profile": "canonical_500",
+  "input_ppi": 500,
+  "input_pixel_format": "gray8",
+  "aligned_geometry": [
+    512,
+    512
+  ],
+  "fdrn_geometry": [
+    256,
+    256
+  ],
+  "descriptor_feature_dimension": 6,
+  "descriptor_shape": [
+    12,
+    16,
+    16
+  ],
+  "descriptor_scalar_count": 3072,
+  "mask_shape": [
+    1,
+    16,
+    16
+  ],
+  "mask_scalar_count": 256,
+  "required_pose_estimators": 2,
+  "required_enhancers": 2,
+  "branch_count": 4,
+  "binary_representation": false,
+  "score_direction": "HIGHER_IS_MORE_SIMILAR",
+  "branches": [
+    {
+      "branch_id": "voting_unetenh",
+      "pose_estimator": "VotingPose",
+      "enhancer": "UNetEnh"
+    },
+    {
+      "branch_id": "voting_priorenh",
+      "pose_estimator": "VotingPose",
+      "enhancer": "PriorEnh"
+    },
+    {
+      "branch_id": "regression_unetenh",
+      "pose_estimator": "RegressionPose",
+      "enhancer": "UNetEnh"
+    },
+    {
+      "branch_id": "regression_priorenh",
+      "pose_estimator": "RegressionPose",
+      "enhancer": "PriorEnh"
+    }
+  ],
+  "route": [
+    {
+      "order": 0,
+      "stage_id": "input",
+      "statement": "a 500 ppi query image I_q and a gallery image I_g",
+      "paper_source": "arXiv:2505.03597v2 §III-E"
+    },
+    {
+      "order": 1,
+      "stage_id": "pose_estimation",
+      "statement": "FLARE first estimates the 2D pose using two complementary estimators",
+      "paper_source": "arXiv:2505.03597v2 §III, pipeline overview"
+    },
+    {
+      "order": 2,
+      "stage_id": "alignment_crop_512",
+      "statement": "we first apply pose estimation and alignment, followed by cropping to 512×512 pixels",
+      "paper_source": "arXiv:2505.03597v2 §III-E"
+    },
+    {
+      "order": 3,
+      "stage_id": "enhancement",
+      "statement": "the aligned images are then enhanced using two pose estimation methods and two enhancement strategies, producing four augmented versions of each image",
+      "paper_source": "arXiv:2505.03597v2 §III-E"
+    },
+    {
+      "order": 4,
+      "stage_id": "downsample_256",
+      "statement": "each enhanced image is downsampled to 256×256 pixels before being input to the Fixed-length Dense Representation Network",
+      "paper_source": "arXiv:2505.03597v2 §III-E"
+    },
+    {
+      "order": 5,
+      "stage_id": "fdrn",
+      "statement": "which produces dense descriptors f ∈ R^{2D×16×16} and foreground masks S ∈ R^{1×16×16}",
+      "paper_source": "arXiv:2505.03597v2 §III-E"
+    },
+    {
+      "order": 6,
+      "stage_id": "branch_similarity",
+      "statement": "the matching score is computed by measuring the cosine similarity between the flattened dense representations, where only the overlapping foreground regions are considered",
+      "paper_source": "arXiv:2505.03597v2 §III-E, Eq. 7"
+    },
+    {
+      "order": 7,
+      "stage_id": "max_fusion",
+      "statement": "the final matching score is obtained by taking the maximum over the four matching scores derived from different pose-enhancement combinations",
+      "paper_source": "arXiv:2505.03597v2 §III-E, Eq. 8"
+    }
+  ],
+  "notes": [
+    "The branch order is not part of the algorithm, because a maximum does not depend on the order of its arguments. The branch count is.",
+    "One fingerprint carries four descriptors of 3072 scalars and four masks of 256, not a single representation of 3072."
+  ]
+}

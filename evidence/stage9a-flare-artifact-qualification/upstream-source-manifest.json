@@ -1,0 +1,45 @@
+{
+  "schema": "stage_9a_upstream_source_manifest_v1",
+  "required_source_repositories": 2,
+  "repositories": [
+    {
+      "repository_id": "flare_main",
+      "upstream_name": "Yu-Yy/FLARE",
+      "upstream_locator": "https://github.com/Yu-Yy/FLARE",
+      "role": "FLARE-Align and FLARE-Desc: pose estimation and FDD extraction",
+      "default_branch_observed_at_acquisition": "master",
+      "upstream_commit": "7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+      "source_archive_locator": "https://codeload.github.com/Yu-Yy/FLARE/tar.gz/7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+      "source_archive_filename": "FLARE-7d13ca72.tar.gz",
+      "source_archive_sha256": "4b11d6f32a5a0984e505517768f11fc56dcd2b5711789b20cf0e08be5595145e",
+      "source_archive_size_bytes": 725804,
+      "license_document_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "readme_document_sha256": "9fe8a2f01270d7abe09375d2a413c60cc5b448047233ec9b711e5571910878f4",
+      "acquisition_timestamp_utc": "2026-08-08T00:00:00Z"
+    },
+    {
+      "repository_id": "flare_enh",
+      "upstream_name": "Yu-Yy/FLARE_ENH",
+      "upstream_locator": "https://github.com/Yu-Yy/FLARE_ENH",
+      "role": "FLARE-Enh: UNetEnh and PriorEnh",
+      "default_branch_observed_at_acquisition": "master",
+      "upstream_commit": "ee735b03669aa0d9e086b50c7d9b1771913a2ba4",
+      "source_archive_locator": "https://codeload.github.com/Yu-Yy/FLARE_ENH/tar.gz/ee735b03669aa0d9e086b50c7d9b1771913a2ba4",
+      "source_archive_filename": "FLARE_ENH-ee735b03.tar.gz",
+      "source_archive_sha256": "ff85e815ddaf92bb03373d7b3475db20dc85403758252cb8148706e22cfbb981",
+      "source_archive_size_bytes": 33181,
+      "license_document_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "readme_document_sha256": "4013b73a2459a0c0b8c136701e03e558519331f35be08c63b56887a152aa2e90",
+      "acquisition_timestamp_utc": "2026-08-08T00:00:00Z"
+    }
+  ],
+  "upstream_state_observed_at": {
+    "flare_main": "7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+    "flare_enh": "ee735b03669aa0d9e086b50c7d9b1771913a2ba4"
+  },
+  "branch_names_are_not_identities": true,
+  "notes": [
+    "Both archives were acquired twice, independently, from the same locator and were byte-identical, which is what makes a generated tarball usable as an identity here.",
+    "The FDD checkpoint load in extract_FDD.py is present and active at the pinned FLARE commit. An earlier reading of this repository, against an earlier upstream state, recorded it as disabled; that is why a commit is pinned rather than a branch."
+  ]
+}

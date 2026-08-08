@@ -1,0 +1,313 @@
+{
+  "schema": "stage_9a_artifact_manifest_v1",
+  "artifact_store_environment_variable": "FPBENCH_THIRD_PARTY_ROOT",
+  "artifact_store_prefix": "flare",
+  "manifests_hold_no_absolute_path": true,
+  "required_artifact_count": 10,
+  "identity_established_count": 4,
+  "locally_verified_count": 4,
+  "transitive_discovery": [
+    {
+      "discovered_from": "flare_priorenh_vq_config",
+      "key": "ckpt_path",
+      "artifact_id": "flare_prior_codebook_checkpoint"
+    }
+  ],
+  "artifacts": [
+    {
+      "artifact_id": "flare_source_archive",
+      "component_role": "FLARE source snapshot",
+      "component_kind": "SOURCE_CODE",
+      "subject": "the FLARE-Align and FLARE-Desc source at the pinned commit",
+      "upstream_name": "Yu-Yy/FLARE",
+      "upstream_locator": "https://codeload.github.com/Yu-Yy/FLARE/tar.gz/7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+      "locator_kind": "https_archive",
+      "upstream_relative_path": ".",
+      "store_relative_location": "flare/source/FLARE-7d13ca72.tar.gz",
+      "repository_id": "flare_main",
+      "required_by": [
+        "pose",
+        "descriptor",
+        "matching"
+      ],
+      "discovered_from": null,
+      "expected_sha256": "4b11d6f32a5a0984e505517768f11fc56dcd2b5711789b20cf0e08be5595145e",
+      "expected_size_bytes": 725804,
+      "identity_established": true,
+      "notes": [
+        "Two independent acquisitions from the same locator produced byte-identical archives, which is what makes a generated tarball usable as an identity here (spec section 14)."
+      ]
+    },
+    {
+      "artifact_id": "flare_enh_source_archive",
+      "component_role": "FLARE_ENH source snapshot",
+      "component_kind": "SOURCE_CODE",
+      "subject": "the UNetEnh and PriorEnh source at the pinned commit",
+      "upstream_name": "Yu-Yy/FLARE_ENH",
+      "upstream_locator": "https://codeload.github.com/Yu-Yy/FLARE_ENH/tar.gz/ee735b03669aa0d9e086b50c7d9b1771913a2ba4",
+      "locator_kind": "https_archive",
+      "upstream_relative_path": ".",
+      "store_relative_location": "flare/source/FLARE_ENH-ee735b03.tar.gz",
+      "repository_id": "flare_enh",
+      "required_by": [
+        "enhancement"
+      ],
+      "discovered_from": null,
+      "expected_sha256": "ff85e815ddaf92bb03373d7b3475db20dc85403758252cb8148706e22cfbb981",
+      "expected_size_bytes": 33181,
+      "identity_established": true,
+      "notes": []
+    },
+    {
+      "artifact_id": "flare_fdd_checkpoint",
+      "component_role": "FDD checkpoint",
+      "component_kind": "MODEL_WEIGHTS",
+      "subject": "desc_model.pth.tar, the Fixed-length Dense Representation Network",
+      "upstream_name": "FLARE FDD model",
+      "upstream_locator": "google-drive-file:1zvAI57L0TDC7q6kQgNh5_DwSbicjJ4hs",
+      "locator_kind": "google_drive_file",
+      "upstream_relative_path": "model_weights/desc_model.pth.tar",
+      "store_relative_location": "flare/fdd/desc_model.pth.tar",
+      "repository_id": "flare_main",
+      "required_by": [
+        "descriptor"
+      ],
+      "discovered_from": null,
+      "expected_sha256": null,
+      "expected_size_bytes": null,
+      "identity_established": false,
+      "notes": [
+        "extract_FDD.py builds FDD, wraps it in DataParallel and calls load_model on this path. The load is present, active and official."
+      ]
+    },
+    {
+      "artifact_id": "flare_voting_pose_checkpoint",
+      "component_role": "VotingPose checkpoint",
+      "component_kind": "MODEL_WEIGHTS",
+      "subject": "VotingPose.pth, the GRIDNET4 voting pose estimator",
+      "upstream_name": "FLARE VotingPose model",
+      "upstream_locator": "google-drive-file:1Zg4duNJ8mg-fkTACTzpPPK7DgNb9NRvA",
+      "locator_kind": "google_drive_file",
+      "upstream_relative_path": "model_weights/VotingPose.pth",
+      "store_relative_location": "flare/pose/VotingPose.pth",
+      "repository_id": "flare_main",
+      "required_by": [
+        "pose"
+      ],
+      "discovered_from": null,
+      "expected_sha256": null,
+      "expected_size_bytes": null,
+      "identity_established": false,
+      "notes": []
+    },
+    {
+      "artifact_id": "flare_regression_pose_checkpoint",
+      "component_role": "RegressionPose checkpoint",
+      "component_kind": "MODEL_WEIGHTS",
+      "subject": "RegressionPose.pth, the FingerPose_2D_Single regression estimator",
+      "upstream_name": "FLARE RegressionPose model",
+      "upstream_locator": "google-drive-file:1AXpN8GBSqhlIXDilqPLfZf9n4Dc0pEpj",
+      "locator_kind": "google_drive_file",
+      "upstream_relative_path": "model_weights/RegressionPose.pth",
+      "store_relative_location": "flare/pose/RegressionPose.pth",
+      "repository_id": "flare_main",
+      "required_by": [
+        "pose"
+      ],
+      "discovered_from": null,
+      "expected_sha256": null,
+      "expected_size_bytes": null,
+      "identity_established": false,
+      "notes": []
+    },
+    {
+      "artifact_id": "flare_unetenh_checkpoint",
+      "component_role": "UNetEnh checkpoint",
+      "component_kind": "MODEL_WEIGHTS",
+      "subject": "unetenh.pth, the SqueezeUNet enhancement network",
+      "upstream_name": "FLARE UNetEnh model",
+      "upstream_locator": "google-drive-file:1U0uP8XoxWc90IPlEGnt2KIe0ATAA2VKl",
+      "locator_kind": "google_drive_file",
+      "upstream_relative_path": "pretrained_model/unetenh/unetenh.pth",
+      "store_relative_location": "flare/enhancement/unetenh/unetenh.pth",
+      "repository_id": "flare_enh",
+      "required_by": [
+        "enhancement"
+      ],
+      "discovered_from": null,
+      "expected_sha256": null,
+      "expected_size_bytes": null,
+      "identity_established": false,
+      "notes": []
+    },
+    {
+      "artifact_id": "flare_priorenh_checkpoint",
+      "component_role": "PriorEnh checkpoint",
+      "component_kind": "MODEL_WEIGHTS",
+      "subject": "priorenh.pth, the VQFPEnhancer_PCNN enhancement network",
+      "upstream_name": "FLARE PriorEnh model",
+      "upstream_locator": "google-drive-file:1h3JD6ZhS_TUaCmBhINqKZ0Pb1ad-FRao",
+      "locator_kind": "google_drive_file",
+      "upstream_relative_path": "pretrained_model/priorenh/priorenh.pth",
+      "store_relative_location": "flare/enhancement/priorenh/priorenh.pth",
+      "repository_id": "flare_enh",
+      "required_by": [
+        "enhancement"
+      ],
+      "discovered_from": null,
+      "expected_sha256": null,
+      "expected_size_bytes": null,
+      "identity_established": false,
+      "notes": []
+    },
+    {
+      "artifact_id": "flare_prior_codebook_checkpoint",
+      "component_role": "Prior / VQ artifact required by PriorEnh",
+      "component_kind": "MODEL_WEIGHTS",
+      "subject": "Prior.ckpt, the frozen VQ-VAE codebook and high-resolution decoder",
+      "upstream_name": "FLARE Prior model",
+      "upstream_locator": "google-drive-file:14c0A4qRo_lrqa83e-_UpBvu79qEGkK5q",
+      "locator_kind": "google_drive_file",
+      "upstream_relative_path": "pretrained_model/priorenh/Prior.ckpt",
+      "store_relative_location": "flare/enhancement/priorenh/Prior.ckpt",
+      "repository_id": "flare_enh",
+      "required_by": [
+        "enhancement"
+      ],
+      "discovered_from": "flare_priorenh_vq_config",
+      "expected_sha256": null,
+      "expected_size_bytes": null,
+      "identity_established": false,
+      "notes": [
+        "Named by vq.yaml's ckpt_path, not by a README download list. VQFPEnhancer_PCNN is constructed with it, so PriorEnh does not exist without it (spec section 11)."
+      ]
+    },
+    {
+      "artifact_id": "flare_priorenh_vq_config",
+      "component_role": "vq.yaml, the PriorEnh construction configuration",
+      "component_kind": "OTHER_ARTIFACT",
+      "subject": "pretrained_model/priorenh/vq.yaml: codebook size, embedding dimension, the encoder and decoder configurations, and the path of the Prior artifact",
+      "upstream_name": "Yu-Yy/FLARE_ENH",
+      "upstream_locator": "https://raw.githubusercontent.com/Yu-Yy/FLARE_ENH/ee735b03669aa0d9e086b50c7d9b1771913a2ba4/pretrained_model/priorenh/vq.yaml",
+      "locator_kind": "in_source_tree",
+      "upstream_relative_path": "pretrained_model/priorenh/vq.yaml",
+      "store_relative_location": "flare/enhancement/priorenh/vq.yaml",
+      "repository_id": "flare_enh",
+      "required_by": [
+        "enhancement"
+      ],
+      "discovered_from": null,
+      "expected_sha256": "e14e32f77116aef6e692915712f7fd9f70322aaa86209f158868747e61db8fac",
+      "expected_size_bytes": 551,
+      "identity_established": true,
+      "notes": [
+        "Ships inside the FLARE_ENH source tree, so its identity follows from the pinned commit. It is enumerated separately because it is what the transitive traversal reads."
+      ]
+    },
+    {
+      "artifact_id": "flare_desc_configs",
+      "component_role": "desc_configs.yaml, the FDD inference configuration",
+      "component_kind": "OTHER_ARTIFACT",
+      "subject": "model_weights/desc_configs.yaml: PPI 500, middle_shape 512×512, tar_shape 256×256, ndim_feat 6, input_norm false",
+      "upstream_name": "Yu-Yy/FLARE",
+      "upstream_locator": "https://raw.githubusercontent.com/Yu-Yy/FLARE/7d13ca727d55cf43642f9fe1e67df785091fd7c2/model_weights/desc_configs.yaml",
+      "locator_kind": "in_source_tree",
+      "upstream_relative_path": "model_weights/desc_configs.yaml",
+      "store_relative_location": "flare/fdd/desc_configs.yaml",
+      "repository_id": "flare_main",
+      "required_by": [
+        "descriptor",
+        "matching"
+      ],
+      "discovered_from": null,
+      "expected_sha256": "616df359c8820efeb57ac7bacc7ba349c4403766bcbea3729ebe667c1ba6ecb9",
+      "expected_size_bytes": 201,
+      "identity_established": true,
+      "notes": []
+    }
+  ],
+  "local_status": [
+    {
+      "artifact_id": "flare_desc_configs",
+      "identity_frozen": true,
+      "present": true,
+      "verified": true,
+      "findings": []
+    },
+    {
+      "artifact_id": "flare_enh_source_archive",
+      "identity_frozen": true,
+      "present": true,
+      "verified": true,
+      "findings": []
+    },
+    {
+      "artifact_id": "flare_fdd_checkpoint",
+      "identity_frozen": false,
+      "present": false,
+      "verified": false,
+      "findings": [
+        "no identity has been established for this artifact; its Drive file id is a locator and not a digest"
+      ]
+    },
+    {
+      "artifact_id": "flare_prior_codebook_checkpoint",
+      "identity_frozen": false,
+      "present": false,
+      "verified": false,
+      "findings": [
+        "no identity has been established for this artifact; its Drive file id is a locator and not a digest"
+      ]
+    },
+    {
+      "artifact_id": "flare_priorenh_checkpoint",
+      "identity_frozen": false,
+      "present": false,
+      "verified": false,
+      "findings": [
+        "no identity has been established for this artifact; its Drive file id is a locator and not a digest"
+      ]
+    },
+    {
+      "artifact_id": "flare_priorenh_vq_config",
+      "identity_frozen": true,
+      "present": true,
+      "verified": true,
+      "findings": []
+    },
+    {
+      "artifact_id": "flare_regression_pose_checkpoint",
+      "identity_frozen": false,
+      "present": false,
+      "verified": false,
+      "findings": [
+        "no identity has been established for this artifact; its Drive file id is a locator and not a digest"
+      ]
+    },
+    {
+      "artifact_id": "flare_source_archive",
+      "identity_frozen": true,
+      "present": true,
+      "verified": true,
+      "findings": []
+    },
+    {
+      "artifact_id": "flare_unetenh_checkpoint",
+      "identity_frozen": false,
+      "present": false,
+      "verified": false,
+      "findings": [
+        "no identity has been established for this artifact; its Drive file id is a locator and not a digest"
+      ]
+    },
+    {
+      "artifact_id": "flare_voting_pose_checkpoint",
+      "identity_frozen": false,
+      "present": false,
+      "verified": false,
+      "findings": [
+        "no identity has been established for this artifact; its Drive file id is a locator and not a digest"
+      ]
+    }
+  ]
+}

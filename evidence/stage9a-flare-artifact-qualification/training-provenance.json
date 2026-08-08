@@ -1,0 +1,49 @@
+{
+  "schema": "stage_9a_training_provenance_v1",
+  "paper": "Pan, Guan, Duan, Feng and Zhou, 'Fixed-Length Dense Fingerprint Representation with Alignment and Robust Enhancement', IEEE TIFS vol. 21 (2026) pp. 1751-1765",
+  "preprint": "arXiv:2505.03597v2",
+  "training_datasets": [
+    {
+      "module": "pose estimation",
+      "datasets": [
+        "the Diverse Pose Fingerprint (DPF) dataset: 776 rolled and 40,112 plain fingerprints",
+        "the first 3,200 rolled fingerprints from the gallery portion of NIST SD14"
+      ],
+      "paper_source": "arXiv:2505.03597v2 §IV"
+    },
+    {
+      "module": "enhancement (UNetEnh and PriorEnh)",
+      "datasets": [
+        "the DPF dataset, which is also what the PriorEnh codebook is constructed from"
+      ],
+      "paper_source": "arXiv:2505.03597v2 §IV"
+    },
+    {
+      "module": "fixed-length dense representation (FDRN)",
+      "datasets": [
+        "the first 24,000 pairs of rolled fingerprints from NIST SD14",
+        "32,676 plain fingerprints from 633 fingers"
+      ],
+      "paper_source": "arXiv:2505.03597v2 §IV"
+    }
+  ],
+  "datasets_named_anywhere_in_the_paper": [
+    "NIST SD4",
+    "NIST SD14",
+    "NIST SD27",
+    "NIST SD302",
+    "DPF",
+    "N2N Plain",
+    "FVC2002 DB3A",
+    "FVC2004 DB1A",
+    "FVC2006 DB1A",
+    "THU Latent10K",
+    "PolyU CL2CB"
+  ],
+  "sd300_training_overlap_status": "NO_EVIDENCE_FOUND",
+  "sd300_training_overlap_found": false,
+  "search_performed": "the full text of the pinned preprint was searched for SD300, 'SD 300' and 'Special Database 300'; none appears. NIST SD302 does appear and is a different database",
+  "why_not_proven_absent": "The paper's dataset table is a statement about what the authors describe, not a guarantee about every checkpoint they released. Absence of a mention is absence of evidence, and this project does not upgrade one into the other (spec section 18).",
+  "blocking_rule": "Only positive evidence that the exact released artifacts were trained, validated, hyperparameter-selected, checkpoint-selected or threshold-selected on this project's SD300 evaluation cohort blocks a READY outcome. None was found.",
+  "sd300_data_read_by_this_stage": false
+}

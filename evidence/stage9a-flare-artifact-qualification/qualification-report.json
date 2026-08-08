@@ -1,0 +1,258 @@
+{
+  "schema": "stage_9a_qualification_report_v1",
+  "algorithm_candidate": "flare_fdd_d6_dualpose_dualenh_maxcosine",
+  "outcome": "FLARE_FULL_ROUTE_BLOCKED",
+  "qualification_fingerprint": "28bc61ca2c918a87da3d363c6bc9e803b3cfd1dbc7157ba766ad2aef5a44cb73",
+  "gates": {
+    "all_required_artifacts_identity_established": false,
+    "all_required_artifacts_locally_verified": false,
+    "all_required_research_use_decisions_open_execution": false,
+    "checkpoint_compatibility_resolved": false,
+    "paper_route_resolved": true,
+    "public_code_route_resolved": false,
+    "transform_graph_resolved": false,
+    "material_parameter_provenance_complete": false,
+    "route_model_qualification_holds": true,
+    "training_overlap_with_sd300_found": false,
+    "flare_bytes_tracked_in_git": 0
+  },
+  "blockers": [
+    {
+      "blocker_code": "ARTIFACT_IDENTITY_UNRESOLVED",
+      "affected_component": "flare_fdd_checkpoint, flare_prior_codebook_checkpoint, flare_priorenh_checkpoint, flare_regression_pose_checkpoint, flare_unetenh_checkpoint, flare_voting_pose_checkpoint",
+      "evidence": "artifact-manifest.json: expected_sha256 is null for these artifacts, whose only locator is a Google Drive file id",
+      "why_score_fidelity_cannot_be_established": "A Drive id names a place, not bytes. Two downloads from the same link at different times cannot be shown to be the same artifact, so a score could not be attributed to any particular set of weights."
+    },
+    {
+      "blocker_code": "CHECKPOINT_MODEL_MISMATCH",
+      "affected_component": "flare_fdd_checkpoint, flare_prior_codebook_checkpoint, flare_priorenh_checkpoint, flare_regression_pose_checkpoint, flare_unetenh_checkpoint, flare_voting_pose_checkpoint",
+      "evidence": "checkpoint-compatibility.json: the binding between these checkpoints and their model classes has not been established",
+      "why_score_fidelity_cannot_be_established": "Until a checkpoint is shown to fill exactly the parameters its model needs, an inference-affecting parameter could be silently missing and the network would still run."
+    },
+    {
+      "blocker_code": "FULL_FOUR_BRANCH_ROUTE_UNRESOLVED",
+      "affected_component": "four_branch_orchestration",
+      "evidence": "public-code-route-audit.json: neither repository contains a script that builds four branches; extract_FDD.py takes one pose and no enhancement",
+      "why_score_fidelity_cannot_be_established": "The four branches repeat the transform graph, and the graph is unresolved. Given a settled graph the orchestration is arithmetic; without one there is nothing to repeat."
+    },
+    {
+      "blocker_code": "PAPER_CODE_CONTRADICTION",
+      "affected_component": "alignment_then_enhancement_ordering",
+      "evidence": "public-code-route-audit.json: the paper's statement and the pinned code give different answers for these operations",
+      "why_score_fidelity_cannot_be_established": "The paper places enhancement between alignment and the downsample; the only upstream code that aligns fuses alignment and the downsample into one interpolation of the unenhanced image, leaving no point of insertion. Following either would mean overruling the other."
+    },
+    {
+      "blocker_code": "REQUIRED_ARTIFACT_MISSING",
+      "affected_component": "flare_fdd_checkpoint, flare_prior_codebook_checkpoint, flare_priorenh_checkpoint, flare_regression_pose_checkpoint, flare_unetenh_checkpoint, flare_voting_pose_checkpoint",
+      "evidence": "artifact-manifest.json local_status: these artifacts do not verify against the manifest on the machine that produced this evidence",
+      "why_score_fidelity_cannot_be_established": "An artifact nobody has verified is an artifact whose contribution to a score nobody can reproduce."
+    },
+    {
+      "blocker_code": "RESEARCH_USE_BLOCKED",
+      "affected_component": "flare_fdd_checkpoint, flare_prior_codebook_checkpoint, flare_priorenh_checkpoint, flare_regression_pose_checkpoint, flare_unetenh_checkpoint, flare_voting_pose_checkpoint",
+      "evidence": "third-party-usage-manifest.json: Stage 8E's engine returns BLOCKED for these components",
+      "why_score_fidelity_cannot_be_established": "A component this project may not execute cannot contribute to a score this project produces."
+    },
+    {
+      "blocker_code": "SCORE_AFFECTING_PARAMETER_UNRESOLVED",
+      "affected_component": "aligned_crop_512.border_fill, downsample_512_to_256.interpolation",
+      "evidence": "transform-graph-resolution.json parameter provenance: no source establishes a value for these",
+      "why_score_fidelity_cannot_be_established": "A border fill and a resampling kernel are not free parameters. Choosing them would put fpbench's judgement inside a number published under somebody else's method name (docs/adr/0087)."
+    },
+    {
+      "blocker_code": "TRANSFORM_ORDER_AMBIGUOUS",
+      "affected_component": "aligned_crop_512, downsample_512_to_256",
+      "evidence": "transform-graph-resolution.json: these operations carry no authority from the paper, the pinned code or a pinned inference default",
+      "why_score_fidelity_cannot_be_established": "Every implementation of these operations produces different pixels and therefore different descriptors. A score computed through one of them would be attributable to fpbench's choice rather than to FLARE."
+    }
+  ],
+  "transform_graph": {
+    "operation_count": 17,
+    "score_affecting_count": 17,
+    "authoritative_count": 15,
+    "unresolved_operations": [
+      "aligned_crop_512",
+      "downsample_512_to_256"
+    ],
+    "unresolved_parameters": [
+      "aligned_crop_512.border_fill",
+      "downsample_512_to_256.interpolation"
+    ],
+    "graph_fingerprint": "bd98bf71908e8807b92dedea4becf4380106d2761877826b51ac2cbddffbe6a5"
+  },
+  "public_code_route_audit": {
+    "row_count": 18,
+    "score_affecting_ambiguous": [
+      "aligned_crop_border_fill",
+      "downsample_to_fdrn_input",
+      "four_branch_orchestration"
+    ],
+    "score_affecting_contradictory": [
+      "alignment_then_enhancement_ordering"
+    ],
+    "glue_required_operations": [
+      "alignment_then_enhancement_ordering",
+      "aligned_crop_border_fill",
+      "enhancer_input_geometry",
+      "downsample_to_fdrn_input",
+      "fdrn_input_presentation",
+      "four_branch_orchestration",
+      "max_fusion"
+    ],
+    "audit_fingerprint": "db50faf0dc4ffcdc7f257b7be9681e28f250cd6fd9a88b44c7beefa5bb85a906"
+  },
+  "route_model_qualification": {
+    "case_count": 12,
+    "all_hold": true,
+    "failing": [],
+    "qualification_fingerprint": "4fe6f4ba7d6e21e906c134bb08e5f55542477cb3a6580b8b708b2806deb5e153",
+    "cases": [
+      {
+        "case_id": "a_spatially_varying_mask_changes_the_score",
+        "claim": "a mask that weights some cells more than others gives a different score, which is why rounding the sigmoid mask to a boolean would not be a harmless simplification",
+        "holds": true,
+        "observed": "0.001403922580 against 0.000357262167"
+      },
+      {
+        "case_id": "a_uniform_mask_rescaling_does_not_change_the_score",
+        "claim": "scaling a whole mask by a constant multiplies the numerator and both denominator terms' product by the same constant, so the score is unchanged while the clip does not bind. The mask's absolute magnitude carries no information; only its spatial profile does",
+        "holds": true,
+        "observed": "0.000357262167 against 0.000357262167"
+      },
+      {
+        "case_id": "descriptor_and_mask_shapes_match_the_frozen_identity",
+        "claim": "one branch produces 3072 descriptor scalars and 256 mask scalars, and one fingerprint carries four of each",
+        "holds": true,
+        "observed": "3072 descriptor scalars, 256 mask scalars, 12 channels, 4 branches"
+      },
+      {
+        "case_id": "empty_overlap_gives_a_finite_zero",
+        "claim": "with no overlapping foreground the numerator vanishes and the clipped denominator holds at 1e-3, so the score is zero and finite",
+        "holds": true,
+        "observed": "0.0"
+      },
+      {
+        "case_id": "fusion_does_not_depend_on_branch_order",
+        "claim": "a maximum does not depend on the order of its arguments, which is why the branch order is not part of the algorithm",
+        "holds": true,
+        "observed": "0.42 and 0.42"
+      },
+      {
+        "case_id": "fusion_refuses_fewer_than_four_branches",
+        "claim": "a maximum over three branches is a different function and is not this algorithm",
+        "holds": true,
+        "observed": "refused"
+      },
+      {
+        "case_id": "fusion_takes_the_maximum_of_exactly_four_branches",
+        "claim": "the route score is the maximum over the four frozen branches",
+        "holds": true,
+        "observed": "0.42 from voting_priorenh"
+      },
+      {
+        "case_id": "identical_descriptors_under_full_masks_score_one",
+        "claim": "the masked cosine of a descriptor with itself, under masks of one, is one",
+        "holds": true,
+        "observed": "1.000000000000"
+      },
+      {
+        "case_id": "mask_tiling_aligns_block_c_with_channel_c",
+        "claim": "rotating the descriptor by one whole channel block changes the score, which is what shows the tiling is channel-aligned",
+        "holds": true,
+        "observed": "0.580208531320 against 1.000000000000"
+      },
+      {
+        "case_id": "score_is_symmetric_in_its_two_arguments",
+        "claim": "swapping the two fingerprints swaps the two denominator terms and leaves their product, so the score is unchanged",
+        "holds": true,
+        "observed": "0.000357262167 and 0.000357262167"
+      },
+      {
+        "case_id": "score_refuses_a_descriptor_that_does_not_tile_its_mask",
+        "claim": "a descriptor whose length is not the mask length times twelve cannot be scored",
+        "holds": true,
+        "observed": "refused"
+      },
+      {
+        "case_id": "vanishing_overlap_stays_finite",
+        "claim": "as the mask goes to zero the clip keeps the denominator away from zero, so no division by zero can occur",
+        "holds": true,
+        "observed": "4.250e-16"
+      }
+    ]
+  },
+  "flare_exact_byte_guard": {
+    "tracked_file_count": 784,
+    "hashed_file_count": 784,
+    "known_digest_count": 4,
+    "finding_count": 0,
+    "clean": true,
+    "note": "Runs beside Stage 8E's generic guard rather than inside it. Stage 8E is closed, so its hard-coded digest registry is not extended from here (spec sections 3 and 52)."
+  },
+  "what_this_stage_did_not_do": {
+    "sd300_image_bytes_read": false,
+    "sd300_score_rows_read": false,
+    "prior_algorithm_scores_read": false,
+    "calibration_performed": false,
+    "threshold_produced": false,
+    "decision_profile_produced": false,
+    "production_adapter_created": false,
+    "runtime_qualified": false,
+    "benchmark_run_performed": false,
+    "third_party_bytes_added_to_git": false,
+    "stage8e_evidence_changed": false,
+    "upstream_behaviour_modified": false
+  },
+  "score_contract": {
+    "schema": "stage_9a_score_contract_v1",
+    "authority": "Yu-Yy/FLARE@7d13ca72:extract_FDD.py::calculate_score, continuous branch",
+    "paper_source": "arXiv:2505.03597v2 §III-E, Eq. 7 and Eq. 8",
+    "descriptor_shape": [
+      12,
+      16,
+      16
+    ],
+    "descriptor_scalar_count": 3072,
+    "mask_shape": [
+      1,
+      16,
+      16
+    ],
+    "mask_scalar_count": 256,
+    "flattening_order": "channel-major: torch flatten(1) over an (N, C, H, W) tensor gives 256 values for channel 0, then channel 1, and so on for twelve channels",
+    "descriptor_composition": "cat(feature_t, feature_m) over the channel axis, texture branch first",
+    "mask_tiling": "numpy.tile(mask, (1, 12)) repeats the whole 256-value mask block twelve times, so block c aligns with channel c",
+    "mask_semantics": "continuous, the sigmoid output; no threshold is applied",
+    "numerator": "x12 = (m_a * f_a) @ (m_b * f_b).T",
+    "denominator_term_1": "x1 = sqrt((m_a * f_a**2) @ m_b.T)",
+    "denominator_term_2": "x2 = sqrt(m_a @ (f_b**2 * m_b).T)",
+    "denominator_clip": "(x1 * x2).clip(1e-3, None), applied to the product",
+    "branch_score": "score = x12 / (x1 * x2).clip(1e-3, None)",
+    "fusion": "score = max(branch_scores) over the four branches",
+    "dtype": "float32 descriptors and masks; numpy float arithmetic",
+    "score_direction": "HIGHER_IS_MORE_SIMILAR",
+    "degenerate_overlap": {
+      "behaviour": "as the overlap vanishes the numerator goes to zero while the clipped denominator stays at 1e-3, so the branch score goes to zero",
+      "finite": true,
+      "new_policy_required": false,
+      "authority": "Yu-Yy/FLARE@7d13ca72:extract_FDD.py::calculate_score, the clip literal"
+    },
+    "library_cosine_substitution_permitted": false,
+    "mask_scale_invariance": {
+      "property": "multiplying either mask by a positive constant multiplies the numerator and the product of the two denominator terms by the same constant, so the score is unchanged",
+      "holds_while": "the clipped denominator does not bind",
+      "consequence": "the mask's absolute magnitude carries no information in the continuous route; only its spatial profile does. That is another reason not to threshold it — a threshold discards exactly the part that matters"
+    },
+    "notes": [
+      "A library cosine over the two flattened descriptors is not this function. The masks weight the numerator and both denominator terms, each linearly, and the clip is on the product rather than on either factor.",
+      "The paper's Eq. 7 reads as written under binary masks; the implementation generalises it to the sigmoid mask by staying linear in each. Thresholding belongs to the binary branch, which this identity excludes.",
+      "The branch scores are diagnostics of one matcher, not four algorithms. A future adapter returns the maximum and may report the winning branch beside it."
+    ],
+    "diagnostic_branch_scores": [
+      "voting_unetenh",
+      "voting_priorenh",
+      "regression_unetenh",
+      "regression_priorenh"
+    ]
+  }
+}

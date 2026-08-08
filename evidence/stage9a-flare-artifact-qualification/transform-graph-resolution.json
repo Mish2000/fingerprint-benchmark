@@ -1,0 +1,717 @@
+{
+  "schema": "stage_9a_transform_graph_resolution_v1",
+  "graph_fingerprint": "bd98bf71908e8807b92dedea4becf4380106d2761877826b51ac2cbddffbe6a5",
+  "operation_count": 17,
+  "score_affecting_count": 17,
+  "authoritative_count": 15,
+  "resolved": false,
+  "unresolved_operations": [
+    "aligned_crop_512",
+    "downsample_512_to_256"
+  ],
+  "unresolved_parameters": [
+    "aligned_crop_512.border_fill",
+    "downsample_512_to_256.interpolation"
+  ],
+  "operations": [
+    {
+      "operation_id": "decode_canonical500",
+      "stage": "decoder",
+      "description": "read the canonical_500 PNG as a single-channel array of 0..255",
+      "authority": "INTEGRATION_NEUTRAL",
+      "authority_locator": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py::Descdataset.__getitem__ uses cv2.imread(IMREAD_GRAYSCALE); FingerPoseEvalDataset.load_img uses PIL Image.open().convert('L')",
+      "score_affecting": true,
+      "input_dtype": "uint8 PNG bytes, gray8, 500 ppi",
+      "output_dtype": "float32",
+      "geometry": "unchanged from the stored image",
+      "interpolation": "",
+      "padding_mode": "",
+      "padding_value": "",
+      "normalization": "none at this step",
+      "coordinate_convention": "",
+      "rotation_direction": "",
+      "angle_units": "",
+      "rounding_behaviour": "",
+      "branches": [
+        "voting_unetenh",
+        "voting_priorenh",
+        "regression_unetenh",
+        "regression_priorenh"
+      ],
+      "blocks": false,
+      "notes": [
+        "The two upstream entry points decode with different libraries. On a single-channel 8-bit PNG both produce the same array, so the difference cannot move a score here; on a colour or 16-bit input it could, and the canonical profile emits neither (docs/adr/0031)."
+      ]
+    },
+    {
+      "operation_id": "pose_input_center_512",
+      "stage": "pose preprocessing",
+      "description": "translate the image so its centre lands at the centre of a 512x512 canvas; no rotation and no scale",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "authority_locator": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py::FingerPoseEvalDataset.process_img",
+      "score_affecting": true,
+      "input_dtype": "float32 in 0..255",
+      "output_dtype": "float32 in 0..255, shape (1, 512, 512)",
+      "geometry": "tar_shape is derived as rint(max(1, (512*1.0 + 32)//64) * 64) = 512 for a 500 ppi input",
+      "interpolation": "cv2.INTER_LINEAR",
+      "padding_mode": "cv2.BORDER_CONSTANT",
+      "padding_value": "255, white",
+      "normalization": "none; the raw 0..255 values are passed to the estimator",
+      "coordinate_convention": "(x, y) with y increasing downwards",
+      "rotation_direction": "none at this step",
+      "angle_units": "not applicable",
+      "rounding_behaviour": "none; the affine is a pure translation of image centres",
+      "branches": [
+        "voting_unetenh",
+        "voting_priorenh",
+        "regression_unetenh",
+        "regression_priorenh"
+      ],
+      "blocks": false,
+      "notes": [
+        "The scale branch that would low-pass and zoom applies only below 500 ppi; at 500 ppi self.scale is 1.0 and it is skipped."
+      ]
+    },
+    {
+      "operation_id": "pose_forward",
+      "stage": "pose coordinates",
+      "description": "run VotingPose (GRIDNET4) or RegressionPose (FingerPose_2D_Single) over the centred 512x512 image",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "authority_locator": "Yu-Yy/FLARE@7d13ca72:extract_VotingPose.py::valid_pose and Yu-Yy/FLARE@7d13ca72:extract_RegressionPose.py::valid_pose",
+      "score_affecting": true,
+      "input_dtype": "float32 (1, 512, 512)",
+      "output_dtype": "float32 (x, y, theta)",
+      "geometry": "the 512x512 centred frame",
+      "interpolation": "",
+      "padding_mode": "",
+      "padding_value": "",
+      "normalization": "",
+      "coordinate_convention": "",
+      "rotation_direction": "",
+      "angle_units": "degrees",
+      "rounding_behaviour": "",
+      "branches": [
+        "voting_unetenh",
+        "voting_priorenh",
+        "regression_unetenh",
+        "regression_priorenh"
+      ],
+      "blocks": false,
+      "notes": [
+        "RegressionPose decodes its two classification heads through classify2vector_trans and classify2vector_rot and then adds 256 to x and y, which places them in the 512x512 frame."
+      ]
+    },
+    {
+      "operation_id": "pose_back_projection",
+      "stage": "pose coordinates",
+      "description": "map the predicted centre back into original image coordinates with the inverse of the centring transform, and wrap the angle",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "authority_locator": "Yu-Yy/FLARE@7d13ca72:extract_VotingPose.py::valid_pose, pose_2d[:2] = T_inv[:2,:2] @ pose_2d[:2] + T_inv[:2,2]",
+      "score_affecting": true,
+      "input_dtype": "float32 (x, y, theta) in the 512x512 frame",
+      "output_dtype": "float32 (x, y, theta) in original image coordinates",
+      "geometry": "",
+      "interpolation": "",
+      "padding_mode": "",
+      "padding_value": "",
+      "normalization": "",
+      "coordinate_convention": "(x, y) with y increasing downwards",
+      "rotation_direction": "",
+      "angle_units": "degrees",
+      "rounding_behaviour": "theta is wrapped by (theta + 180) % 360 - 180, giving [-180, 180)",
+      "branches": [
+        "voting_unetenh",
+        "voting_priorenh",
+        "regression_unetenh",
+        "regression_priorenh"
+      ],
+      "blocks": false,
+      "notes": [
+        "Both estimators apply the identical back-projection and the identical wrap, so the pose file format is one format."
+      ]
+    },
+    {
+      "operation_id": "alignment_affine_matrix",
+      "stage": "affine matrix",
+      "description": "build the similarity transform that carries the pose centre to the output centre, rotating by theta and scaling by tar_shape[0] / middle_shape[0]",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "authority_locator": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py::affine_matrix and Descdataset.process_img",
+      "score_affecting": true,
+      "input_dtype": "float32 (x, y, theta)",
+      "output_dtype": "float32 3x3 homogeneous matrix, of which the top two rows are used",
+      "geometry": "R = [[cos, -sin], [sin, cos]] * scale; t = R @ (-pose_centre) + output_centre",
+      "interpolation": "",
+      "padding_mode": "",
+      "padding_value": "",
+      "normalization": "",
+      "coordinate_convention": "(x, y) with y increasing downwards; the output centre is tar_shape[::-1] / 2.0",
+      "rotation_direction": "positive theta rotates from +x toward +y, which is clockwise on screen because y points down",
+      "angle_units": "degrees, converted by numpy.deg2rad",
+      "rounding_behaviour": "",
+      "branches": [
+        "voting_unetenh",
+        "voting_priorenh",
+        "regression_unetenh",
+        "regression_priorenh"
+      ],
+      "blocks": false,
+      "notes": [
+        "Under the official configuration scale is 256/512 = 0.5, which is what fuses alignment and the downsample into a single warp. Producing the paper's 512x512 aligned image means calling this with tar_shape = middle_shape and therefore scale 1.0."
+      ]
+    },
+    {
+      "operation_id": "aligned_crop_512",
+      "stage": "512x512 aligned image",
+      "description": "warp the original image by the alignment matrix into a 512x512 canvas, as the image the enhancers are to receive",
+      "authority": "CHOSEN_BY_FPBENCH",
+      "authority_locator": "no upstream code path produces this image: Descdataset.process_img always warps to tar_shape, which the official configuration sets to 256x256, and no other caller of affine_matrix exists",
+      "score_affecting": true,
+      "input_dtype": "float32",
+      "output_dtype": "float32 (512, 512)",
+      "geometry": "512x512 at 500 ppi, the paper's stated intermediate",
+      "interpolation": "cv2.INTER_LINEAR if Descdataset.process_img is reused; nothing upstream states what it should be for this image",
+      "padding_mode": "cv2.BORDER_CONSTANT",
+      "padding_value": "unresolved: Descdataset.process_img passes no borderValue and so fills with 0 *after* normalising, which is mid-grey once denormalised, while FingerPoseEvalDataset fills with 255. The paper says nothing about what surrounds the aligned crop",
+      "normalization": "unresolved: Descdataset normalises with (x - 127.5) / 127.5 before warping, and the enhancer entry points expect 0..255 and normalise again themselves",
+      "coordinate_convention": "",
+      "rotation_direction": "",
+      "angle_units": "",
+      "rounding_behaviour": "",
+      "branches": [
+        "voting_unetenh",
+        "voting_priorenh",
+        "regression_unetenh",
+        "regression_priorenh"
+      ],
+      "blocks": true,
+      "notes": [
+        "This is the first of the two operations that block. Reusing the upstream affine with tar_shape = middle_shape = 512 is legitimate under spec section 25, but the fill value that surrounds the fingerprint in the enhancer's input is not settled by any authority, and a mid-grey frame and a white frame are different inputs to a network trained on fingerprints."
+      ]
+    },
+    {
+      "operation_id": "unetenh_preprocessing",
+      "stage": "enhancer preprocessing",
+      "description": "resize to the next multiple of 16 in each dimension, then normalise with (x - 127.5) / 127.5",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "authority_locator": "Yu-Yy/FLARE_ENH@ee735b03:deploy_unetenh.py::image_read",
+      "score_affecting": true,
+      "input_dtype": "uint8",
+      "output_dtype": "float32 (1, H, W)",
+      "geometry": "h = ceil(h/16)*16 and w = ceil(w/16)*16; on a 512x512 input both are 512 and cv2.resize to the same size is the identity",
+      "interpolation": "cv2.resize with its default, cv2.INTER_LINEAR",
+      "padding_mode": "",
+      "padding_value": "",
+      "normalization": "(x - 127.5) / 127.5",
+      "coordinate_convention": "",
+      "rotation_direction": "",
+      "angle_units": "",
+      "rounding_behaviour": "",
+      "branches": [
+        "voting_unetenh",
+        "regression_unetenh"
+      ],
+      "blocks": false,
+      "notes": [
+        "Only an identity because the paper's aligned crop is already a multiple of 16 on both axes. On an arbitrary original image it resamples, which is what the deploy script was written for."
+      ]
+    },
+    {
+      "operation_id": "priorenh_preprocessing",
+      "stage": "enhancer preprocessing",
+      "description": "pad to a square with white, resize to 512x512, then normalise with (x - 127.5) / 127.5",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "authority_locator": "Yu-Yy/FLARE_ENH@ee735b03:deploy_priorenh.py::image_read",
+      "score_affecting": true,
+      "input_dtype": "uint8",
+      "output_dtype": "float32 (1, 512, 512)",
+      "geometry": "cv2.copyMakeBorder to max(h, w) on the shorter axis, then resize to 512x512; on a 512x512 input the border is zero-width and the resize is the identity",
+      "interpolation": "cv2.resize with its default, cv2.INTER_LINEAR",
+      "padding_mode": "cv2.BORDER_CONSTANT",
+      "padding_value": "255, white",
+      "normalization": "(x - 127.5) / 127.5",
+      "coordinate_convention": "",
+      "rotation_direction": "",
+      "angle_units": "",
+      "rounding_behaviour": "",
+      "branches": [
+        "voting_priorenh",
+        "regression_priorenh"
+      ],
+      "blocks": false,
+      "notes": [
+        "The paper's Table XI gives PriorEnh an input of 512x512, and the training description applies its geometric augmentation to fingerprints of size 512x512 at 500 ppi. Both agree with an aligned crop and not with an arbitrary original image rescaled to 512, which is what this script does when run as documented."
+      ]
+    },
+    {
+      "operation_id": "unetenh_forward",
+      "stage": "enhancement",
+      "description": "SqueezeUNet forward; the two output channels are split [1, 1] and the first is the enhanced image",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "authority_locator": "Yu-Yy/FLARE_ENH@ee735b03:deploy_unetenh.py::deploy_enh",
+      "score_affecting": true,
+      "input_dtype": "float32 (1, 1, H, W)",
+      "output_dtype": "float32 in (0, 1) after the network's sigmoid",
+      "geometry": "",
+      "interpolation": "",
+      "padding_mode": "",
+      "padding_value": "",
+      "normalization": "",
+      "coordinate_convention": "",
+      "rotation_direction": "",
+      "angle_units": "",
+      "rounding_behaviour": "",
+      "branches": [
+        "voting_unetenh",
+        "regression_unetenh"
+      ],
+      "blocks": false,
+      "notes": []
+    },
+    {
+      "operation_id": "priorenh_forward",
+      "stage": "enhancement",
+      "description": "VQFPEnhancer_PCNN.enhance(x, w), with the CFT weight w passed explicitly by the official CLI",
+      "authority": "UPSTREAM_DEFAULT_EXPLICIT",
+      "authority_locator": "Yu-Yy/FLARE_ENH@ee735b03:deploy_priorenh.py, --w default 0.5, passed to enhance()",
+      "score_affecting": true,
+      "input_dtype": "float32 (1, 1, 512, 512)",
+      "output_dtype": "float32, clamped to [-1, 1] by the caller",
+      "geometry": "",
+      "interpolation": "",
+      "padding_mode": "",
+      "padding_value": "",
+      "normalization": "",
+      "coordinate_convention": "",
+      "rotation_direction": "",
+      "angle_units": "",
+      "rounding_behaviour": "",
+      "branches": [
+        "voting_priorenh",
+        "regression_priorenh"
+      ],
+      "blocks": false,
+      "notes": [
+        "The paper defines w in [0, 1] as the weight controlling how much the encoder features modulate the decoder, and gives no value for inference. The method's own signature defaults to 0 and the CLI overrides it to 0.5, so the pinned inference default is 0.5."
+      ]
+    },
+    {
+      "operation_id": "unetenh_postprocessing",
+      "stage": "enhancer postprocessing",
+      "description": "scale (0, 1) to 0..255 as uint8, then resize to the input size",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "authority_locator": "Yu-Yy/FLARE_ENH@ee735b03:deploy_unetenh.py::deploy_enh",
+      "score_affecting": true,
+      "input_dtype": "float32 in (0, 1)",
+      "output_dtype": "uint8",
+      "geometry": "cv2.resize back to (w_org, h_org); the identity at 512x512",
+      "interpolation": "cv2.resize with its default, cv2.INTER_LINEAR",
+      "padding_mode": "",
+      "padding_value": "",
+      "normalization": "",
+      "coordinate_convention": "",
+      "rotation_direction": "",
+      "angle_units": "",
+      "rounding_behaviour": "(enh * 255).astype(uint8), which truncates rather than rounds",
+      "branches": [
+        "voting_unetenh",
+        "regression_unetenh"
+      ],
+      "blocks": false,
+      "notes": []
+    },
+    {
+      "operation_id": "priorenh_postprocessing",
+      "stage": "enhancer postprocessing",
+      "description": "map [-1, 1] to 0..255 as uint8, resize back to the padded square, and remove the padding",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "authority_locator": "Yu-Yy/FLARE_ENH@ee735b03:deploy_priorenh.py::inverse_image",
+      "score_affecting": true,
+      "input_dtype": "float32 in [-1, 1]",
+      "output_dtype": "uint8",
+      "geometry": "resize to max(w_org, h_org) then crop off the padding; both are the identity when the input was already square and 512x512",
+      "interpolation": "cv2.resize with its default, cv2.INTER_LINEAR",
+      "padding_mode": "",
+      "padding_value": "",
+      "normalization": "",
+      "coordinate_convention": "",
+      "rotation_direction": "",
+      "angle_units": "",
+      "rounding_behaviour": "((enh + 1) * 127.5).astype(uint8), which truncates rather than rounds",
+      "branches": [
+        "voting_priorenh",
+        "regression_priorenh"
+      ],
+      "blocks": false,
+      "notes": []
+    },
+    {
+      "operation_id": "downsample_512_to_256",
+      "stage": "256x256 FDRN input",
+      "description": "downsample the enhanced 512x512 image to 256x256",
+      "authority": "CHOSEN_BY_FPBENCH",
+      "authority_locator": "no implementation exists in either repository: the only 2:1 reduction upstream performs is the scale factor inside Descdataset.process_img's single warp, which is applied to the unenhanced original rather than to an enhanced 512x512 image",
+      "score_affecting": true,
+      "input_dtype": "uint8 (512, 512)",
+      "output_dtype": "float32 (256, 256)",
+      "geometry": "512x512 to 256x256, a factor of two on each axis",
+      "interpolation": "unresolved: the paper says only 'downsampled'. cv2.INTER_LINEAR, cv2.INTER_AREA, scipy.ndimage.zoom(order=1) and a second warpAffine with scale 0.5 all produce different pixels, and no authority chooses",
+      "padding_mode": "",
+      "padding_value": "",
+      "normalization": "",
+      "coordinate_convention": "",
+      "rotation_direction": "",
+      "angle_units": "",
+      "rounding_behaviour": "",
+      "branches": [
+        "voting_unetenh",
+        "voting_priorenh",
+        "regression_unetenh",
+        "regression_priorenh"
+      ],
+      "blocks": true,
+      "notes": [
+        "This is the second of the two operations that block, and it is the cleaner of them: it is one function call with at least four reasonable spellings and no upstream implementation to copy."
+      ]
+    },
+    {
+      "operation_id": "fdrn_input_normalization",
+      "stage": "FDRN normalization",
+      "description": "normalise with (x - 127.5) / 127.5 and present the image as a single-channel float32 tensor",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "authority_locator": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py::Descdataset.process_img, and MODEL.input_norm false in model_weights/desc_configs.yaml",
+      "score_affecting": true,
+      "input_dtype": "uint8 or float32 in 0..255",
+      "output_dtype": "float32 (1, 256, 256)",
+      "geometry": "",
+      "interpolation": "",
+      "padding_mode": "",
+      "padding_value": "",
+      "normalization": "(x - 127.5) / 127.5 only; FDD.img_norm is not applied, because input_norm is false in the official configuration",
+      "coordinate_convention": "",
+      "rotation_direction": "",
+      "angle_units": "",
+      "rounding_behaviour": "",
+      "branches": [
+        "voting_unetenh",
+        "voting_priorenh",
+        "regression_unetenh",
+        "regression_priorenh"
+      ],
+      "blocks": false,
+      "notes": [
+        "Upstream applies this normalisation *before* the warp rather than after it. On a linear interpolation the two commute exactly except at the border, where the fill value differs — which is the unresolved parameter of aligned_crop_512."
+      ]
+    },
+    {
+      "operation_id": "fdrn_forward",
+      "stage": "FDRN",
+      "description": "FDD.get_embedding returns the concatenated texture and minutiae descriptors and the sigmoid foreground mask, both flattened",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "authority_locator": "Yu-Yy/FLARE@7d13ca72:models/model_zoo.py::FDD.get_embedding",
+      "score_affecting": true,
+      "input_dtype": "float32 (B, 1, 256, 256)",
+      "output_dtype": "feature (B, 3072) and mask (B, 256); 2D x 16 x 16 and 1 x 16 x 16 with D = 6",
+      "geometry": "16x16 spatial cells, one sixteenth of the 256x256 input",
+      "interpolation": "",
+      "padding_mode": "",
+      "padding_value": "",
+      "normalization": "none after the network",
+      "coordinate_convention": "",
+      "rotation_direction": "",
+      "angle_units": "",
+      "rounding_behaviour": "",
+      "branches": [
+        "voting_unetenh",
+        "voting_priorenh",
+        "regression_unetenh",
+        "regression_priorenh"
+      ],
+      "blocks": false,
+      "notes": [
+        "feature is cat(feature_t, feature_m) over the channel axis and is then flattened in C order, so the descriptor is channel-major: 256 values per channel, twelve channels."
+      ]
+    },
+    {
+      "operation_id": "branch_similarity",
+      "stage": "score",
+      "description": "the overlap-masked cosine of one branch's two descriptors, with the mask tiled across the descriptor channels",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "authority_locator": "Yu-Yy/FLARE@7d13ca72:extract_FDD.py::calculate_score",
+      "score_affecting": true,
+      "input_dtype": "float32 descriptors (3072,) and masks (256,)",
+      "output_dtype": "float32 scalar",
+      "geometry": "",
+      "interpolation": "",
+      "padding_mode": "",
+      "padding_value": "",
+      "normalization": "",
+      "coordinate_convention": "",
+      "rotation_direction": "",
+      "angle_units": "",
+      "rounding_behaviour": "",
+      "branches": [
+        "voting_unetenh",
+        "voting_priorenh",
+        "regression_unetenh",
+        "regression_priorenh"
+      ],
+      "blocks": false,
+      "notes": []
+    },
+    {
+      "operation_id": "max_fusion",
+      "stage": "fusion",
+      "description": "the maximum of the four branch similarities",
+      "authority": "PAPER_EXPLICIT",
+      "authority_locator": "arXiv:2505.03597v2 Eq. 8",
+      "score_affecting": true,
+      "input_dtype": "four float32 scalars",
+      "output_dtype": "one float32 scalar",
+      "geometry": "",
+      "interpolation": "",
+      "padding_mode": "",
+      "padding_value": "",
+      "normalization": "",
+      "coordinate_convention": "",
+      "rotation_direction": "",
+      "angle_units": "",
+      "rounding_behaviour": "",
+      "branches": [
+        "voting_unetenh",
+        "voting_priorenh",
+        "regression_unetenh",
+        "regression_priorenh"
+      ],
+      "blocks": false,
+      "notes": [
+        "There is exactly one way to take a maximum of four numbers, so implementing this in fpbench adds nothing. What has no implementation upstream is the pipeline that produces the four."
+      ]
+    }
+  ],
+  "parameter_provenance": [
+    {
+      "parameter": "input.ppi",
+      "value": "500",
+      "source_type": "official inference configuration",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:model_weights/desc_configs.yaml DATASET.PPI",
+      "authority": "UPSTREAM_DEFAULT_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "descriptor.ndim_feat",
+      "value": "6",
+      "source_type": "official inference configuration",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:model_weights/desc_configs.yaml MODEL.ndim_feat",
+      "authority": "UPSTREAM_DEFAULT_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "descriptor.input_norm",
+      "value": "False",
+      "source_type": "official inference configuration",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:model_weights/desc_configs.yaml MODEL.input_norm",
+      "authority": "UPSTREAM_DEFAULT_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "alignment.middle_shape",
+      "value": "512 x 512",
+      "source_type": "official inference configuration",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:model_weights/desc_configs.yaml MODEL.middle_shape",
+      "authority": "UPSTREAM_DEFAULT_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "fdrn.tar_shape",
+      "value": "256 x 256",
+      "source_type": "official inference configuration",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:model_weights/desc_configs.yaml MODEL.tar_shape",
+      "authority": "UPSTREAM_DEFAULT_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "pose.middle_shape",
+      "value": "512 x 512",
+      "source_type": "pinned source literal",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:extract_VotingPose.py",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "pose.img_ppi",
+      "value": "500",
+      "source_type": "pinned source literal",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:extract_VotingPose.py",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "pose.warp_border_value",
+      "value": "255",
+      "source_type": "pinned source literal",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py::FingerPoseEvalDataset.process_img",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "pose.warp_interpolation",
+      "value": "cv2.INTER_LINEAR",
+      "source_type": "pinned source literal",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py::FingerPoseEvalDataset.process_img",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "pose.angle_units",
+      "value": "degrees",
+      "source_type": "pinned source",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py::Descdataset.process_img uses numpy.deg2rad",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "pose.angle_wrap",
+      "value": "[-180, 180)",
+      "source_type": "pinned source literal",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:extract_RegressionPose.py::valid_pose",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "alignment.rotation_matrix",
+      "value": "[[cos, -sin], [sin, cos]] * scale, applied to (x, y) with y downwards",
+      "source_type": "pinned source",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py::affine_matrix",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "alignment.output_centre",
+      "value": "tar_shape[::-1] / 2.0",
+      "source_type": "pinned source",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py::Descdataset.process_img",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "alignment.warp_interpolation",
+      "value": "cv2.INTER_LINEAR",
+      "source_type": "pinned source literal",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py::Descdataset.process_img",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "aligned_crop_512.border_fill",
+      "value": "unresolved: 0 after normalisation in one upstream warp, 255 in the other",
+      "source_type": "no authority",
+      "source_locator": "the two warps in datasets/FPdataset.py disagree",
+      "authority": "CHOSEN_BY_FPBENCH",
+      "blocks": true
+    },
+    {
+      "parameter": "downsample_512_to_256.interpolation",
+      "value": "unresolved: the paper names the size and no upstream code performs it",
+      "source_type": "no authority",
+      "source_locator": "arXiv:2505.03597v2 §III-E states only 'downsampled to 256x256'",
+      "authority": "CHOSEN_BY_FPBENCH",
+      "blocks": true
+    },
+    {
+      "parameter": "unetenh.pre_enh",
+      "value": "False",
+      "source_type": "official inference default",
+      "source_locator": "Yu-Yy/FLARE_ENH@ee735b03:deploy_unetenh.py --pre_enh",
+      "authority": "UPSTREAM_DEFAULT_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "priorenh.pre_enh",
+      "value": "False",
+      "source_type": "official inference default",
+      "source_locator": "Yu-Yy/FLARE_ENH@ee735b03:deploy_priorenh.py --pre_enh",
+      "authority": "UPSTREAM_DEFAULT_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "priorenh.w",
+      "value": "0.5",
+      "source_type": "official inference default",
+      "source_locator": "Yu-Yy/FLARE_ENH@ee735b03:deploy_priorenh.py --w",
+      "authority": "UPSTREAM_DEFAULT_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "priorenh.input_size",
+      "value": "512",
+      "source_type": "official inference default and paper table",
+      "source_locator": "Yu-Yy/FLARE_ENH@ee735b03:deploy_priorenh.py::image_read size=512; arXiv:2505.03597v2 Table XI",
+      "authority": "UPSTREAM_DEFAULT_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "priorenh.n_codebook",
+      "value": "4096",
+      "source_type": "official configuration and paper",
+      "source_locator": "Yu-Yy/FLARE_ENH@ee735b03:pretrained_model/priorenh/vq.yaml n_codebook; arXiv:2505.03597v2 §IV",
+      "authority": "UPSTREAM_DEFAULT_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "priorenh.embed_dim",
+      "value": "3",
+      "source_type": "official configuration and paper",
+      "source_locator": "Yu-Yy/FLARE_ENH@ee735b03:pretrained_model/priorenh/vq.yaml embed_dim; arXiv:2505.03597v2 §IV",
+      "authority": "UPSTREAM_DEFAULT_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "fdrn.input_normalization",
+      "value": "(x - 127.5) / 127.5",
+      "source_type": "pinned source",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:datasets/FPdataset.py::Descdataset.process_img",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "matching.mask_tiling",
+      "value": "numpy.tile(mask, (1, 2D)) with 2D = 12",
+      "source_type": "pinned source",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:extract_FDD.py::calculate_score",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "matching.mask_threshold",
+      "value": "none in the continuous route",
+      "source_type": "pinned source",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:extract_FDD.py::calculate_score",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "matching.denominator_clip",
+      "value": "clip(1e-3, None) on the product x1 * x2",
+      "source_type": "pinned source literal",
+      "source_locator": "Yu-Yy/FLARE@7d13ca72:extract_FDD.py::calculate_score",
+      "authority": "UPSTREAM_CODE_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "matching.binary",
+      "value": "False",
+      "source_type": "paper and identity",
+      "source_locator": "arXiv:2505.03597v2 §III-E Eq. 7",
+      "authority": "PAPER_EXPLICIT",
+      "blocks": false
+    },
+    {
+      "parameter": "fusion.reduction",
+      "value": "max over the four branches",
+      "source_type": "paper",
+      "source_locator": "arXiv:2505.03597v2 §III-E Eq. 8",
+      "authority": "PAPER_EXPLICIT",
+      "blocks": false
+    }
+  ]
+}

@@ -1,0 +1,291 @@
+{
+  "schema": "stage_9a_third_party_usage_manifest_v1",
+  "manifest_id": "flare_third_party_usage",
+  "subject": "every third-party component of the full FLARE route: two official source repositories, six checkpoints and two inference configurations",
+  "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+  "policy_fingerprint": "de9cdbaa23522c4a15337d86b0ec2df8af8b79383a1f8014294e8c7855bf972a",
+  "manifest_fingerprint": "31a2a647ef4192b022eef9dd417d957bc981dfffd4c081426a2625c8fa2dc96a",
+  "audit_fingerprint": "75f8b0393abbd10a2256e0caf7d89ac094c4ae15dbbebf573a54ec29d975a081",
+  "opens_execution": false,
+  "by_decision": {
+    "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION": 4,
+    "BLOCKED": 6
+  },
+  "by_license_observation_status": {
+    "CONFLICTING_NOTICES": 4,
+    "UNKNOWN": 6
+  },
+  "by_component_kind": {
+    "MODEL_WEIGHTS": 6,
+    "OTHER_ARTIFACT": 2,
+    "SOURCE_CODE": 2
+  },
+  "records": [
+    {
+      "record_id": "flare_desc_configs",
+      "component_role": "desc_configs.yaml, the FDD inference configuration",
+      "component_kind": "OTHER_ARTIFACT",
+      "license_observation_status": "CONFLICTING_NOTICES",
+      "license_observation_fingerprint": "44aab40ee023e7c934f4450b9dcfcdf67b50d0e8d66f504140ffee4e7603de3c",
+      "license_evidence_locators": [
+        "https://github.com/Yu-Yy/FLARE/blob/7d13ca727d55cf43642f9fe1e67df785091fd7c2/LICENSE",
+        "https://github.com/Yu-Yy/FLARE/blob/7d13ca727d55cf43642f9fe1e67df785091fd7c2/README.md"
+      ],
+      "research_use_decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+      "research_use_assessment_fingerprint": "5d2a5060b88a07c5b5c6f459bc585756709e8221074dd7a7240c59ea0a5681f3",
+      "intended_use_permission_status": "ESTABLISHED",
+      "non_blocking_restrictions": [
+        "ACADEMIC_OR_RESEARCH_ONLY",
+        "ATTRIBUTION_AND_NOTICE_RETENTION",
+        "COMMERCIAL_LICENSE_REQUIRED_FOR_COMMERCIAL_DEPLOYMENT",
+        "EDUCATIONAL_ONLY",
+        "NON_COMMERCIAL_ONLY",
+        "NOTICE_CONFLICT_WITH_PERMISSIVE_INTERSECTION"
+      ],
+      "blockers": [],
+      "intersection_permits_intended_use": true,
+      "owner_risk_acceptance": false,
+      "redistribution_decision": "CONDITIONAL",
+      "redistributed_by_fpbench": false,
+      "storage_class": "LOCAL_ARTIFACT_STORE",
+      "stored_in_git": false,
+      "stored_in_ci_artifacts": false,
+      "usage_fingerprint": "9befe506d706cac78ca220f7ab3a3a6cf3934ff4fed1320a3e5d03e526339652"
+    },
+    {
+      "record_id": "flare_enh_source_archive",
+      "component_role": "FLARE_ENH source snapshot",
+      "component_kind": "SOURCE_CODE",
+      "license_observation_status": "CONFLICTING_NOTICES",
+      "license_observation_fingerprint": "dcfaac173c6afd08425c58c42e7f6af8d713d15dd595e622fdfdd60f83830e61",
+      "license_evidence_locators": [
+        "https://github.com/Yu-Yy/FLARE_ENH/blob/ee735b03669aa0d9e086b50c7d9b1771913a2ba4/LICENSE",
+        "https://github.com/Yu-Yy/FLARE_ENH/blob/ee735b03669aa0d9e086b50c7d9b1771913a2ba4/README.md"
+      ],
+      "research_use_decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+      "research_use_assessment_fingerprint": "134f2e53f4aa506163cf58a7071af6278cfb7b785a91c91020a7ebb5c8fab8ef",
+      "intended_use_permission_status": "ESTABLISHED",
+      "non_blocking_restrictions": [
+        "ACADEMIC_OR_RESEARCH_ONLY",
+        "ATTRIBUTION_AND_NOTICE_RETENTION",
+        "COMMERCIAL_LICENSE_REQUIRED_FOR_COMMERCIAL_DEPLOYMENT",
+        "EDUCATIONAL_ONLY",
+        "NON_COMMERCIAL_ONLY",
+        "NOTICE_CONFLICT_WITH_PERMISSIVE_INTERSECTION"
+      ],
+      "blockers": [],
+      "intersection_permits_intended_use": true,
+      "owner_risk_acceptance": false,
+      "redistribution_decision": "CONDITIONAL",
+      "redistributed_by_fpbench": false,
+      "storage_class": "LOCAL_ARTIFACT_STORE",
+      "stored_in_git": false,
+      "stored_in_ci_artifacts": false,
+      "usage_fingerprint": "dcecdff4ce33d8cf05788f1daffb1573ff7931ed661eddb77be8477787381cb0"
+    },
+    {
+      "record_id": "flare_fdd_checkpoint",
+      "component_role": "FDD checkpoint",
+      "component_kind": "MODEL_WEIGHTS",
+      "license_observation_status": "UNKNOWN",
+      "license_observation_fingerprint": "1c8de33a6cb682044833dae8e3d35f8b4ef677a1fa3669147bf8f2c856cbc508",
+      "license_evidence_locators": [],
+      "research_use_decision": "BLOCKED",
+      "research_use_assessment_fingerprint": "e2bd69ccf70bf20910955b3bb5d83d5285da0d3e9d70f6c82fbfe1a740039dcf",
+      "intended_use_permission_status": "UNRESOLVED",
+      "non_blocking_restrictions": [],
+      "blockers": [
+        "ARTIFACT_IDENTITY_NOT_ESTABLISHED"
+      ],
+      "intersection_permits_intended_use": false,
+      "owner_risk_acceptance": false,
+      "redistribution_decision": "NOT_ESTABLISHED",
+      "redistributed_by_fpbench": false,
+      "storage_class": "LOCAL_ARTIFACT_STORE",
+      "stored_in_git": false,
+      "stored_in_ci_artifacts": false,
+      "usage_fingerprint": "57f5e1b21a792e12e23ddddd54cd22c1103d02a09bbb4a351add2f15cf0010fd"
+    },
+    {
+      "record_id": "flare_prior_codebook_checkpoint",
+      "component_role": "Prior / VQ artifact required by PriorEnh",
+      "component_kind": "MODEL_WEIGHTS",
+      "license_observation_status": "UNKNOWN",
+      "license_observation_fingerprint": "44fd9f4abb52dbe4e5e39577ed3eca712475cb759f2a2171e6cb03439d54cda5",
+      "license_evidence_locators": [],
+      "research_use_decision": "BLOCKED",
+      "research_use_assessment_fingerprint": "ce2a09f662a5dd4f6b631cc0b65586571d93a5dd09eb91cba65d68fd9623e410",
+      "intended_use_permission_status": "UNRESOLVED",
+      "non_blocking_restrictions": [],
+      "blockers": [
+        "ARTIFACT_IDENTITY_NOT_ESTABLISHED"
+      ],
+      "intersection_permits_intended_use": false,
+      "owner_risk_acceptance": false,
+      "redistribution_decision": "NOT_ESTABLISHED",
+      "redistributed_by_fpbench": false,
+      "storage_class": "LOCAL_ARTIFACT_STORE",
+      "stored_in_git": false,
+      "stored_in_ci_artifacts": false,
+      "usage_fingerprint": "43c5fa1156dc035dcd795aac5ec8162b83aa6ae0e573d8bcb57e3cf2994bf8c5"
+    },
+    {
+      "record_id": "flare_priorenh_checkpoint",
+      "component_role": "PriorEnh checkpoint",
+      "component_kind": "MODEL_WEIGHTS",
+      "license_observation_status": "UNKNOWN",
+      "license_observation_fingerprint": "3d417ee7d8de8088dd9858924e8edacb22e7a63af9b3edfcf391d7afb0e0cbdb",
+      "license_evidence_locators": [],
+      "research_use_decision": "BLOCKED",
+      "research_use_assessment_fingerprint": "72ec3609dd12e28015efe6ffc633b12e90ab5d01be1a9b3f93253bf3db53cc44",
+      "intended_use_permission_status": "UNRESOLVED",
+      "non_blocking_restrictions": [],
+      "blockers": [
+        "ARTIFACT_IDENTITY_NOT_ESTABLISHED"
+      ],
+      "intersection_permits_intended_use": false,
+      "owner_risk_acceptance": false,
+      "redistribution_decision": "NOT_ESTABLISHED",
+      "redistributed_by_fpbench": false,
+      "storage_class": "LOCAL_ARTIFACT_STORE",
+      "stored_in_git": false,
+      "stored_in_ci_artifacts": false,
+      "usage_fingerprint": "364bdf0e46056963a400bc09df6b3b2926335c2876128598d22fa1572e19d34d"
+    },
+    {
+      "record_id": "flare_priorenh_vq_config",
+      "component_role": "vq.yaml, the PriorEnh construction configuration",
+      "component_kind": "OTHER_ARTIFACT",
+      "license_observation_status": "CONFLICTING_NOTICES",
+      "license_observation_fingerprint": "4309b2e1909639328ff841d829eeea2571a348432de0fc1e6d07c77a4e46d056",
+      "license_evidence_locators": [
+        "https://github.com/Yu-Yy/FLARE_ENH/blob/ee735b03669aa0d9e086b50c7d9b1771913a2ba4/LICENSE",
+        "https://github.com/Yu-Yy/FLARE_ENH/blob/ee735b03669aa0d9e086b50c7d9b1771913a2ba4/README.md"
+      ],
+      "research_use_decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+      "research_use_assessment_fingerprint": "095202258cd9b42ed0d7116a3444b616e1807ad73d234d1d5235e0a080c41d84",
+      "intended_use_permission_status": "ESTABLISHED",
+      "non_blocking_restrictions": [
+        "ACADEMIC_OR_RESEARCH_ONLY",
+        "ATTRIBUTION_AND_NOTICE_RETENTION",
+        "COMMERCIAL_LICENSE_REQUIRED_FOR_COMMERCIAL_DEPLOYMENT",
+        "EDUCATIONAL_ONLY",
+        "NON_COMMERCIAL_ONLY",
+        "NOTICE_CONFLICT_WITH_PERMISSIVE_INTERSECTION"
+      ],
+      "blockers": [],
+      "intersection_permits_intended_use": true,
+      "owner_risk_acceptance": false,
+      "redistribution_decision": "CONDITIONAL",
+      "redistributed_by_fpbench": false,
+      "storage_class": "LOCAL_ARTIFACT_STORE",
+      "stored_in_git": false,
+      "stored_in_ci_artifacts": false,
+      "usage_fingerprint": "234c992f5fde046eca6c8813c72a4b0a3b2b4467d38a4c431e857f892f179bda"
+    },
+    {
+      "record_id": "flare_regression_pose_checkpoint",
+      "component_role": "RegressionPose checkpoint",
+      "component_kind": "MODEL_WEIGHTS",
+      "license_observation_status": "UNKNOWN",
+      "license_observation_fingerprint": "e03b684d35937e01af0da9abfdf538c53681eb981d8df655bcb9c46c9dddacca",
+      "license_evidence_locators": [],
+      "research_use_decision": "BLOCKED",
+      "research_use_assessment_fingerprint": "19b9aefb8c27c36c925f4e4858109e7e2242ef7a86e407dd4239c51ca773fcd2",
+      "intended_use_permission_status": "UNRESOLVED",
+      "non_blocking_restrictions": [],
+      "blockers": [
+        "ARTIFACT_IDENTITY_NOT_ESTABLISHED"
+      ],
+      "intersection_permits_intended_use": false,
+      "owner_risk_acceptance": false,
+      "redistribution_decision": "NOT_ESTABLISHED",
+      "redistributed_by_fpbench": false,
+      "storage_class": "LOCAL_ARTIFACT_STORE",
+      "stored_in_git": false,
+      "stored_in_ci_artifacts": false,
+      "usage_fingerprint": "1e95b8a1939b6e119d1d162110955e052589b8d8cf0f0473a96ad6f0edf698eb"
+    },
+    {
+      "record_id": "flare_source_archive",
+      "component_role": "FLARE source snapshot",
+      "component_kind": "SOURCE_CODE",
+      "license_observation_status": "CONFLICTING_NOTICES",
+      "license_observation_fingerprint": "81d55d88dbae34b3f5d9658c96ee213ff9f28fe265f8f42244e1b5c80a1b3218",
+      "license_evidence_locators": [
+        "https://github.com/Yu-Yy/FLARE/blob/7d13ca727d55cf43642f9fe1e67df785091fd7c2/LICENSE",
+        "https://github.com/Yu-Yy/FLARE/blob/7d13ca727d55cf43642f9fe1e67df785091fd7c2/README.md"
+      ],
+      "research_use_decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+      "research_use_assessment_fingerprint": "daf2f60a99bf09fc40ee317ad6f9c91acf1b4af7c5886026c895fe5b70efb8e1",
+      "intended_use_permission_status": "ESTABLISHED",
+      "non_blocking_restrictions": [
+        "ACADEMIC_OR_RESEARCH_ONLY",
+        "ATTRIBUTION_AND_NOTICE_RETENTION",
+        "COMMERCIAL_LICENSE_REQUIRED_FOR_COMMERCIAL_DEPLOYMENT",
+        "EDUCATIONAL_ONLY",
+        "NON_COMMERCIAL_ONLY",
+        "NOTICE_CONFLICT_WITH_PERMISSIVE_INTERSECTION"
+      ],
+      "blockers": [],
+      "intersection_permits_intended_use": true,
+      "owner_risk_acceptance": false,
+      "redistribution_decision": "CONDITIONAL",
+      "redistributed_by_fpbench": false,
+      "storage_class": "LOCAL_ARTIFACT_STORE",
+      "stored_in_git": false,
+      "stored_in_ci_artifacts": false,
+      "usage_fingerprint": "a75522d922209ddc700372ea7269679e3daba3d8b1f1e7610596f9b1c72eb3b9"
+    },
+    {
+      "record_id": "flare_unetenh_checkpoint",
+      "component_role": "UNetEnh checkpoint",
+      "component_kind": "MODEL_WEIGHTS",
+      "license_observation_status": "UNKNOWN",
+      "license_observation_fingerprint": "1fdda1c84c2eabcddc50f19c0e3be775cd8f559bcef89f86f4e54e42ca14183c",
+      "license_evidence_locators": [],
+      "research_use_decision": "BLOCKED",
+      "research_use_assessment_fingerprint": "6a59d696f547c9543756713659141c4149b82768db58f7241f4b7af0bb194783",
+      "intended_use_permission_status": "UNRESOLVED",
+      "non_blocking_restrictions": [],
+      "blockers": [
+        "ARTIFACT_IDENTITY_NOT_ESTABLISHED"
+      ],
+      "intersection_permits_intended_use": false,
+      "owner_risk_acceptance": false,
+      "redistribution_decision": "NOT_ESTABLISHED",
+      "redistributed_by_fpbench": false,
+      "storage_class": "LOCAL_ARTIFACT_STORE",
+      "stored_in_git": false,
+      "stored_in_ci_artifacts": false,
+      "usage_fingerprint": "194d49dc6def72596c833994d33e93076e13a7e98b355adf357b7d23958f6256"
+    },
+    {
+      "record_id": "flare_voting_pose_checkpoint",
+      "component_role": "VotingPose checkpoint",
+      "component_kind": "MODEL_WEIGHTS",
+      "license_observation_status": "UNKNOWN",
+      "license_observation_fingerprint": "1ff36e050dfa6e851a8399b21af30109e57366a6a27f3d5bbb25fea0a5b01dee",
+      "license_evidence_locators": [],
+      "research_use_decision": "BLOCKED",
+      "research_use_assessment_fingerprint": "a441c8f43790fe31571a70c5e77b1e08658e361dae885906c3a69854ba78bf7b",
+      "intended_use_permission_status": "UNRESOLVED",
+      "non_blocking_restrictions": [],
+      "blockers": [
+        "ARTIFACT_IDENTITY_NOT_ESTABLISHED"
+      ],
+      "intersection_permits_intended_use": false,
+      "owner_risk_acceptance": false,
+      "redistribution_decision": "NOT_ESTABLISHED",
+      "redistributed_by_fpbench": false,
+      "storage_class": "LOCAL_ARTIFACT_STORE",
+      "stored_in_git": false,
+      "stored_in_ci_artifacts": false,
+      "usage_fingerprint": "4d2d1db2b362131075cce9daa2cb1424d0a1d314f3bdc3c421bf4fd12cc3adbc"
+    }
+  ],
+  "notes": [
+    "Stage 8E decided every one of these. Stage 9A supplied the observations and the facts and supplied no verdict; there is no parameter through which it could have (docs/adr/0082).",
+    "No licence question about FLARE was resolved here. Both repositories carry a permissive LICENSE file and a README that restricts use, and Stage 9A records both without choosing."
+  ]
+}

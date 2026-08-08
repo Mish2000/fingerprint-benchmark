@@ -479,4 +479,66 @@ def certified_build_directory() -> Path | None:
 
 
 def upstream_build_available() -> bool:
-    return certified_build_directory() is not None
+    """Whether this machine has a certified build *it can run*.
+
+    Two questions that look like one. ``certified_build_directory`` answers
+    "where is a build?", which is what a diagnostic message needs. This answers
+    "can the upstream suite execute here?", and those come apart in exactly one
+    situation that this repository actually produces: a Linux build materialised
+    into a Windows checkout under the gitignored ``build/`` directory, where the
+    fallback scan finds it and every test then fails on
+    ``EnvironmentStatus.READY`` rather than skipping.
+
+    The platform comparison uses ``host_target`` for the reason that function
+    exists — so the build script, the adapter and the tests cannot disagree
+    about whether ``AMD64`` and ``x86_64`` are the same machine.
+    """
+    return upstream_build_unavailable_reason() is None
+
+
+#: Set in CI, where a build is supposed to be present. It turns "no runnable
+#: build" from a skip into a failure, so an absent or mis-targeted build cannot
+#: make a job quietly green.
+REQUIRE_UPSTREAM_ENV_VAR = "FPBENCH_REQUIRE_NBIS"
+
+
+def upstream_build_unavailable_reason() -> str | None:
+    """Why the upstream suite cannot run here, or ``None`` if it can.
+
+    A sentence rather than a boolean, because the two ways this fails are not
+    the same event and a reader of a skip line needs to know which one they got.
+    """
+    directory = certified_build_directory()
+    if directory is None:
+        return f"no certified NBIS build; set {BUILD_DIRECTORY_ENV_VAR}"
+    try:
+        manifest = build_manifest_module.read_build_manifest(
+            directory / BUILD_MANIFEST_FILENAME
+        )
+    except Exception as exc:
+        return f"the build manifest at {directory.name} is not readable: {exc}"
+    host = host_target()
+    if manifest.target != host:
+        return (
+            f"the build at {directory.name} targets "
+            f"{manifest.target[0]}/{manifest.target[1]} and this machine is "
+            f"{host[0]}/{host[1]}"
+        )
+    return None
+
+
+def require_runnable_upstream_build() -> None:
+    """Skip the upstream suite, or fail it where a build was promised.
+
+    Called from a module-scoped autouse fixture rather than expressed as a
+    ``skipif``, because ``skipif`` cannot distinguish "not applicable here" from
+    "CI said a build would be here and it is not".
+    """
+    import pytest
+
+    reason = upstream_build_unavailable_reason()
+    if reason is None:
+        return
+    if os.environ.get(REQUIRE_UPSTREAM_ENV_VAR):
+        pytest.fail(f"{REQUIRE_UPSTREAM_ENV_VAR} is set and {reason}")
+    pytest.skip(reason)

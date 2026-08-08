@@ -80,17 +80,27 @@ from nbisworld import (
     prepared_image,
     ridge_payload,
     sealed_repository,
-    upstream_build_available,
+    require_runnable_upstream_build,
 )
 
 pytestmark = [
     pytest.mark.nbis_upstream,
     pytest.mark.upstream,
-    pytest.mark.skipif(
-        not upstream_build_available(),
-        reason="no certified NBIS build; set FPBENCH_NBIS_BUILD_DIR",
-    ),
 ]
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _runnable_build_or_skip() -> None:
+    """A build that exists is not the same as a build this machine can run.
+
+    Expressed as a fixture rather than as a ``skipif`` for two reasons. It says
+    *which* condition applies — no build at all, or a build targeting another
+    platform — and under ``FPBENCH_REQUIRE_NBIS`` it fails instead of skipping,
+    which is what the CI job's comment has always claimed and what a ``skipif``
+    could not deliver.
+    """
+    require_runnable_upstream_build()
+
 
 #: How many repetitions the spec fixes for each determinism claim (section 19).
 XYT_REPEATS = 20

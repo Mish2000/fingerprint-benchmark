@@ -263,40 +263,44 @@ def test_the_nbis_result_set_holds_exactly_six_thousand_rows():
 def test_stage_7c_produced_no_decision_no_metric_and_no_paired_evaluation():
     """Spec section 45: raw results, and nothing downstream of them.
 
-    Derivations are filed under ``derivations/<experiment>/<run>/`` and paired
-    evaluations name their two source runs in their definition, so both are
-    checked where they would actually appear rather than by grepping.
+    This originally asserted that ``decisions/``, ``metrics/`` and
+    ``eligibility/`` did not exist under the run, and that no derivation was
+    filed against it. Both were true when Stage 7C closed and both stopped being
+    true the next day, when Stage 7D derived NBIS decisions and metrics from this
+    exact run — which is Stage 7D's published deliverable, not a violation of
+    Stage 7C's.
+
+    A directory's current contents were the wrong proxy for the claim. The claim
+    is about what *Stage 7C* produced, and the place that records it is Stage
+    7C's own finalization: a raw-run marker, which carries a result set and no
+    derivation identity of any kind. That is checked here instead, and it stays
+    true however many later stages derive from the run.
+
+    What this deliberately does **not** do is police what else is under the run.
+    No test in this repository forbids an unaccounted-for derivation set, and
+    adding that rule here would be inventing a policy under the name of fixing a
+    test.
     """
     import json
 
     run_id = prepared_run_or_skip()
-    run_directory = WORKSPACE / "results" / run_id
-    for forbidden in ("decisions", "metrics", "eligibility"):
-        assert not (run_directory / forbidden).exists(), forbidden
+    finalization = (
+        WORKSPACE / "results" / run_id / "research-finalization.json"
+    )
+    assert finalization.is_file(), finalization
+    marker = json.loads(finalization.read_text(encoding="utf-8"))
 
-    derivations = WORKSPACE / "derivations"
-    if derivations.is_dir():
-        offenders = [
-            f"{experiment.name}/{run.name}"
-            for experiment in derivations.iterdir()
-            if experiment.is_dir()
-            for run in experiment.iterdir()
-            if run.is_dir() and run.name == run_id
-        ]
-        assert offenders == [], offenders
-
-    paired = WORKSPACE / "paired-evaluations"
-    if paired.is_dir():
-        citing = [
-            evaluation.name
-            for evaluation in paired.iterdir()
-            if (evaluation / "definition.json").is_file()
-            and run_id
-            in json.dumps(
-                json.loads((evaluation / "definition.json").read_text("utf-8"))
-            )
-        ]
-        assert citing == [], citing
+    derivation_terms = ("decision", "metric", "eligib", "paired", "derivation")
+    carried = sorted(
+        key
+        for key in marker
+        if any(term in key.lower() for term in derivation_terms)
+    )
+    assert carried == [], (
+        f"the Stage 7C finalization carries derivation identities {carried}; "
+        "it is a raw-run marker and names a result set and nothing downstream"
+    )
+    assert "result_set_fingerprint" in marker, sorted(marker)
 
 
 def test_the_two_finished_result_sets_are_unmoved():

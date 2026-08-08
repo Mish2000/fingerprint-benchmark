@@ -1739,11 +1739,26 @@ def qualification_report_document(
             ],
         },
         "flare_exact_byte_guard": {
-            "tracked_file_count": byte_audit.tracked_file_count,
-            "hashed_file_count": byte_audit.hashed_file_count,
+            # The population is deliberately absent. It is a fact about a
+            # moment — it grows with every commit, including the commit that
+            # publishes this document — so a published count could never be
+            # re-derived from a later tree. The conclusion is stable, and the
+            # conclusion is the evidence. Stage 8E's repository audit excludes
+            # its population from its fingerprint for the same reason.
+            "every_tracked_file_was_hashed": (
+                byte_audit.hashed_file_count == byte_audit.tracked_file_count
+            ),
             "known_digest_count": byte_audit.known_digest_count,
             "finding_count": len(byte_audit.findings),
             "clean": byte_audit.clean,
+            "findings": [
+                {
+                    "path": finding.path,
+                    "artifact_id": finding.artifact_id,
+                    "component_role": finding.component_role,
+                }
+                for finding in byte_audit.findings
+            ],
             "note": (
                 "Runs beside Stage 8E's generic guard rather than inside it. "
                 "Stage 8E is closed, so its hard-coded digest registry is not "

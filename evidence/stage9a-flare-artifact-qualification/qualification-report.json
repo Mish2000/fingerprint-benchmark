@@ -182,11 +182,11 @@
     ]
   },
   "flare_exact_byte_guard": {
-    "tracked_file_count": 784,
-    "hashed_file_count": 784,
+    "every_tracked_file_was_hashed": true,
     "known_digest_count": 4,
     "finding_count": 0,
     "clean": true,
+    "findings": [],
     "note": "Runs beside Stage 8E's generic guard rather than inside it. Stage 8E is closed, so its hard-coded digest registry is not extended from here (spec sections 3 and 52)."
   },
   "what_this_stage_did_not_do": {

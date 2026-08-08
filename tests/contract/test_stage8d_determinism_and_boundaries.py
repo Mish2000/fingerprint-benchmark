@@ -16,6 +16,7 @@ it runs here on every test invocation (spec section 30).
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import textwrap
@@ -191,23 +192,29 @@ def test_the_audit_attributes_a_change_to_the_commit_that_made_it() -> None:
     from fpbench.experiments.stage8d_finalization import (
         _NON_STAGE_8D_COMMITS_IN_SPAN,
         _stage_8d_changed_paths,
+        Stage8DFinalization,
+    )
+    from fpbench.experiments.stage8d_identity import (
+        EVIDENCE_DIRECTORY,
+        STAGE_8D_FINALIZATION_NAME,
     )
 
-    head = subprocess.run(
-        ("git", "-C", str(REPOSITORY_ROOT), "rev-parse", "HEAD"),
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
+    marker = Stage8DFinalization(
+        **json.loads(
+            (REPOSITORY_ROOT / EVIDENCE_DIRECTORY / STAGE_8D_FINALIZATION_NAME)
+            .read_text(encoding="utf-8")
+        )
+    )
+    span_end = marker.verifier_source_commit
 
-    attributed = set(_stage_8d_changed_paths(REPOSITORY_ROOT, head))
+    attributed = set(_stage_8d_changed_paths(REPOSITORY_ROOT, span_end))
     assert attributed, "the audit attributed nothing to Stage 8D"
     assert all(_is_allowed_change(path) for path in attributed), sorted(
         path for path in attributed if not _is_allowed_change(path)
     )
 
-    # The excluded commits are real, are ancestors of HEAD, and did touch paths
-    # Stage 8D is not entitled to — otherwise excluding them would be pointless.
+    # The excluded commits are real and did touch paths Stage 8D is not entitled
+    # to — otherwise excluding them would be pointless.
     for revision in _NON_STAGE_8D_COMMITS_IN_SPAN:
         touched = subprocess.run(
             (

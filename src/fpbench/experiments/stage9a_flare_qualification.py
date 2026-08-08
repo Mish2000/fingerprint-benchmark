@@ -34,15 +34,23 @@ compatible". A READY outcome requires the second.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import math
+import subprocess
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, Mapping
+from pathlib import Path, PurePosixPath
+from typing import Any, Mapping, Sequence
 
-from fpbench.core.flare_errors import FlareCheckpointError
+from fpbench.core.flare_errors import (
+    FlareCheckpointError,
+    FlareQualificationError,
+    Stage9AFinalizationError,
+)
 from fpbench.core.serialization import stable_hash
 from fpbench.experiments import stage9a_flare_artifacts as artifacts
 from fpbench.experiments import stage9a_flare_identity as frozen
+from fpbench.experiments import stage9a_flare_route as route
 
 __all__ = [
     "ConstructorArgument",
@@ -58,6 +66,22 @@ __all__ = [
     "inspect_checkpoint",
     "build_compatibility_report",
     "checkpoint_compatibility_document",
+    "DENOMINATOR_CLIP",
+    "SYNTHETIC_IMAGE_NAMES",
+    "reference_branch_score",
+    "reference_route_score",
+    "write_synthetic_images",
+    "RouteModelCase",
+    "RouteModelQualification",
+    "run_route_model_qualification",
+    "FlareByteFinding",
+    "FlareByteAudit",
+    "flare_artifact_digests",
+    "audit_tracked_bytes_against_flare_artifacts",
+    "require_no_flare_bytes_in_git",
+    "QualificationOutcome",
+    "build_qualification_report",
+    "qualification_report_document",
 ]
 
 #: Neither loader in either repository passes ``strict``. ``load_state_dict``
@@ -810,4 +834,934 @@ def checkpoint_compatibility_document(
             "without comment. That is why skipped keys are counted here rather "
             "than taken from the loader.",
         ],
+    }
+
+
+# ------------------------------------------------------------ the route model
+#
+# A *model* of the score contract, not an adapter. It exists so the arithmetic
+# frozen in stage9a_flare_route.score_contract() can be exercised — is it
+# symmetric, does it reach one for identical inputs, does it stay finite when
+# two foregrounds barely overlap, does the continuous mask actually matter — and
+# it computes over lists of floats that no fingerprint produced. Stage 9B builds
+# the adapter; this cannot become one, because it never sees an image, a
+# checkpoint or a network (spec sections 38 and 43).
+
+#: The clip upstream applies to the product of the two denominator terms.
+DENOMINATOR_CLIP = 1e-3
+
+#: The synthetic images a local smoke run needs. Generated into a temporary
+#: directory at test time and never committed: the repository guard allows ten
+#: historical imaging fixtures by name and nothing else (spec section 39).
+SYNTHETIC_IMAGE_NAMES: tuple[str, ...] = (
+    "synthetic_white_512.png",
+    "synthetic_black_512.png",
+    "synthetic_gradient_512.png",
+    "synthetic_ridges_512.png",
+    "synthetic_rectangle_640x480.png",
+    "synthetic_odd_513x407.png",
+)
+
+
+def _tiled(mask: Sequence[float], channels: int) -> list[float]:
+    """``numpy.tile(mask, (1, channels))`` for one row, in plain Python.
+
+    The whole 256-value block is repeated, so block ``c`` lines up with channel
+    ``c`` of a descriptor that was flattened channel-major. Getting this wrong
+    would silently compare a mask cell against the wrong channel and still
+    produce a plausible number.
+    """
+    return list(mask) * channels
+
+
+def reference_branch_score(
+    descriptor_a: Sequence[float],
+    descriptor_b: Sequence[float],
+    mask_a: Sequence[float],
+    mask_b: Sequence[float],
+    *,
+    channels: int = 2 * frozen.DESCRIPTOR_FEATURE_DIMENSION,
+) -> float:
+    """One branch's overlap-masked cosine, exactly as upstream computes it.
+
+    Transcribed from the continuous branch of ``calculate_score``: both masks
+    multiply the numerator and both denominator terms, each linearly, and the
+    clip is applied to the *product* of the terms rather than to either of them.
+
+    Raises:
+        FlareQualificationError: the lengths do not agree with the frozen
+            descriptor and mask shapes. A score over mismatched vectors is a
+            number nobody can interpret.
+    """
+    if len(descriptor_a) != len(descriptor_b):
+        raise FlareQualificationError("the two descriptors have different lengths")
+    if len(mask_a) != len(mask_b):
+        raise FlareQualificationError("the two masks have different lengths")
+    if len(descriptor_a) != len(mask_a) * channels:
+        raise FlareQualificationError(
+            f"a descriptor of {len(descriptor_a)} values does not tile a mask of "
+            f"{len(mask_a)} values across {channels} channels"
+        )
+    tiled_a = _tiled(mask_a, channels)
+    tiled_b = _tiled(mask_b, channels)
+    numerator = 0.0
+    term_1 = 0.0
+    term_2 = 0.0
+    for index, (value_a, value_b) in enumerate(zip(descriptor_a, descriptor_b)):
+        weight_a = tiled_a[index]
+        weight_b = tiled_b[index]
+        numerator += (weight_a * value_a) * (weight_b * value_b)
+        term_1 += weight_a * value_a * value_a * weight_b
+        term_2 += weight_a * value_b * value_b * weight_b
+    denominator = math.sqrt(term_1) * math.sqrt(term_2)
+    return numerator / max(denominator, DENOMINATOR_CLIP)
+
+
+def reference_route_score(
+    branch_scores: Mapping[str, float],
+) -> tuple[float, str]:
+    """The maximum of the four branch scores, and which branch won.
+
+    Raises:
+        FlareQualificationError: fewer or more than the four frozen branches.
+            A maximum over three is a different function from a maximum over
+            four, and it is not this algorithm (docs/adr/0085).
+    """
+    expected = {branch.branch_id for branch in frozen.BRANCHES}
+    present = set(branch_scores)
+    if present != expected:
+        raise FlareQualificationError(
+            f"the route fuses exactly {sorted(expected)} and was given "
+            f"{sorted(present)}"
+        )
+    winner = max(expected, key=lambda name: (branch_scores[name], name))
+    return branch_scores[winner], winner
+
+
+def write_synthetic_images(directory: Path) -> tuple[Path, ...]:
+    """Generate the smoke images into a caller-supplied directory.
+
+    White, black, a gradient, a ridge-like pattern, a rectangle and an
+    odd-sized image — enough to exercise geometry handling without any
+    fingerprint existing anywhere near the process. Nothing real is used for
+    artifact qualification (spec section 40).
+
+    Raises:
+        FlareQualificationError: the directory is inside this repository. These
+            are generated at test time precisely so that they are never
+            committed, and a helper that could write into the tree would make
+            that an accident away from being untrue.
+    """
+    from PIL import Image  # noqa: PLC0415 - only needed when images are wanted
+
+    directory = Path(directory)
+    repository = Path(__file__).resolve().parents[3]
+    try:
+        resolved = directory.resolve()
+    except OSError as exc:  # pragma: no cover - unreadable path
+        raise FlareQualificationError(f"cannot resolve {directory}: {exc}") from exc
+    if resolved == repository or repository in resolved.parents:
+        raise FlareQualificationError(
+            f"{resolved} is inside the repository. Stage 9A adds no image to "
+            "this tree; the synthetic fixtures are generated into a temporary "
+            "directory at test time (spec section 39)"
+        )
+    directory.mkdir(parents=True, exist_ok=True)
+
+    def _save(name: str, width: int, height: int, pixel) -> Path:
+        image = Image.new("L", (width, height))
+        image.putdata([pixel(x, y) for y in range(height) for x in range(width)])
+        path = directory / name
+        image.save(path, format="PNG")
+        return path
+
+    written = (
+        _save("synthetic_white_512.png", 512, 512, lambda x, y: 255),
+        _save("synthetic_black_512.png", 512, 512, lambda x, y: 0),
+        _save("synthetic_gradient_512.png", 512, 512, lambda x, y: (x * 255) // 511),
+        _save(
+            "synthetic_ridges_512.png",
+            512,
+            512,
+            lambda x, y: 255 if ((x + y) // 6) % 2 else 0,
+        ),
+        _save(
+            "synthetic_rectangle_640x480.png",
+            640,
+            480,
+            lambda x, y: 255 if 100 < x < 540 and 80 < y < 400 else 0,
+        ),
+        _save(
+            "synthetic_odd_513x407.png",
+            513,
+            407,
+            lambda x, y: (x * 7 + y * 5) % 256,
+        ),
+    )
+    return written
+
+
+@dataclass(frozen=True, slots=True)
+class RouteModelCase:
+    """One property of the frozen score contract, exercised and recorded."""
+
+    case_id: str
+    claim: str
+    holds: bool
+    observed: str
+
+
+@dataclass(frozen=True, slots=True)
+class RouteModelQualification:
+    """Every property, and whether the contract as written actually has it."""
+
+    cases: tuple[RouteModelCase, ...]
+    qualification_fingerprint: str
+
+    @property
+    def all_hold(self) -> bool:
+        return bool(self.cases) and all(case.holds for case in self.cases)
+
+    @property
+    def failing(self) -> tuple[str, ...]:
+        return tuple(case.case_id for case in self.cases if not case.holds)
+
+
+def _constant(value: float, length: int) -> list[float]:
+    return [value] * length
+
+
+def run_route_model_qualification() -> RouteModelQualification:
+    """Exercise the score contract over vectors no fingerprint produced.
+
+    Structural qualification, not accuracy. None of these cases says FLARE
+    recognises anything; they say the arithmetic this stage froze is the
+    arithmetic it claims to be.
+    """
+    scalars = frozen.DESCRIPTOR_SCALAR_COUNT
+    cells = frozen.MASK_SCALAR_COUNT
+    channels = 2 * frozen.DESCRIPTOR_FEATURE_DIMENSION
+    cases: list[RouteModelCase] = []
+
+    descriptor = [((index % 17) - 8) / 8.0 for index in range(scalars)]
+    other = [((index % 11) - 5) / 5.0 for index in range(scalars)]
+    full = _constant(1.0, cells)
+    empty = _constant(0.0, cells)
+    half = _constant(0.5, cells)
+
+    identical = reference_branch_score(descriptor, descriptor, full, full)
+    cases.append(
+        RouteModelCase(
+            case_id="identical_descriptors_under_full_masks_score_one",
+            claim=(
+                "the masked cosine of a descriptor with itself, under masks of "
+                "one, is one"
+            ),
+            holds=abs(identical - 1.0) < 1e-9,
+            observed=f"{identical:.12f}",
+        )
+    )
+
+    forward = reference_branch_score(descriptor, other, full, half)
+    backward = reference_branch_score(other, descriptor, half, full)
+    cases.append(
+        RouteModelCase(
+            case_id="score_is_symmetric_in_its_two_arguments",
+            claim=(
+                "swapping the two fingerprints swaps the two denominator terms "
+                "and leaves their product, so the score is unchanged"
+            ),
+            holds=abs(forward - backward) < 1e-12,
+            observed=f"{forward:.12f} and {backward:.12f}",
+        )
+    )
+
+    disjoint = reference_branch_score(descriptor, other, full, empty)
+    cases.append(
+        RouteModelCase(
+            case_id="empty_overlap_gives_a_finite_zero",
+            claim=(
+                "with no overlapping foreground the numerator vanishes and the "
+                "clipped denominator holds at 1e-3, so the score is zero and "
+                "finite"
+            ),
+            holds=disjoint == 0.0 and math.isfinite(disjoint),
+            observed=f"{disjoint!r}",
+        )
+    )
+
+    tiny = _constant(1e-9, cells)
+    degenerate = reference_branch_score(descriptor, other, tiny, tiny)
+    cases.append(
+        RouteModelCase(
+            case_id="vanishing_overlap_stays_finite",
+            claim=(
+                "as the mask goes to zero the clip keeps the denominator away "
+                "from zero, so no division by zero can occur"
+            ),
+            holds=math.isfinite(degenerate) and abs(degenerate) < 1.0,
+            observed=f"{degenerate:.3e}",
+        )
+    )
+
+    uniform_half = reference_branch_score(descriptor, other, half, full)
+    uniform_full = reference_branch_score(descriptor, other, full, full)
+    cases.append(
+        RouteModelCase(
+            case_id="a_uniform_mask_rescaling_does_not_change_the_score",
+            claim=(
+                "scaling a whole mask by a constant multiplies the numerator and "
+                "both denominator terms' product by the same constant, so the "
+                "score is unchanged while the clip does not bind. The mask's "
+                "absolute magnitude carries no information; only its spatial "
+                "profile does"
+            ),
+            holds=abs(uniform_half - uniform_full) < 1e-12,
+            observed=f"{uniform_half:.12f} against {uniform_full:.12f}",
+        )
+    )
+
+    profiled = [1.0 if index % 3 else 0.05 for index in range(cells)]
+    varying = reference_branch_score(descriptor, other, profiled, full)
+    cases.append(
+        RouteModelCase(
+            case_id="a_spatially_varying_mask_changes_the_score",
+            claim=(
+                "a mask that weights some cells more than others gives a "
+                "different score, which is why rounding the sigmoid mask to a "
+                "boolean would not be a harmless simplification"
+            ),
+            holds=abs(varying - uniform_full) > 1e-12,
+            observed=f"{varying:.12f} against {uniform_full:.12f}",
+        )
+    )
+
+    shifted = list(descriptor[cells:]) + list(descriptor[:cells])
+    rotated_mask = _constant(1.0, cells)
+    misaligned = reference_branch_score(descriptor, shifted, rotated_mask, rotated_mask)
+    cases.append(
+        RouteModelCase(
+            case_id="mask_tiling_aligns_block_c_with_channel_c",
+            claim=(
+                "rotating the descriptor by one whole channel block changes the "
+                "score, which is what shows the tiling is channel-aligned"
+            ),
+            holds=abs(misaligned - identical) > 1e-9,
+            observed=f"{misaligned:.12f} against {identical:.12f}",
+        )
+    )
+
+    branch_scores = {
+        "voting_unetenh": 0.11,
+        "voting_priorenh": 0.42,
+        "regression_unetenh": 0.37,
+        "regression_priorenh": 0.05,
+    }
+    fused, winner = reference_route_score(branch_scores)
+    cases.append(
+        RouteModelCase(
+            case_id="fusion_takes_the_maximum_of_exactly_four_branches",
+            claim="the route score is the maximum over the four frozen branches",
+            holds=fused == 0.42 and winner == "voting_priorenh",
+            observed=f"{fused} from {winner}",
+        )
+    )
+
+    reordered = dict(reversed(list(branch_scores.items())))
+    reordered_score, _ = reference_route_score(reordered)
+    cases.append(
+        RouteModelCase(
+            case_id="fusion_does_not_depend_on_branch_order",
+            claim=(
+                "a maximum does not depend on the order of its arguments, which "
+                "is why the branch order is not part of the algorithm"
+            ),
+            holds=reordered_score == fused,
+            observed=f"{reordered_score} and {fused}",
+        )
+    )
+
+    incomplete = dict(list(branch_scores.items())[:3])
+    try:
+        reference_route_score(incomplete)
+    except FlareQualificationError:
+        refused = True
+    else:  # pragma: no cover - the refusal is the point
+        refused = False
+    cases.append(
+        RouteModelCase(
+            case_id="fusion_refuses_fewer_than_four_branches",
+            claim=(
+                "a maximum over three branches is a different function and is "
+                "not this algorithm"
+            ),
+            holds=refused,
+            observed="refused" if refused else "accepted three branches",
+        )
+    )
+
+    try:
+        reference_branch_score(descriptor[:-1], other[:-1], full, full)
+    except FlareQualificationError:
+        shape_refused = True
+    else:  # pragma: no cover - the refusal is the point
+        shape_refused = False
+    cases.append(
+        RouteModelCase(
+            case_id="score_refuses_a_descriptor_that_does_not_tile_its_mask",
+            claim=(
+                "a descriptor whose length is not the mask length times twelve "
+                "cannot be scored"
+            ),
+            holds=shape_refused,
+            observed="refused" if shape_refused else "accepted a mismatched pair",
+        )
+    )
+
+    cases.append(
+        RouteModelCase(
+            case_id="descriptor_and_mask_shapes_match_the_frozen_identity",
+            claim=(
+                "one branch produces 3072 descriptor scalars and 256 mask "
+                "scalars, and one fingerprint carries four of each"
+            ),
+            holds=(
+                scalars == 3072
+                and cells == 256
+                and channels == 12
+                and len(frozen.BRANCHES) == frozen.BRANCH_COUNT == 4
+            ),
+            observed=(
+                f"{scalars} descriptor scalars, {cells} mask scalars, "
+                f"{channels} channels, {len(frozen.BRANCHES)} branches"
+            ),
+        )
+    )
+
+    ordered = tuple(sorted(cases, key=lambda case: case.case_id))
+    return RouteModelQualification(
+        cases=ordered,
+        qualification_fingerprint=stable_hash(
+            {
+                "schema": "stage_9a_route_model_qualification_v1",
+                "cases": [
+                    {"case_id": case.case_id, "holds": case.holds}
+                    for case in ordered
+                ],
+            },
+            length=64,
+        ),
+    )
+
+
+# --------------------------------------------------- the FLARE-exact byte guard
+#
+# Stage 8E's guard is generic and its digest registry is hard-coded, and Stage
+# 8E is closed: adding a FLARE digest to it is exactly the edit spec section 3
+# forbids. So Stage 9A carries its own exact-digest guard beside it. Together
+# they give full coverage — the generic rules catch a checkpoint by extension,
+# by name, by size and by path, and this catches these particular bytes however
+# they were renamed (spec section 52).
+
+
+@dataclass(frozen=True, slots=True)
+class FlareByteFinding:
+    """One tracked path whose bytes are a FLARE artifact."""
+
+    path: str
+    artifact_id: str
+    component_role: str
+
+
+@dataclass(frozen=True, slots=True)
+class FlareByteAudit:
+    """What the FLARE-exact guard found across every file Git tracks."""
+
+    tracked_file_count: int
+    hashed_file_count: int
+    known_digest_count: int
+    findings: tuple[FlareByteFinding, ...]
+
+    @property
+    def clean(self) -> bool:
+        return not self.findings
+
+
+def flare_artifact_digests() -> Mapping[str, tuple[str, str]]:
+    """Every FLARE digest this repository pins, keyed by digest.
+
+    Grows by itself as identities are enrolled: an artifact that gains an
+    expected digest gains guard coverage in the same edit, rather than in a
+    second one somebody has to remember.
+    """
+    return {
+        artifact.expected_sha256: (artifact.artifact_id, artifact.component_role)
+        for artifact in frozen.REQUIRED_ARTIFACTS
+        if artifact.expected_sha256 is not None
+    }
+
+
+def _tracked_files(repository_root: Path) -> tuple[str, ...]:
+    try:
+        completed = subprocess.run(
+            ("git", "-C", str(repository_root), "ls-files", "-z"),
+            check=False,
+            capture_output=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise Stage9AFinalizationError(
+            f"cannot read the tracked file list with Git: {exc}"
+        ) from exc
+    if completed.returncode != 0:
+        detail = completed.stderr.decode("utf-8", "replace").strip()
+        raise Stage9AFinalizationError(
+            "cannot read the tracked file list with Git"
+            + (f": {detail}" if detail else "")
+        )
+    names = completed.stdout.decode("utf-8", "surrogateescape").split("\0")
+    return tuple(sorted(name for name in names if name))
+
+
+def audit_tracked_bytes_against_flare_artifacts(
+    repository_root: Path,
+    *,
+    digests: Mapping[str, tuple[str, str]] | None = None,
+) -> FlareByteAudit:
+    """Hash every tracked file and compare it with every FLARE digest.
+
+    Returns a report rather than raising, because the caller publishing evidence
+    needs to say what was scanned even when nothing was found — an audit that
+    only spoke up on failure would be indistinguishable from one that never ran.
+
+    ``digests`` is injectable so that a test can point the guard at a digest it
+    is allowed to reproduce. A guard whose *catching* branch nobody had exercised
+    would be a guard qualified only on the case where it does nothing.
+    """
+    repository_root = Path(repository_root)
+    digests = flare_artifact_digests() if digests is None else dict(digests)
+    paths = _tracked_files(repository_root)
+    findings: list[FlareByteFinding] = []
+    hashed = 0
+    for relative in paths:
+        absolute = repository_root / PurePosixPath(relative)
+        try:
+            payload = absolute.read_bytes()
+        except OSError:
+            # Tracked but absent from this checkout. Nothing to hash; Stage 8E's
+            # name-based rules have already run over it.
+            continue
+        hashed += 1
+        digest = hashlib.sha256(payload).hexdigest()
+        if digest in digests:
+            artifact_id, role = digests[digest]
+            findings.append(
+                FlareByteFinding(
+                    path=relative, artifact_id=artifact_id, component_role=role
+                )
+            )
+    return FlareByteAudit(
+        tracked_file_count=len(paths),
+        hashed_file_count=hashed,
+        known_digest_count=len(digests),
+        findings=tuple(sorted(findings, key=lambda item: item.path)),
+    )
+
+
+def require_no_flare_bytes_in_git(repository_root: Path) -> FlareByteAudit:
+    """The raising form, for a gate.
+
+    Raises:
+        Stage9AFinalizationError: a tracked file is byte-for-byte a FLARE
+            artifact.
+    """
+    audit = audit_tracked_bytes_against_flare_artifacts(repository_root)
+    if not audit.clean:
+        detail = "; ".join(
+            f"{finding.path} is {finding.component_role}"
+            for finding in audit.findings
+        )
+        raise Stage9AFinalizationError(
+            f"FLARE bytes are tracked in this public repository: {detail}"
+        )
+    return audit
+
+
+# ------------------------------------------------------------ the qualification
+
+
+@dataclass(frozen=True, slots=True)
+class QualificationOutcome:
+    """Everything Stage 9A established, and the outcome that follows from it.
+
+    The outcome is *derived*. There is no parameter through which a caller could
+    supply one, for the reason Stage 8E's decision engine has none: a
+    qualification that accepted a verdict and then checked it would be an
+    elaborate way of writing the verdict down.
+    """
+
+    outcome: str
+    blockers: tuple[BlockerDetail, ...]
+
+    all_identities_established: bool
+    all_locally_verified: bool
+    research_use_opens_execution: bool
+    checkpoint_compatibility_established: bool
+    paper_route_resolved: bool
+    public_code_route_resolved: bool
+    transform_graph_resolved: bool
+    parameter_provenance_complete: bool
+    route_model_holds: bool
+    training_overlap_found: bool
+    flare_bytes_in_git: int
+
+    qualification_fingerprint: str
+
+    @property
+    def ready(self) -> bool:
+        return self.outcome == frozen.STAGE_9A_READY_OUTCOME
+
+
+@dataclass(frozen=True, slots=True)
+class BlockerDetail:
+    """One blocker, with what it affects and why fidelity cannot be established."""
+
+    blocker_code: str
+    affected_component: str
+    evidence: str
+    why_score_fidelity_cannot_be_established: str
+
+
+def build_qualification_report(
+    *, repository_root: Path, root: Path | None = None
+) -> QualificationOutcome:
+    """Run every gate and let the outcome follow from what they found."""
+    repository_root = Path(repository_root)
+    artifacts.require_stage8e_is_the_policy_this_reuses(repository_root)
+
+    inventory = artifacts.build_artifact_inventory(
+        root=root, repository_root=repository_root
+    )
+    usage = artifacts.build_flare_usage_audit()
+    compatibility = build_compatibility_report(
+        root=root, repository_root=repository_root
+    )
+    graph = route.resolve_transform_graph()
+    audit = route.public_code_route_audit()
+    model = run_route_model_qualification()
+    provenance = route.training_provenance()
+    byte_audit = audit_tracked_bytes_against_flare_artifacts(repository_root)
+
+    blockers: list[BlockerDetail] = []
+
+    if not inventory.all_identities_established:
+        blockers.append(
+            BlockerDetail(
+                blocker_code=frozen.BlockerCode.ARTIFACT_IDENTITY_UNRESOLVED.value,
+                affected_component=", ".join(
+                    status.artifact_id
+                    for status in inventory.statuses
+                    if not status.identity_frozen
+                ),
+                evidence=(
+                    "artifact-manifest.json: expected_sha256 is null for these "
+                    "artifacts, whose only locator is a Google Drive file id"
+                ),
+                why_score_fidelity_cannot_be_established=(
+                    "A Drive id names a place, not bytes. Two downloads from "
+                    "the same link at different times cannot be shown to be the "
+                    "same artifact, so a score could not be attributed to any "
+                    "particular set of weights."
+                ),
+            )
+        )
+    if not inventory.all_locally_verified:
+        blockers.append(
+            BlockerDetail(
+                blocker_code=frozen.BlockerCode.REQUIRED_ARTIFACT_MISSING.value,
+                affected_component=", ".join(inventory.missing),
+                evidence=(
+                    "artifact-manifest.json local_status: these artifacts do not "
+                    "verify against the manifest on the machine that produced "
+                    "this evidence"
+                ),
+                why_score_fidelity_cannot_be_established=(
+                    "An artifact nobody has verified is an artifact whose "
+                    "contribution to a score nobody can reproduce."
+                ),
+            )
+        )
+    if not usage.opens_execution:
+        blockers.append(
+            BlockerDetail(
+                blocker_code=frozen.BlockerCode.RESEARCH_USE_BLOCKED.value,
+                affected_component=", ".join(
+                    mapping.artifact_id for mapping in usage.blocked
+                ),
+                evidence=(
+                    "third-party-usage-manifest.json: Stage 8E's engine returns "
+                    "BLOCKED for these components"
+                ),
+                why_score_fidelity_cannot_be_established=(
+                    "A component this project may not execute cannot contribute "
+                    "to a score this project produces."
+                ),
+            )
+        )
+    if not compatibility.all_established:
+        blockers.append(
+            BlockerDetail(
+                blocker_code=frozen.BlockerCode.CHECKPOINT_MODEL_MISMATCH.value,
+                affected_component=", ".join(compatibility.unestablished),
+                evidence=(
+                    "checkpoint-compatibility.json: the binding between these "
+                    "checkpoints and their model classes has not been "
+                    "established"
+                ),
+                why_score_fidelity_cannot_be_established=(
+                    "Until a checkpoint is shown to fill exactly the parameters "
+                    "its model needs, an inference-affecting parameter could be "
+                    "silently missing and the network would still run."
+                ),
+            )
+        )
+    if graph.unresolved_operations:
+        blockers.append(
+            BlockerDetail(
+                blocker_code=frozen.BlockerCode.TRANSFORM_ORDER_AMBIGUOUS.value,
+                affected_component=", ".join(graph.unresolved_operations),
+                evidence=(
+                    "transform-graph-resolution.json: these operations carry no "
+                    "authority from the paper, the pinned code or a pinned "
+                    "inference default"
+                ),
+                why_score_fidelity_cannot_be_established=(
+                    "Every implementation of these operations produces "
+                    "different pixels and therefore different descriptors. A "
+                    "score computed through one of them would be attributable "
+                    "to fpbench's choice rather than to FLARE."
+                ),
+            )
+        )
+    if graph.unresolved_parameters:
+        blockers.append(
+            BlockerDetail(
+                blocker_code=(
+                    frozen.BlockerCode.SCORE_AFFECTING_PARAMETER_UNRESOLVED.value
+                ),
+                affected_component=", ".join(graph.unresolved_parameters),
+                evidence=(
+                    "transform-graph-resolution.json parameter provenance: no "
+                    "source establishes a value for these"
+                ),
+                why_score_fidelity_cannot_be_established=(
+                    "A border fill and a resampling kernel are not free "
+                    "parameters. Choosing them would put fpbench's judgement "
+                    "inside a number published under somebody else's method "
+                    "name (docs/adr/0087)."
+                ),
+            )
+        )
+    if audit.score_affecting_contradictory:
+        blockers.append(
+            BlockerDetail(
+                blocker_code=frozen.BlockerCode.PAPER_CODE_CONTRADICTION.value,
+                affected_component=", ".join(audit.score_affecting_contradictory),
+                evidence=(
+                    "public-code-route-audit.json: the paper's statement and the "
+                    "pinned code give different answers for these operations"
+                ),
+                why_score_fidelity_cannot_be_established=(
+                    "The paper places enhancement between alignment and the "
+                    "downsample; the only upstream code that aligns fuses "
+                    "alignment and the downsample into one interpolation of the "
+                    "unenhanced image, leaving no point of insertion. Following "
+                    "either would mean overruling the other."
+                ),
+            )
+        )
+    if any(
+        row.operation == "four_branch_orchestration" and row.blocks
+        for row in route.ROUTE_AUDIT_ROWS
+    ):
+        blockers.append(
+            BlockerDetail(
+                blocker_code=(
+                    frozen.BlockerCode.FULL_FOUR_BRANCH_ROUTE_UNRESOLVED.value
+                ),
+                affected_component="four_branch_orchestration",
+                evidence=(
+                    "public-code-route-audit.json: neither repository contains a "
+                    "script that builds four branches; extract_FDD.py takes one "
+                    "pose and no enhancement"
+                ),
+                why_score_fidelity_cannot_be_established=(
+                    "The four branches repeat the transform graph, and the "
+                    "graph is unresolved. Given a settled graph the "
+                    "orchestration is arithmetic; without one there is nothing "
+                    "to repeat."
+                ),
+            )
+        )
+    if provenance["sd300_training_overlap_found"] is True:  # pragma: no cover
+        blockers.append(
+            BlockerDetail(
+                blocker_code=(
+                    frozen.BlockerCode.SD300_TRAINING_OR_TUNING_OVERLAP_FOUND.value
+                ),
+                affected_component="the released FLARE artifacts",
+                evidence="training-provenance.json",
+                why_score_fidelity_cannot_be_established=(
+                    "An artifact tuned on this project's evaluation cohort "
+                    "would produce a number about itself."
+                ),
+            )
+        )
+
+    ordered = tuple(sorted(blockers, key=lambda item: item.blocker_code))
+    outcome = (
+        frozen.STAGE_9A_BLOCKED_OUTCOME
+        if ordered or not model.all_hold or byte_audit.findings
+        else frozen.STAGE_9A_READY_OUTCOME
+    )
+    return QualificationOutcome(
+        outcome=outcome,
+        blockers=ordered,
+        all_identities_established=inventory.all_identities_established,
+        all_locally_verified=inventory.all_locally_verified,
+        research_use_opens_execution=usage.opens_execution,
+        checkpoint_compatibility_established=compatibility.all_established,
+        paper_route_resolved=True,
+        public_code_route_resolved=audit.resolved,
+        transform_graph_resolved=graph.resolved,
+        parameter_provenance_complete=not graph.unresolved_parameters,
+        route_model_holds=model.all_hold,
+        training_overlap_found=bool(provenance["sd300_training_overlap_found"]),
+        flare_bytes_in_git=len(byte_audit.findings),
+        qualification_fingerprint=stable_hash(
+            {
+                "schema": "stage_9a_qualification_v1",
+                "outcome": outcome,
+                "blockers": [
+                    {
+                        "blocker_code": item.blocker_code,
+                        "affected_component": item.affected_component,
+                    }
+                    for item in ordered
+                ],
+                "graph_fingerprint": graph.graph_fingerprint,
+                "audit_fingerprint": audit.audit_fingerprint,
+                "usage_audit_fingerprint": usage.audit_fingerprint,
+                "compatibility_fingerprint": compatibility.report_fingerprint,
+                "route_model_fingerprint": model.qualification_fingerprint,
+            },
+            length=64,
+        ),
+    )
+
+
+def qualification_report_document(
+    outcome: QualificationOutcome,
+    *,
+    graph: route.TransformGraphResolution,
+    audit: route.RouteAuditResult,
+    model: RouteModelQualification,
+    byte_audit: FlareByteAudit,
+) -> Mapping[str, Any]:
+    """The published qualification: what was established, and what blocks."""
+    return {
+        "schema": "stage_9a_qualification_report_v1",
+        "algorithm_candidate": frozen.ALGORITHM_CANDIDATE_ID,
+        "outcome": outcome.outcome,
+        "qualification_fingerprint": outcome.qualification_fingerprint,
+        "gates": {
+            "all_required_artifacts_identity_established": (
+                outcome.all_identities_established
+            ),
+            "all_required_artifacts_locally_verified": outcome.all_locally_verified,
+            "all_required_research_use_decisions_open_execution": (
+                outcome.research_use_opens_execution
+            ),
+            "checkpoint_compatibility_resolved": (
+                outcome.checkpoint_compatibility_established
+            ),
+            "paper_route_resolved": outcome.paper_route_resolved,
+            "public_code_route_resolved": outcome.public_code_route_resolved,
+            "transform_graph_resolved": outcome.transform_graph_resolved,
+            "material_parameter_provenance_complete": (
+                outcome.parameter_provenance_complete
+            ),
+            "route_model_qualification_holds": outcome.route_model_holds,
+            "training_overlap_with_sd300_found": outcome.training_overlap_found,
+            "flare_bytes_tracked_in_git": outcome.flare_bytes_in_git,
+        },
+        "blockers": [
+            {
+                "blocker_code": item.blocker_code,
+                "affected_component": item.affected_component,
+                "evidence": item.evidence,
+                "why_score_fidelity_cannot_be_established": (
+                    item.why_score_fidelity_cannot_be_established
+                ),
+            }
+            for item in outcome.blockers
+        ],
+        "transform_graph": {
+            "operation_count": graph.operation_count,
+            "score_affecting_count": graph.score_affecting_count,
+            "authoritative_count": graph.authoritative_count,
+            "unresolved_operations": list(graph.unresolved_operations),
+            "unresolved_parameters": list(graph.unresolved_parameters),
+            "graph_fingerprint": graph.graph_fingerprint,
+        },
+        "public_code_route_audit": {
+            "row_count": audit.row_count,
+            "score_affecting_ambiguous": list(audit.score_affecting_ambiguous),
+            "score_affecting_contradictory": list(
+                audit.score_affecting_contradictory
+            ),
+            "glue_required_operations": list(audit.glue_required_operations),
+            "audit_fingerprint": audit.audit_fingerprint,
+        },
+        "route_model_qualification": {
+            "case_count": len(model.cases),
+            "all_hold": model.all_hold,
+            "failing": list(model.failing),
+            "qualification_fingerprint": model.qualification_fingerprint,
+            "cases": [
+                {
+                    "case_id": case.case_id,
+                    "claim": case.claim,
+                    "holds": case.holds,
+                    "observed": case.observed,
+                }
+                for case in model.cases
+            ],
+        },
+        "flare_exact_byte_guard": {
+            "tracked_file_count": byte_audit.tracked_file_count,
+            "hashed_file_count": byte_audit.hashed_file_count,
+            "known_digest_count": byte_audit.known_digest_count,
+            "finding_count": len(byte_audit.findings),
+            "clean": byte_audit.clean,
+            "note": (
+                "Runs beside Stage 8E's generic guard rather than inside it. "
+                "Stage 8E is closed, so its hard-coded digest registry is not "
+                "extended from here (spec sections 3 and 52)."
+            ),
+        },
+        "what_this_stage_did_not_do": {
+            "sd300_image_bytes_read": False,
+            "sd300_score_rows_read": False,
+            "prior_algorithm_scores_read": False,
+            "calibration_performed": False,
+            "threshold_produced": False,
+            "decision_profile_produced": False,
+            "production_adapter_created": False,
+            "runtime_qualified": False,
+            "benchmark_run_performed": False,
+            "third_party_bytes_added_to_git": False,
+            "stage8e_evidence_changed": False,
+            "upstream_behaviour_modified": False,
+        },
     }

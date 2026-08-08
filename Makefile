@@ -48,6 +48,15 @@ help:
 	@echo "stage8e-guard           refuse if any third-party byte is tracked in this public repository"
 	@echo "stage8e-documents       write the five derivable evidence documents (commit them, then publish)"
 	@echo "stage8e-publish         write the marker too; refuses a dirty tree"
+	@echo "stage9a-contract        the FLARE qualification: identity, artifacts, transform graph, score"
+	@echo "stage9a-evidence        verify the committed Stage 9A FLARE artifact-qualification evidence"
+	@echo "stage9a-artifacts       run the checks that need FLARE artifacts in the local store"
+	@echo "stage9a-status          re-derive and print the Stage 9A outcome and its blockers"
+	@echo "stage9a-guard           refuse if any FLARE byte is tracked in this public repository"
+	@echo "stage9a-acquire         fetch the FLARE artifacts into the local store (local only, never CI)"
+	@echo "stage9a-enroll          report the digest and size an unenrolled artifact would need frozen"
+	@echo "stage9a-documents       write the nine derivable evidence documents (commit them, then publish)"
+	@echo "stage9a-publish         write the marker too; refuses a dirty tree"
 	@echo "stage8c-workspace       Stage 8C alignment and preflight over the real inputs"
 	@echo "stage8c-verify          re-derive and print the Stage 8C evidence-only verification"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
@@ -266,6 +275,44 @@ stage8e-documents:
 
 stage8e-publish:
 	python -m fpbench.experiments.stage8e_finalization publish
+
+# ------------------------------------------------------------------- stage 9A
+
+# The FLARE full-route artifact and method qualification (docs/adr/0085-0088).
+# Same two-write shape as Stage 8E: `stage9a-documents`, commit,
+# `stage9a-publish`, commit.
+#
+# `stage9a-acquire` is the only target in this file that reaches the network,
+# and it runs on the project owner's machine and nowhere else. CI fetches no
+# restricted artifact. `stage9a-enroll` reports the digest and size a
+# newly-acquired artifact would need frozen in stage9a_flare_identity; freezing
+# them is a reviewed edit, never something the code does to itself.
+stage9a-contract:
+	pytest -m "stage9a_contract" -q
+
+stage9a-evidence:
+	pytest -m "stage9a" -q
+
+stage9a-artifacts:
+	pytest -m "flare_artifact" -q -rs
+
+stage9a-status:
+	python -m fpbench.experiments.stage9a_flare_finalization status
+
+stage9a-guard:
+	python -c "from pathlib import Path; from fpbench.experiments.stage9a_flare_qualification import require_no_flare_bytes_in_git as g; a = g(Path('.')); print(a.tracked_file_count, 'tracked files scanned against', a.known_digest_count, 'exact FLARE digests,', len(a.findings), 'findings')"
+
+stage9a-acquire:
+	python -c "from pathlib import Path; from fpbench.experiments import stage9a_flare_artifacts as a, stage9a_flare_identity as f; [print(x.artifact_id, '->', a.acquire_artifact(x, repository_root=Path('.')).name) for x in f.REQUIRED_ARTIFACTS]"
+
+stage9a-enroll:
+	python -c "from pathlib import Path; from fpbench.experiments import stage9a_flare_artifacts as a, stage9a_flare_identity as f; [print(x.artifact_id, *a.enroll_artifact(x, repository_root=Path('.'))) for x in f.REQUIRED_ARTIFACTS if not x.identity_established]"
+
+stage9a-documents:
+	python -m fpbench.experiments.stage9a_flare_finalization documents
+
+stage9a-publish:
+	python -m fpbench.experiments.stage9a_flare_finalization publish
 
 # ------------------------------------------------------------------- SourceAFIS
 

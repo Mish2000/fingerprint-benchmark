@@ -1400,6 +1400,20 @@ def score_contract() -> Mapping[str, Any]:
             ),
         },
         "library_cosine_substitution_permitted": False,
+        "mask_scale_invariance": {
+            "property": (
+                "multiplying either mask by a positive constant multiplies the "
+                "numerator and the product of the two denominator terms by the "
+                "same constant, so the score is unchanged"
+            ),
+            "holds_while": "the clipped denominator does not bind",
+            "consequence": (
+                "the mask's absolute magnitude carries no information in the "
+                "continuous route; only its spatial profile does. That is "
+                "another reason not to threshold it — a threshold discards "
+                "exactly the part that matters"
+            ),
+        },
         "notes": [
             "A library cosine over the two flattened descriptors is not this "
             "function. The masks weight the numerator and both denominator "

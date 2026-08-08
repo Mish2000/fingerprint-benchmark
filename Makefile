@@ -42,6 +42,12 @@ help:
 	@echo "stage8d-contract        the generic calibration engine: rates, boundaries, ties, leakage (synthetic only)"
 	@echo "stage8d-evidence        verify the committed Stage 8D calibration-infrastructure evidence"
 	@echo "stage8d-qualify         re-run the synthetic qualification and print its fingerprint"
+	@echo "stage8e-contract        the research-only third-party policy: purpose, decisions, artifacts, guard"
+	@echo "stage8e-evidence        verify the committed Stage 8E research-only-policy evidence"
+	@echo "stage8e-status          re-derive and print the Stage 8E audits and fingerprints"
+	@echo "stage8e-guard           refuse if any third-party byte is tracked in this public repository"
+	@echo "stage8e-documents       write the five derivable evidence documents (commit them, then publish)"
+	@echo "stage8e-publish         write the marker too; refuses a dirty tree"
 	@echo "stage8c-workspace       Stage 8C alignment and preflight over the real inputs"
 	@echo "stage8c-verify          re-derive and print the Stage 8C evidence-only verification"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
@@ -235,6 +241,31 @@ stage8d-evidence:
 
 stage8d-qualify:
 	python -c "from fpbench.experiments.stage8d_calibration_infrastructure import run_synthetic_qualification as q; r = q(); print(r.qualification_fingerprint, len(r.cases), 'cases')"
+
+# ------------------------------------------------------------------- stage 8E
+
+# The repository-wide research-only third-party usage policy (docs/adr/0081-0084).
+# Two write targets rather than one, because the marker is derived against the
+# exact bytes of the other five documents and therefore has to come after them:
+# `stage8e-documents`, commit, `stage8e-publish`, commit. `stage8e-publish`
+# refuses a dirty tree, which is what makes the marker's commit meaningful.
+stage8e-contract:
+	pytest -m "stage8e_contract" -q
+
+stage8e-evidence:
+	pytest -m "stage8e" -q
+
+stage8e-status:
+	python -m fpbench.experiments.stage8e_finalization status
+
+stage8e-guard:
+	python -c "from pathlib import Path; from fpbench.third_party import require_no_third_party_bytes_in_git as g; a = g(Path('.')); print(a.tracked_file_count, 'tracked files,', len(a.findings), 'third-party bytes')"
+
+stage8e-documents:
+	python -m fpbench.experiments.stage8e_finalization documents
+
+stage8e-publish:
+	python -m fpbench.experiments.stage8e_finalization publish
 
 # ------------------------------------------------------------------- SourceAFIS
 

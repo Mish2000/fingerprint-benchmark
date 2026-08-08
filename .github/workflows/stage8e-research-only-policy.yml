@@ -1,0 +1,167 @@
+name: Stage 8E research-only third-party policy
+
+# What this workflow proves, and what it deliberately does not.
+#
+# It runs the whole Stage 8E contract — the purpose declaration and its six
+# denials, the split between a licence observation and a research-use decision,
+# the intersection rule, owner risk acceptance and its five conditions, the
+# dataset carve-out, the artifact store, the modification ladder, and the
+# public-repository guard over the real tracked file list.
+#
+# All of it is pure Python over notices that were never issued. There is no
+# dataset here, no torch, no checkpoint, no Java, no NBIS binary, no network and
+# no workspace — which is the point twice over, since this is the stage that says
+# none of those may be in the repository and none may be fetched by CI.
+#
+# It resolves **no** upstream licence question. Four of the twelve components it
+# audits have no established permission and are executed on an explicit
+# acceptance of risk; a green tick here says the policy is applied and enforced,
+# not that the licensing is sorted (docs/adr/0084).
+
+on:
+  push:
+    paths:
+      - "src/fpbench/third_party/**"
+      - "src/fpbench/core/third_party_models.py"
+      - "src/fpbench/core/third_party_errors.py"
+      - "src/fpbench/experiments/stage8e_identity.py"
+      - "src/fpbench/experiments/stage8e_research_only_policy.py"
+      - "src/fpbench/experiments/stage8e_finalization.py"
+      - "evidence/stage8e-research-only-policy/**"
+      - "tests/**stage8e**"
+      - "docs/policy/**"
+      - "docs/experiments/stage8e-research-only-policy.md"
+      - ".github/workflows/**"
+      - ".gitignore"
+      - ".gitattributes"
+      - "pyproject.toml"
+      - "Makefile"
+  pull_request:
+    paths:
+      - "src/fpbench/third_party/**"
+      - "src/fpbench/core/third_party_models.py"
+      - "src/fpbench/core/third_party_errors.py"
+      - "src/fpbench/experiments/stage8e_identity.py"
+      - "src/fpbench/experiments/stage8e_research_only_policy.py"
+      - "src/fpbench/experiments/stage8e_finalization.py"
+      - "evidence/stage8e-research-only-policy/**"
+      - "tests/**stage8e**"
+      - "docs/policy/**"
+      - "docs/experiments/stage8e-research-only-policy.md"
+      - ".github/workflows/**"
+      - ".gitignore"
+      - ".gitattributes"
+      - "pyproject.toml"
+      - "Makefile"
+
+permissions:
+  contents: read
+
+jobs:
+  research-only-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[dev]"
+
+      - name: The frozen third-party policy contract
+        run: pytest -m "stage8e_contract" -q
+
+      - name: Committed Stage 8E evidence gate
+        run: pytest -m "stage8e" -q
+
+      - name: No third-party byte is tracked in this public repository
+        # The enforcement, run on its own so that a failure here is unambiguous
+        # rather than one assertion inside a suite. .gitignore is a convenience;
+        # this reads what Git actually tracks (docs/adr/0083).
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.third_party import require_no_third_party_bytes_in_git
+
+          audit = require_no_third_party_bytes_in_git(Path("."))
+          print(
+              f"{audit.tracked_file_count} tracked files scanned against "
+              f"{len(audit.rules)} rules, {audit.hashed_file_count} hashed."
+          )
+          print(f"Findings: {len(audit.findings)}")
+          PY
+
+      - name: This CI fetches no restricted artifact and publishes no upstream byte
+        run: |
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+
+          from fpbench.experiments.stage8e_research_only_policy import audit_workflows
+
+          for name in ("torch", "torchvision", "numpy", "scipy", "sklearn"):
+              assert importlib.util.find_spec(name) is None, f"{name} is installed"
+
+          audit = audit_workflows(Path("."))
+          assert audit.clean, audit.findings
+          print(
+              f"{audit.workflow_count} workflows scanned for "
+              f"{len(audit.scanned_tokens)} forbidden tokens: {len(audit.findings)} findings."
+          )
+          PY
+
+      - name: No test in either Stage 8E suite is skipped
+        # A suite that quietly skipped would look identical to one that passed,
+        # and the acceptance condition is that neither of these has anything to
+        # skip: the contract needs no dataset, no runtime and no optional
+        # dependency, and the evidence gate skips only while the publication does
+        # not exist — which, on a merged tree, it does.
+        run: |
+          pytest -m "stage8e_contract or stage8e" -q -rs 2>&1 | tee /tmp/stage8e.txt
+          if grep -qiE '[0-9]+ skipped' /tmp/stage8e.txt; then
+            echo "the Stage 8E suites must not skip anything"
+            exit 1
+          fi
+
+      - name: Regression suites for the prior stages
+        # `and not dataset` on the last line, matching adapter-contract.yml.
+        run: |
+          pytest -m "stage7d_contract" -q
+          pytest -m "stage8a_contract or stage8a" -q
+          pytest -m "stage8b_contract or stage8b" -q
+          pytest -m "stage8c_contract or stage8c" -q
+          pytest -m "stage8d_contract or stage8d" -q
+          pytest -m "decisions or metrics or imaging or paired_evaluation" -q
+          pytest -m "(adapter_contract or nbis_contract) and not dataset" -q
+
+      - name: No licence question was resolved here, and this job makes no claim that one was
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.experiments.stage8e_research_only_policy import (
+              build_legacy_audit,
+              run_policy_qualification,
+          )
+
+          audit = build_legacy_audit(Path("."))
+          qualification = run_policy_qualification()
+          print(f"{len(audit.mappings)} third-party components mapped:")
+          for decision, count in audit.by_decision().items():
+              print(f"  {count:>3}  {decision}")
+          print()
+          print(
+              f"{len(qualification.cases)} policy cases: "
+              f"{qualification.decision_cases} decisions, "
+              f"{qualification.refusal_cases} refusals, "
+              f"{qualification.identity_cases} identities."
+          )
+          print()
+          print("Upstream rights were recorded, not resolved.")
+          print(f"{audit.risk_accepted_count} components have no established permission")
+          print("and are executed on an explicit acceptance of risk by the project owner.")
+          print("No third-party byte is tracked here and none is published.")
+          PY

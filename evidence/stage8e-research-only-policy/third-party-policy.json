@@ -1,0 +1,74 @@
+{
+  "policy_id": "fpbench_research_only_third_party_v1",
+  "policy_version": "1",
+  "statement": "Third-party licensing does not block local personal educational research execution merely because commercial use, redistribution, sublicensing or publication is restricted. Upstream rights are recorded faithfully and separately from the decision to execute. fpbench redistributes no third-party bytes. Legal ambiguity stays visible and may be explicitly risk-accepted for local research instead of silently becoming an engineering blocker.",
+  "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+  "non_blocking_restrictions": [
+    "ACADEMIC_OR_RESEARCH_ONLY",
+    "ATTRIBUTION_AND_NOTICE_RETENTION",
+    "COMMERCIAL_LICENSE_REQUIRED_FOR_COMMERCIAL_DEPLOYMENT",
+    "COPYLEFT",
+    "EDUCATIONAL_ONLY",
+    "NON_COMMERCIAL_ONLY",
+    "NOTICE_CONFLICT_WITH_PERMISSIVE_INTERSECTION",
+    "NO_REDISTRIBUTION",
+    "NO_SUBLICENSING",
+    "STRONG_COPYLEFT",
+    "WEIGHTS_MAY_NOT_BE_REDISTRIBUTED"
+  ],
+  "blocking_conditions": [
+    "ACCESS_TERMS_CANNOT_BE_SATISFIED",
+    "ARTIFACT_IDENTITY_NOT_ESTABLISHED",
+    "BIOMETRIC_USE_EXPRESSLY_PROHIBITED",
+    "DATASET_ACCESS_TERMS_NOT_SATISFIED",
+    "INTENDED_RESEARCH_USE_EXPRESSLY_PROHIBITED",
+    "MODIFICATION_PROHIBITED_BUT_REQUIRED",
+    "OBTAINED_BY_CIRCUMVENTING_A_TECHNICAL_RESTRICTION",
+    "PERMISSION_UNRESOLVED_AND_NOT_RISK_ACCEPTED",
+    "TERMS_INCOMPATIBLE_WITH_LOCAL_EXECUTION"
+  ],
+  "owner_risk_conditions": [
+    "no bytes will be redistributed by this project",
+    "no located term expressly prohibits that use",
+    "the artifact is publicly obtainable without circumventing any access control",
+    "the artifact was intentionally published by its official authors",
+    "the intended operation is local research only"
+  ],
+  "vendoring_default": "DO_NOT_VENDOR",
+  "repository_permitted_content": [
+    "SHA-256 digests",
+    "acquisition code",
+    "artifact metadata",
+    "configuration",
+    "dependency locks",
+    "exact versions",
+    "expected byte sizes",
+    "generated evidence",
+    "project-written integration glue",
+    "provenance records",
+    "upstream URLs and identifiers",
+    "upstream commit SHAs"
+  ],
+  "repository_forbidden_content": [
+    "a checkpoint",
+    "a compiled upstream binary",
+    "a copy of an upstream repository",
+    "a dataset",
+    "a runtime bundle",
+    "an upstream archive",
+    "extracted embeddings",
+    "fingerprint images",
+    "model weights"
+  ],
+  "modification_strategy_order": [
+    "WRAPPER_WITHOUT_UPSTREAM_MODIFICATION",
+    "PROJECT_OWNED_TRANSFORMATION_RECIPE",
+    "LOCAL_PATCH"
+  ],
+  "ci_downloads_restricted_artifacts": false,
+  "ci_uploads_third_party_bytes": false,
+  "publishes_container_images_with_third_party_artifacts": false,
+  "dataset_rights_unchanged": true,
+  "policy_fingerprint": "de9cdbaa23522c4a15337d86b0ec2df8af8b79383a1f8014294e8c7855bf972a",
+  "schema_version": "1"
+}

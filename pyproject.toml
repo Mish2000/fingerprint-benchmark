@@ -53,4 +53,6 @@ markers = [
     "stage8c: the committed Stage 8C raw-run evidence gate (no dataset and no prior-result workspace)",
     "stage8d_contract: the generic calibration infrastructure — exact rates, observed-score boundaries, tie atomicity, development-role enforcement, protected-identity refusal, the DecisionProfile bridge, strict parsing and determinism (pure Python, synthetic fixtures, no dataset and no runtime)",
     "stage8d: the committed Stage 8D calibration-infrastructure evidence gate (no dataset, no runtime and no prior-result workspace)",
+    "stage8e_contract: the repository-wide research-only third-party policy — the purpose declaration, the observation/decision split, the intersection rule, owner risk acceptance, the artifact store, the modification ladder and the public-repository guard (pure Python, synthetic notices, no dataset and no runtime)",
+    "stage8e: the committed Stage 8E research-only-policy evidence gate (no dataset, no runtime and no prior-result workspace)",
 ]

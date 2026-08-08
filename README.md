@@ -10,6 +10,27 @@ The organising principle:
 
 ---
 
+## Purpose and third-party components
+
+fpbench is a **personal educational research project**. It is not a product, not
+a service, and not an academic submission.
+
+Third-party algorithms, model weights, datasets and runtimes remain subject to
+their upstream terms. This repository records those terms faithfully and
+separately from its own decision to run something locally, and it does not
+redistribute third-party model weights, datasets or upstream runtime bundles —
+whatever their licences permit.
+
+The policy: [purpose](docs/policy/research-only-purpose.md) ·
+[third-party usage](docs/policy/third-party-usage.md) ·
+[artifact handling](docs/policy/third-party-artifact-handling.md).
+
+*This is not a licence.* No `LICENSE` file is present, so default copyright
+applies to this repository's own code
+([ADR 0081](docs/adr/0081-fpbench-is-personal-educational-research-only.md)).
+
+---
+
 ## What exists right now
 
 Phase 2 built the reproducible experiment definition: **datasets, protocol,
@@ -1677,11 +1698,90 @@ weights, no workspace — with:
 make stage8d-evidence
 ```
 
+## Stage 8E: say what the project is, then stop arguing about licences
+
+`RESEARCH_ONLY_THIRD_PARTY_POLICY_READY`.
+
+Three algorithms produced three differently-shaped licensing conclusions. Stage
+8A rejected a candidate `LICENSE_BLOCKED` under a gate requiring permission for
+"an academic benchmark and publication". Stage 8B ran the same artifact anyway,
+on an owner instruction, and recorded the licence as unresolved. Stage 8C
+inherited that. All three were correct answers to the questions they asked, and
+none of them was a rule — so algorithm 4, whose upstream carries conflicting
+notices, was about to become the fourth argument.
+
+Stage 8E made the exception into a policy. Four ADRs, and the second is the one
+that matters.
+
+**The purpose is frozen**
+([ADR 0081](docs/adr/0081-fpbench-is-personal-educational-research-only.md)):
+`PERSONAL_EDUCATIONAL_RESEARCH`, with six denials each `False` and each enforced
+by the declaration's own constructor. Not `academic` — there is no institution
+here. No `LICENSE` file, and no bespoke "research only licence": a purpose
+declaration and a copyright licence are different instruments, and inventing one
+to express the other creates a legal question rather than answering one.
+
+**A licence observation is not a decision**
+([ADR 0082](docs/adr/0082-third-party-license-observation-is-separate-from-local-research-use.md)):
+
+```
+What does upstream licensing say?   ->  LicenseObservation      a description
+May fpbench execute it locally?     ->  ResearchUseDecision     a decision
+May fpbench redistribute it?        ->  RedistributionDecision  never exercised
+```
+
+so the repository can hold `CONFLICTING_NOTICES` and
+`ALLOWED_UNDER_RESTRICTIVE_INTERSECTION` at once, without claiming the conflict
+was resolved. Restrictions on commercial use, redistribution, sublicensing,
+publication and copyleft are recorded, respected, and are **not** blockers,
+because this project does none of those things — and has committed to that in a
+fingerprinted document. Blockers are a short closed list: an express prohibition
+of the intended use or of biometric use, a prohibition of a modification faithful
+execution needs, access terms that cannot be satisfied, an artifact obtained by
+circumventing a technical restriction, terms incompatible with local execution,
+an identity that cannot be established, unsatisfied dataset terms, and permission
+that is unresolved with no risk accepted.
+
+Where notices conflict, no winner is picked. The question is which uses *every*
+plausible reading permits in common — a conjunction, so one forbidding reading
+blocks.
+
+**Third-party bytes never enter Git**
+([ADR 0083](docs/adr/0083-third-party-bytes-are-never-redistributed-by-fpbench.md)).
+`DO_NOT_VENDOR` is the default even for MIT, and even for upstream *source*: an
+upstream repository is a runtime artifact exactly like a checkpoint, acquired at
+a pinned commit and verified by digest. Everything lives under
+`FPBENCH_THIRD_PARTY_ROOT` or `~/.cache/fpbench/third_party/`, and the repository
+knows a role, a digest, a size and an upstream identity — never a path. The
+enforcement is a guard over `git ls-files`, not `.gitignore`: eight rules, one
+named exception for the ten synthetic imaging fixtures.
+
+**An absent licence is not permission**
+([ADR 0084](docs/adr/0084-ambiguous-upstream-rights-may-be-risk-accepted-without-becoming-a-license-finding.md)).
+It may be risk-accepted, under all five conditions, and the record then reads
+`intended_use_permission_status: UNRESOLVED` — the owner accepted a risk, nobody
+established a right. A dataset may never be risk-accepted; dataset rights are
+unchanged by this stage.
+
+Twelve already-integrated components were mapped by the same engine Stage 9A will
+use: 7 `ALLOWED`, 1 intersection (SD300), 4 `OWNER_RISK_ACCEPTED` (both NIST NBIS
+archives, the build made from them, and the flx checkpoint), 0 blocked. No
+historical evidence was rewritten.
+
+Details: [the Stage 8E evidence report](evidence/stage8e-research-only-policy/README.md),
+[the three policy documents](docs/policy/) and
+[ADRs 0081–0084](docs/adr/README.md). Verify it — no dataset, no runtime, no
+weights, no network — with:
+
+```bash
+make stage8e-evidence
+```
+
 ## Next stage
 
-**Stage 9A — algorithm 4, artifact qualification.** Stage 8D records
-`opens_algorithm_expansion: true` rather than opening a calibration stage,
-because opening one would be the decision it deliberately defers.
+**Stage 9A — algorithm 4, artifact qualification.** Stage 8D recorded
+`opens_algorithm_expansion: true`; Stage 8E records `opens_stage_9a: true` and
+changes one premise on the way in.
 
 ```
 Stage 9A   algorithm 4 — artifact qualification
@@ -1691,6 +1791,13 @@ Stage 9C   algorithm 4 — canonical_500 raw run
 
 and the same three for algorithm 5. No calibration and no new decisions along the
 way.
+
+The premise that changed: algorithm 4's conflicting upstream notices stay
+conflicting, and are no longer a blocker by themselves. 9A asks whether all
+plausible upstream restrictions permit this project's exact
+`PERSONAL_EDUCATIONAL_RESEARCH` use; if they do, execution opens even while
+redistribution stays `NOT_ESTABLISHED`. Every algorithm from 9A onward fills in
+the same `ThirdPartyUsageRecord` instead of relitigating licensing.
 
 **A real calibration stage opens only when the algorithm list is declared
 final.** It will choose a development cohort, a pair-generation protocol and a

@@ -1,0 +1,1094 @@
+{
+  "schema_version": "1",
+  "statement": "Every third-party component this project already depends on, mapped into the Stage 8E vocabulary by the same engine a future algorithm will use. No historical evidence was rewritten, no licence question was resolved, and nothing here is upstream content.",
+  "audit_fingerprint": "e167d0ff84e02c845f5bc99a9bd6d29031b8567adcbdd0a6d1cbe9d7c155cc0d",
+  "component_count": 12,
+  "by_route": {
+    "dataset": 1,
+    "flx": 5,
+    "nbis": 3,
+    "sourceafis": 3
+  },
+  "by_component_kind": {
+    "DATASET": 1,
+    "MODEL_WEIGHTS": 1,
+    "OTHER_ARTIFACT": 1,
+    "PACKAGE_DEPENDENCY": 2,
+    "RUNTIME_BINARY": 3,
+    "SOURCE_CODE": 4
+  },
+  "by_license_observation_status": {
+    "NO_LICENSE_FOUND": 1,
+    "OPEN_SOURCE_COPYLEFT": 1,
+    "OPEN_SOURCE_PERMISSIVE": 6,
+    "SOURCE_AVAILABLE": 1,
+    "UNKNOWN": 3
+  },
+  "by_research_use_decision": {
+    "ALLOWED": 7,
+    "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION": 1,
+    "OWNER_RISK_ACCEPTED": 4
+  },
+  "owner_risk_accepted_count": 4,
+  "blocked_count": 0,
+  "manifests": [
+    {
+      "manifest_id": "sourceafis_third_party_usage",
+      "subject": "every third-party component of the sourceafis route",
+      "manifest_fingerprint": "ef42b279d373147fb1845f41e6a5cb0cbd5df2dd15b6cabc7fd8ba6ddeb57d5e",
+      "record_count": 3,
+      "opens_execution": true
+    },
+    {
+      "manifest_id": "nbis_third_party_usage",
+      "subject": "every third-party component of the nbis route",
+      "manifest_fingerprint": "efe03d46f8da7361aad8920de957e006247d750a34bd01990ba170defa054ed0",
+      "record_count": 3,
+      "opens_execution": true
+    },
+    {
+      "manifest_id": "flx_third_party_usage",
+      "subject": "every third-party component of the flx route",
+      "manifest_fingerprint": "7837503693f461c106c68b973bace421f26fcccbaa3292320a8f136aa2ad510f",
+      "record_count": 5,
+      "opens_execution": true
+    },
+    {
+      "manifest_id": "dataset_third_party_usage",
+      "subject": "every third-party component of the dataset route",
+      "manifest_fingerprint": "40f309b4b5b067979ac00754163e1005e2ac2debdb6c8ec66b21129ce0fcc828",
+      "record_count": 1,
+      "opens_execution": true
+    }
+  ],
+  "components": [
+    {
+      "route": "flx",
+      "observation": {
+        "observation_id": "flx_checkpoint_observation",
+        "component_kind": "MODEL_WEIGHTS",
+        "subject": "best_model.pyt, the DeepPrint_TexMinu_512_without_localization checkpoint",
+        "status": "NO_LICENSE_FOUND",
+        "declared_license_names": [],
+        "spdx_identifiers": [],
+        "evidence": [],
+        "stated_restrictions": [],
+        "notes": [
+          "Stage 8A's LICENSE_BLOCKED and Stage 8B's weights_license_status: unresolved stand exactly as published; this record sits beside them.",
+          "Upstream training provenance is unresolved — the state dict exposes 8000 classifier classes and the paper text reports a conflicting identity count. No training dataset was obtained or used here."
+        ],
+        "observation_fingerprint": "37eb7c00afca5c1b3e826b14137868e7f1ab85ecae8a329bc31487bf57713cab",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flx_checkpoint_research_use",
+        "observation_fingerprint": "37eb7c00afca5c1b3e826b14137868e7f1ab85ecae8a329bc31487bf57713cab",
+        "component_kind": "MODEL_WEIGHTS",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "OWNER_RISK_ACCEPTED",
+        "basis": "The file was inspected and no checkpoint-specific licence or terms accompanied it. The repository's source licence does not automatically license separately hosted weights (docs/adr/0063). The project owner accepted the risk of executing it locally; that is not a finding that the use is permitted (docs/adr/0068).",
+        "intended_use_permission_status": "UNRESOLVED",
+        "non_blocking_restrictions": [],
+        "blockers": [],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": {
+          "published_intentionally_by_official_authors": true,
+          "publicly_obtainable_without_circumvention": true,
+          "intended_operation_is_local_research_only": true,
+          "no_located_term_expressly_prohibits_the_use": true,
+          "no_bytes_will_be_redistributed": true,
+          "accepted_by": "the project owner",
+          "basis": "The project owner is proceeding with a local research operation despite an ambiguity nobody resolved. This is not a finding that the use is permitted (docs/adr/0084)."
+        },
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "6fbb74a12fc2d6b38d8c1350cb56af00bab1d38027088bf0192e9bafdc1f9303",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flx_checkpoint",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "MODEL_WEIGHTS",
+        "upstream_identity": {
+          "upstream_name": "fixed-length extractor checkpoint",
+          "upstream_locator": "google-drive-file:1R9v73hFBuy0iihz7v8eDlBcGrMDmQ9TH",
+          "exact_version": "DeepPrint_TexMinu_512_without_localization",
+          "upstream_commit": null,
+          "artifact_filename": "best_model.pyt",
+          "artifact_sha256": "2683a04427bacd54adc00cfdc97474625b1e11e5a9e6672c5129f033018f8a28",
+          "artifact_size_bytes": 875770140,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "37eb7c00afca5c1b3e826b14137868e7f1ab85ecae8a329bc31487bf57713cab",
+        "license_observation_status": "NO_LICENSE_FOUND",
+        "license_evidence_locators": [],
+        "research_use_decision": "OWNER_RISK_ACCEPTED",
+        "research_use_basis": "The file was inspected and no checkpoint-specific licence or terms accompanied it. The repository's source licence does not automatically license separately hosted weights (docs/adr/0063). The project owner accepted the risk of executing it locally; that is not a finding that the use is permitted (docs/adr/0068).",
+        "research_use_assessment_fingerprint": "6fbb74a12fc2d6b38d8c1350cb56af00bab1d38027088bf0192e9bafdc1f9303",
+        "owner_risk_acceptance": true,
+        "redistribution": {
+          "decision": "NOT_ESTABLISHED",
+          "basis": "Unchanged from Stage 8B: not established, and never exercised. No checkpoint byte, embedding or representation appears under evidence/.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [
+          "Stage 8A's LICENSE_BLOCKED and Stage 8B's weights_license_status: unresolved stand exactly as published; this record sits beside them.",
+          "Upstream training provenance is unresolved — the state dict exposes 8000 classifier classes and the paper text reports a conflicting identity count. No training dataset was obtained or used here."
+        ],
+        "usage_fingerprint": "2ae3d1aefc3e7aa45e71637b7a1cd04990b3d9bd22b14b23f7131d11fd066856",
+        "schema_version": "1"
+      }
+    },
+    {
+      "route": "flx",
+      "observation": {
+        "observation_id": "flx_cpu_runtime_bundle_observation",
+        "component_kind": "RUNTIME_BINARY",
+        "subject": "the pinned CPU runtime bundle the extractor executes inside — torch, torchvision, numpy and their locked dependency closure",
+        "status": "OPEN_SOURCE_PERMISSIVE",
+        "declared_license_names": [
+          "Apache License 2.0",
+          "BSD 3-Clause License",
+          "MIT License"
+        ],
+        "spdx_identifiers": [
+          "Apache-2.0",
+          "BSD-3-Clause",
+          "MIT"
+        ],
+        "evidence": [
+          {
+            "locator": "evidence/stage8b-flx-runtime-qualification/runtime-manifest.json",
+            "description": "every wheel in the bundle, by name, version and digest, with the lock digest that pins the set",
+            "document_sha256": null
+          }
+        ],
+        "stated_restrictions": [
+          "The permissive licences in the closure require notices to be retained in a distribution."
+        ],
+        "notes": [
+          "artifact_sha256 here is the dependency-lock digest, which is what pins the set. There is no filename and no size because the bundle is a directory of wheels rather than one file."
+        ],
+        "observation_fingerprint": "2aa7f4a9f77ac0619484eb33da7a03b8d92916d36be022172f2e56a0b3aa65a2",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flx_cpu_runtime_bundle_research_use",
+        "observation_fingerprint": "2aa7f4a9f77ac0619484eb33da7a03b8d92916d36be022172f2e56a0b3aa65a2",
+        "component_kind": "RUNTIME_BINARY",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "ALLOWED",
+        "basis": "A locked set of permissively licensed wheels, executed locally. The bundle is pinned by bytes (docs/adr/0072) and lives outside the working tree.",
+        "intended_use_permission_status": "ESTABLISHED",
+        "non_blocking_restrictions": [
+          "ATTRIBUTION_AND_NOTICE_RETENTION"
+        ],
+        "blockers": [],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": null,
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "d3a60431086c10213f2077402d580db5d07a59401dc90ff20e0d750828143433",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flx_cpu_runtime_bundle",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "RUNTIME_BINARY",
+        "upstream_identity": {
+          "upstream_name": "flx CPU runtime bundle",
+          "upstream_locator": "https://pypi.org/simple",
+          "exact_version": "flx_cpu_linux_x86_64_v1",
+          "upstream_commit": null,
+          "artifact_filename": null,
+          "artifact_sha256": "e0ee3a5f902a84df000310d2d495cb433e1cd8bb3bc98d48475f9f552036d392",
+          "artifact_size_bytes": null,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "2aa7f4a9f77ac0619484eb33da7a03b8d92916d36be022172f2e56a0b3aa65a2",
+        "license_observation_status": "OPEN_SOURCE_PERMISSIVE",
+        "license_evidence_locators": [
+          "evidence/stage8b-flx-runtime-qualification/runtime-manifest.json"
+        ],
+        "research_use_decision": "ALLOWED",
+        "research_use_basis": "A locked set of permissively licensed wheels, executed locally. The bundle is pinned by bytes (docs/adr/0072) and lives outside the working tree.",
+        "research_use_assessment_fingerprint": "d3a60431086c10213f2077402d580db5d07a59401dc90ff20e0d750828143433",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "CONDITIONAL",
+          "basis": "Each wheel is redistributable under its own permissive terms. This project ships no bundle.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [
+          "artifact_sha256 here is the dependency-lock digest, which is what pins the set. There is no filename and no size because the bundle is a directory of wheels rather than one file."
+        ],
+        "usage_fingerprint": "9f445ef98c0b032b21fcb05085945e6e87fa1fb6131378a214749b8ce0805484",
+        "schema_version": "1"
+      }
+    },
+    {
+      "route": "flx",
+      "observation": {
+        "observation_id": "flx_inception_v4_source_observation",
+        "component_kind": "SOURCE_CODE",
+        "subject": "flx/models/InceptionV4.py, third-party source inside the pinned tree",
+        "status": "OPEN_SOURCE_PERMISSIVE",
+        "declared_license_names": [
+          "BSD 3-Clause License"
+        ],
+        "spdx_identifiers": [
+          "BSD-3-Clause"
+        ],
+        "evidence": [
+          {
+            "locator": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/models/InceptionV4.py",
+            "description": "the BSD text embedded at the top of the pinned source file",
+            "document_sha256": "b27cecb06296fe541fba97156a741891c5a0217afce94fc4106655bc19511e3d"
+          }
+        ],
+        "stated_restrictions": [
+          "Retain copyright and licence notices."
+        ],
+        "notes": [],
+        "observation_fingerprint": "d6773625c6aecae4ccda81f9502c0153f4f99375fa7dca834e9143f023f5453f",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flx_inception_v4_source_research_use",
+        "observation_fingerprint": "d6773625c6aecae4ccda81f9502c0153f4f99375fa7dca834e9143f023f5453f",
+        "component_kind": "SOURCE_CODE",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "ALLOWED",
+        "basis": "BSD-3-Clause restricts nothing about the field of endeavour and its conditions attach to distribution.",
+        "intended_use_permission_status": "ESTABLISHED",
+        "non_blocking_restrictions": [
+          "ATTRIBUTION_AND_NOTICE_RETENTION"
+        ],
+        "blockers": [],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": null,
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "6a08b7baf1e2b5acdfdfc9c4e6603fbd5a8dce43dfe176067703ce1887e25d46",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flx_inception_v4_source",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "SOURCE_CODE",
+        "upstream_identity": {
+          "upstream_name": "InceptionV4 reference implementation",
+          "upstream_locator": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/models/InceptionV4.py",
+          "exact_version": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+          "upstream_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+          "artifact_filename": null,
+          "artifact_sha256": null,
+          "artifact_size_bytes": null,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "d6773625c6aecae4ccda81f9502c0153f4f99375fa7dca834e9143f023f5453f",
+        "license_observation_status": "OPEN_SOURCE_PERMISSIVE",
+        "license_evidence_locators": [
+          "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/models/InceptionV4.py"
+        ],
+        "research_use_decision": "ALLOWED",
+        "research_use_basis": "BSD-3-Clause restricts nothing about the field of endeavour and its conditions attach to distribution.",
+        "research_use_assessment_fingerprint": "6a08b7baf1e2b5acdfdfc9c4e6603fbd5a8dce43dfe176067703ce1887e25d46",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "CONDITIONAL",
+          "basis": "Permitted with notices retained; not exercised.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [],
+        "usage_fingerprint": "d274df56548ad7841d65a0c8bd33a51bfd67de39a109a1fe3793c0e8798d1ef3",
+        "schema_version": "1"
+      }
+    },
+    {
+      "route": "flx",
+      "observation": {
+        "observation_id": "flx_iso_encoder_decoder_observation",
+        "component_kind": "SOURCE_CODE",
+        "subject": "flx/data/iso_encoder_decoder, a separately licensed subtree",
+        "status": "OPEN_SOURCE_PERMISSIVE",
+        "declared_license_names": [
+          "Apache License 2.0"
+        ],
+        "spdx_identifiers": [
+          "Apache-2.0"
+        ],
+        "evidence": [
+          {
+            "locator": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/iso_encoder_decoder/LICENSE",
+            "description": "a separate Apache-2.0 licence file present in the pinned subtree",
+            "document_sha256": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6"
+          }
+        ],
+        "stated_restrictions": [
+          "Retain notices and state modifications where applicable."
+        ],
+        "notes": [],
+        "observation_fingerprint": "6f50beb2df92c301272cc23ea975d482607d2be88abb95b0574d393ebce7357e",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flx_iso_encoder_decoder_research_use",
+        "observation_fingerprint": "6f50beb2df92c301272cc23ea975d482607d2be88abb95b0574d393ebce7357e",
+        "component_kind": "SOURCE_CODE",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "ALLOWED",
+        "basis": "A subtree licence that differs from the repository licence is a separate observation, and this one permits the intended use outright.",
+        "intended_use_permission_status": "ESTABLISHED",
+        "non_blocking_restrictions": [
+          "ATTRIBUTION_AND_NOTICE_RETENTION"
+        ],
+        "blockers": [],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": null,
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "2ad9301dc054353e70f2722b0623825a182683168df6249653473a625de6abc8",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flx_iso_encoder_decoder",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "SOURCE_CODE",
+        "upstream_identity": {
+          "upstream_name": "ISO template encoder and decoder",
+          "upstream_locator": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/iso_encoder_decoder/LICENSE",
+          "exact_version": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+          "upstream_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+          "artifact_filename": null,
+          "artifact_sha256": null,
+          "artifact_size_bytes": null,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "6f50beb2df92c301272cc23ea975d482607d2be88abb95b0574d393ebce7357e",
+        "license_observation_status": "OPEN_SOURCE_PERMISSIVE",
+        "license_evidence_locators": [
+          "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/flx/data/iso_encoder_decoder/LICENSE"
+        ],
+        "research_use_decision": "ALLOWED",
+        "research_use_basis": "A subtree licence that differs from the repository licence is a separate observation, and this one permits the intended use outright.",
+        "research_use_assessment_fingerprint": "2ad9301dc054353e70f2722b0623825a182683168df6249653473a625de6abc8",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "CONDITIONAL",
+          "basis": "Permitted with notices retained; not exercised.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [],
+        "usage_fingerprint": "07d790b1d9a7486df86725db2fdcd504c25f3d58fa6911e9aac67c4d90470467",
+        "schema_version": "1"
+      }
+    },
+    {
+      "route": "flx",
+      "observation": {
+        "observation_id": "flx_source_archive_observation",
+        "component_kind": "SOURCE_CODE",
+        "subject": "the fixed-length extractor source at the pinned commit, as a git archive",
+        "status": "OPEN_SOURCE_COPYLEFT",
+        "declared_license_names": [
+          "GNU Lesser General Public License v3.0"
+        ],
+        "spdx_identifiers": [
+          "LGPL-3.0-only"
+        ],
+        "evidence": [
+          {
+            "locator": "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/LICENSE",
+            "description": "the pinned LICENSE bytes, inspected independently of the checkpoint",
+            "document_sha256": "f831e7eed577481687a9bc0b48024e5e40b6f655fcde073ede964b50be5d55d9"
+          }
+        ],
+        "stated_restrictions": [
+          "LGPL notices and relinking and source obligations remain applicable."
+        ],
+        "notes": [],
+        "observation_fingerprint": "17d858aaa780c4e345582478c8d083a938be5347c7a7ecc3a7550f90e3b9ad9d",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flx_source_archive_research_use",
+        "observation_fingerprint": "17d858aaa780c4e345582478c8d083a938be5347c7a7ecc3a7550f90e3b9ad9d",
+        "component_kind": "SOURCE_CODE",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "ALLOWED",
+        "basis": "The LGPL's obligations attach to conveying the work. Running it and making local copies is not conveying, so nothing here is triggered by local execution.",
+        "intended_use_permission_status": "ESTABLISHED",
+        "non_blocking_restrictions": [
+          "ATTRIBUTION_AND_NOTICE_RETENTION",
+          "COPYLEFT"
+        ],
+        "blockers": [],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": null,
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "8c58c66bd496427161d5046aa38741fd5be08c835e22fbd54328d8b7eaebcdc8",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flx_source_archive",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "SOURCE_CODE",
+        "upstream_identity": {
+          "upstream_name": "fixed-length-fingerprint-extractors",
+          "upstream_locator": "https://codeload.github.com/tim-rohwedder/fixed-length-fingerprint-extractors/tar.gz/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+          "exact_version": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+          "upstream_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+          "artifact_filename": "fixed-length-fingerprint-extractors-7accfca.tar.gz",
+          "artifact_sha256": "60fa2c8894ea90efe2bb0553cd331d8ef84611b973b6126eaf6d162d1aa9b7e2",
+          "artifact_size_bytes": 7149830,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "17d858aaa780c4e345582478c8d083a938be5347c7a7ecc3a7550f90e3b9ad9d",
+        "license_observation_status": "OPEN_SOURCE_COPYLEFT",
+        "license_evidence_locators": [
+          "https://raw.githubusercontent.com/tim-rohwedder/fixed-length-fingerprint-extractors/7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13/LICENSE"
+        ],
+        "research_use_decision": "ALLOWED",
+        "research_use_basis": "The LGPL's obligations attach to conveying the work. Running it and making local copies is not conveying, so nothing here is triggered by local execution.",
+        "research_use_assessment_fingerprint": "8c58c66bd496427161d5046aa38741fd5be08c835e22fbd54328d8b7eaebcdc8",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "CONDITIONAL",
+          "basis": "Permitted under the LGPL's own conditions. This project does not exercise that permission and does not vendor the source.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [],
+        "usage_fingerprint": "ef70d362ece9e7da7d0c9258c8df26b16a25023159ba032cc4f64089f4d61ca9",
+        "schema_version": "1"
+      }
+    },
+    {
+      "route": "nbis",
+      "observation": {
+        "observation_id": "nbis_certified_build_observation",
+        "component_kind": "RUNTIME_BINARY",
+        "subject": "the locally compiled MINDTCT and BOZORTH3 binaries a score is attributed to",
+        "status": "UNKNOWN",
+        "declared_license_names": [],
+        "spdx_identifiers": [],
+        "evidence": [],
+        "stated_restrictions": [],
+        "notes": [
+          "The patch series is empty: series.json records no modification to upstream source, which is the first rung of the modification ladder."
+        ],
+        "observation_fingerprint": "efe56bc0d049f29fddd6bb16bebaed286c2c295bd226716c4da30fd5e777d3f6",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "nbis_certified_build_research_use",
+        "observation_fingerprint": "efe56bc0d049f29fddd6bb16bebaed286c2c295bd226716c4da30fd5e777d3f6",
+        "component_kind": "RUNTIME_BINARY",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "OWNER_RISK_ACCEPTED",
+        "basis": "Derived from the release archive and inherits its position exactly. The build is certified against NIST's own tests and pinned by digest; it lives outside the working tree, as it always has.",
+        "intended_use_permission_status": "UNRESOLVED",
+        "non_blocking_restrictions": [],
+        "blockers": [],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": {
+          "published_intentionally_by_official_authors": true,
+          "publicly_obtainable_without_circumvention": true,
+          "intended_operation_is_local_research_only": true,
+          "no_located_term_expressly_prohibits_the_use": true,
+          "no_bytes_will_be_redistributed": true,
+          "accepted_by": "the project owner",
+          "basis": "The project owner is proceeding with a local research operation despite an ambiguity nobody resolved. This is not a finding that the use is permitted (docs/adr/0084)."
+        },
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "90e9dc1f6856c839fb2a657978d66381318bcdb7477dd4e4229a10d57cedca3a",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "nbis_certified_build",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "RUNTIME_BINARY",
+        "upstream_identity": {
+          "upstream_name": "NBIS 5.0.0, compiled locally",
+          "upstream_locator": "built locally from the sealed NIST release archive",
+          "exact_version": "5.0.0",
+          "upstream_commit": null,
+          "artifact_filename": null,
+          "artifact_sha256": null,
+          "artifact_size_bytes": null,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "efe56bc0d049f29fddd6bb16bebaed286c2c295bd226716c4da30fd5e777d3f6",
+        "license_observation_status": "UNKNOWN",
+        "license_evidence_locators": [],
+        "research_use_decision": "OWNER_RISK_ACCEPTED",
+        "research_use_basis": "Derived from the release archive and inherits its position exactly. The build is certified against NIST's own tests and pinned by digest; it lives outside the working tree, as it always has.",
+        "research_use_assessment_fingerprint": "90e9dc1f6856c839fb2a657978d66381318bcdb7477dd4e4229a10d57cedca3a",
+        "owner_risk_acceptance": true,
+        "redistribution": {
+          "decision": "NOT_ESTABLISHED",
+          "basis": "A compiled upstream binary is never committed and never published by this project, whatever its terms turn out to permit.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [
+          "The patch series is empty: series.json records no modification to upstream source, which is the first rung of the modification ladder."
+        ],
+        "usage_fingerprint": "f6867d73165af42af15d1c74c9c202905aa15f4fc3c034e9f5aceaf956a085c7",
+        "schema_version": "1"
+      }
+    },
+    {
+      "route": "nbis",
+      "observation": {
+        "observation_id": "nbis_release_archive_observation",
+        "component_kind": "SOURCE_CODE",
+        "subject": "NIST NBIS Release 5.0.0, the source MINDTCT and BOZORTH3 are built from",
+        "status": "UNKNOWN",
+        "declared_license_names": [],
+        "spdx_identifiers": [],
+        "evidence": [],
+        "stated_restrictions": [],
+        "notes": [
+          "integrations/nbis/README.md refuses any source but NIST's own distribution: not a distribution package, not a fork, not a third-party image."
+        ],
+        "observation_fingerprint": "d9035e84de1bfc0907c9e8643281c5d6c8c79746155a5e21d21cd92103ccdf62",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "nbis_release_archive_research_use",
+        "observation_fingerprint": "d9035e84de1bfc0907c9e8643281c5d6c8c79746155a5e21d21cd92103ccdf62",
+        "component_kind": "SOURCE_CODE",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "OWNER_RISK_ACCEPTED",
+        "basis": "No licence document from the NBIS distribution has been inspected and recorded in this repository, so no terms are claimed. The archive was obtained from NIST's own distribution index, sealed by digest from the bytes on disk, and is executed locally only.",
+        "intended_use_permission_status": "UNRESOLVED",
+        "non_blocking_restrictions": [],
+        "blockers": [],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": {
+          "published_intentionally_by_official_authors": true,
+          "publicly_obtainable_without_circumvention": true,
+          "intended_operation_is_local_research_only": true,
+          "no_located_term_expressly_prohibits_the_use": true,
+          "no_bytes_will_be_redistributed": true,
+          "accepted_by": "the project owner",
+          "basis": "The project owner is proceeding with a local research operation despite an ambiguity nobody resolved. This is not a finding that the use is permitted (docs/adr/0084)."
+        },
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "32121421373f8529fd8f09f7cb99017836d62d924b5a8375e1d7a92ee13f2b0d",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "nbis_release_archive",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "SOURCE_CODE",
+        "upstream_identity": {
+          "upstream_name": "NIST Biometric Image Software 5.0.0",
+          "upstream_locator": "https://nigos.nist.gov/nist/nbis/nbis_v5_0_0.zip",
+          "exact_version": "5.0.0",
+          "upstream_commit": null,
+          "artifact_filename": "nbis_v5_0_0.zip",
+          "artifact_sha256": "0adf8ab0f6b0e4208de50ca00ba21d3d77112ecd66288757ddfed21f6bee92c3",
+          "artifact_size_bytes": 52595795,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "d9035e84de1bfc0907c9e8643281c5d6c8c79746155a5e21d21cd92103ccdf62",
+        "license_observation_status": "UNKNOWN",
+        "license_evidence_locators": [],
+        "research_use_decision": "OWNER_RISK_ACCEPTED",
+        "research_use_basis": "No licence document from the NBIS distribution has been inspected and recorded in this repository, so no terms are claimed. The archive was obtained from NIST's own distribution index, sealed by digest from the bytes on disk, and is executed locally only.",
+        "research_use_assessment_fingerprint": "32121421373f8529fd8f09f7cb99017836d62d924b5a8375e1d7a92ee13f2b0d",
+        "owner_risk_acceptance": true,
+        "redistribution": {
+          "decision": "NOT_ESTABLISHED",
+          "basis": "Nothing was established either way, and this project redistributes the archive to nobody.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [
+          "integrations/nbis/README.md refuses any source but NIST's own distribution: not a distribution package, not a fork, not a third-party image."
+        ],
+        "usage_fingerprint": "ed30bf610512c1110723fa4d9d46117a5452f27527bb5091ea2c9bfaa609b9b4",
+        "schema_version": "1"
+      }
+    },
+    {
+      "route": "nbis",
+      "observation": {
+        "observation_id": "nbis_test_archive_observation",
+        "component_kind": "OTHER_ARTIFACT",
+        "subject": "NIST NBIS Test 5.0.0, the corpus NIST's own tests run against",
+        "status": "UNKNOWN",
+        "declared_license_names": [],
+        "spdx_identifiers": [],
+        "evidence": [],
+        "stated_restrictions": [],
+        "notes": [],
+        "observation_fingerprint": "32d097d8b5734f2e9ccabf33c1cc501075401e5e0a93cb3f1f8a0d8e255350dd",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "nbis_test_archive_research_use",
+        "observation_fingerprint": "32d097d8b5734f2e9ccabf33c1cc501075401e5e0a93cb3f1f8a0d8e255350dd",
+        "component_kind": "OTHER_ARTIFACT",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "OWNER_RISK_ACCEPTED",
+        "basis": "Same position as the release archive it accompanies. Used once, locally, to certify that a build reproduces NIST's own expected outputs.",
+        "intended_use_permission_status": "UNRESOLVED",
+        "non_blocking_restrictions": [],
+        "blockers": [],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": {
+          "published_intentionally_by_official_authors": true,
+          "publicly_obtainable_without_circumvention": true,
+          "intended_operation_is_local_research_only": true,
+          "no_located_term_expressly_prohibits_the_use": true,
+          "no_bytes_will_be_redistributed": true,
+          "accepted_by": "the project owner",
+          "basis": "The project owner is proceeding with a local research operation despite an ambiguity nobody resolved. This is not a finding that the use is permitted (docs/adr/0084)."
+        },
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "733272541089b92842043785dfa687cfc187ca1b4fa36e90dbf4d9af7ab423a6",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "nbis_test_archive",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "OTHER_ARTIFACT",
+        "upstream_identity": {
+          "upstream_name": "NIST Biometric Image Software Test 5.0.0",
+          "upstream_locator": "https://nigos.nist.gov/nist/nbis/test_v5_0_0.zip",
+          "exact_version": "5.0.0",
+          "upstream_commit": null,
+          "artifact_filename": "test_v5_0_0.zip",
+          "artifact_sha256": "5a1e0f7cb06ecb3ab7936e39bde97802a364f1398e37054ed195bff052b9ff00",
+          "artifact_size_bytes": 400099537,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "32d097d8b5734f2e9ccabf33c1cc501075401e5e0a93cb3f1f8a0d8e255350dd",
+        "license_observation_status": "UNKNOWN",
+        "license_evidence_locators": [],
+        "research_use_decision": "OWNER_RISK_ACCEPTED",
+        "research_use_basis": "Same position as the release archive it accompanies. Used once, locally, to certify that a build reproduces NIST's own expected outputs.",
+        "research_use_assessment_fingerprint": "733272541089b92842043785dfa687cfc187ca1b4fa36e90dbf4d9af7ab423a6",
+        "owner_risk_acceptance": true,
+        "redistribution": {
+          "decision": "NOT_ESTABLISHED",
+          "basis": "Nothing was established, and 400 MB of NIST's test corpus is not something this repository holds.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [],
+        "usage_fingerprint": "7fc1f7acb661d3db4dcdbb490cbb483ecd562d0df3d96394ebc8529188c0e002",
+        "schema_version": "1"
+      }
+    },
+    {
+      "route": "dataset",
+      "observation": {
+        "observation_id": "nist_sd300_observation",
+        "component_kind": "DATASET",
+        "subject": "NIST Special Database 300, releases A, B and C",
+        "status": "SOURCE_AVAILABLE",
+        "declared_license_names": [
+          "NIST SD 300 delivery terms"
+        ],
+        "spdx_identifiers": [],
+        "evidence": [
+          {
+            "locator": ".gitignore",
+            "description": "the tracked rule that keeps every image, and every image format, out of this repository",
+            "document_sha256": null
+          },
+          {
+            "locator": "data/README.md",
+            "description": "the SD300 README's requirement that users adhere to all terms agreed on obtaining SD 300",
+            "document_sha256": null
+          }
+        ],
+        "stated_restrictions": [
+          "Users of SD 300 shall adhere to all terms agreed to upon obtaining SD 300."
+        ],
+        "notes": [
+          "artifact_sha256 here is the image-manifest hash of the audited delivery, which is the only identity this project gave the dataset."
+        ],
+        "observation_fingerprint": "962871de6645e31d0d9a1c4eb6b570d903d5b06465f13cfc411d671108ed2b15",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "nist_sd300_research_use",
+        "observation_fingerprint": "962871de6645e31d0d9a1c4eb6b570d903d5b06465f13cfc411d671108ed2b15",
+        "component_kind": "DATASET",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+        "basis": "The delivery terms were accepted on obtaining the database and are satisfied by this use: local research, no redistribution. Stage 8E changes nothing about dataset rights — a dataset is the one component kind this policy may not risk-accept (spec section 11).",
+        "intended_use_permission_status": "ESTABLISHED",
+        "non_blocking_restrictions": [
+          "ACADEMIC_OR_RESEARCH_ONLY",
+          "NO_REDISTRIBUTION"
+        ],
+        "blockers": [],
+        "intersection_permits_intended_use": true,
+        "owner_risk_acceptance": null,
+        "dataset_access_terms_satisfied": true,
+        "assessment_fingerprint": "e9f00786d8b736b99deb4a8a92957a41b9859ae403496c238ab0617550adf8cd",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "nist_sd300",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "DATASET",
+        "upstream_identity": {
+          "upstream_name": "NIST Special Database 300",
+          "upstream_locator": "https://www.nist.gov/srd/nist-special-database-300",
+          "exact_version": "the delivery this project audited",
+          "upstream_commit": null,
+          "artifact_filename": null,
+          "artifact_sha256": "c2ab03a5bb20ccef2c00e5f0522b641941cb93e2676a506eae192b6251813ba9",
+          "artifact_size_bytes": null,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "962871de6645e31d0d9a1c4eb6b570d903d5b06465f13cfc411d671108ed2b15",
+        "license_observation_status": "SOURCE_AVAILABLE",
+        "license_evidence_locators": [
+          ".gitignore",
+          "data/README.md"
+        ],
+        "research_use_decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+        "research_use_basis": "The delivery terms were accepted on obtaining the database and are satisfied by this use: local research, no redistribution. Stage 8E changes nothing about dataset rights — a dataset is the one component kind this policy may not risk-accept (spec section 11).",
+        "research_use_assessment_fingerprint": "e9f00786d8b736b99deb4a8a92957a41b9859ae403496c238ab0617550adf8cd",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "NOT_ALLOWED",
+          "basis": "No fingerprint imagery is stored in this repository and none is published (docs/adr/0004).",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [
+          "artifact_sha256 here is the image-manifest hash of the audited delivery, which is the only identity this project gave the dataset."
+        ],
+        "usage_fingerprint": "2e2ac0c2b5942765d29a75fa932ecd7ee361d039c2f8c22205de14a5f7efc4fc",
+        "schema_version": "1"
+      }
+    },
+    {
+      "route": "sourceafis",
+      "observation": {
+        "observation_id": "sourceafis_bridge_shaded_jar_observation",
+        "component_kind": "RUNTIME_BINARY",
+        "subject": "the locally built shaded jar, which contains upstream bytes even though this project wrote the bridge classes",
+        "status": "OPEN_SOURCE_PERMISSIVE",
+        "declared_license_names": [
+          "Apache License 2.0",
+          "MIT License"
+        ],
+        "spdx_identifiers": [
+          "Apache-2.0",
+          "MIT"
+        ],
+        "evidence": [
+          {
+            "locator": "integrations/sourceafis-java/THIRD_PARTY_NOTICES.md",
+            "description": "the notice that anyone receiving this jar receives every bundled artifact with it",
+            "document_sha256": null
+          }
+        ],
+        "stated_restrictions": [
+          "Anyone receiving the shaded jar receives all bundled artifacts and their notice obligations."
+        ],
+        "notes": [
+          "27 MB of compiled bytes; a committed jar would be a binary nobody could review."
+        ],
+        "observation_fingerprint": "90ab5254391e318645b286bd87d026caf3f99f844e6bc18c13623cb57411a351",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "sourceafis_bridge_shaded_jar_research_use",
+        "observation_fingerprint": "90ab5254391e318645b286bd87d026caf3f99f844e6bc18c13623cb57411a351",
+        "component_kind": "RUNTIME_BINARY",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "ALLOWED",
+        "basis": "The bundle is built from source on every machine and in CI. It is a runtime artifact, so it lives outside the tree and its digest is part of the environment fingerprint of every run that used it (docs/adr/0018).",
+        "intended_use_permission_status": "ESTABLISHED",
+        "non_blocking_restrictions": [
+          "ATTRIBUTION_AND_NOTICE_RETENTION"
+        ],
+        "blockers": [],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": null,
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "6cba06336f26f03d79fcb600cfc8a132070a7a429202046df737106c5a2f9da1",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "sourceafis_bridge_shaded_jar",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "RUNTIME_BINARY",
+        "upstream_identity": {
+          "upstream_name": "fpbench SourceAFIS bridge, shaded",
+          "upstream_locator": "built locally from integrations/sourceafis-java",
+          "exact_version": "1.0.0",
+          "upstream_commit": null,
+          "artifact_filename": "fpbench-sourceafis-bridge.jar",
+          "artifact_sha256": null,
+          "artifact_size_bytes": null,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "90ab5254391e318645b286bd87d026caf3f99f844e6bc18c13623cb57411a351",
+        "license_observation_status": "OPEN_SOURCE_PERMISSIVE",
+        "license_evidence_locators": [
+          "integrations/sourceafis-java/THIRD_PARTY_NOTICES.md"
+        ],
+        "research_use_decision": "ALLOWED",
+        "research_use_basis": "The bundle is built from source on every machine and in CI. It is a runtime artifact, so it lives outside the tree and its digest is part of the environment fingerprint of every run that used it (docs/adr/0018).",
+        "research_use_assessment_fingerprint": "6cba06336f26f03d79fcb600cfc8a132070a7a429202046df737106c5a2f9da1",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "CONDITIONAL",
+          "basis": "Redistributable in principle with notices retained. Never committed: integrations/*/target/ is ignored and the jar is rebuilt rather than shipped.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [
+          "27 MB of compiled bytes; a committed jar would be a binary nobody could review."
+        ],
+        "usage_fingerprint": "6ccfabebff607ea2b090820a991853eb4aefaa99c910a13d2e3e90bec070d4c3",
+        "schema_version": "1"
+      }
+    },
+    {
+      "route": "sourceafis",
+      "observation": {
+        "observation_id": "sourceafis_java_library_observation",
+        "component_kind": "PACKAGE_DEPENDENCY",
+        "subject": "SourceAFIS for Java 3.18.1, the matcher itself",
+        "status": "OPEN_SOURCE_PERMISSIVE",
+        "declared_license_names": [
+          "Apache License 2.0"
+        ],
+        "spdx_identifiers": [
+          "Apache-2.0"
+        ],
+        "evidence": [
+          {
+            "locator": "https://sourceafis.machinezoo.com/",
+            "description": "the upstream project page the coordinate resolves from",
+            "document_sha256": null
+          },
+          {
+            "locator": "integrations/sourceafis-java/THIRD_PARTY_NOTICES.md",
+            "description": "this repository's own enumeration of the coordinate and its licence",
+            "document_sha256": null
+          }
+        ],
+        "stated_restrictions": [
+          "Apache-2.0 requires notices to be retained in a distribution."
+        ],
+        "notes": [],
+        "observation_fingerprint": "eacc86e011c6380fec65aa3cf9342fdf9933bae7e65c50baae1066fd54799980",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "sourceafis_java_library_research_use",
+        "observation_fingerprint": "eacc86e011c6380fec65aa3cf9342fdf9933bae7e65c50baae1066fd54799980",
+        "component_kind": "PACKAGE_DEPENDENCY",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "ALLOWED",
+        "basis": "Apache-2.0 permits use without restricting the field of endeavour. Its conditions attach to distribution, and this project distributes nothing.",
+        "intended_use_permission_status": "ESTABLISHED",
+        "non_blocking_restrictions": [
+          "ATTRIBUTION_AND_NOTICE_RETENTION"
+        ],
+        "blockers": [],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": null,
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "68c5fd1220b0e0fc5b9b3f47ff1309e3878be4fe890a1cd2ee0d7bc029a3d863",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "sourceafis_java_library",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "PACKAGE_DEPENDENCY",
+        "upstream_identity": {
+          "upstream_name": "SourceAFIS for Java",
+          "upstream_locator": "com.machinezoo.sourceafis:sourceafis",
+          "exact_version": "3.18.1",
+          "upstream_commit": null,
+          "artifact_filename": null,
+          "artifact_sha256": null,
+          "artifact_size_bytes": null,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "eacc86e011c6380fec65aa3cf9342fdf9933bae7e65c50baae1066fd54799980",
+        "license_observation_status": "OPEN_SOURCE_PERMISSIVE",
+        "license_evidence_locators": [
+          "https://sourceafis.machinezoo.com/",
+          "integrations/sourceafis-java/THIRD_PARTY_NOTICES.md"
+        ],
+        "research_use_decision": "ALLOWED",
+        "research_use_basis": "Apache-2.0 permits use without restricting the field of endeavour. Its conditions attach to distribution, and this project distributes nothing.",
+        "research_use_assessment_fingerprint": "68c5fd1220b0e0fc5b9b3f47ff1309e3878be4fe890a1cd2ee0d7bc029a3d863",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "CONDITIONAL",
+          "basis": "Apache-2.0 permits redistribution subject to notice retention. This project does not exercise that permission.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "REPOSITORY_METADATA",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [],
+        "usage_fingerprint": "98ab87027bf8fde0e10ec99db538d31b6a1a548b2a4f6487738b8b93b7435a65",
+        "schema_version": "1"
+      }
+    },
+    {
+      "route": "sourceafis",
+      "observation": {
+        "observation_id": "sourceafis_shaded_dependency_closure_observation",
+        "component_kind": "PACKAGE_DEPENDENCY",
+        "subject": "the thirteen artifacts the shaded bridge jar bundles beside SourceAFIS",
+        "status": "OPEN_SOURCE_PERMISSIVE",
+        "declared_license_names": [
+          "Apache License 2.0",
+          "MIT License"
+        ],
+        "spdx_identifiers": [
+          "Apache-2.0",
+          "MIT"
+        ],
+        "evidence": [
+          {
+            "locator": "integrations/sourceafis-java/THIRD_PARTY_NOTICES.md",
+            "description": "every bundled artifact, its version and its declared licence, enumerated from the shade plugin's own output",
+            "document_sha256": null
+          },
+          {
+            "locator": "integrations/sourceafis-java/pom.xml",
+            "description": "the pinned direct dependencies the closure is resolved from",
+            "document_sha256": null
+          }
+        ],
+        "stated_restrictions": [
+          "Apache-2.0 and MIT both require notices to be retained in a distribution."
+        ],
+        "notes": [],
+        "observation_fingerprint": "5b2e6e0f6c7ccd5cadf9f75c6cbaab33c850e23adc9a84b1b271224c72a023d8",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "sourceafis_shaded_dependency_closure_research_use",
+        "observation_fingerprint": "5b2e6e0f6c7ccd5cadf9f75c6cbaab33c850e23adc9a84b1b271224c72a023d8",
+        "component_kind": "PACKAGE_DEPENDENCY",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "ALLOWED",
+        "basis": "Every bundled artifact is Apache-2.0 or MIT. Neither restricts the field of endeavour, and their conditions attach to distribution.",
+        "intended_use_permission_status": "ESTABLISHED",
+        "non_blocking_restrictions": [
+          "ATTRIBUTION_AND_NOTICE_RETENTION"
+        ],
+        "blockers": [],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": null,
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "5a0c31bf46b313110323c83fc5e3c78fe9e89846ba348d7b2ae8d366b1bb8c7f",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "sourceafis_shaded_dependency_closure",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "PACKAGE_DEPENDENCY",
+        "upstream_identity": {
+          "upstream_name": "the SourceAFIS bridge dependency closure",
+          "upstream_locator": "org.fpbench:fpbench-sourceafis-bridge (shade plugin output)",
+          "exact_version": "1.0.0",
+          "upstream_commit": null,
+          "artifact_filename": null,
+          "artifact_sha256": null,
+          "artifact_size_bytes": null,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "5b2e6e0f6c7ccd5cadf9f75c6cbaab33c850e23adc9a84b1b271224c72a023d8",
+        "license_observation_status": "OPEN_SOURCE_PERMISSIVE",
+        "license_evidence_locators": [
+          "integrations/sourceafis-java/THIRD_PARTY_NOTICES.md",
+          "integrations/sourceafis-java/pom.xml"
+        ],
+        "research_use_decision": "ALLOWED",
+        "research_use_basis": "Every bundled artifact is Apache-2.0 or MIT. Neither restricts the field of endeavour, and their conditions attach to distribution.",
+        "research_use_assessment_fingerprint": "5a0c31bf46b313110323c83fc5e3c78fe9e89846ba348d7b2ae8d366b1bb8c7f",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "CONDITIONAL",
+          "basis": "Permitted with notices retained; the shaded jar preserves the META-INF licence and notice entries. This project redistributes no jar.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "REPOSITORY_METADATA",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [],
+        "usage_fingerprint": "ed08a32d0ba31f74ed36dfc18b33cfd5a351ccb53ae09872ab7f6c107e12cc7c",
+        "schema_version": "1"
+      }
+    }
+  ]
+}

@@ -87,6 +87,10 @@ can be held to.
 | [0078](0078-stage-8d-builds-calibration-infrastructure-without-calibrating.md) | Stage 8D builds calibration infrastructure without calibrating | Accepted, implemented |
 | [0079](0079-calibration-data-must-be-development-not-evaluation.md) | Calibration data must be development data, not evaluation data | Accepted, implemented |
 | [0080](0080-calibration-selects-native-score-boundaries-without-score-normalization.md) | Calibration selects native score boundaries, without score normalization | Accepted, implemented |
+| [0081](0081-fpbench-is-personal-educational-research-only.md) | fpbench is personal educational research only | Accepted, implemented |
+| [0082](0082-third-party-license-observation-is-separate-from-local-research-use.md) | A licence observation is separate from a local research-use decision | Accepted, implemented |
+| [0083](0083-third-party-bytes-are-never-redistributed-by-fpbench.md) | Third-party bytes are never redistributed by fpbench | Accepted, implemented |
+| [0084](0084-ambiguous-upstream-rights-may-be-risk-accepted-without-becoming-a-license-finding.md) | Ambiguous upstream rights may be risk-accepted without becoming a licence finding | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

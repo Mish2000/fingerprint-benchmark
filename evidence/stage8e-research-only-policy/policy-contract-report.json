@@ -1,0 +1,264 @@
+{
+  "schema_version": "1",
+  "statement": "The structural facts the Stage 8E contract suite enforces. Everything here is a property of the source or of the public repository, not a measurement, and none of it is upstream content.",
+  "third_party_model_fingerprint": "5cd8e89437e36df1b54b33b42d058d7562f74ea9702f68ca4feee7b876a8a0c1",
+  "policy_engine_fingerprint": "cb1c602a509d824b8964092f1dc496ee548204997601bcf93363bde2885c838d",
+  "third_party_package": {
+    "modules": [
+      "__init__.py",
+      "purpose.py",
+      "policy.py",
+      "manifest.py",
+      "artifacts.py",
+      "transformations.py",
+      "repository_guard.py",
+      "verify.py"
+    ],
+    "module_sha256": {
+      "__init__.py": "498d584a624f7b2e7079e9ce4f2894cab52b2a1d0f045a35da190e8f38003543",
+      "purpose.py": "5026a6d0705aa17b0741616d4b0a958ff4276c5682a849665ebbab9c96d3e9d5",
+      "policy.py": "6a1d46c328ac1fba5757f01e98c52a1e8cd893825dc54b58ecf9361a62771f3b",
+      "manifest.py": "80ae7b68eea3b6ea77a7bcfb6dd8edbe15ff3e7f27c9d57146b1c90c6152a4ba",
+      "artifacts.py": "484eb0a0a6c7060cc2c8ed01fd89ee5c08244d306abde7de7bb79061d8b81841",
+      "transformations.py": "c875c8e835a62c1e4660c340ccf0b729646845ed21c7ddd1cd6a40edf1169d7e",
+      "repository_guard.py": "ef644420f13c365cd58e25d10518da348cdb4e3cfe2b84a7ed17a073ef422bf2",
+      "verify.py": "bf90602ba724ac491a0ab9ee4ade2b6fbc106905b386a393e7ee73080c64d5dc"
+    }
+  },
+  "vocabulary": {
+    "license_observation_status": [
+      "ACADEMIC_ONLY",
+      "CONFLICTING_NOTICES",
+      "NON_COMMERCIAL",
+      "NO_LICENSE_FOUND",
+      "OPEN_SOURCE_COPYLEFT",
+      "OPEN_SOURCE_PERMISSIVE",
+      "RESEARCH_ONLY",
+      "SOURCE_AVAILABLE",
+      "UNKNOWN"
+    ],
+    "research_use_decision": [
+      "ALLOWED",
+      "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+      "BLOCKED",
+      "OWNER_RISK_ACCEPTED"
+    ],
+    "component_kind": [
+      "DATASET",
+      "DOCUMENTATION",
+      "MODEL_WEIGHTS",
+      "OTHER_ARTIFACT",
+      "PACKAGE_DEPENDENCY",
+      "RUNTIME_BINARY",
+      "SOURCE_CODE"
+    ],
+    "non_blocking_restriction": [
+      "ACADEMIC_OR_RESEARCH_ONLY",
+      "ATTRIBUTION_AND_NOTICE_RETENTION",
+      "COMMERCIAL_LICENSE_REQUIRED_FOR_COMMERCIAL_DEPLOYMENT",
+      "COPYLEFT",
+      "EDUCATIONAL_ONLY",
+      "NON_COMMERCIAL_ONLY",
+      "NOTICE_CONFLICT_WITH_PERMISSIVE_INTERSECTION",
+      "NO_REDISTRIBUTION",
+      "NO_SUBLICENSING",
+      "STRONG_COPYLEFT",
+      "WEIGHTS_MAY_NOT_BE_REDISTRIBUTED"
+    ]
+  },
+  "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+  "policy_fingerprint": "de9cdbaa23522c4a15337d86b0ec2df8af8b79383a1f8014294e8c7855bf972a",
+  "enforced_absences": {
+    "repository_holds_no_license_file": true,
+    "forbidden_workflow_tokens": [
+      "actions/upload-artifact",
+      "docker/build-push-action",
+      "docker push",
+      "ghcr.io",
+      "nigos.nist.gov",
+      "codeload.github.com",
+      "drive.google.com",
+      "google-drive-file"
+    ],
+    "forbidden_published_keys": [
+      "absolute_path",
+      "artifact_root",
+      "base64",
+      "blob",
+      "checkpoint_bytes",
+      "contents",
+      "descriptor",
+      "descriptors",
+      "embedding",
+      "embeddings",
+      "file_contents",
+      "home_directory",
+      "image_bytes",
+      "image_id",
+      "image_ids",
+      "license_body",
+      "license_text",
+      "local_path",
+      "pair_id",
+      "pair_ids",
+      "payload",
+      "raw_score",
+      "raw_scores",
+      "score",
+      "scores",
+      "source_text",
+      "state_dict",
+      "subject_id",
+      "subject_ids",
+      "threshold",
+      "thresholds",
+      "weights"
+    ]
+  },
+  "policy_documents": [
+    "docs/policy/research-only-purpose.md",
+    "docs/policy/third-party-usage.md",
+    "docs/policy/third-party-artifact-handling.md"
+  ],
+  "decision_records": [
+    "docs/adr/0081-fpbench-is-personal-educational-research-only.md",
+    "docs/adr/0082-third-party-license-observation-is-separate-from-local-research-use.md",
+    "docs/adr/0083-third-party-bytes-are-never-redistributed-by-fpbench.md",
+    "docs/adr/0084-ambiguous-upstream-rights-may-be-risk-accepted-without-becoming-a-license-finding.md"
+  ],
+  "policy_qualification": {
+    "qualification_fingerprint": "57ad5e9a9c7c6de5105b82a75f2591ba36813b9f375181091ca0819d3a4c3f6d",
+    "case_count": 21,
+    "decision_cases": 9,
+    "refusal_cases": 10,
+    "identity_cases": 2,
+    "cases": [
+      {
+        "case_id": "permissive_licence_is_allowed_outright",
+        "claim": "a permissive licence with notice conditions permits local research use",
+        "kind": "decision",
+        "outcome": "ALLOWED"
+      },
+      {
+        "case_id": "copyleft_does_not_block_local_execution",
+        "claim": "strong copyleft attaches to conveying, and running is not conveying",
+        "kind": "decision",
+        "outcome": "ALLOWED"
+      },
+      {
+        "case_id": "non_commercial_only_does_not_block",
+        "claim": "a non-commercial restriction cannot block a non-commercial project",
+        "kind": "decision",
+        "outcome": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION"
+      },
+      {
+        "case_id": "conflicting_notices_resolve_by_intersection",
+        "claim": "a permissive LICENSE beside an academic-only README needs no winner",
+        "kind": "decision",
+        "outcome": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION"
+      },
+      {
+        "case_id": "one_prohibiting_reading_blocks_the_intersection",
+        "claim": "the intersection is a conjunction, so one forbidding reading decides it",
+        "kind": "decision",
+        "outcome": "BLOCKED"
+      },
+      {
+        "case_id": "no_licence_found_may_be_risk_accepted",
+        "claim": "an absent licence is risk-accepted, and permission stays UNRESOLVED",
+        "kind": "decision",
+        "outcome": "OWNER_RISK_ACCEPTED"
+      },
+      {
+        "case_id": "no_licence_found_without_acceptance_is_blocked",
+        "claim": "silence is not a grant; with no acceptance the absence blocks",
+        "kind": "decision",
+        "outcome": "BLOCKED"
+      },
+      {
+        "case_id": "a_dataset_passes_only_on_its_own_terms",
+        "claim": "dataset access terms are satisfied, and are what the decision rests on",
+        "kind": "decision",
+        "outcome": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION"
+      },
+      {
+        "case_id": "an_express_prohibition_of_biometric_use_blocks",
+        "claim": "the short list of blockers is what stops something, and it does",
+        "kind": "decision",
+        "outcome": "BLOCKED"
+      },
+      {
+        "case_id": "the_purpose_and_the_policy_are_derived_not_read",
+        "claim": "the declaration and the policy rebuild from source to one identity each",
+        "kind": "identity",
+        "outcome": "2ab161bd5a7f3f944cece1a49f61d063cdfd47f60f1288195a2a6ccad8a80786"
+      },
+      {
+        "case_id": "the_same_facts_produce_the_same_assessment",
+        "claim": "the same observation and facts assess to one identical identity",
+        "kind": "identity",
+        "outcome": "4519cfe4b7705cff35b2164e7851599931c40b7098b28075ab8bef4c468f0805"
+      },
+      {
+        "case_id": "a_dataset_may_not_be_risk_accepted",
+        "claim": "dataset rights are outside this policy and stay blocking",
+        "kind": "refusal",
+        "outcome": "ResearchUseDecisionError"
+      },
+      {
+        "case_id": "a_dataset_assessment_must_answer_the_dataset_question",
+        "claim": "a dataset record with no dataset answer is refused, not defaulted",
+        "kind": "refusal",
+        "outcome": "ResearchUseDecisionError"
+      },
+      {
+        "case_id": "a_partial_risk_acceptance_is_refused",
+        "claim": "four of five conditions is a decision to block",
+        "kind": "refusal",
+        "outcome": "ResearchUseDecisionError"
+      },
+      {
+        "case_id": "risk_cannot_be_accepted_where_terms_were_identified",
+        "claim": "the owner does not overrule a licence that was actually found",
+        "kind": "refusal",
+        "outcome": "ResearchUseDecisionError"
+      },
+      {
+        "case_id": "an_intersection_needs_two_readings",
+        "claim": "an intersection over one reading is that reading",
+        "kind": "refusal",
+        "outcome": "LicenseObservationError"
+      },
+      {
+        "case_id": "a_field_limited_status_needs_the_intersection_computed",
+        "claim": "a field-of-use restriction may not be waved through unexamined",
+        "kind": "refusal",
+        "outcome": "ResearchUseDecisionError"
+      },
+      {
+        "case_id": "permissive_and_field_limited_cannot_both_be_true",
+        "claim": "an OSI-conforming licence cannot restrict the field of endeavour",
+        "kind": "refusal",
+        "outcome": "ResearchUseDecisionError"
+      },
+      {
+        "case_id": "an_observation_may_not_claim_a_licence_it_did_not_find",
+        "claim": "NO_LICENSE_FOUND means inspected and carrying none",
+        "kind": "refusal",
+        "outcome": "LicenseObservationError"
+      },
+      {
+        "case_id": "conflicting_notices_need_two_notices",
+        "claim": "a conflict asserted over one notice is not a conflict",
+        "kind": "refusal",
+        "outcome": "LicenseObservationError"
+      },
+      {
+        "case_id": "a_usage_record_may_not_say_it_is_stored_in_git",
+        "claim": "there is no code path that puts a third-party byte in the repository",
+        "kind": "refusal",
+        "outcome": "ThirdPartyUsageError"
+      }
+    ]
+  }
+}

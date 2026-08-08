@@ -1,0 +1,12 @@
+{
+  "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+  "statement": "fpbench is a personal educational research project. It exists so that one person can learn how fingerprint recognition systems are measured, by running them locally on one machine. It is not a product, not a service, and not an academic submission. It makes no commercial use of any third-party component, deploys nothing commercially, offers no commercial service, redistributes no third-party bytes, sublicenses nothing, and does not treat publication of its benchmark as an academic work.",
+  "commercial_use_by_project_owner": false,
+  "commercial_deployment": false,
+  "commercial_service": false,
+  "third_party_redistribution": false,
+  "third_party_sublicensing": false,
+  "benchmark_publication_as_academic_work": false,
+  "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+  "schema_version": "1"
+}

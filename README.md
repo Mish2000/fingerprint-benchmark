@@ -1777,27 +1777,107 @@ weights, no network — with:
 make stage8e-evidence
 ```
 
+## Stage 9A: qualify FLARE's full route, or build nothing
+
+Algorithm 4 is FLARE — *Fixed-Length Dense Fingerprint Representation with
+Alignment and Robust Enhancement*, TIFS 2026. Stage 9A asks one question before
+a line of adapter exists: can a faithful implementation identity be frozen from
+the published method, the two official repositories, the official pretrained
+artifacts and integration-neutral glue, and nothing else?
+
+The answer is no, and that is a complete result.
+
+```
+FLARE_FULL_ROUTE_BLOCKED
+```
+
+**The subject is the whole method or nothing.** Two pose estimators times two
+enhancers is four branches fused by a maximum. A runnable two-branch subset is a
+different algorithm wearing FLARE's name, and `branch_count = 4` is a gate rather
+than a preference (ADR 0085). The candidate identity spells out what is being
+qualified — `flare_fdd_d6_dualpose_dualenh_maxcosine` — including the binary FDD
+route it excludes (ADR 0086).
+
+**The gate is not checkpoint loading.** An earlier reading of this repository
+recorded the FDD checkpoint load as disabled; at the pinned commit it is present
+and active. That question is closed, which is exactly why a commit is pinned and
+not a branch.
+
+**The gate is the transform graph.** The paper is explicit:
+
+```
+pose  ->  align, crop 512  ->  enhance  ->  downsample 256  ->  FDRN
+```
+
+The public code contains the same stages and does not compose into that
+sequence. `Descdataset.process_img` builds one affine with
+`scale = 256/512` and warps the *unenhanced original* straight to 256×256 —
+alignment and the downsample are a single interpolation, with no 512×512 image
+in between and nowhere to insert an enhancer. The enhancers live in a second
+repository and take whole original images. There is no 512-to-256 reduction
+anywhere, no four-branch orchestration and no `max` fusion.
+
+Fifteen of the seventeen operations between the canonical bytes and the FDRN
+tensor carry an authority. Two do not: the aligned 512×512 crop, whose border
+fill is settled by nothing while two upstream warps disagree about it, and the
+512-to-256 downsample, which is one function call with four reasonable spellings
+and no upstream implementation to copy. An operation that can move a score must
+come from the paper, the pinned code or a pinned inference default — and where
+none of them speaks, this project stops rather than choosing (ADR 0087,
+ADR 0088).
+
+**What did resolve** is worth as much, because Stage 9B would build on it: both
+repositories pinned by commit with byte-identical archives across two
+acquisitions; the transitive `Prior.ckpt` found by traversing `vq.yaml` rather
+than a README; both enhancers' preprocessing and postprocessing proved to be
+exact identities on a 512×512 input; the masked-cosine score contract
+transcribed exactly, clip and continuous mask and all, with twelve of its
+properties exercised over synthetic vectors; and `D = 6` agreeing between the
+paper and the official configuration.
+
+**Licensing is no longer the argument.** Both repositories carry a permissive
+`LICENSE` beside a README restricting use to academic research and education.
+Stage 9A records both and chooses neither — Stage 8E's intersection rule answers
+the only question this project has to ask, and every FLARE component went through
+that one engine. The six checkpoints are blocked, but on identity rather than on
+licence: a Google Drive file id is a locator, and the identity is the digest and
+the size.
+
+Nothing was fetched by CI, no third-party byte entered Git, no SD300 data was
+read and Stage 8E was not touched. Details: [the Stage 9A evidence
+report](evidence/stage9a-flare-artifact-qualification/README.md), [the FLARE
+method documents](docs/algorithms/flare/) and
+[ADRs 0085–0088](docs/adr/README.md). Verify it — no dataset, no torch, no
+checkpoint, no network — with:
+
+```bash
+make stage9a-evidence
+```
+
 ## Next stage
 
-**Stage 9A — algorithm 4, artifact qualification.** Stage 8D recorded
-`opens_algorithm_expansion: true`; Stage 8E records `opens_stage_9a: true` and
-changes one premise on the way in.
+**A corrective stage for FLARE, or algorithm 5.** Stage 9A recorded
+`opens_stage_9b: false`, so there is no Stage 9B for FLARE yet.
 
 ```
-Stage 9A   algorithm 4 — artifact qualification
-Stage 9B   algorithm 4 — runtime and adapter qualification
-Stage 9C   algorithm 4 — canonical_500 raw run
+Stage 9A   algorithm 4 — artifact and method qualification    BLOCKED
+Stage 9B   algorithm 4 — runtime and adapter qualification    not opened
+Stage 9C   algorithm 4 — canonical_500 raw run                not opened
 ```
 
-and the same three for algorithm 5. No calibration and no new decisions along the
-way.
+Four things would lift the route blockers, and each is concrete: an authoritative
+statement of the 512-to-256 resampling; an authoritative statement of what fills
+the aligned crop outside the fingerprint; an upstream orchestration that composes
+pose, alignment, enhancement and FDD in the paper's order, or a statement
+resolving which order the released checkpoints were used under; and enrollment of
+the six checkpoints from their official locators. The first three are upstream's
+to answer or a corrective stage's to decide explicitly. The fourth is a local
+operation, and it would not by itself change the outcome.
 
-The premise that changed: algorithm 4's conflicting upstream notices stay
-conflicting, and are no longer a blocker by themselves. 9A asks whether all
-plausible upstream restrictions permit this project's exact
-`PERSONAL_EDUCATIONAL_RESEARCH` use; if they do, execution opens even while
-redistribution stays `NOT_ESTABLISHED`. Every algorithm from 9A onward fills in
-the same `ThirdPartyUsageRecord` instead of relitigating licensing.
+The premise Stage 8E changed still holds for whatever algorithm comes next:
+conflicting upstream notices stay conflicting and are no longer a blocker by
+themselves. Every algorithm from here on fills in the same
+`ThirdPartyUsageRecord` instead of relitigating licensing.
 
 **A real calibration stage opens only when the algorithm list is declared
 final.** It will choose a development cohort, a pair-generation protocol and a

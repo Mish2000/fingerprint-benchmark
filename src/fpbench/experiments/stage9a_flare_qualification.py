@@ -1765,6 +1765,87 @@ def qualification_report_document(
                 "extended from here (spec sections 3 and 52)."
             ),
         },
+        "fdd_checkpoint_load": {
+            # Recorded because the previous reading of this repository, against
+            # an earlier upstream state, had it the other way round. It is no
+            # longer a blocker and it is still a fact worth pinning
+            # (spec section 45).
+            "present": True,
+            "active": True,
+            "official": True,
+            "locator": (
+                f"Yu-Yy/FLARE@{frozen.FLARE_REPOSITORY.commit[:8]}:extract_FDD.py"
+                "::extracting"
+            ),
+            "detail": (
+                "FDD is constructed, moved to CUDA, wrapped in DataParallel, and "
+                "load_model(desc_model, 'model_weights/desc_model.pth.tar') is "
+                "called. The pinned source is the authority; an earlier upstream "
+                "state recorded this load as commented out, which is why a "
+                "commit is pinned rather than a branch."
+            ),
+        },
+        "deferred_to_stage_9b": {
+            "note": (
+                "Recorded here and decided there. Stage 9A is about which "
+                "operations run; the runtime is about how they run "
+                "(spec sections 36 and 37)."
+            ),
+            "runtime_determinism_observed": {
+                "cudnn_benchmark": True,
+                "cudnn_deterministic": False,
+                "cudnn_enabled": True,
+                "locator": (
+                    f"Yu-Yy/FLARE@{frozen.FLARE_REPOSITORY.commit[:8]}: "
+                    "extract_FDD.py, extract_VotingPose.py and "
+                    "extract_RegressionPose.py all set these before running"
+                ),
+                "changed_by_this_stage": False,
+                "detail": (
+                    "Non-deterministic cuDNN algorithm selection is upstream's "
+                    "own inference setting. Stage 9A documents it and does not "
+                    "correct it: CUDA, the torch version, cuDNN, repeatability, "
+                    "DataParallel removal and the GPU model are all Stage 9B's."
+                ),
+            },
+            "upstream_declared_dependency_surface": {
+                "flare": [
+                    "torch >= 1.10",
+                    "numpy",
+                    "opencv-python",
+                    "scipy",
+                    "Pillow",
+                    "tqdm",
+                    "PyYAML",
+                    "easydict",
+                    "pandas",
+                ],
+                "flare_enh": [
+                    "torch==2.0.0+cu118",
+                    "numpy==1.24.4",
+                    "einops==0.8.0",
+                    "kornia==0.7.3",
+                    "scipy==1.10.1",
+                    "easydict==1.13",
+                    "opencv-python==4.8.0.76",
+                ],
+                "locators": [
+                    f"Yu-Yy/FLARE@{frozen.FLARE_REPOSITORY.commit[:8]}:README.md",
+                    (
+                        "Yu-Yy/FLARE_ENH@"
+                        f"{frozen.FLARE_ENH_REPOSITORY.commit[:8]}:requirements.txt"
+                    ),
+                ],
+                "closure_frozen_by_this_stage": False,
+                "detail": (
+                    "Declared surfaces, not a resolved closure. The two "
+                    "repositories declare different torch requirements and only "
+                    "one of them pins versions at all. A wheel-level lock — the "
+                    "equivalent of the flx bundle pinned by bytes "
+                    "(docs/adr/0072) — is Stage 9B's to build."
+                ),
+            },
+        },
         "what_this_stage_did_not_do": {
             "sd300_image_bytes_read": False,
             "sd300_score_rows_read": False,

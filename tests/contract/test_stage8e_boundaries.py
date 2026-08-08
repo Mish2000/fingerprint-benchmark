@@ -264,6 +264,30 @@ def test_a_vendored_directory_would_be_caught(tmp_path: Path) -> None:
     }
 
 
+def test_the_policy_package_name_is_not_a_vendoring_exemption(tmp_path: Path) -> None:
+    """Named fpbench modules pass; an unreviewed neighbour remains forbidden."""
+    import subprocess
+
+    repository = tmp_path / "repo"
+    package = repository / "src" / "fpbench" / "third_party"
+    package.mkdir(parents=True)
+    for arguments in (
+        ("init", "-q"),
+        ("config", "user.email", "fixture@example.invalid"),
+        ("config", "user.name", "fixture"),
+    ):
+        subprocess.run(("git", "-C", str(repository), *arguments), check=True)
+    (package / "policy.py").write_text("# fpbench policy\n", encoding="utf-8")
+    (package / "unreviewed.py").write_text("# unknown provenance\n", encoding="utf-8")
+    subprocess.run(("git", "-C", str(repository), "add", "-A"), check=True)
+
+    audit = audit_repository_artifacts(repository)
+    assert [finding.path for finding in audit.findings] == [
+        "src/fpbench/third_party/unreviewed.py"
+    ]
+    assert audit.findings[0].rule == "forbidden_third_party_path"
+
+
 def test_a_pinned_upstream_artifact_would_be_caught_by_its_digest(
     tmp_path: Path,
 ) -> None:

@@ -186,6 +186,24 @@ FORBIDDEN_PATH_SEGMENTS: frozenset[str] = frozenset(
     }
 )
 
+#: Repository-owned policy modules whose package name describes their subject,
+#: not their provenance.  This is deliberately an exact, closed list rather
+#: than a prefix exemption: a new file copied into this package still trips the
+#: path rule until it is reviewed and named here.  Every other rule (suffix,
+#: digest and size included) continues to inspect these files.
+_REPOSITORY_OWNED_THIRD_PARTY_MODULES: frozenset[str] = frozenset(
+    {
+        "src/fpbench/third_party/__init__.py",
+        "src/fpbench/third_party/artifacts.py",
+        "src/fpbench/third_party/manifest.py",
+        "src/fpbench/third_party/policy.py",
+        "src/fpbench/third_party/purpose.py",
+        "src/fpbench/third_party/repository_guard.py",
+        "src/fpbench/third_party/transformations.py",
+        "src/fpbench/third_party/verify.py",
+    }
+)
+
 #: The exact bytes this project already pins somewhere else. If one of these ever
 #: appears *inside* the repository, every other rule has already been evaded and
 #: this is the one that still fires. Each digest is published in this repository
@@ -423,7 +441,14 @@ def audit_repository_artifacts(repository_root: Path) -> RepositoryArtifactAudit
                 )
         overlap = sorted(segment.lower() for segment in segments)
         for segment in overlap:
-            if segment in FORBIDDEN_PATH_SEGMENTS:
+            repository_owned_policy_module = (
+                segment == "third_party"
+                and path in _REPOSITORY_OWNED_THIRD_PARTY_MODULES
+            )
+            if (
+                segment in FORBIDDEN_PATH_SEGMENTS
+                and not repository_owned_policy_module
+            ):
                 findings.append(
                     RepositoryFinding(
                         path=path,

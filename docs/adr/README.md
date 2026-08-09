@@ -95,6 +95,11 @@ can be held to.
 | [0086](0086-flare-identity-is-fdd-d6-dualpose-dualenh-maxcosine.md) | The FLARE candidate identity is FDD D=6, dual-pose × dual-enhancement, max overlap-masked cosine | Accepted, implemented |
 | [0087](0087-flare-score-affecting-upstream-gaps-must-not-be-guessed.md) | A score-affecting gap in the upstream sources is a blocker, not a decision for fpbench to take | Accepted, implemented |
 | [0088](0088-flare-paper-route-and-public-code-must-resolve-to-one-transform-graph.md) | The paper route and the public code must resolve to one transform graph | Accepted, implemented |
+| [0089](0089-algorithm-4-selection-requires-preflight-before-commitment.md) | Algorithm 4 is preflighted before it is committed to | Accepted, implemented |
+| [0090](0090-adjusted-third-party-reimplementations-do-not-inherit-original-algorithm-identity.md) | An adjusted third-party reimplementation does not inherit the original algorithm's identity | Accepted, implemented |
+| [0091](0091-benchmark-input-domain-compatibility-is-a-hard-candidate-gate.md) | Benchmark input-domain compatibility is a hard candidate gate | Accepted, implemented |
+| [0092](0092-fpbench-does-not-invent-score-affecting-input-construction-to-admit-a-candidate.md) | fpbench does not invent score-affecting input construction to admit a candidate | Accepted, implemented |
+| [0093](0093-algorithm-4-is-selected-only-among-hard-gate-survivors.md) | Algorithm 4 is selected only among hard-gate survivors, and never on reported performance | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

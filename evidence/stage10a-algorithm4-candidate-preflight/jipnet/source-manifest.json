@@ -1,0 +1,86 @@
+{
+  "schema": "stage_10a_jipnet_source_manifest_v1",
+  "candidate": "jipnet",
+  "gate": "IDENTITY",
+  "paper": "X. Guan, Z. Pan, J. Feng and J. Zhou, 'Joint Identity Verification and Pose Alignment for Partial Fingerprints', IEEE Transactions on Information Forensics and Security, vol. 20 (2025) pp. 249-263, DOI 10.1109/TIFS.2024.3516566",
+  "paper_preprint": "arXiv:2405.03959v4",
+  "authors": [
+    "Xiongjun Guan",
+    "Zhiyu Pan",
+    "Jianjiang Feng",
+    "Jie Zhou"
+  ],
+  "repository_id": "jipnet_main",
+  "upstream_name": "XiongjunGuan/JIPNet",
+  "upstream_locator": "https://github.com/XiongjunGuan/JIPNet",
+  "role": "the official JIPNet implementation: the model, the inference script, the inference configuration and the training-data construction scripts",
+  "default_branch_observed_at_acquisition": "main",
+  "branch_names_are_not_identities": true,
+  "upstream_commit": "40d8445c5b3afa55b409ae3221377e54e3ace53f",
+  "upstream_commit_date_utc": "2026-04-16T04:02:16Z",
+  "source_archive_locator": "https://codeload.github.com/XiongjunGuan/JIPNet/tar.gz/40d8445c5b3afa55b409ae3221377e54e3ace53f",
+  "source_archive_filename": "JIPNet-40d8445c.tar.gz",
+  "source_archive_sha256": "79924b66d1a194415931b86f65ada4505714e19e76ffb805aa622f17f952cf44",
+  "source_archive_size_bytes": 2583931,
+  "acquired_twice_byte_identical": true,
+  "license_spdx": "MIT",
+  "license_document_sha256": "d039e1af5ef20f591d61ed86cb9670bd028532eead17315aeeb346722431d89f",
+  "readme_document_sha256": "ae8984b5f2197ef4305011c52b691d823dc618339df7335a22a847487103ce64",
+  "acquisition_timestamp_utc": "2026-08-09T00:00:00Z",
+  "cited_files": [
+    {
+      "relative_path": "README.md",
+      "sha256": "ae8984b5f2197ef4305011c52b691d823dc618339df7335a22a847487103ce64",
+      "size_bytes": 9408,
+      "role": "declares the repository the official implementation, lists the Drive folders, and states that the comparison models are reproductions"
+    },
+    {
+      "relative_path": "LICENSE",
+      "sha256": "d039e1af5ef20f591d61ed86cb9670bd028532eead17315aeeb346722431d89f",
+      "size_bytes": 1070,
+      "role": "the MIT licence text"
+    },
+    {
+      "relative_path": "inference.py",
+      "sha256": "244dc17366273c0c14b3f3ee418a52b89520a7c59cef0cfd8d2c1cc6ace67d19",
+      "size_bytes": 4779,
+      "role": "the official JIPNet inference route, from image read to written score"
+    },
+    {
+      "relative_path": "inference_AFRNet.py",
+      "sha256": "53bb7d31d51bf6c15e1198ba5a4dadb6cd2845a9eff9cc4b77dc5854481d6dfd",
+      "size_bytes": 7790,
+      "role": "the reproduced AFR-Net route: RidgeNet, PFVNet AlignNet, AFRNet, weighted cosine"
+    },
+    {
+      "relative_path": "models/JIPNet.py",
+      "sha256": "2511b0f42debfccdc395ffbcb2080123a5fa5abb31a6ddc55422cc9481d51e8b",
+      "size_bytes": 3130,
+      "role": "the model class, whose forward applies the sigmoid to the classification output"
+    },
+    {
+      "relative_path": "ckpts/JIPNet/config.yaml",
+      "sha256": "5c89462bc27514d2a029b58333393a36c6028e2585f4cc945a35e944d73e7837",
+      "size_bytes": 299,
+      "role": "the inference configuration shipped with the repository: input_size 160"
+    },
+    {
+      "relative_path": "make_data/generate_patch.py",
+      "sha256": "6c2c5c762524aa9f4ded728d579466e0b89e61a39d31f0d905b78279121afef3",
+      "size_bytes": 9158,
+      "role": "the training-data construction script, and the only place in the repository where a full fingerprint becomes a patch"
+    },
+    {
+      "relative_path": "requirements.txt",
+      "sha256": "1175cf980968c55cc88f2c984846afeaf43a9de6daa8b0495f6ed1ad57f05703",
+      "size_bytes": 164,
+      "role": "the pinned dependency set"
+    }
+  ],
+  "official_checkpoint_locator": "https://drive.google.com/drive/folders/1q9yopPjOFt9c9odCT1o4nheLvwrJaCu7",
+  "official_checkpoint_locator_is_an_identity": false,
+  "notes": [
+    "The archive was acquired twice from the same locator and came back byte-identical, which is what makes a generated tarball usable as an identity here.",
+    "The repository ships no weights. Every ckpts/<model>/download.md says to fetch the file from the link on the README page, and that link is a Google Drive folder — a place, not bytes. No Stage 10A conclusion rests on any checkpoint, because the artifact gate was never reached."
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "stage_10a_runtime_smoke_v1",
+  "candidate": "afrnet",
+  "gate": "RUNTIME_SMOKE",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+  "synthetic_fixtures_written": 0,
+  "checkpoint_loaded": false,
+  "forward_pass_executed": false,
+  "sd300_images_used": false,
+  "red_flags_recorded_before_the_stop": [],
+  "these_observations_are_not_a_gate_conclusion": true
+}

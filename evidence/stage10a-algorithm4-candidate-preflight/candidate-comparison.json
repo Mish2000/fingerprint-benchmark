@@ -1,0 +1,81 @@
+{
+  "schema": "stage_10a_candidate_comparison_v1",
+  "outcome": "ALGORITHM4_PREFLIGHT_NO_SURVIVOR",
+  "selected_candidate": null,
+  "survivor_count": 0,
+  "ranking_performed": false,
+  "why_no_ranking": "Ranking happens only among candidates that passed every hard gate, and here there are none. Scoring candidates that failed different gates against each other would produce a winner with an unresolved blocker, which is the shape Stage 9A's FLARE reading rejected (docs/adr/0093).",
+  "tie_break_applied": false,
+  "tie_break_criteria_frozen": [
+    "canonical500_fit",
+    "executable_provenance",
+    "external_inference_components",
+    "methodological_diversity",
+    "runtime_practicality",
+    "learning_value"
+  ],
+  "selection_based_on_reported_performance": false,
+  "reported_performance_read": false,
+  "gate_matrix": [
+    {
+      "gate": "IDENTITY",
+      "afrnet": "FAIL",
+      "jipnet": "PASS"
+    },
+    {
+      "gate": "INPUT_DOMAIN",
+      "afrnet": "NOT_REACHED",
+      "jipnet": "FAIL"
+    },
+    {
+      "gate": "ARTIFACTS",
+      "afrnet": "NOT_REACHED",
+      "jipnet": "NOT_REACHED"
+    },
+    {
+      "gate": "INFERENCE_ROUTE",
+      "afrnet": "NOT_REACHED",
+      "jipnet": "NOT_REACHED"
+    },
+    {
+      "gate": "SCORE_CONTRACT",
+      "afrnet": "NOT_REACHED",
+      "jipnet": "NOT_REACHED"
+    },
+    {
+      "gate": "TRAINING_PROVENANCE",
+      "afrnet": "NOT_REACHED",
+      "jipnet": "NOT_REACHED"
+    },
+    {
+      "gate": "RUNTIME_SMOKE",
+      "afrnet": "NOT_REACHED",
+      "jipnet": "NOT_REACHED"
+    }
+  ],
+  "verdicts": {
+    "afrnet": "AFRNET_PREFLIGHT_FAIL",
+    "jipnet": "JIPNET_PREFLIGHT_FAIL"
+  },
+  "stopped_at": {
+    "afrnet": "IDENTITY",
+    "jipnet": "INPUT_DOMAIN"
+  },
+  "blocker_codes": {
+    "afrnet": [
+      "OFFICIAL_CHECKPOINT_NOT_FOUND",
+      "OFFICIAL_IMPLEMENTATION_NOT_FOUND",
+      "THIRD_PARTY_REIMPLEMENTATION_ONLY"
+    ],
+    "jipnet": [
+      "BENCHMARK_INPUT_ROUTE_UNRESOLVED",
+      "FPBENCH_PREPROCESSING_CHOICE_REQUIRED",
+      "INPUT_DOMAIN_INCOMPATIBLE"
+    ]
+  },
+  "the_two_candidates_failed_for_unrelated_reasons": true,
+  "notes": [
+    "AFR-Net stopped on authenticity: there is no author-supplied artifact to qualify. JIPNet stopped on input domain: the artifact is official and well documented, and it is a matcher for a different kind of input than this benchmark produces.",
+    "Neither verdict is a judgement about the quality of either method."
+  ]
+}

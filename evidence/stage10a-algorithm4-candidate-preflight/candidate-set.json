@@ -1,0 +1,148 @@
+{
+  "schema": "stage_10a_candidate_set_v1",
+  "algorithm_slot": "algorithm_4",
+  "question": "which, if either, of these candidates can enter fpbench as Algorithm 4 without an fpbench reconstruction, without invented preprocessing, and without SD300 being consulted to make it fit",
+  "candidate_count": 2,
+  "candidates": [
+    {
+      "candidate_id": "afrnet",
+      "marker_token": "AFRNET",
+      "display_name": "AFR-Net: Attention-Driven Fingerprint Recognition Network",
+      "paper": "S. A. Grosz and A. K. Jain, 'AFR-Net: Attention-Driven Fingerprint Recognition Network', IEEE Transactions on Biometrics, Behavior, and Identity Science, vol. 6, no. 1 (2024) pp. 30-42, DOI 10.1109/TBIOM.2023.3317303",
+      "paper_preprint": "arXiv:2211.13897v2",
+      "authors": [
+        "Steven A. Grosz",
+        "Anil K. Jain"
+      ],
+      "pass_outcome": "AFRNET_PREFLIGHT_PASS",
+      "fail_outcome": "AFRNET_PREFLIGHT_FAIL",
+      "first_document": "source-discovery.json"
+    },
+    {
+      "candidate_id": "jipnet",
+      "marker_token": "JIPNET",
+      "display_name": "JIPNet: Joint Identity Verification and Pose Alignment for Partial Fingerprints",
+      "paper": "X. Guan, Z. Pan, J. Feng and J. Zhou, 'Joint Identity Verification and Pose Alignment for Partial Fingerprints', IEEE Transactions on Information Forensics and Security, vol. 20 (2025) pp. 249-263, DOI 10.1109/TIFS.2024.3516566",
+      "paper_preprint": "arXiv:2405.03959v4",
+      "authors": [
+        "Xiongjun Guan",
+        "Zhiyu Pan",
+        "Jianjiang Feng",
+        "Jie Zhou"
+      ],
+      "pass_outcome": "JIPNET_PREFLIGHT_PASS",
+      "fail_outcome": "JIPNET_PREFLIGHT_FAIL",
+      "first_document": "source-manifest.json"
+    }
+  ],
+  "declared_non_candidates": [
+    {
+      "identity": "jipnet_authors_adjusted_afrnet_reimplementation",
+      "description": "The AFR-Net reproduction distributed inside XiongjunGuan/JIPNet, whose own README states that the comparison models are reproduced from their papers and that some were adjusted for partial-fingerprint scenarios. It is not AFR-Net and Stage 10A does not consider it as AFR-Net."
+    }
+  ],
+  "gate_order": [
+    "IDENTITY",
+    "INPUT_DOMAIN",
+    "ARTIFACTS",
+    "INFERENCE_ROUTE",
+    "SCORE_CONTRACT",
+    "TRAINING_PROVENANCE",
+    "RUNTIME_SMOKE"
+  ],
+  "gates_are_conjunctive_and_unweighted": true,
+  "accepted_implementation_origins": [
+    "AUTHOR_OFFICIAL_IMPLEMENTATION",
+    "AUTHOR_OFFICIAL_RELEASE"
+  ],
+  "tie_break_criteria": [
+    {
+      "order": 1,
+      "criterion_id": "canonical500_fit",
+      "description": "closer fit to the canonical_500 full-fingerprint benchmark"
+    },
+    {
+      "order": 2,
+      "criterion_id": "executable_provenance",
+      "description": "cleaner executable provenance"
+    },
+    {
+      "order": 3,
+      "criterion_id": "external_inference_components",
+      "description": "fewer inference-time external components"
+    },
+    {
+      "order": 4,
+      "criterion_id": "methodological_diversity",
+      "description": "methodological diversity against SourceAFIS, NBIS and flx"
+    },
+    {
+      "order": 5,
+      "criterion_id": "runtime_practicality",
+      "description": "runtime practicality"
+    },
+    {
+      "order": 6,
+      "criterion_id": "learning_value",
+      "description": "learning value"
+    }
+  ],
+  "tie_break_uses_reported_performance": false,
+  "benchmark_input": {
+    "profile": "canonical_500",
+    "ppi": 500,
+    "pixel_format": "gray8"
+  },
+  "reconnaissance_fingerprint": "6d6e1b45db4f3bcdf80ff3e26b6e362e2b77ffde5f8d14a5f6d2538b67a8c0e9",
+  "non_goals": [
+    "no production adapter",
+    "no AlgorithmConfig",
+    "no 6,000 comparisons",
+    "no SD300 read",
+    "no DecisionProfile",
+    "no threshold",
+    "no calibration",
+    "no metrics",
+    "no fine-tuning or retraining",
+    "no crop or hyperparameter optimisation",
+    "no model selection from benchmark performance"
+  ],
+  "third_party_usage": {
+    "manifest_id": "algorithm4_preflight_third_party_usage",
+    "subject": "every third-party component Stage 10A obtained: one official source archive, and no checkpoint of either candidate",
+    "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+    "policy_fingerprint": "de9cdbaa23522c4a15337d86b0ec2df8af8b79383a1f8014294e8c7855bf972a",
+    "manifest_fingerprint": "ba4b3d801618edffd948afafb1498718074cd7051aaecc5ebfed53ff4d77969f",
+    "audit_fingerprint": "b1439cb1473d27b019e514b92ac9dad51f193b58a52434e196005f6e56899d17",
+    "opens_execution": true,
+    "records": [
+      {
+        "record_id": "jipnet_source_archive",
+        "component_kind": "SOURCE_CODE",
+        "license_observation_status": "OPEN_SOURCE_PERMISSIVE",
+        "license_observation_fingerprint": "90f66d00e4b5dc2ff495e6250a249a8317b2cad0a3f6b6f9db046d5f2b27a449",
+        "license_evidence_locators": [
+          "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/LICENSE",
+          "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/README.md"
+        ],
+        "research_use_decision": "ALLOWED",
+        "research_use_assessment_fingerprint": "44d11cfe718a75e0bb06164e1b5754d016240983ae7b5972c688da62b19ae17c",
+        "non_blocking_restrictions": [
+          "ATTRIBUTION_AND_NOTICE_RETENTION"
+        ],
+        "blockers": [],
+        "redistribution_decision": "CONDITIONAL",
+        "redistributed_by_fpbench": false,
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "usage_fingerprint": "a33287e3459541f22c92cb6485ffa0bc274d015bb268c027fdc935024c3214a1"
+      }
+    ],
+    "checkpoints_acquired": 0,
+    "notes": [
+      "Stage 8E decided this. Stage 10A supplied the observation and the facts and supplied no verdict; there is no parameter through which it could have (docs/adr/0082).",
+      "Stage 10A added no licensing subsystem and no per-candidate policy. One component was obtained, so there is one record."
+    ]
+  }
+}

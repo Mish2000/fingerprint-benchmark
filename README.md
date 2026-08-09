@@ -1855,16 +1855,95 @@ checkpoint, no network — with:
 make stage9a-evidence
 ```
 
+## Stage 10A: check the candidates before choosing one
+
+Stage 9A got the order wrong. It *selected* FLARE and then spent a stage
+establishing that FLARE could not be executed faithfully — and a selected
+candidate creates pressure, because every gap becomes something to work around
+rather than something to report.
+
+Stage 10A inverts it. Two candidates, AFR-Net and JIPNet, and one question asked
+before either is chosen:
+
+```text
+which, if either, can enter fpbench as algorithm 4
+without an fpbench reconstruction,
+without invented preprocessing,
+and without SD300 being consulted to make it fit?
+```
+
+Seven hard gates, conjunctive and unweighted, run fail-fast. Identity and input
+domain come first because both can be settled by reading, and settling either
+negatively means several hundred megabytes are never downloaded.
+
+```text
+ALGORITHM4_PREFLIGHT_NO_SURVIVOR
+```
+
+| Gate | AFR-Net | JIPNet |
+| :--- | :--- | :--- |
+| 1 identity | **FAIL** | PASS |
+| 2 input domain | not reached | **FAIL** |
+| 3–7 | not reached | not reached |
+
+**AFR-Net** has no author-supplied implementation and no author-supplied
+checkpoint. Ten locations were searched and each is recorded with what it
+returned; one of them, the IEEE article page, was unreadable and is recorded as
+unread rather than as empty. A working AFR-Net does exist inside JIPNet's
+repository, published as a comparison baseline — and its own authors state it is
+a reproduction whose alignment stage was substituted. That is a different
+algorithm, and it enters as `jipnet_authors_adjusted_afrnet_reimplementation` or
+not at all (ADR 0090).
+
+**JIPNet** passed identity on its first reading: the paper's abstract names the
+repository, the repository calls itself the official implementation, and the
+archive was acquired twice byte-identically at a pinned commit. It fails on input
+domain. Its official `inference.py` reads two images and forwards them — no crop,
+no resize, no size check — `cv2.resize` appears nowhere in the repository, and
+the only full-fingerprint-to-patch function belongs to training-data
+construction, where the crop is sampled from the *common mask of an aligned
+pair*, rotated randomly, and preceded by a VeriFinger step the authors state
+cannot run. A benchmark input cannot depend on the gallery image it will be
+compared against (ADR 0091), and closing the gap would mean fpbench choosing the
+crop (ADR 0092).
+
+Cost of reaching that conclusion: **zero checkpoint bytes**, zero runtimes, zero
+SD300 reads, zero scores. `NOT_REACHED` is published as itself — neither a pass
+nor a soft failure — and the observations gathered incidentally before each stop
+are labelled as observations, never as gate conclusions.
+
+No ranking was performed, because ranking happens only among candidates that
+passed every gate, and author-reported accuracy is not read at all: the two
+papers report on different datasets under different protocols (ADR 0093).
+
+Details: [the Stage 10A evidence
+report](evidence/stage10a-algorithm4-candidate-preflight/README.md), [the
+candidate records](docs/algorithms/algorithm4-candidates/) and
+[ADRs 0089–0093](docs/adr/README.md). Verify it — no dataset, no torch, no
+checkpoint, no network — with:
+
+```bash
+make stage10a-evidence
+```
+
 ## Next stage
 
-**A corrective stage for FLARE, or algorithm 5.** Stage 9A recorded
-`opens_stage_9b: false`, so there is no Stage 9B for FLARE yet.
+**A third algorithm-4 candidate.** Stage 10A recorded
+`opens_candidate_search: true` and `opens_algorithm4_artifact_qualification:
+false`, so the slot is empty and no artifact qualification is open.
 
 ```
-Stage 9A   algorithm 4 — artifact and method qualification    BLOCKED
-Stage 9B   algorithm 4 — runtime and adapter qualification    not opened
-Stage 9C   algorithm 4 — canonical_500 raw run                not opened
+Stage 9A    algorithm 4 = FLARE  — artifact and method qualification   BLOCKED
+Stage 10A   algorithm 4 candidates — AFR-Net vs JIPNet preflight       NO SURVIVOR
+Stage 10B   algorithm 4 — artifact qualification                       not opened
 ```
+
+The search now starts from a written specification rather than an impression: a
+candidate must be the authors' own executable artifact, must accept
+`canonical_500` through a route somebody upstream defined, must name its
+artifacts by bytes, must produce one finite scalar per attempt with no threshold,
+must not have been fitted on SD300, and must run here. Any candidate that fails
+one of those fails, and no gate is weakened to fill the slot.
 
 Four things would lift the route blockers, and each is concrete: an authoritative
 statement of the 512-to-256 resampling; an authoritative statement of what fills

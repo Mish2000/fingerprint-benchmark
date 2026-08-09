@@ -1,0 +1,114 @@
+{
+  "schema": "stage_10a_afrnet_source_discovery_v1",
+  "candidate": "afrnet",
+  "gate": "IDENTITY",
+  "paper": "S. A. Grosz and A. K. Jain, 'AFR-Net: Attention-Driven Fingerprint Recognition Network', IEEE Transactions on Biometrics, Behavior, and Identity Science, vol. 6, no. 1 (2024) pp. 30-42, DOI 10.1109/TBIOM.2023.3317303",
+  "paper_preprint": "arXiv:2211.13897v2",
+  "authors": [
+    "Steven A. Grosz",
+    "Anil K. Jain"
+  ],
+  "locations_searched": 10,
+  "official_source_found": false,
+  "official_checkpoint_found": false,
+  "official_inference_route_found": false,
+  "locations": [
+    {
+      "location_id": "arxiv_abstract_page",
+      "description": "the arXiv listing for the paper, including its version history",
+      "locator": "https://arxiv.org/abs/2211.13897",
+      "outcome": "PAPER_ONLY",
+      "finding": "Two versions, v1 (25 Nov 2022) and v2 (3 Dec 2022). The page carries no code link, no project page and no repository URL.",
+      "observed_utc": "2026-08-09T00:00:00Z"
+    },
+    {
+      "location_id": "paper_body_and_references",
+      "description": "the full text of arXiv:2211.13897v2, searched for a code statement",
+      "locator": "https://arxiv.org/pdf/2211.13897v2",
+      "outcome": "NOTHING_FOUND",
+      "finding": "No 'code is available', 'code will be released' or repository sentence anywhere in sixteen pages. The single GitHub URL in the paper is reference [44], rwightman/pytorch-image-models, which is a dependency the authors used and not a release of this work.",
+      "observed_utc": "2026-08-09T00:00:00Z"
+    },
+    {
+      "location_id": "msu_biometrics_publications",
+      "description": "the MSU Biometrics Research Group publication database",
+      "locator": "https://biometrics.cse.msu.edu/publications.js",
+      "outcome": "PAPER_ONLY",
+      "finding": "Two entries for this work, the 2022 arXiv report and the 2023 TBIOM journal paper. Each carries exactly two links, 'arxiv' and 'IEEE'. Other entries in the same file do carry a third 'Database' link, so the absence of one here is the group's own record rather than a limitation of the page.",
+      "observed_utc": "2026-08-09T00:00:00Z"
+    },
+    {
+      "location_id": "msu_biometrics_databases",
+      "description": "the MSU Biometrics downloads and databases page",
+      "locator": "https://biometrics.cse.msu.edu/pub/databases.html",
+      "outcome": "NOTHING_FOUND",
+      "finding": "The page does not mention AFR-Net.",
+      "observed_utc": "2026-08-09T00:00:00Z"
+    },
+    {
+      "location_id": "msu_biometrics_projects",
+      "description": "the MSU Biometrics project pages",
+      "locator": "https://biometrics.cse.msu.edu/projects.html",
+      "outcome": "NOTHING_FOUND",
+      "finding": "The page does not mention AFR-Net.",
+      "observed_utc": "2026-08-09T00:00:00Z"
+    },
+    {
+      "location_id": "first_author_github_account",
+      "description": "the first author's GitHub account",
+      "locator": "https://github.com/groszste",
+      "outcome": "RELATED_WORK_ONLY",
+      "finding": "Five repositories, of which two are forks. The only fingerprint work published there is SpoofGAN, a different paper by the same author. There is no AFR-Net repository.",
+      "observed_utc": "2026-08-09T00:00:00Z"
+    },
+    {
+      "location_id": "group_github_organisation",
+      "description": "a GitHub organisation for the authors' research group",
+      "locator": "https://github.com/msu-biometrics",
+      "outcome": "NOTHING_FOUND",
+      "finding": "No such organisation exists; the GitHub API answers 404. No group organisation publishing this work was located under any other name.",
+      "observed_utc": "2026-08-09T00:00:00Z"
+    },
+    {
+      "location_id": "github_repository_search",
+      "description": "GitHub repository search for the algorithm name",
+      "locator": "https://api.github.com/search/repositories?q=AFRNet",
+      "outcome": "NOTHING_FOUND",
+      "finding": "A search for 'AFR-Net fingerprint' returns nothing. A search for 'AFRNet' returns five repositories, none of which is fingerprint recognition and none of which belongs to either author; their subjects are zero-shot learning, retinal OCTA segmentation and unrelated coursework.",
+      "observed_utc": "2026-08-09T00:00:00Z"
+    },
+    {
+      "location_id": "model_and_code_indexes",
+      "description": "the Papers with Code entry, which now redirects to Hugging Face",
+      "locator": "https://huggingface.co/papers/2211.13897",
+      "outcome": "NOTHING_FOUND",
+      "finding": "No official and no community implementation is listed. The models section reads 'No model linking this paper'.",
+      "observed_utc": "2026-08-09T00:00:00Z"
+    },
+    {
+      "location_id": "ieee_supplementary_material",
+      "description": "the IEEE Xplore article page, for supplementary material",
+      "locator": "https://ieeexplore.ieee.org/document/10255275",
+      "outcome": "NOT_READABLE",
+      "finding": "The article page returned no readable content to this project, so the presence or absence of supplementary material there was not established. This location is recorded as unread rather than as empty.",
+      "observed_utc": "2026-08-09T00:00:00Z"
+    }
+  ],
+  "excluded_evidence": [
+    {
+      "evidence_id": "jipnet_afrnet_reproduction",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/inference_AFRNet.py",
+      "why_excluded": "An executable AFR-Net published by the JIPNet authors, whose own README states that the comparison models are reproduced from their papers and that some were adjusted for partial-fingerprint scenarios. Its route is RidgeNet enhancement, then PFVNet's AlignNet, then AFRNet, then a weighted cosine of the CNN and ViT halves of the embedding. The paper states that the pose rectification used by DeepPrint, DesNet and AFR-Net could not be performed on partial fingerprints and that AlignNet was substituted, marking the result with an asterisk. Substituting a component of the published route makes this a different algorithm (docs/adr/0090)."
+    },
+    {
+      "evidence_id": "granted_us_patent",
+      "locator": "https://patents.google.com/patent/US20240412553A1/en",
+      "why_excluded": "MSU records a granted US patent 12,380,728, 'Attention Driven Fingerprint Recognition Network' (AFR-Net), dated 5 August 2025. A patent is a description of a method and not an executable artifact; it is recorded here as an observed fact about the work's status and is not the basis of any Stage 10A conclusion."
+    }
+  ],
+  "not_found_is_not_proof_of_absence": true,
+  "notes": [
+    "This document establishes that no author-supplied AFR-Net implementation and no author-supplied AFR-Net checkpoint were located. It does not establish that none exists, and one location was not readable from here.",
+    "Either finding alone would be enough: Stage 10A needs both a source and a checkpoint from the original authors before it can call a route AFR-Net."
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "schema": "stage_10a_preflight_report_v1",
+  "candidate": "jipnet",
+  "marker_token": "JIPNET",
+  "display_name": "JIPNet: Joint Identity Verification and Pose Alignment for Partial Fingerprints",
+  "verdict": "JIPNET_PREFLIGHT_FAIL",
+  "passed_every_hard_gate": false,
+  "stopped_at_gate": "INPUT_DOMAIN",
+  "decisive_question": "Can the exact released JIPNet checkpoint consume fpbench canonical500 full fingerprints through a published deterministic inference transformation, without fpbench inventing a partial-patch construction?",
+  "decisive_answer": "NO",
+  "decisive_answer_basis": "The official inference script performs no crop and no resize, the repository contains no resize at all, and the only full-fingerprint-to-patch function belongs to training-data construction — where the crop depends on the paired image, on a random rotation, and on a commercial SDK step the authors state cannot run.",
+  "gates": [
+    {
+      "order": 1,
+      "gate": "IDENTITY",
+      "status": "PASS",
+      "summary": "AUTHOR_OFFICIAL_IMPLEMENTATION: XiongjunGuan/JIPNet at commit 40d8445c, the repository the paper names as its code. The README states the repository is the official implementation of the TIFS 2025 paper, and the paper's abstract names the same repository.",
+      "blocker_codes": []
+    },
+    {
+      "order": 2,
+      "gate": "INPUT_DOMAIN",
+      "status": "FAIL",
+      "summary": "FPBENCH_CONSTRUCTION_REQUIRED: the released model declares a 160x160 input and no upstream authority defines how a full 500 ppi fingerprint becomes one.",
+      "blocker_codes": [
+        "BENCHMARK_INPUT_ROUTE_UNRESOLVED",
+        "FPBENCH_PREPROCESSING_CHOICE_REQUIRED",
+        "INPUT_DOMAIN_INCOMPATIBLE"
+      ]
+    },
+    {
+      "order": 3,
+      "gate": "ARTIFACTS",
+      "status": "NOT_REACHED",
+      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "blocker_codes": []
+    },
+    {
+      "order": 4,
+      "gate": "INFERENCE_ROUTE",
+      "status": "NOT_REACHED",
+      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "blocker_codes": []
+    },
+    {
+      "order": 5,
+      "gate": "SCORE_CONTRACT",
+      "status": "NOT_REACHED",
+      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "blocker_codes": []
+    },
+    {
+      "order": 6,
+      "gate": "TRAINING_PROVENANCE",
+      "status": "NOT_REACHED",
+      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "blocker_codes": []
+    },
+    {
+      "order": 7,
+      "gate": "RUNTIME_SMOKE",
+      "status": "NOT_REACHED",
+      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "blocker_codes": []
+    }
+  ],
+  "blockers": [
+    {
+      "gate": "INPUT_DOMAIN",
+      "blocker_code": "BENCHMARK_INPUT_ROUTE_UNRESOLVED",
+      "affected_component": "canonical_500 to the declared 160x160 model input",
+      "evidence": "input-domain-contract.json: the official inference script reads two images and hands them to the model with no crop and no resize, cv2.resize appears nowhere in the repository, and the only full-fingerprint-to-patch function lives in the training-data construction script",
+      "why_this_blocks_algorithm_4": "There is no published, deterministic, inference-time conversion from an arbitrary full fingerprint to the required patch. Every comparison fpbench ran would depend on a step nobody upstream defined."
+    },
+    {
+      "gate": "INPUT_DOMAIN",
+      "blocker_code": "FPBENCH_PREPROCESSING_CHOICE_REQUIRED",
+      "affected_component": "the patch construction the route would need",
+      "evidence": "input-domain-contract.json: the upstream construction samples the patch centre from the common mask of an already-aligned genuine pair and applies a rotation drawn uniformly from [-180, 180] degrees, and its first step cannot run at all because it needs a commercial SDK the authors could not release",
+      "why_this_blocks_algorithm_4": "Closing the gap would mean fpbench choosing a crop centre, a crop size, a rotation and a border fill. Those are not free parameters: they decide which ridges the network sees, and therefore they decide the score (docs/adr/0064, docs/adr/0092)."
+    },
+    {
+      "gate": "INPUT_DOMAIN",
+      "blocker_code": "INPUT_DOMAIN_INCOMPATIBLE",
+      "affected_component": "the released model's input domain against canonical_500",
+      "evidence": "input-domain-contract.json: as released, the model's domain is paired partial patches whose crop is a property of the pair, and the benchmark's domain is single full 500 ppi fingerprints prepared independently of any comparison",
+      "why_this_blocks_algorithm_4": "A benchmark input cannot be a function of the gallery image it will be compared against, and this model's input is. The two domains differ in what an input *is*, not only in its size. This says the released artifact does not fit this benchmark, not that no future release could."
+    }
+  ],
+  "what_this_candidate_cost": {
+    "checkpoint_bytes_downloaded": 0,
+    "runtime_environments_built": 0,
+    "sd300_images_read": 0,
+    "scores_produced": 0
+  }
+}

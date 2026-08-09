@@ -1,0 +1,14 @@
+{
+  "schema": "stage_10a_artifact_manifest_v1",
+  "candidate": "afrnet",
+  "gate": "ARTIFACTS",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+  "bytes_downloaded": 0,
+  "artifact_store_environment_variable": "FPBENCH_THIRD_PARTY_ROOT",
+  "manifests_hold_no_absolute_path": true,
+  "would_have_had_to_close_over": [],
+  "notes": [
+    "A sketch of the gate's scope, not a manifest: no digest, no size and no local placement, because nothing was fetched. A Drive folder is a place and not an identity, and Stage 10A never treats one as an identity (docs/adr/0083)."
+  ]
+}

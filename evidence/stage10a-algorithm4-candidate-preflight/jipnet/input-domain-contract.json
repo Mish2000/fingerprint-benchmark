@@ -1,0 +1,91 @@
+{
+  "schema": "stage_10a_input_domain_contract_v1",
+  "candidate": "jipnet",
+  "gate": "INPUT_DOMAIN",
+  "gate_status": "FAIL",
+  "benchmark_input_profile": "canonical_500",
+  "benchmark_input_ppi": 500,
+  "benchmark_input_pixel_format": "gray8",
+  "declared_model_input": {
+    "geometry_pixels": [
+      160,
+      160
+    ],
+    "channels": 1,
+    "dtype": "float32",
+    "value_range": "[0, 1]",
+    "normalization": "(255.0 - pixel) / 255.0, i.e. inverted and scaled",
+    "normalization_locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/inference.py",
+    "declared_ppi": null,
+    "ppi_statement": "Neither the repository nor the paper declares a pixels-per-inch assumption, and neither declares that one is unnecessary. The evaluation datasets do not share a resolution: NIST SD14 and FVC2002 DB1_A are 500 ppi while FVC2004 DB2_A and FVC2006 DB2_A are 569 ppi, and no resampling to a common scale appears anywhere in the repository.",
+    "geometry_locators": [
+      "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/ckpts/JIPNet/config.yaml (model_cfg.input_size: 160)",
+      "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/inference.py (patch_size = 160)",
+      "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/examples/data (all eight shipped images are 160x160 8-bit grayscale PNG)",
+      "arXiv:2405.03959v4 Fig. 3 caption: 'Paired fingerprint patches with the same shape are input, specifically 160x160, 120x120, or 96x96 in this paper.'"
+    ]
+  },
+  "resolution": "FPBENCH_CONSTRUCTION_REQUIRED",
+  "resolution_admits_candidate": false,
+  "transformation_authority": null,
+  "resize_is_assumed_physically_neutral": false,
+  "observations": [
+    {
+      "observation_id": "inference_reads_the_pair_directly",
+      "statement": "The official inference script reads two PNG files with cv2.imread, inverts and scales them, and hands them to the model. It performs no crop, no resize and no geometric operation of any kind, and it does not inspect the image size.",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/inference.py",
+      "is_inference_time": true
+    },
+    {
+      "observation_id": "no_resize_exists_in_the_repository",
+      "statement": "cv2.resize appears nowhere in the repository. The only torch interpolations are inside the reproduced DeepPrint and RidgeNet models, neither of which is part of the JIPNet route.",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/",
+      "is_inference_time": true
+    },
+    {
+      "observation_id": "the_only_crop_is_training_side",
+      "statement": "The single function that turns a full fingerprint into a patch is cut_patch, and it lives in the training-data construction script and in the training data loader. Neither is imported by any inference script.",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/make_data/generate_patch.py",
+      "is_inference_time": false
+    },
+    {
+      "observation_id": "the_crop_is_a_property_of_a_pair",
+      "statement": "generate_patch.py samples the patch centre from the common mask of two already-aligned impressions of the same finger, and then samples a second centre on a ring around it. Which 160x160 window a fingerprint yields therefore depends on which other fingerprint it is being compared with, and on the state of a pseudo-random generator. A benchmark input cannot be a function of the gallery image it will be compared to.",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/make_data/generate_patch.py",
+      "is_inference_time": false
+    },
+    {
+      "observation_id": "the_crop_is_randomly_rotated",
+      "statement": "Each patch is cut after a rotation drawn uniformly from [-180, 180] degrees. The paper states the same: full fingerprints are cropped 'with a random relative rotation from [-180, 180]'.",
+      "locator": "arXiv:2405.03959v4 section IV-A",
+      "is_inference_time": false
+    },
+    {
+      "observation_id": "the_construction_chain_cannot_run",
+      "statement": "The construction chain begins with affine_pairs.py, which imports fptools.fp_verifinger. That module is not in the repository, and the README states the script will not run because of licensing restrictions and that its source cannot be released.",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/make_data/affine_pairs.py",
+      "is_inference_time": false
+    },
+    {
+      "observation_id": "the_paper_states_two_different_patch_sets",
+      "statement": "Section III describes the input as 160x160, 120x120 or 96x96; section IV-A describes the constructed evaluation patches as 160x160, 128x128 and 96x96. The middle size differs between the two statements. Only 160x160 is reproduced by the released configuration.",
+      "locator": "arXiv:2405.03959v4 sections III and IV-A",
+      "is_inference_time": false
+    }
+  ],
+  "constructions_fpbench_refuses_to_invent": [
+    "centre-cropping a 160x160 window because it looks reasonable",
+    "resizing a whole fingerprint to 160x160",
+    "cropping around an estimated core or singular point",
+    "choosing the highest-quality 160x160 region",
+    "generating several patches and taking the maximum of their scores",
+    "cropping plain and rolled impressions under different rules",
+    "using SD300 to find out which crop works best",
+    "adopting the paper's VeriFinger alignment as an inference step"
+  ],
+  "notes": [
+    "The model would accept a differently-shaped tensor without complaining. That is not the question the gate asks. The question is whether an upstream authority defines how a full 500 ppi fingerprint becomes the input this model was released for, and no such definition exists (docs/adr/0091).",
+    "The VeriFinger alignment in the paper belongs to partial-pair simulation for training and evaluation-set construction. Promoting it to an inference step would produce VeriFinger plus an fpbench crop policy plus JIPNet, which is a new algorithm and not JIPNet (docs/adr/0092)."
+  ],
+  "gate_summary": "FPBENCH_CONSTRUCTION_REQUIRED: the released model declares a 160x160 input and no upstream authority defines how a full 500 ppi fingerprint becomes one."
+}

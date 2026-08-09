@@ -1,0 +1,227 @@
+name: Stage 10A Algorithm 4 candidate preflight
+
+# What this workflow proves, and what it deliberately does not.
+#
+# It runs the whole Stage 10A contract — the two candidates and their frozen
+# identities, the seven hard gates and the order they run in, fail-fast and the
+# NOT_REACHED states it produces, the origin vocabulary and what it admits, the
+# input-domain rule and the constructions it refuses, the Stage 8E reuse over
+# the one component that was obtained, the candidate byte guard, the selection
+# rule, and a marker that can only be SELECTED or NO_SURVIVOR.
+#
+# All of it is pure Python over descriptions of upstream that this repository
+# does not hold. There is no dataset here, no torch, no checkpoint, no CUDA, no
+# network and no workspace — which is the point twice over, since this is the
+# stage whose whole result is that neither candidate was worth downloading.
+#
+# It fetches **nothing**. No Google Drive download, no codeload acquisition, no
+# checkpoint. Acquisition is local-only under the frozen policy, and a job that
+# fetched a restricted artifact would be the thing Stage 8E forbade
+# (docs/adr/0083).
+#
+# A green tick here does not say an Algorithm 4 exists. At the time of writing
+# it says the opposite, precisely: the outcome is
+# ALGORITHM4_PREFLIGHT_NO_SURVIVOR and every blocker is named (docs/adr/0089).
+
+on:
+  push:
+    paths:
+      - "src/fpbench/core/algorithm4_errors.py"
+      - "src/fpbench/experiments/stage10a_candidate_identity.py"
+      - "src/fpbench/experiments/stage10a_candidate_evidence.py"
+      - "src/fpbench/experiments/stage10a_preflight.py"
+      - "src/fpbench/experiments/stage10a_finalization.py"
+      - "evidence/stage10a-algorithm4-candidate-preflight/**"
+      - "tests/**stage10a**"
+      # Stage 10A depends on Stage 8E's policy and on nothing else of it. A
+      # change to any of these changes what this stage's decisions mean, so the
+      # stage is re-run rather than trusted.
+      - "src/fpbench/third_party/**"
+      - "src/fpbench/core/third_party_models.py"
+      - "src/fpbench/core/third_party_errors.py"
+      - "evidence/stage8e-research-only-policy/**"
+      - "tests/**stage8e**"
+      - "docs/adr/009[0-3]*.md"
+      - "docs/adr/0089*.md"
+      - "docs/algorithms/algorithm4-candidates/**"
+      - "docs/experiments/stage10a-algorithm4-candidate-preflight.md"
+      - ".github/workflows/**"
+      - ".gitignore"
+      - ".gitattributes"
+      - "pyproject.toml"
+      - "Makefile"
+  pull_request:
+    paths:
+      - "src/fpbench/core/algorithm4_errors.py"
+      - "src/fpbench/experiments/stage10a_candidate_identity.py"
+      - "src/fpbench/experiments/stage10a_candidate_evidence.py"
+      - "src/fpbench/experiments/stage10a_preflight.py"
+      - "src/fpbench/experiments/stage10a_finalization.py"
+      - "evidence/stage10a-algorithm4-candidate-preflight/**"
+      - "tests/**stage10a**"
+      - "src/fpbench/third_party/**"
+      - "src/fpbench/core/third_party_models.py"
+      - "src/fpbench/core/third_party_errors.py"
+      - "evidence/stage8e-research-only-policy/**"
+      - "tests/**stage8e**"
+      - "docs/adr/009[0-3]*.md"
+      - "docs/adr/0089*.md"
+      - "docs/algorithms/algorithm4-candidates/**"
+      - "docs/experiments/stage10a-algorithm4-candidate-preflight.md"
+      - ".github/workflows/**"
+      - ".gitignore"
+      - ".gitattributes"
+      - "pyproject.toml"
+      - "Makefile"
+
+permissions:
+  contents: read
+
+jobs:
+  algorithm4-preflight-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[dev]"
+
+      - name: The frozen Stage 10A preflight contract
+        run: pytest -m "stage10a_contract" -q
+
+      - name: Committed Stage 10A evidence gate
+        run: pytest -m "stage10a" -q
+
+      - name: No candidate byte is tracked in this public repository
+        # Beside Stage 8E's generic guard rather than inside it. Stage 8E is a
+        # closed stage, so its hard-coded digest registry is not extended from
+        # here.
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.experiments.stage10a_preflight import (
+              require_no_candidate_bytes_in_git,
+          )
+          from fpbench.third_party import require_no_third_party_bytes_in_git
+
+          generic = require_no_third_party_bytes_in_git(Path("."))
+          exact = require_no_candidate_bytes_in_git(Path("."))
+          print(
+              f"{generic.tracked_file_count} tracked files scanned against "
+              f"{len(generic.rules)} generic rules and "
+              f"{exact.known_digest_count} exact candidate digests."
+          )
+          print(f"Findings: {len(generic.findings)} generic, {len(exact.findings)} exact.")
+          PY
+
+      - name: This job has no runtime and fetched nothing
+        run: |
+          python - <<'PY'
+          import importlib.util
+
+          for name in ("torch", "torchvision", "numpy", "scipy", "cv2", "sklearn", "timm"):
+              assert importlib.util.find_spec(name) is None, f"{name} is installed"
+
+          from fpbench.experiments.stage10a_preflight import source_archive_status
+
+          status = source_archive_status()
+          assert status.present is False, (
+              "a runner has the pinned source archive, which means something fetched it"
+          )
+          print("No candidate source and no candidate checkpoint is present here. As intended.")
+          PY
+
+      - name: The Stage 10A workflow itself downloads nothing
+        # The tokens are assembled from halves rather than written out, for the
+        # reason Stage 8E's and Stage 9A's jobs assemble theirs: a literal here
+        # would make the check refuse the step that performs it.
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          workflow = Path(
+              ".github/workflows/stage10a-algorithm4-candidate-preflight.yml"
+          ).read_text(encoding="utf-8")
+          body = workflow.split("jobs:", 1)[1]
+          tokens = [
+              "dri" + "ve.google",
+              "dri" + "ve.usercontent",
+              "code" + "load",
+              "gd" + "own",
+              "w" + "get",
+              "cu" + "rl",
+          ]
+          found = sorted(token for token in tokens if token in body)
+          assert not found, f"the Stage 10A job body names {found}"
+          print(f"None of {len(tokens)} acquisition tokens appears in this job.")
+          PY
+
+      - name: No SD300 path is reachable from this stage
+        run: |
+          python - <<'PY'
+          import os
+
+          assert not os.environ.get("FPBENCH_SD300_ROOT"), (
+              "the dataset root is set for a stage that must not read it"
+          )
+
+          from fpbench.experiments import stage10a_preflight as engine
+
+          outcome = engine.run_preflight()
+          print(f"{outcome.outcome}; survivors: {len(outcome.survivors)}")
+          for item in outcome.candidates:
+              print(f"  {item.candidate_id}: {item.verdict}, stopped at {item.stopped_at}")
+          PY
+
+      - name: No test in either Stage 10A suite is skipped
+        # A suite that quietly skipped would look identical to one that passed.
+        # The contract needs no artifact and no runtime; the evidence gate skips
+        # only while the publication does not exist, which on a merged tree it
+        # does. The artifact-present suite is deliberately not run here.
+        run: |
+          pytest -m "stage10a_contract or stage10a" -q -rs 2>&1 | tee /tmp/stage10a.txt
+          if grep -qiE '[0-9]+ skipped' /tmp/stage10a.txt; then
+            echo "the Stage 10A suites must not skip anything"
+            exit 1
+          fi
+
+      - name: Stage 8E is reused unchanged and Stage 9A is untouched
+        run: |
+          pytest -m "stage8e_contract or stage8e" -q
+          pytest -m "stage9a_contract or stage9a" -q
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.experiments.stage10a_preflight import (
+              require_stage8e_is_the_policy_this_reuses,
+          )
+
+          require_stage8e_is_the_policy_this_reuses(Path("."))
+          print("The Stage 8E marker, purpose and policy are what Stage 10A was written against.")
+          PY
+
+      - name: Regression suites for the prior stages
+        run: |
+          pytest -m "stage7d_contract" -q
+          pytest -m "stage8a_contract or stage8a" -q
+          pytest -m "stage8b_contract or stage8b" -q
+          pytest -m "stage8c_contract or stage8c" -q
+          pytest -m "stage8d_contract or stage8d" -q
+          pytest -m "decisions or metrics or imaging or paired_evaluation" -q
+          pytest -m "(adapter_contract or nbis_contract) and not dataset" -q
+
+      - name: The outcome, and what it does and does not say
+        run: |
+          python -m fpbench.experiments.stage10a_finalization status
+          python - <<'PY'
+          print()
+          print("No score was produced here and no candidate artifact was fetched.")
+          print("An outcome of ALGORITHM4_PREFLIGHT_NO_SURVIVOR is a complete result:")
+          print("it says neither candidate can be admitted as Algorithm 4 on the")
+          print("evidence available, and it names every reason (docs/adr/0089).")
+          PY

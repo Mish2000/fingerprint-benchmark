@@ -1,0 +1,30 @@
+{
+  "schema": "stage_10a_input_domain_contract_v1",
+  "candidate": "afrnet",
+  "gate": "INPUT_DOMAIN",
+  "gate_status": "NOT_REACHED",
+  "benchmark_input_profile": "canonical_500",
+  "benchmark_input_ppi": 500,
+  "benchmark_input_pixel_format": "gray8",
+  "declared_model_input": {
+    "geometry_pixels": null,
+    "channels": null,
+    "dtype": null,
+    "value_range": null,
+    "normalization": null,
+    "normalization_locator": null,
+    "declared_ppi": null,
+    "ppi_statement": "Not examined. The identity gate stopped this candidate, so no input contract was derived for it.",
+    "geometry_locators": []
+  },
+  "resolution": "NOT_REACHED",
+  "resolution_admits_candidate": false,
+  "transformation_authority": null,
+  "resize_is_assumed_physically_neutral": false,
+  "observations": [],
+  "constructions_fpbench_refuses_to_invent": [],
+  "notes": [
+    "There is no author-supplied AFR-Net to declare an input, so there is nothing here to be compatible or incompatible with. The paper's own statement that its network takes 3x224x224 is recorded in the source-discovery document as a fact about the paper, not as a model input contract."
+  ],
+  "gate_summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it"
+}

@@ -5,3 +5,4 @@ evidence/flx-canonical500-raw/* text eol=lf
 evidence/stage8d-calibration-infrastructure/* text eol=lf
 evidence/stage8e-research-only-policy/* text eol=lf
 evidence/stage9a-flare-artifact-qualification/* text eol=lf
+evidence/stage10a-algorithm4-candidate-preflight/** text eol=lf

@@ -58,4 +58,7 @@ markers = [
     "stage9a_contract: the frozen Stage 9A FLARE qualification — the candidate identity, the two pinned upstream commits, the artifact inventory and its Stage 8E decisions, the transform graph and its authorities, the paper-against-code audit, the score contract and its route model, the FLARE-exact byte guard and the two-outcome marker (pure Python, synthetic vectors, no torch, no checkpoint, no network and no dataset)",
     "stage9a: the committed Stage 9A FLARE artifact-qualification evidence gate (no dataset, no runtime and no prior-result workspace)",
     "flare_artifact: needs the FLARE and FLARE_ENH artifacts in the local third-party store, and a torch that can open them (set FPBENCH_THIRD_PARTY_ROOT)",
+    "stage10a_contract: the frozen Stage 10A Algorithm 4 candidate preflight — the candidate set, the seven hard gates and their order, fail-fast and NOT_REACHED, the origin vocabulary, the input-domain rule, the refused constructions, the selection rule and the two-outcome marker (pure Python, no torch, no checkpoint, no network and no dataset)",
+    "stage10a: the committed Stage 10A candidate-preflight evidence gate (no dataset, no runtime and no prior-result workspace)",
+    "algorithm4_preflight_artifact: needs the pinned candidate source archive in the local third-party store (set FPBENCH_THIRD_PARTY_ROOT)",
 ]

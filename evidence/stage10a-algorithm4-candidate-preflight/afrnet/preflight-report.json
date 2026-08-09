@@ -1,0 +1,96 @@
+{
+  "schema": "stage_10a_preflight_report_v1",
+  "candidate": "afrnet",
+  "marker_token": "AFRNET",
+  "display_name": "AFR-Net: Attention-Driven Fingerprint Recognition Network",
+  "verdict": "AFRNET_PREFLIGHT_FAIL",
+  "passed_every_hard_gate": false,
+  "stopped_at_gate": "IDENTITY",
+  "decisive_question": "Does an original-author-supplied executable AFR-Net artifact set exist that defines the published verification score route sufficiently for fpbench?",
+  "decisive_answer": "NO",
+  "decisive_answer_basis": "Ten locations were searched. None yielded source or weights published by Grosz and Jain. The only executable AFR-Net located is a third party's reproduction with a substituted alignment stage, and that is not AFR-Net.",
+  "gates": [
+    {
+      "order": 1,
+      "gate": "IDENTITY",
+      "status": "FAIL",
+      "summary": "UNKNOWN: no executable artifact attributable to the AFR-Net authors was located. Accepted origins are ['AUTHOR_OFFICIAL_IMPLEMENTATION', 'AUTHOR_OFFICIAL_RELEASE'].",
+      "blocker_codes": [
+        "OFFICIAL_IMPLEMENTATION_NOT_FOUND",
+        "OFFICIAL_CHECKPOINT_NOT_FOUND",
+        "THIRD_PARTY_REIMPLEMENTATION_ONLY"
+      ]
+    },
+    {
+      "order": 2,
+      "gate": "INPUT_DOMAIN",
+      "status": "NOT_REACHED",
+      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "blocker_codes": []
+    },
+    {
+      "order": 3,
+      "gate": "ARTIFACTS",
+      "status": "NOT_REACHED",
+      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "blocker_codes": []
+    },
+    {
+      "order": 4,
+      "gate": "INFERENCE_ROUTE",
+      "status": "NOT_REACHED",
+      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "blocker_codes": []
+    },
+    {
+      "order": 5,
+      "gate": "SCORE_CONTRACT",
+      "status": "NOT_REACHED",
+      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "blocker_codes": []
+    },
+    {
+      "order": 6,
+      "gate": "TRAINING_PROVENANCE",
+      "status": "NOT_REACHED",
+      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "blocker_codes": []
+    },
+    {
+      "order": 7,
+      "gate": "RUNTIME_SMOKE",
+      "status": "NOT_REACHED",
+      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "blocker_codes": []
+    }
+  ],
+  "blockers": [
+    {
+      "gate": "IDENTITY",
+      "blocker_code": "OFFICIAL_IMPLEMENTATION_NOT_FOUND",
+      "affected_component": "the AFR-Net inference implementation",
+      "evidence": "source-discovery.json: ten locations were searched — the arXiv listing and the full paper text, the MSU Biometrics publication database, its databases and projects pages, the first author's GitHub account, a group organisation, GitHub repository search, and the code and model indexes — and none yielded source published by the authors",
+      "why_this_blocks_algorithm_4": "Without the authors' own code there is nothing to execute under the name AFR-Net. Writing one from the paper would make fpbench the implementer of an algorithm it then reports numbers for (docs/adr/0066)."
+    },
+    {
+      "gate": "IDENTITY",
+      "blocker_code": "OFFICIAL_CHECKPOINT_NOT_FOUND",
+      "affected_component": "the AFR-Net trained weights",
+      "evidence": "source-discovery.json: no author-supplied checkpoint was located at any of the ten searched locations; the model and code indexes report no model linked to the paper",
+      "why_this_blocks_algorithm_4": "The paper's results come from weights trained on 1.3M images this project does not have. Code without those weights would be an untrained architecture, which shares a name with the published algorithm and nothing else."
+    },
+    {
+      "gate": "IDENTITY",
+      "blocker_code": "THIRD_PARTY_REIMPLEMENTATION_ONLY",
+      "affected_component": "the AFR-Net reproduction distributed inside XiongjunGuan/JIPNet",
+      "evidence": "authenticity-report.json: the only executable AFR-Net located is the one in the JIPNet repository, whose own README states the comparison models are reproduced from their papers and some were adjusted for partial-fingerprint scenarios; the JIPNet paper states that the pose rectification used by AFR-Net could not be performed and that PFVNet's AlignNet was substituted",
+      "why_this_blocks_algorithm_4": "A reproduction with a substituted component is a different algorithm, and running it under the name AFR-Net would publish somebody else's approximation under the original authors' name. It remains available as a candidate of its own, under its own identity (docs/adr/0090)."
+    }
+  ],
+  "what_this_candidate_cost": {
+    "checkpoint_bytes_downloaded": 0,
+    "runtime_environments_built": 0,
+    "sd300_images_read": 0,
+    "scores_produced": 0
+  }
+}

@@ -57,6 +57,13 @@ help:
 	@echo "stage9a-enroll          report the digest and size an unenrolled artifact would need frozen"
 	@echo "stage9a-documents       write the nine derivable evidence documents (commit them, then publish)"
 	@echo "stage9a-publish         write the marker too; refuses a dirty tree"
+	@echo "stage10a-contract       the Algorithm 4 candidate preflight: gates, order, fail-fast, selection"
+	@echo "stage10a-evidence       verify the committed Stage 10A candidate-preflight evidence"
+	@echo "stage10a-artifacts      run the checks that need the pinned candidate source locally"
+	@echo "stage10a-status         re-derive and print the gate matrix, the verdicts and the blockers"
+	@echo "stage10a-guard          refuse if any candidate byte is tracked in this public repository"
+	@echo "stage10a-documents      write the twenty derivable evidence documents (commit them, then publish)"
+	@echo "stage10a-publish        write the marker too; refuses a dirty tree"
 	@echo "stage8c-workspace       Stage 8C alignment and preflight over the real inputs"
 	@echo "stage8c-verify          re-derive and print the Stage 8C evidence-only verification"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
@@ -313,6 +320,36 @@ stage9a-documents:
 
 stage9a-publish:
 	python -m fpbench.experiments.stage9a_flare_finalization publish
+
+# ------------------------------------------------------------------ stage 10A
+
+# The Algorithm 4 candidate preflight (docs/adr/0089-0093). Same two-write shape
+# as Stage 8E and Stage 9A: `stage10a-documents`, commit, `stage10a-publish`,
+# commit.
+#
+# There is no `stage10a-acquire`. Neither candidate reached the artifact gate,
+# so nothing is fetched — that is the stage's result, and a convenient target
+# for fetching is exactly how it would stop being true by accident.
+stage10a-contract:
+	pytest -m "stage10a_contract" -q
+
+stage10a-evidence:
+	pytest -m "stage10a" -q
+
+stage10a-artifacts:
+	pytest -m "algorithm4_preflight_artifact" -q -rs
+
+stage10a-status:
+	python -m fpbench.experiments.stage10a_finalization status
+
+stage10a-guard:
+	python -c "from pathlib import Path; from fpbench.experiments.stage10a_preflight import require_no_candidate_bytes_in_git as g; a = g(Path('.')); print(a.tracked_file_count, 'tracked files scanned against', a.known_digest_count, 'exact candidate digests,', len(a.findings), 'findings')"
+
+stage10a-documents:
+	python -m fpbench.experiments.stage10a_finalization documents
+
+stage10a-publish:
+	python -m fpbench.experiments.stage10a_finalization publish
 
 # ------------------------------------------------------------------- SourceAFIS
 

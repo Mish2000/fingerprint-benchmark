@@ -1,0 +1,27 @@
+{
+  "schema": "stage_10a_authenticity_report_v1",
+  "candidate": "afrnet",
+  "gate": "IDENTITY",
+  "display_name": "AFR-Net: Attention-Driven Fingerprint Recognition Network",
+  "implementation_origin": "UNKNOWN",
+  "origin_is_admissible_for_algorithm_4": false,
+  "accepted_origins": [
+    "AUTHOR_OFFICIAL_IMPLEMENTATION",
+    "AUTHOR_OFFICIAL_RELEASE"
+  ],
+  "subject": "no executable artifact attributable to the AFR-Net authors was located",
+  "supporting_locators": [],
+  "upstream_self_description": "The paper describes the architecture and the realignment strategy and makes no statement about code availability.",
+  "basis": "Ten locations were searched and none yielded an author-supplied implementation or checkpoint. UNKNOWN rather than PAPER_RECONSTRUCTION, because Stage 10A reconstructed nothing: there is no fpbench AFR-Net to classify.",
+  "declared_non_candidates": [
+    {
+      "identity": "jipnet_authors_adjusted_afrnet_reimplementation",
+      "description": "The AFR-Net reproduction distributed inside XiongjunGuan/JIPNet, whose own README states that the comparison models are reproduced from their papers and that some were adjusted for partial-fingerprint scenarios. It is not AFR-Net and Stage 10A does not consider it as AFR-Net."
+    }
+  ],
+  "notes": [
+    "A THIRD_PARTY_REIMPLEMENTATION is never published under the name of the algorithm it reproduces, and an ADJUSTED one is not published under that name even with a qualifier attached to the run (docs/adr/0090)."
+  ],
+  "gate_status": "FAIL",
+  "gate_summary": "UNKNOWN: no executable artifact attributable to the AFR-Net authors was located. Accepted origins are ['AUTHOR_OFFICIAL_IMPLEMENTATION', 'AUTHOR_OFFICIAL_RELEASE']."
+}

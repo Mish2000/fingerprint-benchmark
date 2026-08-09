@@ -1,0 +1,30 @@
+{
+  "schema": "stage_10a_authenticity_report_v1",
+  "candidate": "jipnet",
+  "gate": "IDENTITY",
+  "display_name": "JIPNet: Joint Identity Verification and Pose Alignment for Partial Fingerprints",
+  "implementation_origin": "AUTHOR_OFFICIAL_IMPLEMENTATION",
+  "origin_is_admissible_for_algorithm_4": true,
+  "accepted_origins": [
+    "AUTHOR_OFFICIAL_IMPLEMENTATION",
+    "AUTHOR_OFFICIAL_RELEASE"
+  ],
+  "subject": "XiongjunGuan/JIPNet at commit 40d8445c, the repository the paper names as its code",
+  "supporting_locators": [
+    "https://arxiv.org/abs/2405.03959 abstract: 'Code is available at: https://github.com/XiongjunGuan/JIPNet.'",
+    "https://github.com/XiongjunGuan/JIPNet README: 'This repo is the official implementation of'"
+  ],
+  "upstream_self_description": "The README states the repository is the official implementation of the TIFS 2025 paper, and the paper's abstract names the same repository.",
+  "basis": "The paper and the repository name each other, the author list matches, and the repository carries the authors' own copyright headers. The claim is about JIPNet only: the same repository's PFVNet, AFRNet, DesNet, DeepPrint and A-KAZE routes are described by their own README as reproductions.",
+  "declared_non_candidates": [
+    {
+      "identity": "jipnet_authors_adjusted_afrnet_reimplementation",
+      "description": "The AFR-Net reproduction distributed inside XiongjunGuan/JIPNet, whose own README states that the comparison models are reproduced from their papers and that some were adjusted for partial-fingerprint scenarios. It is not AFR-Net and Stage 10A does not consider it as AFR-Net."
+    }
+  ],
+  "notes": [
+    "A THIRD_PARTY_REIMPLEMENTATION is never published under the name of the algorithm it reproduces, and an ADJUSTED one is not published under that name even with a qualifier attached to the run (docs/adr/0090)."
+  ],
+  "gate_status": "PASS",
+  "gate_summary": "AUTHOR_OFFICIAL_IMPLEMENTATION: XiongjunGuan/JIPNet at commit 40d8445c, the repository the paper names as its code. The README states the repository is the official implementation of the TIFS 2025 paper, and the paper's abstract names the same repository."
+}

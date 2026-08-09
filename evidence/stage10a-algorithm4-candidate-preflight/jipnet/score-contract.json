@@ -1,0 +1,32 @@
+{
+  "schema": "stage_10a_score_contract_v1",
+  "candidate": "jipnet",
+  "gate": "SCORE_CONTRACT",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+  "observations_recorded_before_the_stop": [
+    {
+      "observation_id": "sigmoid_inside_the_model",
+      "statement": "The model's forward applies torch.sigmoid to the classification output, so what leaves the network is already in [0, 1] and higher means more similar.",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/models/JIPNet.py"
+    },
+    {
+      "observation_id": "inference_writes_it_unmodified",
+      "statement": "inference.py squeezes the classification output and writes it under '1-2 matching probability' with two decimal places. Nothing between the model and the file scales, clamps, calibrates or thresholds it; the two decimals are the file format, not the value.",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/inference.py"
+    },
+    {
+      "observation_id": "the_pair_is_structurally_ordered",
+      "statement": "The classification head consumes the two branches concatenated on the channel dimension, in a fixed order. Nothing in the architecture symmetrises them, and no upstream statement says whether score(A,B) equals score(B,A). Establishing that would require running the released checkpoint both ways, which the artifact gate would have to be reached to do.",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/models/ViT/ViT_reg_cla.py"
+    },
+    {
+      "observation_id": "pose_is_a_second_output_not_a_score",
+      "statement": "The route returns two things. align_pred is a relative pose, written to the same file as a separate line, and no upstream code path lets it modify the classification output.",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/inference.py"
+    }
+  ],
+  "these_observations_are_not_a_gate_conclusion": true,
+  "pair_order_symmetry_established": false,
+  "fpbench_may_symmetrise_a_pairwise_score": false
+}

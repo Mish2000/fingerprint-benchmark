@@ -1,0 +1,20 @@
+{
+  "schema": "stage_10a_inference_route_audit_v1",
+  "candidate": "jipnet",
+  "gate": "INFERENCE_ROUTE",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+  "observations_recorded_before_the_stop": [
+    {
+      "observation_id": "single_forward_pass",
+      "statement": "The route is one forward pass over a pair: both images are concatenated on the batch dimension, encoded by shared weights, split again, and fused by alternating self and cross attention. There is no separate enrolment step and no per-image template.",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/models/JIPNet.py"
+    },
+    {
+      "observation_id": "checkpoint_load_is_strict",
+      "statement": "inference.py calls load_state_dict with its default strict=True and no key filtering, so a mismatch between the released checkpoint and the constructed class would raise rather than pass quietly. Whether it does raise was not tested: nothing was downloaded.",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/inference.py"
+    }
+  ],
+  "these_observations_are_not_a_gate_conclusion": true
+}

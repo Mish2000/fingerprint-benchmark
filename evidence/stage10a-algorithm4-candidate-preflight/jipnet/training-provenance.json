@@ -1,0 +1,68 @@
+{
+  "schema": "stage_10a_training_provenance_v1",
+  "candidate": "jipnet",
+  "gate": "TRAINING_PROVENANCE",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+  "observations_recorded_before_the_stop": [
+    {
+      "dataset": "NIST SD14",
+      "role": "TRAINING",
+      "detail": "27,000 fingers, 2 impressions each; in Hybrid DB, split 95% train / 5% test with identities isolated between the halves"
+    },
+    {
+      "dataset": "FVC2004 DB1_A",
+      "role": "TRAINING",
+      "detail": "100 fingers, 8 impressions; in Hybrid DB"
+    },
+    {
+      "dataset": "FVC2004 DB2_A",
+      "role": "TRAINING",
+      "detail": "100 fingers, 8 impressions; in Hybrid DB"
+    },
+    {
+      "dataset": "FVC2006 DB2_A",
+      "role": "TRAINING",
+      "detail": "140 fingers, 12 impressions; in Hybrid DB"
+    },
+    {
+      "dataset": "Hybrid DB_B",
+      "role": "EVALUATION",
+      "detail": "the 5% held-out split of the same merged corpus, 22,672 pairs"
+    },
+    {
+      "dataset": "THU Small",
+      "role": "EVALUATION",
+      "detail": "an in-house capacitive dataset, 100 fingers, test only"
+    },
+    {
+      "dataset": "FVC2002 DB1_A",
+      "role": "EVALUATION",
+      "detail": "100 fingers, test only"
+    },
+    {
+      "dataset": "FVC2002 DB3_A",
+      "role": "EVALUATION",
+      "detail": "100 fingers, test only"
+    }
+  ],
+  "these_observations_are_not_a_gate_conclusion": true,
+  "sd300_overlap_status": "NO_EVIDENCE_FOUND",
+  "sd300_overlap_found": false,
+  "sd300_basis": "No NIST special database numbered 300 appears anywhere in the paper or the repository. NIST SD14 does, as a training corpus. No statement was found in either direction about SD300.",
+  "no_evidence_found_is_not_proven_absent": true,
+  "sd300_data_read_by_this_stage": false,
+  "future_development_dataset_exclusions": [
+    "NIST SD14",
+    "FVC2004 DB1_A",
+    "FVC2004 DB2_A",
+    "FVC2006 DB2_A"
+  ],
+  "upstream_discrepancies": [
+    "The abstract names FVC2006 DB1_A among the evaluation datasets; Table III and Figure 6(g) name FVC2006 DB2_A. Recorded because a future exclusion list has to name the right database."
+  ],
+  "notes": [
+    "Recorded from the paper during the identity search. This is not a Gate 6 conclusion: the training-provenance gate was never reached for this candidate.",
+    "The exclusion list matters later rather than now. Should JIPNet ever be admitted, these four datasets cannot serve as clean development data for calibrating it without a further overlap analysis, because the released checkpoint was fitted on 95% of them (docs/adr/0079)."
+  ]
+}

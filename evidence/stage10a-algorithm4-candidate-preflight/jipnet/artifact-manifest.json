@@ -1,0 +1,42 @@
+{
+  "schema": "stage_10a_artifact_manifest_v1",
+  "candidate": "jipnet",
+  "gate": "ARTIFACTS",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+  "bytes_downloaded": 0,
+  "artifact_store_environment_variable": "FPBENCH_THIRD_PARTY_ROOT",
+  "manifests_hold_no_absolute_path": true,
+  "would_have_had_to_close_over": [
+    {
+      "artifact_role": "JIPNet inference checkpoint, ckpts/JIPNet/best.pth",
+      "component_kind": "MODEL_WEIGHTS",
+      "locator": "https://drive.google.com/drive/folders/1q9yopPjOFt9c9odCT1o4nheLvwrJaCu7",
+      "locator_kind": "google_drive_folder",
+      "locator_is_an_identity": false,
+      "required_by": "the JIPNet route",
+      "transitive_from": null
+    },
+    {
+      "artifact_role": "the shipped inference configuration, ckpts/JIPNet/config.yaml",
+      "component_kind": "OTHER_ARTIFACT",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/ckpts/JIPNet/config.yaml",
+      "locator_kind": "in_source_tree",
+      "locator_is_an_identity": false,
+      "required_by": "constructing the model class the checkpoint fills",
+      "transitive_from": null
+    },
+    {
+      "artifact_role": "encoder_bath.pth, the pretrained encoder",
+      "component_kind": "MODEL_WEIGHTS",
+      "locator": "https://drive.google.com/drive/folders/1q9yopPjOFt9c9odCT1o4nheLvwrJaCu7",
+      "locator_kind": "google_drive_folder",
+      "locator_is_an_identity": false,
+      "required_by": "training only, on the reading of the released files: the README presents it under 'Train', the shipped configs/JIPNet.yaml leaves pretrain_cfg.encoder_pth empty, and inference.py constructs JIPNet without encoder_pretrain_pth. Recorded as an open question rather than as a finding, because the artifact gate was not reached and the question is settled by loading the checkpoint, not by reading about it (spec section 16).",
+      "transitive_from": "ckpts/JIPNet/best.pth"
+    }
+  ],
+  "notes": [
+    "A sketch of the gate's scope, not a manifest: no digest, no size and no local placement, because nothing was fetched. A Drive folder is a place and not an identity, and Stage 10A never treats one as an identity (docs/adr/0083)."
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "schema": "stage_10a_training_provenance_v1",
+  "candidate": "afrnet",
+  "gate": "TRAINING_PROVENANCE",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+  "observations_recorded_before_the_stop": [
+    {
+      "dataset": "MSP",
+      "role": "TRAINING",
+      "detail": "37,411 fingers, 447,988 images"
+    },
+    {
+      "dataset": "NIST SD 302",
+      "role": "TRAINING",
+      "detail": "1,600 fingers, 20,008 images"
+    },
+    {
+      "dataset": "MSU Self-Collection",
+      "role": "TRAINING",
+      "detail": "4,582 fingers, 57,813 images"
+    },
+    {
+      "dataset": "PrintsGAN",
+      "role": "TRAINING",
+      "detail": "34,985 fingers, 524,775 synthetic images"
+    },
+    {
+      "dataset": "SpoofGAN",
+      "role": "TRAINING",
+      "detail": "10,000 fingers, 150,000 synthetic images"
+    },
+    {
+      "dataset": "MSU Finger Photo and Slap Database",
+      "role": "TRAINING",
+      "detail": "1,243 fingers, 5,220 images"
+    },
+    {
+      "dataset": "IIT Bombay Touchless and Touch-based Database",
+      "role": "TRAINING",
+      "detail": "200 fingers, 1,600 images"
+    },
+    {
+      "dataset": "ManTech Phase 2",
+      "role": "TRAINING",
+      "detail": "4,535 fingers, 64,061 images"
+    },
+    {
+      "dataset": "Synthetic Latent Prints",
+      "role": "TRAINING",
+      "detail": "2,000 fingers, 16,000 images"
+    },
+    {
+      "dataset": "NIST SD 4",
+      "role": "TRAINING",
+      "detail": "2,000 fingers, 4,000 images"
+    },
+    {
+      "dataset": "MSU Finger Photo and Slap Database",
+      "role": "VALIDATION",
+      "detail": "110 fingers, 200 images"
+    },
+    {
+      "dataset": "MSP Latent",
+      "role": "VALIDATION",
+      "detail": "524 fingers, 1,086 images"
+    },
+    {
+      "dataset": "NIST SD 302",
+      "role": "VALIDATION",
+      "detail": "200 fingers, 2,528 images"
+    }
+  ],
+  "these_observations_are_not_a_gate_conclusion": true,
+  "sd300_overlap_status": "NO_EVIDENCE_FOUND",
+  "sd300_overlap_found": false,
+  "sd300_basis": "NIST SD300 appears nowhere in the paper. NIST SD 302 does, in both the training and the validation split, and NIST SD 4 and NIST SD 14 appear as well. SD 302 is a different NIST special database and is not this project's evaluation cohort. No statement was found in either direction about SD300, so the status is that nothing was found and not that it is absent.",
+  "no_evidence_found_is_not_proven_absent": true,
+  "sd300_data_read_by_this_stage": false,
+  "future_development_dataset_exclusions": [],
+  "upstream_discrepancies": [],
+  "notes": [
+    "Recorded from the paper during the identity search. This is not a Gate 6 conclusion: the training-provenance gate was never reached for this candidate."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "schema": "stage_10a_runtime_smoke_v1",
+  "candidate": "jipnet",
+  "gate": "RUNTIME_SMOKE",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+  "synthetic_fixtures_written": 0,
+  "checkpoint_loaded": false,
+  "forward_pass_executed": false,
+  "sd300_images_used": false,
+  "red_flags_recorded_before_the_stop": [
+    {
+      "observation_id": "pinned_dependency_set",
+      "statement": "requirements.txt pins torch 2.1.2, timm 0.9.12, einops 0.8.1, opencv-python 4.8.1.78, opencv-contrib-python 4.10.0.84, PyYAML 6.0.2, scipy 1.15.2, numpy 2.2.5, tqdm 4.66.1 and a line reading 'skimage==0.0', which is a placeholder package and not scikit-image. numpy 2.x and torch 2.1.2 are not compatible, so the pinned set is not installable as written and a resolved environment would be this project's choice rather than upstream's.",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/requirements.txt"
+    },
+    {
+      "observation_id": "cpu_viability_is_not_established",
+      "statement": "inference.py selects a device conditionally but loads the checkpoint with map_location='cuda:0' unconditionally and wraps the model in DataParallel over device_ids=[0]. On a host with no CUDA device the load would raise, so running this route on CPU would require changing upstream code.",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/inference.py"
+    },
+    {
+      "observation_id": "no_custom_ops_and_no_network",
+      "statement": "The route uses no custom CUDA kernel, no compiled extension and no network access; timm is used only through its standard layers.",
+      "locator": "https://github.com/XiongjunGuan/JIPNet/blob/40d8445c5b3afa55b409ae3221377e54e3ace53f/models"
+    }
+  ],
+  "these_observations_are_not_a_gate_conclusion": true
+}

@@ -637,6 +637,17 @@ class CheckpointCompatibility:
             and not self.findings
         )
 
+    @property
+    def mismatch_observed(self) -> bool:
+        """Whether an actual model comparison found an incompatible key."""
+        return self.inspection_performed and any(
+            (
+                self.unexplained_missing_parameters,
+                self.unexplained_shape_mismatches,
+                self.unexplained_skipped_inference_affecting_keys,
+            )
+        )
+
 
 #: Top-level entries a training checkpoint legitimately carries beside its
 #: parameters. Present here means "explained", never "ignored" (spec section 21).
@@ -661,6 +672,20 @@ class CompatibilityReport:
     @property
     def unestablished(self) -> tuple[str, ...]:
         return tuple(item.artifact_id for item in self.entries if not item.compatible)
+
+    @property
+    def mismatched(self) -> tuple[str, ...]:
+        return tuple(
+            item.artifact_id for item in self.entries if item.mismatch_observed
+        )
+
+    @property
+    def unresolved(self) -> tuple[str, ...]:
+        return tuple(
+            item.artifact_id
+            for item in self.entries
+            if not item.compatible and not item.mismatch_observed
+        )
 
 
 def build_compatibility_report(
@@ -732,13 +757,14 @@ def build_compatibility_report(
         torch_available=available,
         report_fingerprint=stable_hash(
             {
-                "schema": "stage_9a_checkpoint_compatibility_v1",
+                "schema": "stage_9a_checkpoint_compatibility_v2",
                 "entries": [
                     {
                         "artifact_id": item.artifact_id,
                         "model_class": item.model_class,
                         "established": item.established,
                         "inspection_performed": item.inspection_performed,
+                        "mismatch_observed": item.mismatch_observed,
                         "unexplained_missing_parameters": (
                             item.unexplained_missing_parameters
                         ),
@@ -762,7 +788,7 @@ def checkpoint_compatibility_document(
 ) -> Mapping[str, Any]:
     """The published form: bindings, counts and reasons. No tensor, ever."""
     return {
-        "schema": "stage_9a_checkpoint_compatibility_v1",
+        "schema": "stage_9a_checkpoint_compatibility_v2",
         "upstream_strictness": _UPSTREAM_STRICTNESS,
         "fpbench_relaxes_strictness": False,
         "fpbench_filters_keys": False,
@@ -770,6 +796,8 @@ def checkpoint_compatibility_document(
         "torch_available_on_this_machine": report.torch_available,
         "all_bindings_established": report.all_established,
         "unestablished": list(report.unestablished),
+        "compatibility_unresolved": list(report.unresolved),
+        "model_mismatches_observed": list(report.mismatched),
         "report_fingerprint": report.report_fingerprint,
         "bindings": [
             {
@@ -810,6 +838,7 @@ def checkpoint_compatibility_document(
                 "model_class": item.model_class,
                 "established": item.established,
                 "inspection_performed": item.inspection_performed,
+                "mismatch_observed": item.mismatch_observed,
                 "reason": item.reason,
                 "loaded_parameters": item.loaded_parameters,
                 "unexplained_missing_parameters": (
@@ -1432,6 +1461,49 @@ class BlockerDetail:
     why_score_fidelity_cannot_be_established: str
 
 
+def _checkpoint_compatibility_blockers(
+    report: CompatibilityReport,
+) -> tuple[BlockerDetail, ...]:
+    """Distinguish an unperformed comparison from an observed mismatch."""
+    blockers: list[BlockerDetail] = []
+    if report.unresolved:
+        blockers.append(
+            BlockerDetail(
+                blocker_code=(
+                    frozen.BlockerCode.CHECKPOINT_COMPATIBILITY_UNRESOLVED.value
+                ),
+                affected_component=", ".join(report.unresolved),
+                evidence=(
+                    "checkpoint-compatibility.json: these checkpoints were not "
+                    "compared completely with constructed model classes"
+                ),
+                why_score_fidelity_cannot_be_established=(
+                    "Compatibility remains unknown until each checkpoint is "
+                    "loaded into its intended model. No inspection is not "
+                    "evidence of a mismatch."
+                ),
+            )
+        )
+    if report.mismatched:
+        blockers.append(
+            BlockerDetail(
+                blocker_code=frozen.BlockerCode.CHECKPOINT_MODEL_MISMATCH.value,
+                affected_component=", ".join(report.mismatched),
+                evidence=(
+                    "checkpoint-compatibility.json: model comparison found "
+                    "unexplained missing, shape-mismatched, or skipped "
+                    "inference-affecting keys"
+                ),
+                why_score_fidelity_cannot_be_established=(
+                    "A checkpoint that does not fill exactly the parameters its "
+                    "model needs can change inference or fail to represent the "
+                    "published network."
+                ),
+            )
+        )
+    return tuple(blockers)
+
+
 def _qualification_fingerprint(
     *,
     outcome: str,
@@ -1542,41 +1614,7 @@ def build_qualification_report(
                 ),
             )
         )
-    if not compatibility.all_established:
-        blockers.append(
-            BlockerDetail(
-                blocker_code=frozen.BlockerCode.CHECKPOINT_MODEL_MISMATCH.value,
-                affected_component=", ".join(compatibility.unestablished),
-                evidence=(
-                    "checkpoint-compatibility.json: the binding between these "
-                    "checkpoints and their model classes has not been "
-                    "established"
-                ),
-                why_score_fidelity_cannot_be_established=(
-                    "Until a checkpoint is shown to fill exactly the parameters "
-                    "its model needs, an inference-affecting parameter could be "
-                    "silently missing and the network would still run."
-                ),
-            )
-        )
-    if graph.unresolved_operations:
-        blockers.append(
-            BlockerDetail(
-                blocker_code=frozen.BlockerCode.TRANSFORM_ORDER_AMBIGUOUS.value,
-                affected_component=", ".join(graph.unresolved_operations),
-                evidence=(
-                    "transform-graph-resolution.json: these operations carry no "
-                    "authority from the paper, the pinned code or a pinned "
-                    "inference default"
-                ),
-                why_score_fidelity_cannot_be_established=(
-                    "Every implementation of these operations produces "
-                    "different pixels and therefore different descriptors. A "
-                    "score computed through one of them would be attributable "
-                    "to fpbench's choice rather than to FLARE."
-                ),
-            )
-        )
+    blockers.extend(_checkpoint_compatibility_blockers(compatibility))
     if graph.unresolved_parameters:
         blockers.append(
             BlockerDetail(
@@ -1748,6 +1786,9 @@ def qualification_report_document(
             "score_affecting_count": graph.score_affecting_count,
             "authoritative_count": graph.authoritative_count,
             "unresolved_operations": list(graph.unresolved_operations),
+            "implementation_incomplete_operations": list(
+                graph.implementation_incomplete_operations
+            ),
             "unresolved_parameters": list(graph.unresolved_parameters),
             "graph_fingerprint": graph.graph_fingerprint,
         },

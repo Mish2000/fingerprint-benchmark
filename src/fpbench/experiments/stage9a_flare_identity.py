@@ -73,6 +73,7 @@ __all__ = [
     "INPUT_PIXEL_FORMAT",
     "SCORE_DIRECTION",
     "OperationAuthority",
+    "ImplementationCompleteness",
     "RouteResolution",
     "BlockerCode",
     "UpstreamRepository",
@@ -267,6 +268,18 @@ class OperationAuthority(str, Enum):
         )
 
 
+class ImplementationCompleteness(str, Enum):
+    """Whether an operation's score-affecting pixel semantics are complete.
+
+    Operation authority answers whether the method requires an operation at a
+    particular point in the route.  Completeness answers the separate question
+    of whether every parameter needed to implement that operation is known.
+    """
+
+    COMPLETE = "COMPLETE"
+    UNRESOLVED = "UNRESOLVED"
+
+
 class RouteResolution(str, Enum):
     """How one operation's paper statement and code location relate.
 
@@ -299,9 +312,9 @@ class BlockerCode(str, Enum):
 
     REQUIRED_ARTIFACT_MISSING = "REQUIRED_ARTIFACT_MISSING"
     ARTIFACT_IDENTITY_UNRESOLVED = "ARTIFACT_IDENTITY_UNRESOLVED"
+    CHECKPOINT_COMPATIBILITY_UNRESOLVED = "CHECKPOINT_COMPATIBILITY_UNRESOLVED"
     CHECKPOINT_MODEL_MISMATCH = "CHECKPOINT_MODEL_MISMATCH"
     RESEARCH_USE_BLOCKED = "RESEARCH_USE_BLOCKED"
-    TRANSFORM_ORDER_AMBIGUOUS = "TRANSFORM_ORDER_AMBIGUOUS"
     SCORE_AFFECTING_PARAMETER_UNRESOLVED = "SCORE_AFFECTING_PARAMETER_UNRESOLVED"
     PAPER_CODE_CONTRADICTION = "PAPER_CODE_CONTRADICTION"
     FULL_FOUR_BRANCH_ROUTE_UNRESOLVED = "FULL_FOUR_BRANCH_ROUTE_UNRESOLVED"

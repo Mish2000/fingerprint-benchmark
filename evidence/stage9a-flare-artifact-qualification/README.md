@@ -34,21 +34,20 @@ not.
 
 | Code | Affects |
 | :--- | :--- |
-| `TRANSFORM_ORDER_AMBIGUOUS` | `aligned_crop_512`, `downsample_512_to_256` |
 | `SCORE_AFFECTING_PARAMETER_UNRESOLVED` | `aligned_crop_512.border_fill`, `downsample_512_to_256.interpolation` |
 | `PAPER_CODE_CONTRADICTION` | `alignment_then_enhancement_ordering` |
 | `FULL_FOUR_BRANCH_ROUTE_UNRESOLVED` | `four_branch_orchestration` |
 | `ARTIFACT_IDENTITY_UNRESOLVED` | the six checkpoints |
 | `REQUIRED_ARTIFACT_MISSING` | the six checkpoints |
 | `RESEARCH_USE_BLOCKED` | the six checkpoints |
-| `CHECKPOINT_MODEL_MISMATCH` | the six checkpoints |
+| `CHECKPOINT_COMPATIBILITY_UNRESOLVED` | the six checkpoints |
 
-The four route blockers are the stage. The paper puts enhancement between
-alignment and the downsample; the only upstream code that aligns fuses alignment
-and the downsample into a single interpolation of the unenhanced original,
-leaving no 512×512 image and no point of insertion. Producing that image, and
-reducing it to 256, are operations no authority specifies — and a border fill
-and a resampling kernel are not free parameters (docs/adr/0087, docs/adr/0088).
+The three route blockers are the stage. The paper explicitly puts the aligned
+512×512 crop before enhancement and the downsample after it. The only upstream
+code that aligns instead fuses alignment and downsampling into one interpolation
+of the unenhanced original, leaving no intermediate image or point of insertion.
+The order is known; the crop's border fill and the downsample's kernel are not,
+and neither is a free parameter (docs/adr/0087, docs/adr/0088).
 
 The four artifact blockers all follow from one fact: a Google Drive file id is a
 locator, not an identity. Enrolling the six checkpoints from their official
@@ -79,7 +78,8 @@ locators would resolve them. It would not resolve the route.
   why a commit is pinned rather than a branch.
 * `Prior.ckpt` was found by traversing `vq.yaml`. It appears in no README
   download list, and `VQFPEnhancer_PCNN` cannot be constructed without it.
-* Fifteen of the seventeen route operations carry an authority.
+* All seventeen route operations and their order carry an authority; two pixel
+  implementations remain incomplete because parameters are unresolved.
 * Both enhancers' preprocessing and postprocessing reduce to exact identities on
   a 512×512 input, so the paper's aligned crop meets the official entry points
   without any chosen resampling at that boundary.

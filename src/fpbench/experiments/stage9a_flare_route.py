@@ -46,6 +46,7 @@ from fpbench.core.serialization import stable_hash
 from fpbench.experiments import stage9a_flare_identity as frozen
 from fpbench.experiments.stage9a_flare_identity import (
     BlockerCode,
+    ImplementationCompleteness,
     OperationAuthority,
     RouteResolution,
 )
@@ -96,6 +97,10 @@ class TransformOperation:
     authority: OperationAuthority
     authority_locator: str
     score_affecting: bool
+    implementation_completeness: ImplementationCompleteness = (
+        ImplementationCompleteness.COMPLETE
+    )
+    unresolved_parameters: tuple[str, ...] = ()
 
     input_dtype: str = ""
     output_dtype: str = ""
@@ -119,10 +124,38 @@ class TransformOperation:
                 f"{self.operation_id}: an authoritative operation names where "
                 "the authority is. A citation nobody can follow is a claim"
             )
+        if not isinstance(
+            self.implementation_completeness, ImplementationCompleteness
+        ):
+            raise FlareRouteError(
+                "implementation_completeness must be an "
+                "ImplementationCompleteness"
+            )
+        if (
+            self.implementation_completeness
+            is ImplementationCompleteness.UNRESOLVED
+            and not self.unresolved_parameters
+        ):
+            raise FlareRouteError(
+                f"{self.operation_id}: an incomplete implementation names its "
+                "unresolved parameters"
+            )
+        if (
+            self.implementation_completeness is ImplementationCompleteness.COMPLETE
+            and self.unresolved_parameters
+        ):
+            raise FlareRouteError(
+                f"{self.operation_id}: a complete implementation cannot carry "
+                "unresolved parameters"
+            )
 
     @property
     def blocks(self) -> bool:
-        """Whether this operation on its own prevents a READY outcome."""
+        """Whether the operation or its route position lacks an authority.
+
+        Pixel-level incompleteness is gated separately by parameter provenance,
+        so a paper-explicit operation is not mislabeled as order ambiguity.
+        """
         return self.score_affecting and not self.authority.is_authoritative
 
 
@@ -284,13 +317,14 @@ TRANSFORM_OPERATIONS: tuple[TransformOperation, ...] = (
             "warp the original image by the alignment matrix into a 512x512 "
             "canvas, as the image the enhancers are to receive"
         ),
-        authority=OperationAuthority.CHOSEN_BY_FPBENCH,
+        authority=OperationAuthority.PAPER_EXPLICIT,
         authority_locator=(
-            "no upstream code path produces this image: Descdataset.process_img "
-            "always warps to tar_shape, which the official configuration sets "
-            "to 256x256, and no other caller of affine_matrix exists"
+            f"{_PAPER} §III-E: pose estimation and alignment are followed by "
+            "cropping to 512x512 before enhancement"
         ),
         score_affecting=True,
+        implementation_completeness=ImplementationCompleteness.UNRESOLVED,
+        unresolved_parameters=("aligned_crop_512.border_fill",),
         input_dtype="float32",
         output_dtype="float32 (512, 512)",
         geometry="512x512 at 500 ppi, the paper's stated intermediate",
@@ -306,18 +340,19 @@ TRANSFORM_OPERATIONS: tuple[TransformOperation, ...] = (
             "paper says nothing about what surrounds the aligned crop"
         ),
         normalization=(
-            "unresolved: Descdataset normalises with (x - 127.5) / 127.5 before "
-            "warping, and the enhancer entry points expect 0..255 and normalise "
-            "again themselves"
+            "the upstream affine acts on (x - 127.5) / 127.5; away from the "
+            "unresolved border, linear warping commutes with mapping back to "
+            "0..255 before the enhancer entry points apply their own "
+            "normalisation"
         ),
         branches=_ALL_BRANCHES,
         notes=(
-            "This is the first of the two operations that block. Reusing the "
-            "upstream affine with tar_shape = middle_shape = 512 is legitimate "
-            "under spec section 25, but the fill value that surrounds the "
-            "fingerprint in the enhancer's input is not settled by any "
-            "authority, and a mid-grey frame and a white frame are different "
-            "inputs to a network trained on fingerprints.",
+            "The paper establishes this operation and its route position. Its "
+            "pixel implementation remains incomplete: reusing the upstream "
+            "affine with tar_shape = middle_shape = 512 is legitimate under "
+            "spec section 25, but no authority settles the fill value around "
+            "the fingerprint, and mid-grey and white frames are different "
+            "enhancer inputs.",
         ),
     ),
     TransformOperation(
@@ -455,14 +490,14 @@ TRANSFORM_OPERATIONS: tuple[TransformOperation, ...] = (
         operation_id="downsample_512_to_256",
         stage="256x256 FDRN input",
         description="downsample the enhanced 512x512 image to 256x256",
-        authority=OperationAuthority.CHOSEN_BY_FPBENCH,
+        authority=OperationAuthority.PAPER_EXPLICIT,
         authority_locator=(
-            "no implementation exists in either repository: the only 2:1 "
-            "reduction upstream performs is the scale factor inside "
-            "Descdataset.process_img's single warp, which is applied to the "
-            "unenhanced original rather than to an enhanced 512x512 image"
+            f"{_PAPER} §III-E: each enhanced image is downsampled to 256x256 "
+            "before FDRN"
         ),
         score_affecting=True,
+        implementation_completeness=ImplementationCompleteness.UNRESOLVED,
+        unresolved_parameters=("downsample_512_to_256.interpolation",),
         input_dtype="uint8 (512, 512)",
         output_dtype="float32 (256, 256)",
         geometry="512x512 to 256x256, a factor of two on each axis",
@@ -474,9 +509,10 @@ TRANSFORM_OPERATIONS: tuple[TransformOperation, ...] = (
         ),
         branches=_ALL_BRANCHES,
         notes=(
-            "This is the second of the two operations that block, and it is the "
-            "cleaner of them: it is one function call with at least four "
-            "reasonable spellings and no upstream implementation to copy.",
+            "The paper establishes this operation and its route position. Its "
+            "pixel implementation remains incomplete: it is one function call "
+            "with at least four reasonable spellings and no upstream "
+            "implementation to copy.",
         ),
     ),
     TransformOperation(
@@ -1166,18 +1202,23 @@ PARAMETER_PROVENANCE: tuple[ParameterProvenance, ...] = (
 
 @dataclass(frozen=True, slots=True)
 class TransformGraphResolution:
-    """Whether every operation from the input bytes to the tensor has an authority."""
+    """Authority and pixel completeness from the input bytes to the tensor."""
 
     operation_count: int
     score_affecting_count: int
     authoritative_count: int
     unresolved_operations: tuple[str, ...]
+    implementation_incomplete_operations: tuple[str, ...]
     unresolved_parameters: tuple[str, ...]
     graph_fingerprint: str
 
     @property
     def resolved(self) -> bool:
-        return not self.unresolved_operations and not self.unresolved_parameters
+        return not (
+            self.unresolved_operations
+            or self.implementation_incomplete_operations
+            or self.unresolved_parameters
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -1211,6 +1252,21 @@ def resolve_transform_graph() -> TransformGraphResolution:
     unresolved_parameters = tuple(
         parameter.parameter for parameter in PARAMETER_PROVENANCE if parameter.blocks
     )
+    implementation_incomplete_operations = tuple(
+        operation.operation_id
+        for operation in operations
+        if operation.implementation_completeness
+        is ImplementationCompleteness.UNRESOLVED
+    )
+    operation_parameters = tuple(
+        parameter
+        for operation in operations
+        for parameter in operation.unresolved_parameters
+    )
+    if operation_parameters != unresolved_parameters:
+        raise FlareRouteError(
+            "incomplete operations and unresolved parameter provenance disagree"
+        )
     return TransformGraphResolution(
         operation_count=len(operations),
         score_affecting_count=sum(1 for item in operations if item.score_affecting),
@@ -1218,15 +1274,22 @@ def resolve_transform_graph() -> TransformGraphResolution:
             1 for item in operations if item.authority.is_authoritative
         ),
         unresolved_operations=unresolved_operations,
+        implementation_incomplete_operations=(
+            implementation_incomplete_operations
+        ),
         unresolved_parameters=unresolved_parameters,
         graph_fingerprint=stable_hash(
             {
-                "schema": "stage_9a_flare_transform_graph_v1",
+                "schema": "stage_9a_flare_transform_graph_v2",
                 "operations": [
                     {
                         "operation_id": item.operation_id,
                         "stage": item.stage,
                         "authority": item.authority.value,
+                        "implementation_completeness": (
+                            item.implementation_completeness.value
+                        ),
+                        "unresolved_parameters": list(item.unresolved_parameters),
                         "score_affecting": item.score_affecting,
                     }
                     for item in operations
@@ -1286,8 +1349,6 @@ def route_blockers() -> tuple[BlockerCode, ...]:
     resolution = resolve_transform_graph()
     audit = public_code_route_audit()
     blockers: list[BlockerCode] = []
-    if resolution.unresolved_operations:
-        blockers.append(BlockerCode.TRANSFORM_ORDER_AMBIGUOUS)
     if resolution.unresolved_parameters:
         blockers.append(BlockerCode.SCORE_AFFECTING_PARAMETER_UNRESOLVED)
     if audit.score_affecting_contradictory:

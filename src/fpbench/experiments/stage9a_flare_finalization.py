@@ -1134,13 +1134,16 @@ def _transform_graph_document(graph: Any) -> Mapping[str, Any]:
     )
 
     return {
-        "schema": "stage_9a_transform_graph_resolution_v1",
+        "schema": "stage_9a_transform_graph_resolution_v2",
         "graph_fingerprint": graph.graph_fingerprint,
         "operation_count": graph.operation_count,
         "score_affecting_count": graph.score_affecting_count,
         "authoritative_count": graph.authoritative_count,
         "resolved": graph.resolved,
         "unresolved_operations": list(graph.unresolved_operations),
+        "implementation_incomplete_operations": list(
+            graph.implementation_incomplete_operations
+        ),
         "unresolved_parameters": list(graph.unresolved_parameters),
         "operations": [
             {
@@ -1150,6 +1153,10 @@ def _transform_graph_document(graph: Any) -> Mapping[str, Any]:
                 "authority": item.authority.value,
                 "authority_locator": item.authority_locator,
                 "score_affecting": item.score_affecting,
+                "implementation_completeness": (
+                    item.implementation_completeness.value
+                ),
+                "unresolved_parameters": list(item.unresolved_parameters),
                 "input_dtype": item.input_dtype,
                 "output_dtype": item.output_dtype,
                 "geometry": item.geometry,
@@ -1243,6 +1250,11 @@ def main(argv: list[str] | None = None) -> int:
         )
         if graph.unresolved_operations:
             print(f"  unresolved operations  {list(graph.unresolved_operations)}")
+        if graph.implementation_incomplete_operations:
+            print(
+                "  incomplete implementations  "
+                f"{list(graph.implementation_incomplete_operations)}"
+            )
         if graph.unresolved_parameters:
             print(f"  unresolved parameters  {list(graph.unresolved_parameters)}")
         print(f"route audit              {audit.row_count} rows")

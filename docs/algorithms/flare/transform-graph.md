@@ -1,7 +1,8 @@
 # FLARE — the transform graph
 
-Every operation between the canonical input bytes and the FDRN tensor, and where
-each one's behaviour comes from. The machine-readable form is
+Every operation between the canonical input bytes and the FDRN tensor, where its
+route position comes from, and whether its pixel implementation is complete.
+The machine-readable form is
 `evidence/stage9a-flare-artifact-qualification/transform-graph-resolution.json`;
 this is the reading of it.
 
@@ -16,33 +17,36 @@ INTEGRATION_NEUTRAL        fpbench glue that cannot move a score, and is shown n
 ASSUMED / GUESSED / CHOSEN_BY_FPBENCH
 ```
 
-The first four are admissible. The last three are admissible only where the
+The authority describes the existence and route position of an operation. The
+first four are admissible. The last three are admissible only where the
 operation provably cannot change a score, and an image-pipeline operation almost
-never cannot (docs/adr/0087).
+never cannot (docs/adr/0087). A separate implementation-completeness field says
+whether every pixel-level parameter needed to perform it is established.
 
 ## The graph
 
-| # | Operation | Authority | Blocks |
-| --: | :--- | :--- | :---: |
-| 1 | `decode_canonical500` | integration-neutral | |
-| 2 | `pose_input_center_512` | upstream code | |
-| 3 | `pose_forward` | upstream code | |
-| 4 | `pose_back_projection` | upstream code | |
-| 5 | `alignment_affine_matrix` | upstream code | |
-| 6 | `aligned_crop_512` | **chosen by fpbench** | ✗ |
-| 7 | `unetenh_preprocessing` | upstream code | |
-| 8 | `priorenh_preprocessing` | upstream code | |
-| 9 | `unetenh_forward` | upstream code | |
-| 10 | `priorenh_forward` | upstream default (`w = 0.5`) | |
-| 11 | `unetenh_postprocessing` | upstream code | |
-| 12 | `priorenh_postprocessing` | upstream code | |
-| 13 | `downsample_512_to_256` | **chosen by fpbench** | ✗ |
-| 14 | `fdrn_input_normalization` | upstream code | |
-| 15 | `fdrn_forward` | upstream code | |
-| 16 | `branch_similarity` | upstream code | |
-| 17 | `max_fusion` | paper (Eq. 8) | |
+| # | Operation | Operation/order authority | Implementation |
+| --: | :--- | :--- | :--- |
+| 1 | `decode_canonical500` | integration-neutral | complete |
+| 2 | `pose_input_center_512` | upstream code | complete |
+| 3 | `pose_forward` | upstream code | complete |
+| 4 | `pose_back_projection` | upstream code | complete |
+| 5 | `alignment_affine_matrix` | upstream code | complete |
+| 6 | `aligned_crop_512` | paper explicit | **unresolved: `border_fill`** |
+| 7 | `unetenh_preprocessing` | upstream code | complete |
+| 8 | `priorenh_preprocessing` | upstream code | complete |
+| 9 | `unetenh_forward` | upstream code | complete |
+| 10 | `priorenh_forward` | upstream default (`w = 0.5`) | complete |
+| 11 | `unetenh_postprocessing` | upstream code | complete |
+| 12 | `priorenh_postprocessing` | upstream code | complete |
+| 13 | `downsample_512_to_256` | paper explicit | **unresolved: `interpolation`** |
+| 14 | `fdrn_input_normalization` | upstream code | complete |
+| 15 | `fdrn_forward` | upstream code | complete |
+| 16 | `branch_similarity` | upstream code | complete |
+| 17 | `max_fusion` | paper (Eq. 8) | complete |
 
-Fifteen of seventeen are authoritative. Two are not, and they are the stage.
+All seventeen operations and their order are authoritative. Two pixel
+implementations are incomplete, and those unresolved parameters are the stage.
 
 ## The geometry that is settled
 
@@ -82,13 +86,14 @@ fpbench-chosen resampling at that boundary. The paper corroborates the input
 size twice: Table XI gives PriorEnh 512×512, and the training description applies
 its geometric augmentation to fingerprints of size 512×512 at 500 ppi.
 
-## The two that block
+## The two incomplete pixel implementations
 
 ### `aligned_crop_512`
 
-No upstream code path produces this image. `Descdataset.process_img` always warps
-to `tar_shape`, which the official configuration sets to 256, and there is no
-other caller of `affine_matrix`.
+The paper explicitly requires this image at this route position. No upstream
+code path produces it: `Descdataset.process_img` always warps to `tar_shape`,
+which the official configuration sets to 256, and there is no other caller of
+`affine_matrix`.
 
 Reusing that function with `tar_shape = middle_shape = 512` is legitimate — same
 coordinate system, same affine formula, same interpolation, same crop semantics.
@@ -106,8 +111,9 @@ frame are different images to a network trained on fingerprints.
 
 ### `downsample_512_to_256`
 
-Neither repository contains a 512-to-256 reduction of an enhanced image. The
-only 2:1 factor upstream is the scale inside `Descdataset`'s single warp of the
+The paper explicitly requires this reduction after enhancement. Neither
+repository contains a 512-to-256 reduction of an enhanced image. The only 2:1
+factor upstream is the scale inside `Descdataset`'s single warp of the
 unenhanced original.
 
 The paper states the target size and not the kernel.
@@ -128,7 +134,8 @@ decision (docs/adr/0088).
 
 ## Reading the graph as a reviewer
 
-Each operation in the JSON carries its input and output dtypes, geometry,
-interpolation, padding mode and value, normalisation, coordinate convention,
-rotation direction, angle units, rounding behaviour and the branches it applies
-to. A row you disagree with is a row you can point at.
+Each operation in the JSON carries its operation/order authority,
+implementation completeness, unresolved parameters, input and output dtypes,
+geometry, interpolation, padding mode and value, normalisation, coordinate
+convention, rotation direction, angle units, rounding behaviour and the
+branches it applies to. A row you disagree with is a row you can point at.

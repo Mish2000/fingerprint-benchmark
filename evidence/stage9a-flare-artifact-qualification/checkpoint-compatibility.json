@@ -1,5 +1,5 @@
 {
-  "schema": "stage_9a_checkpoint_compatibility_v1",
+  "schema": "stage_9a_checkpoint_compatibility_v2",
   "upstream_strictness": "load_state_dict(strict=True), the PyTorch default",
   "fpbench_relaxes_strictness": false,
   "fpbench_filters_keys": false,
@@ -14,7 +14,16 @@
     "flare_unetenh_checkpoint",
     "flare_voting_pose_checkpoint"
   ],
-  "report_fingerprint": "1384aa15619cb2a11884b4dbbb84a21d37e70796df3b9ce96b9f7929aba041f9",
+  "compatibility_unresolved": [
+    "flare_fdd_checkpoint",
+    "flare_prior_codebook_checkpoint",
+    "flare_priorenh_checkpoint",
+    "flare_regression_pose_checkpoint",
+    "flare_unetenh_checkpoint",
+    "flare_voting_pose_checkpoint"
+  ],
+  "model_mismatches_observed": [],
+  "report_fingerprint": "c6a6fe7e69c0ca151e4a02d8630d9a2bf239e3f99b7340c07e559f0b23e9cf94",
   "bindings": [
     {
       "artifact_id": "flare_fdd_checkpoint",
@@ -332,6 +341,7 @@
       "model_class": "FDD",
       "established": false,
       "inspection_performed": false,
+      "mismatch_observed": false,
       "reason": "torch is not installed here; the runtime question is Stage 9B's",
       "loaded_parameters": 0,
       "unexplained_missing_parameters": 0,
@@ -345,6 +355,7 @@
       "model_class": "VQFPEnhancer_PCNN.save_dict_to_prior",
       "established": false,
       "inspection_performed": false,
+      "mismatch_observed": false,
       "reason": "torch is not installed here; the runtime question is Stage 9B's",
       "loaded_parameters": 0,
       "unexplained_missing_parameters": 0,
@@ -358,6 +369,7 @@
       "model_class": "VQFPEnhancer_PCNN",
       "established": false,
       "inspection_performed": false,
+      "mismatch_observed": false,
       "reason": "torch is not installed here; the runtime question is Stage 9B's",
       "loaded_parameters": 0,
       "unexplained_missing_parameters": 0,
@@ -371,6 +383,7 @@
       "model_class": "FingerPose_2D_Single",
       "established": false,
       "inspection_performed": false,
+      "mismatch_observed": false,
       "reason": "torch is not installed here; the runtime question is Stage 9B's",
       "loaded_parameters": 0,
       "unexplained_missing_parameters": 0,
@@ -384,6 +397,7 @@
       "model_class": "SqueezeUNet",
       "established": false,
       "inspection_performed": false,
+      "mismatch_observed": false,
       "reason": "torch is not installed here; the runtime question is Stage 9B's",
       "loaded_parameters": 0,
       "unexplained_missing_parameters": 0,
@@ -397,6 +411,7 @@
       "model_class": "GRIDNET4",
       "established": false,
       "inspection_performed": false,
+      "mismatch_observed": false,
       "reason": "torch is not installed here; the runtime question is Stage 9B's",
       "loaded_parameters": 0,
       "unexplained_missing_parameters": 0,

@@ -122,10 +122,13 @@ and it is what the audit records.
 
 ## Consequences
 
-The transform graph, not the checkpoints, is Stage 9A's hard gate. An outcome of
-`FLARE_FULL_ROUTE_BLOCKED` with `TRANSFORM_ORDER_AMBIGUOUS` is a specific,
-actionable statement: it names the operations whose order or parameters no
-authority settles.
+The transform graph, not the checkpoints, is Stage 9A's hard gate. The paper
+settles the operation order: align and crop to 512, enhance, then downsample to
+256. The actionable blockers are instead
+`SCORE_AFFECTING_PARAMETER_UNRESOLVED`, for the border fill and resampling
+kernel that no authority settles, and `PAPER_CODE_CONTRADICTION`, because the
+public descriptor path fuses alignment and downsampling around the unenhanced
+original.
 
 If the graph does resolve, Stage 9B is an engineering problem — CUDA, torch
 version, cuDNN, determinism, dependency closure — and none of those can change

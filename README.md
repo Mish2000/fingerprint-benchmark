@@ -1817,14 +1817,15 @@ in between and nowhere to insert an enhancer. The enhancers live in a second
 repository and take whole original images. There is no 512-to-256 reduction
 anywhere, no four-branch orchestration and no `max` fusion.
 
-Fifteen of the seventeen operations between the canonical bytes and the FDRN
-tensor carry an authority. Two do not: the aligned 512×512 crop, whose border
-fill is settled by nothing while two upstream warps disagree about it, and the
-512-to-256 downsample, which is one function call with four reasonable spellings
-and no upstream implementation to copy. An operation that can move a score must
-come from the paper, the pinned code or a pinned inference default — and where
-none of them speaks, this project stops rather than choosing (ADR 0087,
-ADR 0088).
+All seventeen operations, and their order between the canonical bytes and the
+FDRN tensor, carry an authority. The paper explicitly places the aligned
+512×512 crop before enhancement and the 512-to-256 downsample after it. What
+remains incomplete is their pixel implementation: two upstream warps disagree
+about the crop's border fill, and the downsample is one function call with four
+reasonable kernels and no upstream implementation to copy. A score-affecting
+parameter must come from the paper, the pinned code or a pinned inference
+default — and where none of them speaks, this project stops rather than
+choosing (ADR 0087, ADR 0088).
 
 **What did resolve** is worth as much, because Stage 9B would build on it: both
 repositories pinned by commit with byte-identical archives across two

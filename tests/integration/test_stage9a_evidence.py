@@ -123,6 +123,10 @@ def test_the_transform_graph_re_derives_from_source() -> None:
     assert set(document["unresolved_operations"]) == set(
         resolution.unresolved_operations
     )
+    assert set(document["implementation_incomplete_operations"]) == set(
+        resolution.implementation_incomplete_operations
+    )
+    assert document["unresolved_operations"] == []
     for operation in document["operations"]:
         assert operation["authority"] in {
             item.value for item in frozen.OperationAuthority
@@ -179,6 +183,9 @@ def test_the_qualification_report_re_derives_and_names_its_blockers() -> None:
     assert document["qualification_fingerprint"] == outcome.qualification_fingerprint
     assert document["algorithm_candidate"] == frozen.ALGORITHM_CANDIDATE_ID
     assert len(document["blockers"]) == len(outcome.blockers)
+    blocker_codes = {item["blocker_code"] for item in document["blockers"]}
+    assert "CHECKPOINT_COMPATIBILITY_UNRESOLVED" in blocker_codes
+    assert "CHECKPOINT_MODEL_MISMATCH" not in blocker_codes
     for blocker in document["blockers"]:
         assert blocker["blocker_code"] in {item.value for item in frozen.BlockerCode}
         assert blocker["why_score_fidelity_cannot_be_established"].strip()

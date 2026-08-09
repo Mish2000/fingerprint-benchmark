@@ -376,9 +376,11 @@ def test_an_authoritative_operation_with_no_locator_is_refused() -> None:
         )
 
 
-def test_the_two_unresolved_operations_are_the_ones_the_stage_turns_on() -> None:
+def test_operation_order_is_explicit_while_two_pixel_implementations_are_not() -> None:
     resolution = route.resolve_transform_graph()
-    assert set(resolution.unresolved_operations) == {
+    assert resolution.authoritative_count == resolution.operation_count == 17
+    assert resolution.unresolved_operations == ()
+    assert set(resolution.implementation_incomplete_operations) == {
         "aligned_crop_512",
         "downsample_512_to_256",
     }
@@ -387,16 +389,21 @@ def test_the_two_unresolved_operations_are_the_ones_the_stage_turns_on() -> None
         "downsample_512_to_256.interpolation",
     }
     assert resolution.resolved is False
+    operations = {item.operation_id: item for item in route.transform_graph()}
+    for operation_id in resolution.implementation_incomplete_operations:
+        operation = operations[operation_id]
+        assert operation.authority is frozen.OperationAuthority.PAPER_EXPLICIT
+        assert (
+            operation.implementation_completeness
+            is frozen.ImplementationCompleteness.UNRESOLVED
+        )
+        assert operation.unresolved_parameters
 
 
-def test_no_operation_is_assumed_or_guessed_without_being_named_as_such() -> None:
-    """A non-authoritative operation is visible, not quietly absent from the list."""
+def test_every_operation_and_its_order_has_an_authority() -> None:
     for operation in route.transform_graph():
-        if not operation.authority.is_authoritative:
-            assert operation.blocks is True
-            assert "unresolved" in (
-                operation.interpolation + operation.padding_value + operation.normalization
-            ).lower()
+        assert operation.authority.is_authoritative
+        assert operation.blocks is False
 
 
 def test_the_audit_resolves_every_row_or_names_it() -> None:
@@ -423,7 +430,6 @@ def test_every_audit_row_carries_a_paper_statement_and_a_code_location() -> None
 def test_the_blockers_the_route_contributes_are_derived_not_listed() -> None:
     blockers = {item.value for item in route.route_blockers()}
     assert blockers == {
-        "TRANSFORM_ORDER_AMBIGUOUS",
         "SCORE_AFFECTING_PARAMETER_UNRESOLVED",
         "PAPER_CODE_CONTRADICTION",
         "FULL_FOUR_BRANCH_ROUTE_UNRESOLVED",
@@ -535,6 +541,38 @@ def test_the_compatibility_report_says_not_performed_rather_than_compatible() ->
     for entry in report.entries:
         assert entry.established is False
         assert entry.reason.strip()
+
+
+def test_uninspected_compatibility_is_not_reported_as_a_model_mismatch() -> None:
+    unresolved = qualification.CheckpointCompatibility(
+        artifact_id="not_inspected",
+        model_class="Model",
+        established=False,
+        inspection_performed=False,
+        reason="checkpoint bytes are absent",
+    )
+    mismatch = qualification.CheckpointCompatibility(
+        artifact_id="inspected_mismatch",
+        model_class="Model",
+        established=False,
+        inspection_performed=True,
+        unexplained_shape_mismatches=1,
+        reason="one inference parameter has the wrong shape",
+    )
+    report = qualification.CompatibilityReport(
+        entries=(unresolved, mismatch),
+        torch_available=True,
+        report_fingerprint="0" * 64,
+    )
+
+    blockers = {
+        item.blocker_code: item.affected_component
+        for item in qualification._checkpoint_compatibility_blockers(report)
+    }
+    assert blockers == {
+        "CHECKPOINT_COMPATIBILITY_UNRESOLVED": "not_inspected",
+        "CHECKPOINT_MODEL_MISMATCH": "inspected_mismatch",
+    }
 
 
 # ----------------------------------------------------- the FLARE byte guard
@@ -797,8 +835,8 @@ def test_a_blocked_marker_may_not_open_stage_9b() -> None:
     claims["outcome"] = frozen.STAGE_9A_BLOCKED_OUTCOME
     claims["blockers"] = (
         {
-            "blocker_code": "TRANSFORM_ORDER_AMBIGUOUS",
-            "affected_component": "aligned_crop_512",
+            "blocker_code": "SCORE_AFFECTING_PARAMETER_UNRESOLVED",
+            "affected_component": "aligned_crop_512.border_fill",
             "evidence": "transform-graph-resolution.json",
             "why_score_fidelity_cannot_be_established": "no authority",
         },
@@ -859,8 +897,11 @@ def test_a_blocked_marker_is_a_complete_and_legal_outcome() -> None:
     claims["transform_graph_resolved"] = False
     claims["blockers"] = (
         {
-            "blocker_code": "TRANSFORM_ORDER_AMBIGUOUS",
-            "affected_component": "aligned_crop_512, downsample_512_to_256",
+            "blocker_code": "SCORE_AFFECTING_PARAMETER_UNRESOLVED",
+            "affected_component": (
+                "aligned_crop_512.border_fill, "
+                "downsample_512_to_256.interpolation"
+            ),
             "evidence": "transform-graph-resolution.json",
             "why_score_fidelity_cannot_be_established": (
                 "every implementation of these produces different pixels"

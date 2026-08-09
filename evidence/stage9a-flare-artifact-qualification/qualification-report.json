@@ -2,7 +2,7 @@
   "schema": "stage_9a_qualification_report_v1",
   "algorithm_candidate": "flare_fdd_d6_dualpose_dualenh_maxcosine",
   "outcome": "FLARE_FULL_ROUTE_BLOCKED",
-  "qualification_fingerprint": "a33010e2498976d1c91ef1535840b76f50a9e2cd552f3fe84d58f4c59524c2b2",
+  "qualification_fingerprint": "3b7557cd5c0722d420470eb10d487950aef1987fd76c1f24d0535702e6c96c59",
   "gates": {
     "all_required_artifacts_identity_established": false,
     "all_required_artifacts_locally_verified": false,
@@ -24,10 +24,10 @@
       "why_score_fidelity_cannot_be_established": "A Drive id names a place, not bytes. Two downloads from the same link at different times cannot be shown to be the same artifact, so a score could not be attributed to any particular set of weights."
     },
     {
-      "blocker_code": "CHECKPOINT_MODEL_MISMATCH",
+      "blocker_code": "CHECKPOINT_COMPATIBILITY_UNRESOLVED",
       "affected_component": "flare_fdd_checkpoint, flare_prior_codebook_checkpoint, flare_priorenh_checkpoint, flare_regression_pose_checkpoint, flare_unetenh_checkpoint, flare_voting_pose_checkpoint",
-      "evidence": "checkpoint-compatibility.json: the binding between these checkpoints and their model classes has not been established",
-      "why_score_fidelity_cannot_be_established": "Until a checkpoint is shown to fill exactly the parameters its model needs, an inference-affecting parameter could be silently missing and the network would still run."
+      "evidence": "checkpoint-compatibility.json: these checkpoints were not compared completely with constructed model classes",
+      "why_score_fidelity_cannot_be_established": "Compatibility remains unknown until each checkpoint is loaded into its intended model. No inspection is not evidence of a mismatch."
     },
     {
       "blocker_code": "FULL_FOUR_BRANCH_ROUTE_UNRESOLVED",
@@ -58,19 +58,14 @@
       "affected_component": "aligned_crop_512.border_fill, downsample_512_to_256.interpolation",
       "evidence": "transform-graph-resolution.json parameter provenance: no source establishes a value for these",
       "why_score_fidelity_cannot_be_established": "A border fill and a resampling kernel are not free parameters. Choosing them would put fpbench's judgement inside a number published under somebody else's method name (docs/adr/0087)."
-    },
-    {
-      "blocker_code": "TRANSFORM_ORDER_AMBIGUOUS",
-      "affected_component": "aligned_crop_512, downsample_512_to_256",
-      "evidence": "transform-graph-resolution.json: these operations carry no authority from the paper, the pinned code or a pinned inference default",
-      "why_score_fidelity_cannot_be_established": "Every implementation of these operations produces different pixels and therefore different descriptors. A score computed through one of them would be attributable to fpbench's choice rather than to FLARE."
     }
   ],
   "transform_graph": {
     "operation_count": 17,
     "score_affecting_count": 17,
-    "authoritative_count": 15,
-    "unresolved_operations": [
+    "authoritative_count": 17,
+    "unresolved_operations": [],
+    "implementation_incomplete_operations": [
       "aligned_crop_512",
       "downsample_512_to_256"
     ],
@@ -78,7 +73,7 @@
       "aligned_crop_512.border_fill",
       "downsample_512_to_256.interpolation"
     ],
-    "graph_fingerprint": "bd98bf71908e8807b92dedea4becf4380106d2761877826b51ac2cbddffbe6a5"
+    "graph_fingerprint": "18a3834047d0041fe112999b95ddaf36808d8600db07259cd9abef0ad6b1e156"
   },
   "public_code_route_audit": {
     "row_count": 18,

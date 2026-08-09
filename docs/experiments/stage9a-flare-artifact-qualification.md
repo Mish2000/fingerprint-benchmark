@@ -30,16 +30,16 @@ from (docs/adr/0085, docs/adr/0087).
 FLARE_FULL_ROUTE_BLOCKED
 ```
 
-Eight blockers, in two groups.
+Seven blockers, in two groups.
 
-**The route.** Fifteen of the seventeen operations between the canonical input
-bytes and the FDRN tensor carry an authority — the paper, the pinned code, or a
-pinned inference default. Two do not:
+**The route.** All seventeen operations and their order between the canonical
+input bytes and the FDRN tensor carry an authority — the paper, the pinned code,
+or a pinned inference default. Two pixel implementations remain incomplete:
 
 | Operation | Why |
 | :--- | :--- |
-| `aligned_crop_512` | no upstream code produces the paper's 512×512 aligned image, and the fill value that surrounds the fingerprint in the enhancer's input is settled by nothing |
-| `downsample_512_to_256` | one function call, four reasonable spellings, no upstream implementation and no statement in the paper beyond the target size |
+| `aligned_crop_512` | the paper explicitly places the crop here, but no upstream code produces it and no authority settles the fill around the fingerprint |
+| `downsample_512_to_256` | the paper explicitly places the reduction here, but gives no kernel and no upstream implementation performs it on the enhanced image |
 
 and one audit row is a contradiction rather than a gap:
 
@@ -47,14 +47,15 @@ and one audit row is a contradiction rather than a gap:
 | :--- | :--- | :--- |
 | `alignment_then_enhancement_ordering` | align → crop 512 → **enhance** → downsample 256 → FDRN | `Descdataset.process_img` fuses alignment and the 256/512 scale into a single warp of the **unenhanced** original |
 
-The four-branch orchestration is unresolved as a consequence: the branches
-repeat the transform graph, and the graph is unresolved.
+The public four-branch orchestration is unavailable as a consequence: the paper
+defines the four branches and max fusion, but no executable upstream route
+composes them, and each would repeat the incomplete pixel pipeline.
 
 **The artifacts.** Six checkpoints are published on Google Drive links the
 official READMEs name. A Drive file id is a locator, not an identity, so their
 identity is not established, they do not verify locally, and Stage 8E's engine
-returns `BLOCKED` for each of them. Their binding to a model class has therefore
-not been established either.
+returns `BLOCKED` for each of them. Their compatibility with the intended model
+classes is therefore unresolved; no mismatch has been observed.
 
 The four artifacts that ship inside the pinned source trees — both source
 archives, `desc_configs.yaml` and `vq.yaml` — are pinned by digest and size and

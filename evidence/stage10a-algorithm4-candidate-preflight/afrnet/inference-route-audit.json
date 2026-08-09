@@ -3,7 +3,7 @@
   "candidate": "afrnet",
   "gate": "INFERENCE_ROUTE",
   "gate_status": "NOT_REACHED",
-  "why_not_reached": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+  "why_not_reached": "afrnet stopped at IDENTITY, so this question was never asked of it and nothing was downloaded, constructed or executed for it",
   "observations_recorded_before_the_stop": [],
   "these_observations_are_not_a_gate_conclusion": true
 }

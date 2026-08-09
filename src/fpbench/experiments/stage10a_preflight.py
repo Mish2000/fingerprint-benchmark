@@ -46,7 +46,6 @@ from fpbench.core.third_party_models import (
     NonBlockingRestriction,
     RedistributionDecision,
     ResearchUseAssessment,
-    ResearchUseDecision,
     ThirdPartyComponentKind,
     ThirdPartyUsageManifest,
     ThirdPartyUsageRecord,
@@ -672,14 +671,19 @@ _GATE_RUNNERS = {
     frozen.PreflightGate.INPUT_DOMAIN: run_gate_input_domain,
 }
 
-#: Why each gate beyond the second has no runner. Stage 10A did not write one,
-#: because writing one would have meant reaching it, and neither candidate did.
-#: Named rather than left implicit, so a reader can see the stage stopped on
-#: purpose (spec section 18).
-_UNREACHED_GATE_REASON = (
-    "no candidate reached this gate, so nothing was downloaded, constructed or "
-    "executed for it"
-)
+def _unreached_reason(candidate_id: str, stopped_at: frozen.PreflightGate) -> str:
+    """Why one gate was never asked of one candidate.
+
+    Per candidate, not per gate. AFR-Net's input-domain gate and JIPNet's are
+    both real questions, and only one of them went unasked — a shared sentence
+    saying "no candidate reached this gate" would be false about the other
+    (spec section 18).
+    """
+    return (
+        f"{candidate_id} stopped at {stopped_at.value}, so this question was "
+        "never asked of it and nothing was downloaded, constructed or executed "
+        "for it"
+    )
 
 
 def run_candidate_preflight(candidate_id: str) -> "CandidatePreflight":
@@ -694,7 +698,7 @@ def run_candidate_preflight(candidate_id: str) -> "CandidatePreflight":
                     candidate_id=candidate_id,
                     gate=gate,
                     status=frozen.GateStatus.NOT_REACHED,
-                    summary=_UNREACHED_GATE_REASON,
+                    summary=_unreached_reason(candidate_id, stopped_at),
                 )
             )
             continue
@@ -988,14 +992,20 @@ def candidate_set_document() -> Mapping[str, Any]:
 
 
 def _not_reached_document(
-    candidate_id: str, gate: frozen.PreflightGate, schema: str
+    preflight: "CandidatePreflight", gate: frozen.PreflightGate, schema: str
 ) -> dict[str, Any]:
+    result = preflight.result(gate)
+    if result.status is not frozen.GateStatus.NOT_REACHED:
+        raise PreflightGateError(  # pragma: no cover - the caller checks first
+            f"{preflight.candidate_id}/{gate.value} is {result.status.value} and "
+            "cannot be published as a gate that was never reached"
+        )
     return {
         "schema": schema,
-        "candidate": candidate_id,
+        "candidate": preflight.candidate_id,
         "gate": gate.value,
         "gate_status": frozen.GateStatus.NOT_REACHED.value,
-        "why_not_reached": _UNREACHED_GATE_REASON,
+        "why_not_reached": result.summary,
     }
 
 
@@ -1027,14 +1037,15 @@ def candidate_document(
 
     if name == frozen.INPUT_DOMAIN_CONTRACT_NAME:
         result = preflight.result(frozen.PreflightGate.INPUT_DOMAIN)
-        document = dict(observed.input_domain_contract_document(candidate_id))
-        document["gate_status"] = result.status.value
-        document["gate_summary"] = result.summary
-        return document
+        return {
+            **observed.input_domain_contract_document(candidate_id),
+            "gate_status": result.status.value,
+            "gate_summary": result.summary,
+        }
 
     if name == frozen.ARTIFACT_MANIFEST_NAME:
         document = _not_reached_document(
-            candidate_id,
+            preflight,
             frozen.PreflightGate.ARTIFACTS,
             "stage_10a_artifact_manifest_v1",
         )
@@ -1063,7 +1074,7 @@ def candidate_document(
 
     if name == frozen.INFERENCE_ROUTE_AUDIT_NAME:
         document = _not_reached_document(
-            candidate_id,
+            preflight,
             frozen.PreflightGate.INFERENCE_ROUTE,
             "stage_10a_inference_route_audit_v1",
         )
@@ -1080,7 +1091,7 @@ def candidate_document(
 
     if name == frozen.SCORE_CONTRACT_NAME:
         document = _not_reached_document(
-            candidate_id,
+            preflight,
             frozen.PreflightGate.SCORE_CONTRACT,
             "stage_10a_score_contract_v1",
         )
@@ -1100,7 +1111,7 @@ def candidate_document(
     if name == frozen.TRAINING_PROVENANCE_NAME:
         provenance = observed.training_provenance(candidate_id)
         document = _not_reached_document(
-            candidate_id,
+            preflight,
             frozen.PreflightGate.TRAINING_PROVENANCE,
             "stage_10a_training_provenance_v1",
         )
@@ -1129,7 +1140,7 @@ def candidate_document(
 
     if name == frozen.RUNTIME_SMOKE_NAME:
         document = _not_reached_document(
-            candidate_id,
+            preflight,
             frozen.PreflightGate.RUNTIME_SMOKE,
             "stage_10a_runtime_smoke_v1",
         )

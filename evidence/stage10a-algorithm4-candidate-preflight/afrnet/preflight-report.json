@@ -25,42 +25,42 @@
       "order": 2,
       "gate": "INPUT_DOMAIN",
       "status": "NOT_REACHED",
-      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "summary": "afrnet stopped at IDENTITY, so this question was never asked of it and nothing was downloaded, constructed or executed for it",
       "blocker_codes": []
     },
     {
       "order": 3,
       "gate": "ARTIFACTS",
       "status": "NOT_REACHED",
-      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "summary": "afrnet stopped at IDENTITY, so this question was never asked of it and nothing was downloaded, constructed or executed for it",
       "blocker_codes": []
     },
     {
       "order": 4,
       "gate": "INFERENCE_ROUTE",
       "status": "NOT_REACHED",
-      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "summary": "afrnet stopped at IDENTITY, so this question was never asked of it and nothing was downloaded, constructed or executed for it",
       "blocker_codes": []
     },
     {
       "order": 5,
       "gate": "SCORE_CONTRACT",
       "status": "NOT_REACHED",
-      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "summary": "afrnet stopped at IDENTITY, so this question was never asked of it and nothing was downloaded, constructed or executed for it",
       "blocker_codes": []
     },
     {
       "order": 6,
       "gate": "TRAINING_PROVENANCE",
       "status": "NOT_REACHED",
-      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "summary": "afrnet stopped at IDENTITY, so this question was never asked of it and nothing was downloaded, constructed or executed for it",
       "blocker_codes": []
     },
     {
       "order": 7,
       "gate": "RUNTIME_SMOKE",
       "status": "NOT_REACHED",
-      "summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+      "summary": "afrnet stopped at IDENTITY, so this question was never asked of it and nothing was downloaded, constructed or executed for it",
       "blocker_codes": []
     }
   ],

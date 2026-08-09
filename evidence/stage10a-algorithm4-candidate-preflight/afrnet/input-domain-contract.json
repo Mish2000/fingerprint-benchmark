@@ -2,7 +2,6 @@
   "schema": "stage_10a_input_domain_contract_v1",
   "candidate": "afrnet",
   "gate": "INPUT_DOMAIN",
-  "gate_status": "NOT_REACHED",
   "benchmark_input_profile": "canonical_500",
   "benchmark_input_ppi": 500,
   "benchmark_input_pixel_format": "gray8",
@@ -26,5 +25,6 @@
   "notes": [
     "There is no author-supplied AFR-Net to declare an input, so there is nothing here to be compatible or incompatible with. The paper's own statement that its network takes 3x224x224 is recorded in the source-discovery document as a fact about the paper, not as a model input contract."
   ],
-  "gate_summary": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it"
+  "gate_status": "NOT_REACHED",
+  "gate_summary": "afrnet stopped at IDENTITY, so this question was never asked of it and nothing was downloaded, constructed or executed for it"
 }

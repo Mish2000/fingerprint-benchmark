@@ -3,7 +3,7 @@
   "candidate": "jipnet",
   "gate": "ARTIFACTS",
   "gate_status": "NOT_REACHED",
-  "why_not_reached": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+  "why_not_reached": "jipnet stopped at INPUT_DOMAIN, so this question was never asked of it and nothing was downloaded, constructed or executed for it",
   "bytes_downloaded": 0,
   "artifact_store_environment_variable": "FPBENCH_THIRD_PARTY_ROOT",
   "manifests_hold_no_absolute_path": true,

@@ -899,14 +899,10 @@ def input_domain_contract_document(candidate_id: str) -> Mapping[str, Any]:
     """One candidate's input-domain contract, as published."""
     contract = input_domain_contract(candidate_id)
     declared = contract.declared_input
-    reached = contract.resolution is not frozen.InputDomainResolution.NOT_REACHED
     return {
         "schema": "stage_10a_input_domain_contract_v1",
         "candidate": contract.candidate_id,
         "gate": frozen.PreflightGate.INPUT_DOMAIN.value,
-        "gate_status": (
-            frozen.GateStatus.NOT_REACHED.value if not reached else None
-        ),
         "benchmark_input_profile": frozen.BENCHMARK_INPUT_PROFILE,
         "benchmark_input_ppi": frozen.BENCHMARK_INPUT_PPI,
         "benchmark_input_pixel_format": frozen.BENCHMARK_INPUT_PIXEL_FORMAT,

@@ -2,7 +2,6 @@
   "schema": "stage_10a_input_domain_contract_v1",
   "candidate": "jipnet",
   "gate": "INPUT_DOMAIN",
-  "gate_status": "FAIL",
   "benchmark_input_profile": "canonical_500",
   "benchmark_input_ppi": 500,
   "benchmark_input_pixel_format": "gray8",
@@ -87,5 +86,6 @@
     "The model would accept a differently-shaped tensor without complaining. That is not the question the gate asks. The question is whether an upstream authority defines how a full 500 ppi fingerprint becomes the input this model was released for, and no such definition exists (docs/adr/0091).",
     "The VeriFinger alignment in the paper belongs to partial-pair simulation for training and evaluation-set construction. Promoting it to an inference step would produce VeriFinger plus an fpbench crop policy plus JIPNet, which is a new algorithm and not JIPNet (docs/adr/0092)."
   ],
+  "gate_status": "FAIL",
   "gate_summary": "FPBENCH_CONSTRUCTION_REQUIRED: the released model declares a 160x160 input and no upstream authority defines how a full 500 ppi fingerprint becomes one."
 }

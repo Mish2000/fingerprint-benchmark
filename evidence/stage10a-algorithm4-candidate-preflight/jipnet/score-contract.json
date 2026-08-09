@@ -3,7 +3,7 @@
   "candidate": "jipnet",
   "gate": "SCORE_CONTRACT",
   "gate_status": "NOT_REACHED",
-  "why_not_reached": "no candidate reached this gate, so nothing was downloaded, constructed or executed for it",
+  "why_not_reached": "jipnet stopped at INPUT_DOMAIN, so this question was never asked of it and nothing was downloaded, constructed or executed for it",
   "observations_recorded_before_the_stop": [
     {
       "observation_id": "sigmoid_inside_the_model",

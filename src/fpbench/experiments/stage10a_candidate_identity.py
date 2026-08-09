@@ -90,6 +90,7 @@ __all__ = [
     "BENCHMARK_INPUT_PROFILE",
     "BENCHMARK_INPUT_PPI",
     "BENCHMARK_INPUT_PIXEL_FORMAT",
+    "SCORE_CONTRACT_REQUIREMENTS",
     "FORBIDDEN_PUBLISHED_KEYS",
     "STAGE_10A_SOURCE_FILES",
     "STAGE_10A_ADRS",
@@ -472,6 +473,36 @@ GATE_BLOCKERS: tuple[tuple[PreflightGate, tuple[BlockerCode, ...]], ...] = (
 BENCHMARK_INPUT_PROFILE = "canonical_500"
 BENCHMARK_INPUT_PPI = 500
 BENCHMARK_INPUT_PIXEL_FORMAT = "gray8"
+
+#: What the score gate would require of any candidate that reached it.
+#:
+#: Stated here rather than derived, because these are requirements and not
+#: findings: neither candidate reached Gate 5, so none of them was applied to
+#: anything. They are published so that a third candidate is measured against a
+#: written rule rather than against whatever seemed reasonable at the time.
+#:
+#: The SELF rule is the one that a pairwise matcher makes easy to get wrong. A
+#: matcher that takes two images can answer ``SELF(A, A)`` by noticing the paths
+#: are equal and returning a constant, and the constant would then be a number
+#: this project published about its own eligibility logic rather than about the
+#: algorithm (docs/adr/0070).
+SCORE_CONTRACT_REQUIREMENTS: tuple[str, ...] = (
+    "exactly one finite scalar per 1:1 attempt, and no threshold anywhere in "
+    "the route",
+    "a declared score direction, nominal range and exact computation, each with "
+    "an upstream locator",
+    "declared failure semantics: what the route returns when extraction or "
+    "comparison fails, and what it does with NaN and infinity",
+    "SELF(A, A) is computed by passing the same image through both input "
+    "branches of one ordinary invocation; a path-equality shortcut that returns "
+    "a constant is refused",
+    "pair-order semantics established rather than assumed: whether score(A, B) "
+    "equals score(B, A) is answered from upstream or by running the released "
+    "artifact both ways, and fpbench never averages or maximises the two orders "
+    "to paper over the question",
+    "a pose, a quality value or any second output is diagnostic unless an "
+    "upstream scoring route proves otherwise, and never modifies the score",
+)
 
 
 # ---------------------------------------------------------------- the tie-break

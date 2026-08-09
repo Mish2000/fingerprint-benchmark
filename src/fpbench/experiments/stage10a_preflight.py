@@ -974,6 +974,8 @@ def candidate_set_document() -> Mapping[str, Any]:
             "ppi": frozen.BENCHMARK_INPUT_PPI,
             "pixel_format": frozen.BENCHMARK_INPUT_PIXEL_FORMAT,
         },
+        "score_contract_requirements": list(frozen.SCORE_CONTRACT_REQUIREMENTS),
+        "score_contract_requirements_were_applied_to_a_candidate": False,
         "reconnaissance_fingerprint": observed.reconnaissance_fingerprint(),
         "non_goals": [
             "no production adapter",
@@ -1106,6 +1108,10 @@ def candidate_document(
         document["these_observations_are_not_a_gate_conclusion"] = True
         document["pair_order_symmetry_established"] = False
         document["fpbench_may_symmetrise_a_pairwise_score"] = False
+        document["self_comparison_shortcut_permitted"] = False
+        document["requirements_this_gate_would_have_applied"] = list(
+            frozen.SCORE_CONTRACT_REQUIREMENTS
+        )
         return document
 
     if name == frozen.TRAINING_PROVENANCE_NAME:

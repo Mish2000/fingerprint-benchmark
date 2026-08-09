@@ -208,6 +208,22 @@ def test_no_artifact_manifest_treats_a_drive_folder_as_an_identity() -> None:
             assert entry["locator_is_an_identity"] is False
 
 
+def test_the_score_documents_publish_the_rules_they_never_applied() -> None:
+    for item in frozen.CANDIDATES:
+        document = _document(f"{item.candidate_id}/score-contract.json")
+        assert document["self_comparison_shortcut_permitted"] is False
+        assert document["fpbench_may_symmetrise_a_pairwise_score"] is False
+        assert document["pair_order_symmetry_established"] is False
+        assert document["requirements_this_gate_would_have_applied"] == list(
+            frozen.SCORE_CONTRACT_REQUIREMENTS
+        )
+    document = _document(frozen.CANDIDATE_SET_NAME)
+    assert document["score_contract_requirements"] == list(
+        frozen.SCORE_CONTRACT_REQUIREMENTS
+    )
+    assert document["score_contract_requirements_were_applied_to_a_candidate"] is False
+
+
 def test_the_runtime_smoke_documents_record_that_nothing_ran() -> None:
     for item in frozen.CANDIDATES:
         document = _document(f"{item.candidate_id}/runtime-smoke.json")

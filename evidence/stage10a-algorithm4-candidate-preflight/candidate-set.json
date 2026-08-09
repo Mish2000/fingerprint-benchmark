@@ -93,6 +93,15 @@
     "ppi": 500,
     "pixel_format": "gray8"
   },
+  "score_contract_requirements": [
+    "exactly one finite scalar per 1:1 attempt, and no threshold anywhere in the route",
+    "a declared score direction, nominal range and exact computation, each with an upstream locator",
+    "declared failure semantics: what the route returns when extraction or comparison fails, and what it does with NaN and infinity",
+    "SELF(A, A) is computed by passing the same image through both input branches of one ordinary invocation; a path-equality shortcut that returns a constant is refused",
+    "pair-order semantics established rather than assumed: whether score(A, B) equals score(B, A) is answered from upstream or by running the released artifact both ways, and fpbench never averages or maximises the two orders to paper over the question",
+    "a pose, a quality value or any second output is diagnostic unless an upstream scoring route proves otherwise, and never modifies the score"
+  ],
+  "score_contract_requirements_were_applied_to_a_candidate": false,
   "reconnaissance_fingerprint": "6d6e1b45db4f3bcdf80ff3e26b6e362e2b77ffde5f8d14a5f6d2538b67a8c0e9",
   "non_goals": [
     "no production adapter",

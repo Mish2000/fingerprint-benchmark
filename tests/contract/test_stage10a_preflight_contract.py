@@ -128,6 +128,27 @@ def test_only_two_input_domain_resolutions_admit_a_candidate() -> None:
     assert not frozen.InputDomainResolution.FPBENCH_CONSTRUCTION_REQUIRED.admits_candidate
 
 
+def test_the_score_requirements_state_the_self_and_pair_order_rules() -> None:
+    """Requirements, not findings: neither candidate reached the score gate."""
+    joined = " ".join(frozen.SCORE_CONTRACT_REQUIREMENTS).lower()
+    assert "self(a, a)" in joined
+    assert "shortcut" in joined
+    assert "score(a, b) equals score(b, a)" in joined
+    assert "never averages or maximises" in joined
+    assert "no threshold" in joined
+    assert "nan" in joined
+    document = engine.candidate_document(
+        engine.run_candidate_preflight("jipnet"),
+        frozen.SCORE_CONTRACT_NAME,
+        repository_root=REPOSITORY_ROOT,
+    )
+    assert document["gate_status"] == frozen.GateStatus.NOT_REACHED.value
+    assert document["self_comparison_shortcut_permitted"] is False
+    assert document["requirements_this_gate_would_have_applied"] == list(
+        frozen.SCORE_CONTRACT_REQUIREMENTS
+    )
+
+
 def test_the_tie_break_is_ordered_and_excludes_reported_performance() -> None:
     orders = [item.order for item in frozen.TIE_BREAK_CRITERIA]
     assert orders == sorted(orders) == list(range(1, len(orders) + 1))

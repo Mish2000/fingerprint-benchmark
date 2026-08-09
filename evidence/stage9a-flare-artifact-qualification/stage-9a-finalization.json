@@ -4,7 +4,7 @@
   "outcome": "FLARE_FULL_ROUTE_BLOCKED",
   "algorithm_candidate": "flare_fdd_d6_dualpose_dualenh_maxcosine",
   "stage8e_policy_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
-  "stage9a_source_fingerprint": "b82e8bfd03d5e884accb750c22c53929af35a69037f2433b13603cd39a484331",
+  "stage9a_source_fingerprint": "bd4f038b36dee3eebe2edfa909797658cd0e1006ce5333dff925a51d5af64a4d",
   "required_source_repositories": 2,
   "required_pose_estimators": 2,
   "required_enhancers": 2,
@@ -17,11 +17,11 @@
   "all_required_artifacts_identity_established": false,
   "all_required_artifacts_locally_verified": false,
   "all_required_research_use_decisions_open_execution": false,
-  "transform_graph_fingerprint": "bd98bf71908e8807b92dedea4becf4380106d2761877826b51ac2cbddffbe6a5",
+  "transform_graph_fingerprint": "18a3834047d0041fe112999b95ddaf36808d8600db07259cd9abef0ad6b1e156",
   "public_code_route_audit_fingerprint": "db50faf0dc4ffcdc7f257b7be9681e28f250cd6fd9a88b44c7beefa5bb85a906",
-  "checkpoint_compatibility_fingerprint": "1384aa15619cb2a11884b4dbbb84a21d37e70796df3b9ce96b9f7929aba041f9",
+  "checkpoint_compatibility_fingerprint": "c6a6fe7e69c0ca151e4a02d8630d9a2bf239e3f99b7340c07e559f0b23e9cf94",
   "route_model_qualification_fingerprint": "4fe6f4ba7d6e21e906c134bb08e5f55542477cb3a6580b8b708b2806deb5e153",
-  "qualification_fingerprint": "a33010e2498976d1c91ef1535840b76f50a9e2cd552f3fe84d58f4c59524c2b2",
+  "qualification_fingerprint": "3b7557cd5c0722d420470eb10d487950aef1987fd76c1f24d0535702e6c96c59",
   "paper_route_resolved": true,
   "public_code_route_resolved": false,
   "transform_graph_resolved": false,
@@ -52,9 +52,9 @@
     },
     {
       "affected_component": "flare_fdd_checkpoint, flare_prior_codebook_checkpoint, flare_priorenh_checkpoint, flare_regression_pose_checkpoint, flare_unetenh_checkpoint, flare_voting_pose_checkpoint",
-      "blocker_code": "CHECKPOINT_MODEL_MISMATCH",
-      "evidence": "checkpoint-compatibility.json: the binding between these checkpoints and their model classes has not been established",
-      "why_score_fidelity_cannot_be_established": "Until a checkpoint is shown to fill exactly the parameters its model needs, an inference-affecting parameter could be silently missing and the network would still run."
+      "blocker_code": "CHECKPOINT_COMPATIBILITY_UNRESOLVED",
+      "evidence": "checkpoint-compatibility.json: these checkpoints were not compared completely with constructed model classes",
+      "why_score_fidelity_cannot_be_established": "Compatibility remains unknown until each checkpoint is loaded into its intended model. No inspection is not evidence of a mismatch."
     },
     {
       "affected_component": "four_branch_orchestration",
@@ -85,30 +85,24 @@
       "blocker_code": "SCORE_AFFECTING_PARAMETER_UNRESOLVED",
       "evidence": "transform-graph-resolution.json parameter provenance: no source establishes a value for these",
       "why_score_fidelity_cannot_be_established": "A border fill and a resampling kernel are not free parameters. Choosing them would put fpbench's judgement inside a number published under somebody else's method name (docs/adr/0087)."
-    },
-    {
-      "affected_component": "aligned_crop_512, downsample_512_to_256",
-      "blocker_code": "TRANSFORM_ORDER_AMBIGUOUS",
-      "evidence": "transform-graph-resolution.json: these operations carry no authority from the paper, the pinned code or a pinned inference default",
-      "why_score_fidelity_cannot_be_established": "Every implementation of these operations produces different pixels and therefore different descriptors. A score computed through one of them would be attributable to fpbench's choice rather than to FLARE."
     }
   ],
   "evidence_content_hashes": {
-    "README.md": "51169e82b751d5eef457d9054a32f79ef559b52ae7ec8dd77c64fee74aa496ea",
+    "README.md": "57e056e6200aed6c569afe8778d06199f4910297e40bcd266839552e51a7e018",
     "artifact-manifest.json": "6e9f970f035b5b6117b9c0e49ce6a920f68c10b5bfbb9ac2b7377b6a25890ed7",
-    "checkpoint-compatibility.json": "e5cebbabfbeff87986550448efa6bbfdd52e306a443cc886461014b3297112f4",
+    "checkpoint-compatibility.json": "e5500e0436b74eec6a10807a16d0c1eafb3a0871ba88a5eac46b7d363efc3ec8",
     "paper-route-contract.json": "181e8c2dd668e640207759ce85ec4b370d9f6e75218799806e9f1b29f1aba8bd",
     "public-code-route-audit.json": "895981f1297a28296c5f866e8709d28f350bcf99bf012f82eac3999594192010",
-    "qualification-report.json": "277655fbb19b316cfc5da8abebdeb37174ac9b8622d31138176122f051d7160d",
+    "qualification-report.json": "66e7ff7c92a08d0ed24dca56ba48cbf7ffefce06cda36d1f806ac1b022754027",
     "third-party-usage-manifest.json": "4959a88f3ebd7c6e0e9165e74da6a07dc380f59735b0d1bf042acca3b1265893",
     "training-provenance.json": "d92f7ffa37a9402b445fd6c75f4217df7bb251db065d04fd304006c6f6e854d9",
-    "transform-graph-resolution.json": "48e17622c009baf828d6b766960ba17ecb423306f48ea36db3ca1e8a89225a1f",
+    "transform-graph-resolution.json": "7afe0c76f8acdb2363ef1b4c86a28a3e17915726b1bfca8963a441c8746abe67",
     "upstream-source-manifest.json": "2768e2cb037ff4a0f088afd520e26325f64a067e2d506073b37c2de2aa25331d"
   },
-  "source_commit": "83b9fa68f9493993cb22d7f6ba799d73330ed5d1",
+  "source_commit": "6baecfaafcb151fce1e985f96d3cd21044d51eda",
   "source_tree_clean": true,
-  "verifier_source_commit": "83b9fa68f9493993cb22d7f6ba799d73330ed5d1",
+  "verifier_source_commit": "6baecfaafcb151fce1e985f96d3cd21044d51eda",
   "verifier_source_tree_clean": true,
-  "stage_9a_finalization_fingerprint": "2731d435d9b5480c8fd85dee37aff62c662beb4346cd8768f8c2fbfcf144a3c3",
-  "created_utc": "2026-08-08T20:12:54Z"
+  "stage_9a_finalization_fingerprint": "3bb825cacd3000a9fdcefde386ff3ac483d4647f6ea62ef28d31d630b79bdb5a",
+  "created_utc": "2026-08-09T08:28:29Z"
 }

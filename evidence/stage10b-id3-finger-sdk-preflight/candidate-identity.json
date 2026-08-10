@@ -47,7 +47,7 @@
   "predecessor": {
     "stage": "stage_10a",
     "outcome": "ALGORITHM4_PREFLIGHT_NO_SURVIVOR",
-    "finalization_fingerprint": "48d42c4362d8925d2a6b9912fcb959c61e76a71f99f4c84aaaeda4d3df64d8eb",
+    "finalization_fingerprint": "a229993522bdf007461b68226abf1e308030b4635b3e6e90aa390d3cf3c242d8",
     "relation": "Stage 10A froze a candidate set of AFR-Net and JIPNet before its result was known, ended without a survivor, and opened a candidate search. Stage 10B is that search's first candidate and adds nothing to Stage 10A (docs/adr/0094).",
     "stage_10a_evidence_modified_by_stage_10b": false
   },

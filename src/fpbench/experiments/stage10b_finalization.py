@@ -82,7 +82,7 @@ __all__ = [
 
 #: Stage 10B began here: the commit that re-closed Stage 10A over its two
 #: corrective fixes.
-STAGE_10B_BASELINE_COMMIT = "fc14a1d58fa5f25831a5d8e8f77e803c661e572f"
+STAGE_10B_BASELINE_COMMIT = "6b7284bd1b420f8203552c75d8f15196825e1685"
 
 #: Commits inside Stage 10B's span that are **not** Stage 10B's work. Empty
 #: today and kept because it will not be: every stage so far has had at least

@@ -921,7 +921,7 @@ FORBIDDEN_PUBLISHED_KEYS: frozenset[str] = frozenset(
 #: rather than the directory is what makes "Stage 10A was not edited" checkable
 #: instead of asserted.
 STAGE_10A_FINALIZATION_FINGERPRINT = (
-    "48d42c4362d8925d2a6b9912fcb959c61e76a71f99f4c84aaaeda4d3df64d8eb"
+    "a229993522bdf007461b68226abf1e308030b4635b3e6e90aa390d3cf3c242d8"
 )
 STAGE_10A_OUTCOME = "ALGORITHM4_PREFLIGHT_NO_SURVIVOR"
 

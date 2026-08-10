@@ -13,6 +13,15 @@
     "the matcher profile: every published matcher option and its chosen value",
     "the runtime: operating system, architecture, Python ABI and native library identity"
   ],
+  "complete_identity_fingerprint_required_before_pass": [
+    "package",
+    "models",
+    "extractor settings",
+    "matcher settings",
+    "template data formats",
+    "input profile",
+    "score API"
+  ],
   "product_name": "id3 Finger SDK",
   "vendor": "id3 Technologies",
   "publicly_documented_version": "4.5.0",
@@ -79,6 +88,40 @@
     "no SD300 read of any kind, including one image to see whether it works",
     "no licence activation in CI and no credentials in CI",
     "no selection of a fusion variant from vendor-reported accuracy"
+  ],
+  "production_integration_not_created": [
+    {
+      "surface": "algorithm_config",
+      "created": false
+    },
+    {
+      "surface": "production_adapter",
+      "created": false
+    },
+    {
+      "surface": "comparison_runner",
+      "created": false
+    },
+    {
+      "surface": "result_set",
+      "created": false
+    },
+    {
+      "surface": "threshold",
+      "created": false
+    },
+    {
+      "surface": "decision_profile",
+      "created": false
+    },
+    {
+      "surface": "calibration",
+      "created": false
+    },
+    {
+      "surface": "metrics",
+      "created": false
+    }
   ],
   "observations_fingerprint": "c163df628edf8bc696f7d30071fd8eff7283f8cd4172f3a10532bcf2edcf638c"
 }

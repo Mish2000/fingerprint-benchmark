@@ -28,6 +28,8 @@
   "threshold_in_raw_route": false,
   "vendor_threshold_constants_are_not_part_of_the_raw_route": true,
   "zero_is_a_valid_score_and_never_a_failure_sentinel": true,
+  "nan_or_infinity_applies_to_an_integer_score": false,
+  "a_failure_is_carried_by_an_outcome_and_never_by_a_number": true,
   "failure_classes_that_must_be_mapped": [
     "image decode",
     "model loading",

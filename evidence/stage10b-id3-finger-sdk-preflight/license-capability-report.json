@@ -17,11 +17,15 @@
     "locator": "https://id3technologies.com/software-development-kits/finger-sdk/"
   },
   "questions_a_licence_must_answer": [
-    "which operations consume quota: extraction, matching, model loading, or every API call",
-    "how much quota the licence carries",
-    "how much of it remains",
-    "when it expires"
+    "does extraction consume quota?",
+    "does matching consume quota?",
+    "does model loading consume quota?",
+    "does every API call consume quota?",
+    "how much quota is available?",
+    "how much quota remains?",
+    "when does it expire?"
   ],
+  "none_of_these_questions_is_answered_by_a_public_page": true,
   "frozen_workload": {
     "participating_images": 3000,
     "extractions": 3000,

@@ -22,6 +22,33 @@
       "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/python/RecognitionCLI.py — the sample's first executable line is a licence check, with the comment that it must happen 'Before calling any function of the SDK'"
     ]
   },
+  "acquisition_checklist": [
+    {
+      "requirement": "exact SDK package obtainable",
+      "established": false
+    },
+    {
+      "requirement": "target platform supported",
+      "established": false
+    },
+    {
+      "requirement": "evaluation or developer licence obtainable",
+      "established": false
+    },
+    {
+      "requirement": "licence activation succeeds",
+      "established": false
+    },
+    {
+      "requirement": "required Finger modules are enabled",
+      "established": false
+    },
+    {
+      "requirement": "licence is usable for local research",
+      "established": false
+    }
+  ],
+  "acquisition_checklist_stops_at": "exact SDK package obtainable",
   "acquisition_state": {
     "status": "NOT_ATTEMPTED_HERE",
     "package_obtained": false,

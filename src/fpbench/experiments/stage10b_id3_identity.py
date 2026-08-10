@@ -54,6 +54,9 @@ __all__ = [
     "IMPLEMENTATION_ORIGIN",
     "PRODUCTION_ALGORITHM_ID_FROZEN",
     "FINAL_IDENTITY_COMPONENTS",
+    "COMPLETE_IDENTITY_FINGERPRINT_COMPONENTS",
+    "ACQUISITION_CHECKLIST",
+    "LICENSE_CAPACITY_QUESTIONS",
     "DECLARED_NON_CANDIDATES",
     "EVIDENCE_DIRECTORY",
     "README_NAME",
@@ -167,6 +170,46 @@ FINAL_IDENTITY_COMPONENTS: tuple[str, ...] = (
     "the matcher profile: every published matcher option and its chosen value",
     "the runtime: operating system, architecture, Python ABI and native library "
     "identity",
+)
+
+#: What must be fingerprintable in one piece before the candidate can pass. A
+#: setting that cannot be named cannot be pinned, and a route with one unnamed
+#: setting is a route that can change under a benchmark without anything moving
+#: in this repository (spec section 18, docs/adr/0097).
+COMPLETE_IDENTITY_FINGERPRINT_COMPONENTS: tuple[str, ...] = (
+    "package",
+    "models",
+    "extractor settings",
+    "matcher settings",
+    "template data formats",
+    "input profile",
+    "score API",
+)
+
+#: The six things Gate 2 has to establish, in the order it establishes them. A
+#: package that cannot be obtained stops the list at its first line, and each
+#: later line is a separate way for access to fail with the package in hand
+#: (spec section 4).
+ACQUISITION_CHECKLIST: tuple[str, ...] = (
+    "exact SDK package obtainable",
+    "target platform supported",
+    "evaluation or developer licence obtainable",
+    "licence activation succeeds",
+    "required Finger modules are enabled",
+    "licence is usable for local research",
+)
+
+#: What a licence has to answer before its capacity can be called sufficient.
+#: The first four are one question asked four ways, because the metering
+#: semantics decide which of them matters (spec section 5).
+LICENSE_CAPACITY_QUESTIONS: tuple[str, ...] = (
+    "does extraction consume quota?",
+    "does matching consume quota?",
+    "does model loading consume quota?",
+    "does every API call consume quota?",
+    "how much quota is available?",
+    "how much quota remains?",
+    "when does it expire?",
 )
 
 #: Products this stage names so that nobody later mistakes one for the subject.

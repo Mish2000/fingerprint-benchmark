@@ -1008,6 +1008,9 @@ def candidate_identity_document() -> Mapping[str, Any]:
         "implementation_origin": frozen.IMPLEMENTATION_ORIGIN,
         "production_algorithm_id_frozen": frozen.PRODUCTION_ALGORITHM_ID_FROZEN,
         "final_identity_would_have_to_name": list(frozen.FINAL_IDENTITY_COMPONENTS),
+        "complete_identity_fingerprint_required_before_pass": list(
+            frozen.COMPLETE_IDENTITY_FINGERPRINT_COMPONENTS
+        ),
         "product_name": claim.product_name,
         "vendor": claim.vendor,
         "publicly_documented_version": claim.declared_sdk_version_public,
@@ -1045,6 +1048,13 @@ def candidate_identity_document() -> Mapping[str, Any]:
             ),
         },
         "non_goals": list(frozen.NON_GOALS),
+        # A list of rows rather than a map keyed by surface name: "threshold"
+        # and "calibration" are refused *keys* in a published document, and a
+        # map would refuse a record of not having produced one.
+        "production_integration_not_created": [
+            {"surface": name, "created": False}
+            for name in frozen.PRODUCTION_INTEGRATION_NOT_CREATED
+        ],
         "observations_fingerprint": observed.observations_fingerprint(),
     }
 
@@ -1144,6 +1154,11 @@ def access_qualification_document(preflight: Id3Preflight) -> Mapping[str, Any]:
             ),
             "supporting_locators": list(route.supporting_locators),
         },
+        "acquisition_checklist": [
+            {"requirement": requirement, "established": False}
+            for requirement in frozen.ACQUISITION_CHECKLIST
+        ],
+        "acquisition_checklist_stops_at": frozen.ACQUISITION_CHECKLIST[0],
         "acquisition_state": {
             "status": package.status.value,
             "package_obtained": package.obtained,
@@ -1236,13 +1251,8 @@ def license_capability_report_document(
             "metering_semantics_published": terms.metering_semantics_published,
             "locator": terms.locator,
         },
-        "questions_a_licence_must_answer": [
-            "which operations consume quota: extraction, matching, model "
-            "loading, or every API call",
-            "how much quota the licence carries",
-            "how much of it remains",
-            "when it expires",
-        ],
+        "questions_a_licence_must_answer": list(frozen.LICENSE_CAPACITY_QUESTIONS),
+        "none_of_these_questions_is_answered_by_a_public_page": True,
         "frozen_workload": {
             "participating_images": budget.workload.participating_images,
             "extractions": budget.workload.extractions,
@@ -1554,6 +1564,8 @@ def score_contract_document(preflight: Id3Preflight) -> Mapping[str, Any]:
     document["threshold_in_raw_route"] = False
     document["vendor_threshold_constants_are_not_part_of_the_raw_route"] = True
     document["zero_is_a_valid_score_and_never_a_failure_sentinel"] = True
+    document["nan_or_infinity_applies_to_an_integer_score"] = False
+    document["a_failure_is_carried_by_an_outcome_and_never_by_a_number"] = True
     document["failure_classes_that_must_be_mapped"] = [
         "image decode",
         "model loading",

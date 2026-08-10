@@ -1121,6 +1121,60 @@ def public_product_observations_document(
     }
 
 
+def _acquisition_checklist() -> tuple[tuple[str, bool, str], ...]:
+    """Gate 2's six requirements, each with what settles it.
+
+    Only one of the six can be settled from public pages, and it is settled:
+    the vendor offers Linux and Windows x86-64 builds, which is what this
+    project could host. Publishing that as ``false`` alongside the other five
+    would be reporting an absence the record does not show — the same care the
+    NOT_REACHED documents take, one level down (spec section 4).
+    """
+    package = package_acquisition_state()
+    licence = license_capability_state()
+    platform = observed.observation("sdk_index_lists_platforms")
+    return (
+        (
+            frozen.ACQUISITION_CHECKLIST[0],
+            package.obtained,
+            "access-qualification.json: no request has been made and no package "
+            "has been delivered",
+        ),
+        (
+            frozen.ACQUISITION_CHECKLIST[1],
+            True,
+            f"public-product-observations.json: {platform.observation_id} — the "
+            "vendor offers Linux x86-64 and Windows x86-64 builds, which is what "
+            "this project could host. Support for the *delivered* package is "
+            "confirmed against that package at delivery",
+        ),
+        (
+            frozen.ACQUISITION_CHECKLIST[2],
+            licence.license_present,
+            "access-qualification.json: an activation key is issued by the vendor "
+            "with the package, and none has been issued here",
+        ),
+        (
+            frozen.ACQUISITION_CHECKLIST[3],
+            licence.activation_verified,
+            "access-qualification.json: activation was never attempted, so it "
+            "neither succeeded nor failed",
+        ),
+        (
+            frozen.ACQUISITION_CHECKLIST[4],
+            False,
+            "access-qualification.json: which Finger modules a licence enables is "
+            "a property of an issued licence",
+        ),
+        (
+            frozen.ACQUISITION_CHECKLIST[5],
+            False,
+            "access-qualification.json: usability for local research needs both a "
+            "licence and Stage 8E's decision over it, and there is neither",
+        ),
+    )
+
+
 def access_qualification_document(preflight: Id3Preflight) -> Mapping[str, Any]:
     """Gate 2's first document: can this project obtain and operate the SDK?"""
     result = preflight.result(frozen.PreflightGate.ACQUISITION_ACCESS)
@@ -1155,10 +1209,14 @@ def access_qualification_document(preflight: Id3Preflight) -> Mapping[str, Any]:
             "supporting_locators": list(route.supporting_locators),
         },
         "acquisition_checklist": [
-            {"requirement": requirement, "established": False}
-            for requirement in frozen.ACQUISITION_CHECKLIST
+            {"requirement": requirement, "established": established, "basis": basis}
+            for requirement, established, basis in _acquisition_checklist()
         ],
-        "acquisition_checklist_stops_at": frozen.ACQUISITION_CHECKLIST[0],
+        "acquisition_checklist_stops_at": next(
+            requirement
+            for requirement, established, _ in _acquisition_checklist()
+            if not established
+        ),
         "acquisition_state": {
             "status": package.status.value,
             "package_obtained": package.obtained,

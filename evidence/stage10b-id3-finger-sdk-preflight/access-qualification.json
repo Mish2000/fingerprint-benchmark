@@ -25,27 +25,33 @@
   "acquisition_checklist": [
     {
       "requirement": "exact SDK package obtainable",
-      "established": false
+      "established": false,
+      "basis": "access-qualification.json: no request has been made and no package has been delivered"
     },
     {
       "requirement": "target platform supported",
-      "established": false
+      "established": true,
+      "basis": "public-product-observations.json: sdk_index_lists_platforms — the vendor offers Linux x86-64 and Windows x86-64 builds, which is what this project could host. Support for the *delivered* package is confirmed against that package at delivery"
     },
     {
       "requirement": "evaluation or developer licence obtainable",
-      "established": false
+      "established": false,
+      "basis": "access-qualification.json: an activation key is issued by the vendor with the package, and none has been issued here"
     },
     {
       "requirement": "licence activation succeeds",
-      "established": false
+      "established": false,
+      "basis": "access-qualification.json: activation was never attempted, so it neither succeeded nor failed"
     },
     {
       "requirement": "required Finger modules are enabled",
-      "established": false
+      "established": false,
+      "basis": "access-qualification.json: which Finger modules a licence enables is a property of an issued licence"
     },
     {
       "requirement": "licence is usable for local research",
-      "established": false
+      "established": false,
+      "basis": "access-qualification.json: usability for local research needs both a licence and Stage 8E's decision over it, and there is neither"
     }
   ],
   "acquisition_checklist_stops_at": "exact SDK package obtainable",

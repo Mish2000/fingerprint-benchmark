@@ -342,7 +342,7 @@ def test_the_marker_denies_everything_this_stage_did_not_do() -> None:
     for name in Stage10AFinalization.DENIED_FLAGS:
         assert document[name] is False, name
     assert document["candidate_checkpoint_bytes_downloaded"] == 0
-    assert document["gates_evaluated_per_candidate"] == 7
+    assert document["gate_count_defined_per_candidate"] == 7
 
 
 def test_a_no_survivor_marker_names_its_blockers_and_opens_a_search() -> None:

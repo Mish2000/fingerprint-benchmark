@@ -316,7 +316,7 @@ class Stage10AFinalization:
     jipnet_preflight: str
     candidate_count: int
     survivor_count: int
-    gates_evaluated_per_candidate: int
+    gate_count_defined_per_candidate: int
 
     # What the stage did not do.
     selection_based_on_reported_performance: bool
@@ -416,13 +416,15 @@ class Stage10AFinalization:
             )
         object.__setattr__(self, "candidate_count", count)
 
-        gates = int(self.gates_evaluated_per_candidate)
+        gates = int(self.gate_count_defined_per_candidate)
         if gates != 7:
             raise ValueError(
-                "every candidate is measured against seven hard gates; a "
-                "preflight with fewer would be a preflight that dropped one"
+                "seven hard gates are defined for every candidate; a preflight "
+                "with fewer would be a preflight that dropped one. This counts "
+                "the gates the stage defined, not the gates a candidate reached "
+                "— fail-fast means most of them were never asked"
             )
-        object.__setattr__(self, "gates_evaluated_per_candidate", gates)
+        object.__setattr__(self, "gate_count_defined_per_candidate", gates)
 
         downloaded = int(self.candidate_checkpoint_bytes_downloaded)
         if downloaded != 0:
@@ -1036,7 +1038,7 @@ def write_stage10a_evidence(
         "jipnet_preflight": verdicts["jipnet"],
         "candidate_count": len(CANDIDATES),
         "survivor_count": len(outcome.survivors),
-        "gates_evaluated_per_candidate": 7,
+        "gate_count_defined_per_candidate": 7,
         "selection_based_on_reported_performance": False,
         "reported_performance_read": False,
         "sd300_image_bytes_read": False,

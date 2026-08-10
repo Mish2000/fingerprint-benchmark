@@ -569,7 +569,7 @@ def _claims(**overrides: object) -> dict:
         "jipnet_preflight": "JIPNET_PREFLIGHT_FAIL",
         "candidate_count": 2,
         "survivor_count": 0,
-        "gates_evaluated_per_candidate": 7,
+        "gate_count_defined_per_candidate": 7,
         "selection_based_on_reported_performance": False,
         "reported_performance_read": False,
         "sd300_image_bytes_read": False,
@@ -675,7 +675,7 @@ def test_a_downloaded_checkpoint_byte_contradicts_the_stage() -> None:
 
 def test_a_preflight_over_fewer_gates_is_a_different_preflight() -> None:
     with pytest.raises(ValueError, match="seven hard gates"):
-        _marker(gates_evaluated_per_candidate=6)
+        _marker(gate_count_defined_per_candidate=6)
 
 
 def test_the_survivor_count_must_agree_with_the_verdicts() -> None:

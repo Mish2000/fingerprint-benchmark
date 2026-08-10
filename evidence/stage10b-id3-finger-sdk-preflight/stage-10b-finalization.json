@@ -5,7 +5,7 @@
   "algorithm_slot": "algorithm_4",
   "predecessor_stage_10a_fingerprint": "a229993522bdf007461b68226abf1e308030b4635b3e6e90aa390d3cf3c242d8",
   "stage8e_policy_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
-  "stage10b_source_fingerprint": "c1f07865c61b17c3ae9945f14687c13d83870e3d5196a025649510700e2b9ee9",
+  "stage10b_source_fingerprint": "2d5bc0e8a18a6be5b6f8245b49012b0d0b40711a74544454305b6ffade5233a2",
   "observations_fingerprint": "c163df628edf8bc696f7d30071fd8eff7283f8cd4172f3a10532bcf2edcf638c",
   "preflight_fingerprint": "49ac3bafc98b1e1fbe4bbb3d5d7ec7d424cd67c19ad83cddaeb1347de233b95b",
   "candidate_verdict": "ID3_FINGER_SDK_PREFLIGHT_FAIL",
@@ -58,6 +58,7 @@
   "stage9a_evidence_changed": false,
   "stage10a_evidence_changed": false,
   "opens_stage_10c": false,
+  "stage_10c_reserved_for_this_candidate": true,
   "opens_candidate_search": true,
   "blockers": [
     {
@@ -86,7 +87,7 @@
     }
   ],
   "evidence_content_hashes": {
-    "README.md": "4fbff2022ebc755c383f258a9faba81862297f50dde81afc6cba54e77c756c35",
+    "README.md": "9c57c9f5826c58a8fe60675c9b9b0b73004be0f2bdbed220453c4611dee9d5aa",
     "access-qualification.json": "19c148e4e32cb7fa9c1d2c44c8737ebc8cd8a3e7a49ab35c982c0dd34f84c3c4",
     "candidate-identity.json": "917f2265651eba3b227b42541963626478f3dcf36318eea5b28f52e3c8b41ae2",
     "extraction-profile.json": "7edbb8f67fbd500640109072e2faaf6129a40e81d90a8647d7703392c733568c",
@@ -101,10 +102,10 @@
     "sdk-package-manifest.json": "0e1bd11586fd4eda08d581b25b5f6a652f4c28c32f4440ad0fc23a60acd816d8",
     "training-provenance.json": "c123b39ab84c3c5f821ac75723029a2aefa10066b0f5b2e19d4a913da86aae37"
   },
-  "source_commit": "c331bddce3b3d08a5b5975c33cf5da98b7056108",
+  "source_commit": "73aff87a5996c0cf3edb67753ca95b96705309dc",
   "source_tree_clean": true,
-  "verifier_source_commit": "c331bddce3b3d08a5b5975c33cf5da98b7056108",
+  "verifier_source_commit": "73aff87a5996c0cf3edb67753ca95b96705309dc",
   "verifier_source_tree_clean": true,
-  "stage_10b_finalization_fingerprint": "2db25e322ed0418d5ac00c24a2209cab7fc2c1a9c692774d2c45291cbeed1c14",
-  "created_utc": "2026-08-10T08:24:36Z"
+  "stage_10b_finalization_fingerprint": "48bf4a9b745bec9d73607152561249f6e5981c7053fca4adfd78c15acb23697a",
+  "created_utc": "2026-08-10T08:26:04Z"
 }

@@ -1,0 +1,68 @@
+{
+  "schema": "stage_10b_input_domain_contract_v1",
+  "candidate": "id3_finger_sdk_1to1",
+  "gate": "INPUT_DOMAIN",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "the candidate stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was downloaded, activated, loaded or executed for it",
+  "benchmark_input": {
+    "profile": "canonical_500",
+    "ppi": 500,
+    "pixel_format": "gray8"
+  },
+  "required_route": [
+    "canonical_500 gray8",
+    "the SDK's own image type",
+    "an explicit 500 ppi resolution on that image",
+    "template creation"
+  ],
+  "fpbench_crop_resize_or_rotation": false,
+  "single_finger_route_status": "NOT_REACHED",
+  "sd300b_1000_ppi_offered_to_this_candidate": false,
+  "sd300c_2000_ppi_offered_to_this_candidate": false,
+  "sd300_bytes_read": false,
+  "observations_recorded_before_the_stop": [
+    {
+      "observation_id": "sample_single_finger_route_has_no_detection_step",
+      "subject": "what the vendor's single-image sample does",
+      "statement": "The Python recognition sample loads two image files as 8-bit grayscale, sets the resolution on each, creates one template from each with FingerExtractor.create_template, and compares the two. There is no slap detection and no ROI extraction anywhere in it.",
+      "locator": "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/python/RecognitionCLI.py",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "sample_requires_500_dpi_input",
+      "subject": "the resolution the processors require",
+      "statement": "The sample sets the resolution of each image to 500 and comments that id3 Finger SDK processors use only 500 dpi images, that images at a different resolution must be rescaled before use, and that omitting the call produces an 'Invalid resolution' error during template extraction.",
+      "locator": "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/python/RecognitionCLI.py",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "sample_loads_images_as_grayscale_8_bits",
+      "subject": "the pixel format the sample uses",
+      "statement": "Images are loaded with PixelFormat.GRAYSCALE_8_BITS, and the sample's comment states that finger images are always loaded to 8-bit grayscale.",
+      "locator": "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/python/RecognitionCLI.py",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ],
+  "these_observations_are_not_a_gate_conclusion": true,
+  "what_would_have_had_to_be_established": [
+    "that the SDK's image type accepts 8-bit grayscale pixels as the benchmark already produces them",
+    "that the resolution is declared as 500 ppi rather than inferred",
+    "that a single already-segmented impression has a documented route, and which one: straight to template creation, or through detection and ROI extraction first"
+  ],
+  "refused_constructions": [
+    "choosing a crop because the slap sample crops",
+    "resampling canonical_500 to some other resolution to suit a model",
+    "selecting a region of interest by any rule fpbench invented"
+  ],
+  "if_the_single_finger_route_were_undefined": "SINGLE_FINGER_INPUT_ROUTE_UNRESOLVED",
+  "notes": [
+    "The public single-image sample performs no detection and no ROI extraction, and the product page's headline sample does both because it starts from a four-finger slap. Two published routes exist and this benchmark's inputs fit one of them; which one the delivered package documents for a single finger is a question for the delivered package (spec sections 13 and 14).",
+    "canonical_500 is already 500 ppi 8-bit grayscale, which is the resolution the SDK's processors require. That is a reason to expect the gate to pass, and it is not the gate passing."
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "schema": "stage_10b_access_qualification_v1",
+  "candidate": "id3_finger_sdk_1to1",
+  "gate": "ACQUISITION_ACCESS",
+  "gate_status": "FAIL",
+  "gate_summary": "NO_PACKAGE: an e-mail request to the vendor's published contact address is the only published route to a package and a licence, no request has been made from here, and the advertised evaluation capacity cannot be checked against the frozen workload.",
+  "operational_access_decision": "NO_PACKAGE",
+  "operational_access_is_not_research_use": true,
+  "research_use_decision_owner": "stage_8e",
+  "research_use_blocked_by_this_stage": false,
+  "acquisition_route": {
+    "self_service_download": false,
+    "request_channel": "an e-mail request to the vendor's published contact address",
+    "vendor_acceptance_required": true,
+    "delivers_package": true,
+    "delivers_activation_key": true,
+    "activation_is_hardware_bound": true,
+    "license_file_required_before_any_api_call": true,
+    "supporting_locators": [
+      "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/README.md — 'To run any of the samples, you need to get a license from id3 Technologies. For that, you must contact us'; and 'once your request will be accepted, you will receive both a license activation key and a ZIP archive containing the SDK itself'",
+      "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/README.md — activation runs against an activation key and a host hardware code, producing a licence file",
+      "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/python/RecognitionCLI.py — the sample's first executable line is a licence check, with the comment that it must happen 'Before calling any function of the SDK'"
+    ]
+  },
+  "acquisition_state": {
+    "status": "NOT_ATTEMPTED_HERE",
+    "package_obtained": false,
+    "frozen_package_identity_available": false,
+    "local_artifact_store_resolvable": true,
+    "local_artifact_store_holds_material": false,
+    "findings": [
+      "no delivered package is present in the local artifact store",
+      "no package identity is frozen, because no package was delivered: the vendor's published route delivers one only on request"
+    ],
+    "request_made_by_this_project": false,
+    "vendor_refused": false
+  },
+  "license_state": {
+    "license_present": false,
+    "activation_attempted": false,
+    "activation_verified": false,
+    "required_modules_confirmed_enabled": false,
+    "usable_for_local_research": null
+  },
+  "runtime_target": {
+    "locked": false,
+    "fields_that_must_be_recorded_at_activation": [
+      "operating_system",
+      "architecture",
+      "python_abi",
+      "native_library_identity"
+    ],
+    "admissible_targets": [
+      {
+        "operating_system": "windows",
+        "architecture": "x86_64"
+      },
+      {
+        "operating_system": "linux",
+        "architecture": "x86_64"
+      }
+    ],
+    "chosen_target": null,
+    "why_not_chosen": "The evaluation licence is single-platform, so the target is a decision taken before activation. No activation has been attempted, so no target has been locked, and alternating between two platforms under one algorithm fingerprint is refused whichever one is eventually chosen (spec section 33)."
+  },
+  "third_party_components": {
+    "components_obtained": 0,
+    "stage_8e_usage_manifest_written": false,
+    "why": "Stage 8E's own model refuses a manifest with no components, because a manifest that describes nothing describes nothing. The SDK package, its models and its licence are third-party components and will be enrolled as such when one of them exists (spec section 7).",
+    "component_kinds_that_would_be_enrolled": [
+      "the SDK package archive",
+      "each model artifact the extractor loads",
+      "the activated licence file, which is stored locally and never described by its bytes"
+    ]
+  },
+  "secrets_recorded_here": 0,
+  "publishable_license_facts": [
+    "license_type",
+    "enabled_module_names",
+    "expiry_category",
+    "remaining_days_category",
+    "sufficient_for_declared_workload"
+  ],
+  "notes": [
+    "This gate is the stage's fail-fast. It costs one reading and it decides whether eight further gates are answerable at all (docs/adr/0095).",
+    "A refusal here is about access, not about the vendor's terms. Nothing in this document says the licence forbids research use, and nothing in it would change if it permitted every use."
+  ]
+}

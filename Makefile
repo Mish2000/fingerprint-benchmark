@@ -64,6 +64,13 @@ help:
 	@echo "stage10a-guard          refuse if any candidate byte is tracked in this public repository"
 	@echo "stage10a-documents      write the twenty derivable evidence documents (commit them, then publish)"
 	@echo "stage10a-publish        write the marker too; refuses a dirty tree"
+	@echo "stage10b-contract       the id3 Finger SDK preflight: ten gates, access, capacity, profiles, secrets"
+	@echo "stage10b-evidence       verify the committed Stage 10B id3-preflight evidence"
+	@echo "stage10b-artifacts      run the checks that need a delivered id3 SDK locally"
+	@echo "stage10b-status         re-derive and print the gates, the verdict and the blockers"
+	@echo "stage10b-guard          refuse if any id3 package, model or licence material is tracked here"
+	@echo "stage10b-documents      write the thirteen derivable evidence documents (commit them, then publish)"
+	@echo "stage10b-publish        write the marker too; refuses a dirty tree"
 	@echo "stage8c-workspace       Stage 8C alignment and preflight over the real inputs"
 	@echo "stage8c-verify          re-derive and print the Stage 8C evidence-only verification"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
@@ -350,6 +357,37 @@ stage10a-documents:
 
 stage10a-publish:
 	python -m fpbench.experiments.stage10a_finalization publish
+
+# ------------------------------------------------------------------ stage 10B
+
+# The id3 Finger SDK preflight and access qualification (docs/adr/0094-0098).
+# Same two-write shape as Stage 8E, Stage 9A and Stage 10A: `stage10b-documents`,
+# commit, `stage10b-publish`, commit.
+#
+# There is no `stage10b-acquire`. The package and the licence arrive together
+# through a request a person makes to the vendor, in their own name, and a
+# convenient target for it would be a target that puts credentials one flag away
+# from a script (docs/adr/0098).
+stage10b-contract:
+	pytest -m "stage10b_contract" -q
+
+stage10b-evidence:
+	pytest -m "stage10b" -q
+
+stage10b-artifacts:
+	pytest -m "id3_artifact" -q -rs
+
+stage10b-status:
+	python -m fpbench.experiments.stage10b_finalization status
+
+stage10b-guard:
+	python -c "from pathlib import Path; from fpbench.experiments.stage10b_preflight import require_no_id3_bytes_in_git as g; a = g(Path('.')); print(a.tracked_file_count, 'tracked files scanned against', a.known_digest_count, 'exact id3 digests and the vendor artifact name rules,', len(a.findings), 'findings')"
+
+stage10b-documents:
+	python -m fpbench.experiments.stage10b_finalization documents
+
+stage10b-publish:
+	python -m fpbench.experiments.stage10b_finalization publish
 
 # ------------------------------------------------------------------- SourceAFIS
 

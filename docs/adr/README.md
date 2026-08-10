@@ -100,6 +100,11 @@ can be held to.
 | [0091](0091-benchmark-input-domain-compatibility-is-a-hard-candidate-gate.md) | Benchmark input-domain compatibility is a hard candidate gate | Accepted, implemented |
 | [0092](0092-fpbench-does-not-invent-score-affecting-input-construction-to-admit-a-candidate.md) | fpbench does not invent score-affecting input construction to admit a candidate | Accepted, implemented |
 | [0093](0093-algorithm-4-is-selected-only-among-hard-gate-survivors.md) | Algorithm 4 is selected only among hard-gate survivors, and never on reported performance | Accepted, implemented |
+| [0094](0094-stage-10b-preflights-id3-before-algorithm-4-selection.md) | id3 is preflighted in a new stage, not added to Stage 10A | Accepted, implemented |
+| [0095](0095-proprietary-access-and-research-use-are-separate-gates.md) | Operational access and research use are separate gates | Accepted, implemented |
+| [0096](0096-evaluation-license-capacity-must-cover-the-frozen-workload.md) | An evaluation licence must be shown to cover the frozen workload | Accepted, implemented |
+| [0097](0097-id3-extractor-and-matcher-defaults-are-part-of-algorithm-identity.md) | Extractor and matcher defaults are part of the algorithm's identity | Accepted, implemented |
+| [0098](0098-id3-secrets-and-license-material-never-enter-public-evidence.md) | Licence material never enters public evidence or CI | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

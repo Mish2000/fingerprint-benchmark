@@ -1,0 +1,84 @@
+{
+  "schema": "stage_10b_candidate_identity_v1",
+  "algorithm_slot": "algorithm_4",
+  "question": "does a package of the id3 Finger SDK exist here that is exact, legally and practically operable for local research, and that defines a complete 1:1 route from canonical_500 to a raw score with no score-affecting choice left to fpbench",
+  "candidate_id": "id3_finger_sdk_1to1",
+  "candidate_id_is_provisional": true,
+  "implementation_origin": "VENDOR_OFFICIAL_SDK",
+  "production_algorithm_id_frozen": false,
+  "final_identity_would_have_to_name": [
+    "exact SDK version, as reported by the delivered package at runtime",
+    "every model artifact loaded, by digest",
+    "the extractor profile: models, template format, data formats, thread count and every extraction flag",
+    "the matcher profile: every published matcher option and its chosen value",
+    "the runtime: operating system, architecture, Python ABI and native library identity"
+  ],
+  "product_name": "id3 Finger SDK",
+  "vendor": "id3 Technologies",
+  "publicly_documented_version": "4.5.0",
+  "publicly_documented_version_is_not_the_package_identity": true,
+  "declared_non_candidates": [
+    {
+      "identity": "id3_microfinger_sdk",
+      "description": "A separate id3 product with its own product page. Not the Finger SDK, and not the subject of this preflight."
+    },
+    {
+      "identity": "id3_minex_submission",
+      "description": "The MINEX-evaluated template generator and matcher submitted to NIST. An evaluation submission is a configuration of a product under a protocol, not the delivered package this stage would have to pin."
+    },
+    {
+      "identity": "id3_finger_sdk_samples_repository",
+      "description": "The public sample sources at github.com/id3Technologies/finger-sdk-samples. They document a route and they contain no SDK: the samples README states the package itself arrives only on request."
+    },
+    {
+      "identity": "id3_finger_toolkit_python_wrapper_from_a_third_party",
+      "description": "Any third-party redistribution or wrapper of the SDK. Stage 10B qualifies the vendor's own package or nothing (docs/adr/0095)."
+    }
+  ],
+  "predecessor": {
+    "stage": "stage_10a",
+    "outcome": "ALGORITHM4_PREFLIGHT_NO_SURVIVOR",
+    "finalization_fingerprint": "48d42c4362d8925d2a6b9912fcb959c61e76a71f99f4c84aaaeda4d3df64d8eb",
+    "relation": "Stage 10A froze a candidate set of AFR-Net and JIPNet before its result was known, ended without a survivor, and opened a candidate search. Stage 10B is that search's first candidate and adds nothing to Stage 10A (docs/adr/0094).",
+    "stage_10a_evidence_modified_by_stage_10b": false
+  },
+  "gate_order": [
+    "PRODUCT_IDENTITY",
+    "ACQUISITION_ACCESS",
+    "PACKAGE_IDENTITY",
+    "INPUT_DOMAIN",
+    "EXTRACTION_PROFILE",
+    "MATCHER_PROFILE",
+    "RAW_SCORE_ROUTE",
+    "WORKLOAD_FEASIBILITY",
+    "TRAINING_PROVENANCE",
+    "LOCAL_SMOKE"
+  ],
+  "gates_are_conjunctive_and_unweighted": true,
+  "gate_count_defined": 10,
+  "benchmark_input": {
+    "profile": "canonical_500",
+    "ppi": 500,
+    "pixel_format": "gray8"
+  },
+  "frozen_workload": {
+    "participating_images": 3000,
+    "extractions": 3000,
+    "comparisons": 6000,
+    "qualification_operations_upper_bound": 200
+  },
+  "non_goals": [
+    "no production adapter",
+    "no configs/algorithms/id3 configuration",
+    "no 6,000-comparison runner",
+    "no ResultSet",
+    "no threshold",
+    "no DecisionProfile",
+    "no calibration",
+    "no metrics",
+    "no SD300 read of any kind, including one image to see whether it works",
+    "no licence activation in CI and no credentials in CI",
+    "no selection of a fusion variant from vendor-reported accuracy"
+  ],
+  "observations_fingerprint": "c163df628edf8bc696f7d30071fd8eff7283f8cd4172f3a10532bcf2edcf638c"
+}

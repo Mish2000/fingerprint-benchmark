@@ -1,0 +1,258 @@
+name: Stage 10B id3 Finger SDK preflight
+
+# What this workflow proves, and what it deliberately does not.
+#
+# It runs the whole Stage 10B contract — the provisional candidate identity, the
+# ten hard gates and the order they run in, fail-fast and the NOT_REACHED states
+# it produces, the acquisition and licence-capacity rules, the frozen workload
+# arithmetic, the extractor and matcher profile closure, the raw-score and SELF
+# requirements, the secret guard, the id3 byte guard, and a marker that can only
+# be ALGORITHM4_CANDIDATE_SELECTED or ID3_FINGER_SDK_PREFLIGHT_FAIL.
+#
+# All of it is pure Python over descriptions of a product this repository does
+# not hold. There is no dataset here, no torch, no vendor SDK, no model, no
+# licence, no network and no workspace.
+#
+# It activates **nothing** and holds **no credential**. There is no id3 activation
+# key in GitHub Secrets for this stage and there will not be one: the evaluation
+# environment is local, and a licensed key in a service this project does not
+# control is exactly what docs/adr/0098 refuses. Tests that need the real SDK
+# carry the `id3_artifact` marker and are not run here.
+#
+# A green tick here does not say an Algorithm 4 exists. At the time of writing it
+# says the opposite, precisely: the outcome is ID3_FINGER_SDK_PREFLIGHT_FAIL, the
+# stage stopped at the acquisition gate, and every blocker names what would lift
+# it (docs/adr/0094, docs/adr/0095).
+
+on:
+  push:
+    paths:
+      - "src/fpbench/core/id3_preflight_errors.py"
+      - "src/fpbench/experiments/stage10b_id3_identity.py"
+      - "src/fpbench/experiments/stage10b_id3_observations.py"
+      - "src/fpbench/experiments/stage10b_preflight.py"
+      - "src/fpbench/experiments/stage10b_finalization.py"
+      - "evidence/stage10b-id3-finger-sdk-preflight/**"
+      - "tests/**stage10b**"
+      # Stage 10B binds Stage 10A as its predecessor and reuses Stage 8E's
+      # policy. A change to either changes what this stage's decisions mean, so
+      # the stage is re-run rather than trusted.
+      - "evidence/stage10a-algorithm4-candidate-preflight/**"
+      - "src/fpbench/third_party/**"
+      - "src/fpbench/core/third_party_models.py"
+      - "src/fpbench/core/third_party_errors.py"
+      - "evidence/stage8e-research-only-policy/**"
+      - "docs/adr/009[4-8]*.md"
+      - "docs/algorithms/algorithm4-candidates/**"
+      - "docs/experiments/stage10b-id3-finger-sdk-preflight.md"
+      - ".github/workflows/**"
+      - ".gitignore"
+      - ".gitattributes"
+      - "pyproject.toml"
+      - "Makefile"
+  pull_request:
+    paths:
+      - "src/fpbench/core/id3_preflight_errors.py"
+      - "src/fpbench/experiments/stage10b_id3_identity.py"
+      - "src/fpbench/experiments/stage10b_id3_observations.py"
+      - "src/fpbench/experiments/stage10b_preflight.py"
+      - "src/fpbench/experiments/stage10b_finalization.py"
+      - "evidence/stage10b-id3-finger-sdk-preflight/**"
+      - "tests/**stage10b**"
+      - "evidence/stage10a-algorithm4-candidate-preflight/**"
+      - "src/fpbench/third_party/**"
+      - "src/fpbench/core/third_party_models.py"
+      - "src/fpbench/core/third_party_errors.py"
+      - "evidence/stage8e-research-only-policy/**"
+      - "docs/adr/009[4-8]*.md"
+      - "docs/algorithms/algorithm4-candidates/**"
+      - "docs/experiments/stage10b-id3-finger-sdk-preflight.md"
+      - ".github/workflows/**"
+      - ".gitignore"
+      - ".gitattributes"
+      - "pyproject.toml"
+      - "Makefile"
+
+permissions:
+  contents: read
+
+jobs:
+  id3-preflight-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[dev]"
+
+      - name: The frozen Stage 10B preflight contract
+        run: pytest -m "stage10b_contract" -q
+
+      - name: Committed Stage 10B evidence gate
+        run: pytest -m "stage10b" -q
+
+      - name: No id3 package, model or licence material is tracked here
+        # Beside Stage 8E's generic guard rather than inside it. Stage 8E is a
+        # closed stage, so its hard-coded registry is not extended from here.
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.experiments.stage10b_preflight import require_no_id3_bytes_in_git
+          from fpbench.third_party import require_no_third_party_bytes_in_git
+
+          generic = require_no_third_party_bytes_in_git(Path("."))
+          exact = require_no_id3_bytes_in_git(Path("."))
+          print(
+              f"{generic.tracked_file_count} tracked files scanned against "
+              f"{len(generic.rules)} generic rules, "
+              f"{exact.known_digest_count} exact id3 digests and the vendor "
+              "artifact name rules."
+          )
+          print(f"Findings: {len(generic.findings)} generic, {len(exact.findings)} exact.")
+          PY
+
+      - name: No credential is present, and none is published
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          from fpbench.experiments.stage10b_finalization import (
+              require_no_sensitive_published_data,
+          )
+          from fpbench.experiments.stage10b_preflight import find_sensitive_material
+
+          leaked = sorted(
+              name
+              for name in os.environ
+              if "id3" in name.lower()
+              and any(
+                  part in name.lower()
+                  for part in ("key", "secret", "token", "licen", "password")
+              )
+          )
+          assert not leaked, f"the runner carries id3 credentials: {leaked}"
+
+          require_no_sensitive_published_data(Path("."))
+
+          probe = {"note": "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"}
+          assert find_sensitive_material(probe), (
+              "the guard did not recognise an activation-key-shaped value"
+          )
+          print("No credential in the environment, none in the evidence, and the guard bites.")
+          PY
+
+      - name: This job has no runtime, no SDK and fetched nothing
+        run: |
+          python - <<'PY'
+          import importlib.util
+
+          for name in ("torch", "torchvision", "numpy", "scipy", "cv2", "sklearn", "id3finger"):
+              assert importlib.util.find_spec(name) is None, f"{name} is installed"
+
+          from fpbench.experiments.stage10b_preflight import package_acquisition_state
+
+          state = package_acquisition_state()
+          assert state.obtained is False, (
+              "a runner has a delivered id3 package, which means something fetched it"
+          )
+          print("No id3 package, no model and no licence is present here. As intended.")
+          PY
+
+      - name: The Stage 10B workflow itself downloads and activates nothing
+        # The tokens are assembled from halves rather than written out, for the
+        # reason Stage 8E's, Stage 9A's and Stage 10A's jobs assemble theirs: a
+        # literal here would make the check refuse the step that performs it.
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          workflow = Path(
+              ".github/workflows/stage10b-id3-finger-sdk-preflight.yml"
+          ).read_text(encoding="utf-8")
+          body = workflow.split("jobs:", 1)[1]
+          tokens = [
+              "secrets." + "ID3",
+              "activationkey",
+              "--acti" + "vate",
+              "code" + "load",
+              "w" + "get",
+              "cu" + "rl",
+          ]
+          found = sorted(token for token in tokens if token in body)
+          assert not found, f"the Stage 10B job body names {found}"
+          print(f"None of {len(tokens)} acquisition or activation tokens appears in this job.")
+          PY
+
+      - name: No SD300 path is reachable from this stage
+        run: |
+          python - <<'PY'
+          import os
+
+          assert not os.environ.get("FPBENCH_SD300_ROOT"), (
+              "the dataset root is set for a stage that must not read it"
+          )
+
+          from fpbench.experiments import stage10b_preflight as engine
+
+          preflight = engine.run_preflight()
+          print(f"{preflight.outcome}; verdict {preflight.verdict}")
+          for result in preflight.results:
+              print(f"  {result.gate.value}: {result.status.value}")
+          PY
+
+      - name: No test in either Stage 10B suite is skipped
+        # A suite that quietly skipped would look identical to one that passed.
+        # The contract needs no SDK and no runtime; the evidence gate skips only
+        # while the publication does not exist, which on a merged tree it does.
+        # The artifact-present suite is deliberately not run here.
+        run: |
+          pytest -m "stage10b_contract or stage10b" -q -rs 2>&1 | tee /tmp/stage10b.txt
+          if grep -qiE '[0-9]+ skipped' /tmp/stage10b.txt; then
+            echo "the Stage 10B suites must not skip anything"
+            exit 1
+          fi
+
+      - name: Stage 10A is immutable and Stage 8E is reused unchanged
+        run: |
+          pytest -m "stage10a_contract or stage10a" -q
+          pytest -m "stage8e_contract or stage8e" -q
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.experiments.stage10b_preflight import (
+              require_stage10a_is_the_closed_predecessor,
+              require_stage8e_is_the_policy_this_reuses,
+          )
+
+          require_stage8e_is_the_policy_this_reuses(Path("."))
+          fingerprint = require_stage10a_is_the_closed_predecessor(Path("."))
+          print(f"Stage 10A is unchanged at {fingerprint}, and it still opens a candidate search.")
+          PY
+
+      - name: Regression suites for the prior stages
+        run: |
+          pytest -m "stage9a_contract or stage9a" -q
+          pytest -m "stage8a_contract or stage8a" -q
+          pytest -m "stage8b_contract or stage8b" -q
+          pytest -m "stage8c_contract or stage8c" -q
+          pytest -m "stage8d_contract or stage8d" -q
+          pytest -m "decisions or metrics or imaging or paired_evaluation" -q
+          pytest -m "(adapter_contract or nbis_contract) and not dataset" -q
+
+      - name: The outcome, and what it does and does not say
+        run: |
+          python -m fpbench.experiments.stage10b_finalization status
+          python - <<'PY'
+          print()
+          print("No score was produced here, no package was fetched and no licence")
+          print("was activated. An outcome of ID3_FINGER_SDK_PREFLIGHT_FAIL is a")
+          print("complete result: it says this project cannot obtain and operate the")
+          print("id3 Finger SDK today, it names what would lift each blocker, and it")
+          print("says nothing about the vendor's licence terms (docs/adr/0095).")
+          PY

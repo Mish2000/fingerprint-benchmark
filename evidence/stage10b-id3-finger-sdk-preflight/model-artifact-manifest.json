@@ -1,0 +1,72 @@
+{
+  "schema": "stage_10b_model_artifact_manifest_v1",
+  "candidate": "id3_finger_sdk_1to1",
+  "gate": "PACKAGE_IDENTITY",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "the candidate stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was downloaded, activated, loaded or executed for it",
+  "models_obtained": 0,
+  "inventory_closed": false,
+  "artifact_classes_that_must_be_inventoried": [
+    "native libraries",
+    "Python wheels or packages",
+    "minutia detector models",
+    "minutia encoder models",
+    "finger-embedding models, if the delivered package has any",
+    "any configuration or model resource loaded transitively"
+  ],
+  "recorded_per_artifact": [
+    "sha256",
+    "size_bytes",
+    "role",
+    "local placement relative to the artifact store"
+  ],
+  "embedded_model_marker": "EMBEDDED_IN_PINNED_BINARY",
+  "model_names_visible_in_public_sources": [
+    "finger_aligner_v1a.id3nn",
+    "finger_minutia_detector_v1a.id3nn"
+  ],
+  "model_names_are_not_model_identities": true,
+  "observations_recorded_before_the_stop": [
+    {
+      "observation_id": "model_file_names_are_public_but_not_their_bytes",
+      "subject": "what is known about the model artifacts",
+      "statement": "The samples README's models folder listing shows two file names, an aligner and a minutia detector, in a listing that is explicitly elided. No digest, no size and no download address is public, and the README states the addresses are in the SDK's developer guide.",
+      "locator": "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/README.md",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "sample_loads_one_mandatory_model",
+      "subject": "which models the sample loads",
+      "statement": "One model is loaded, a minutia detector, described in the sample as mandatory and self-sufficient for creating ISO templates. A fingerprint aligner and encoder are described as optional and as producing additional proprietary template data; the sample does not load them.",
+      "locator": "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/python/RecognitionCLI.py",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "sample_sets_a_thread_count",
+      "subject": "an extractor setting the sample chooses",
+      "statement": "The sample constructs the extractor with a minutia detector model and a thread count of 4. The thread count is a choice the sample makes; no documented default for it was found.",
+      "locator": "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/python/RecognitionCLI.py",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "sample_names_a_detector_model_generation",
+      "subject": "the model constant the sample names",
+      "statement": "The model constant in the sample names a minutia detector generation, while the README's models folder lists file names with a different version suffix. Which file the constant resolves to is not established from public sources.",
+      "locator": "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/python/RecognitionCLI.py",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ],
+  "these_observations_are_not_a_gate_conclusion": true,
+  "notes": [
+    "The vendor's samples state that model download addresses live in the SDK's own developer guide, which ships inside the package. The model set therefore cannot be enumerated without the package, let alone closed over by digest (spec section 10).",
+    "A model whose bytes live inside a pinned native library is recorded as EMBEDDED_IN_PINNED_BINARY rather than left out of the inventory."
+  ]
+}

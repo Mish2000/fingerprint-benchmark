@@ -1,0 +1,221 @@
+{
+  "schema": "stage_10b_public_product_observations_v1",
+  "candidate": "id3_finger_sdk_1to1",
+  "gate": "PRODUCT_IDENTITY",
+  "gate_status": "PASS",
+  "gate_summary": "VENDOR_OFFICIAL_SDK: id3 Finger SDK by id3 Technologies, publicly documented at version 4.5.0, named by 4 locators and distinguished from 4 products it is not. This establishes which product Stage 10B is about; it establishes nothing about a package, because no package has been delivered.",
+  "observed_utc": "2026-08-10T00:00:00Z",
+  "product_identity": {
+    "product_name": "id3 Finger SDK",
+    "vendor": "id3 Technologies",
+    "publicly_documented_version": "4.5.0",
+    "supporting_locators": [
+      "https://id3technologies.com/software-development-kits/finger-sdk/ — the vendor's Finger SDK product page",
+      "https://developer.id3technologies.com/sdks/ — the vendor's SDK index, listing Finger SDK separately",
+      "https://developer.id3technologies.com/finger-sdk/v4/ — the reference tree, titled Finger SDK 4.5.0",
+      "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/README.md — the vendor's own samples, stating 'Required id3 Finger SDK version: 4.5.0'"
+    ],
+    "distinguished_from": [
+      "the vendor's separate MicroFinger product",
+      "any MINEX submission, which is a configuration under a protocol rather than a delivered package",
+      "the samples repository itself, which contains no SDK",
+      "any third-party wrapper or redistribution"
+    ]
+  },
+  "product_observations": [
+    {
+      "observation_id": "product_page_names_the_product",
+      "subject": "the product this stage is about",
+      "statement": "The vendor publishes a product page headed Finger SDK, describing fingerprint capture, extraction, matching and liveness detection across platforms. It is a distinct product page from the vendor's other fingerprint offerings.",
+      "locator": "https://id3technologies.com/software-development-kits/finger-sdk/",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "product_page_lists_languages",
+      "subject": "the language bindings the vendor advertises",
+      "statement": "C, C++, C#, Python, Java, Kotlin, Swift and Dart are listed. Python is among them, which is the binding fpbench would use.",
+      "locator": "https://id3technologies.com/software-development-kits/finger-sdk/",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "product_page_slap_sample",
+      "subject": "the sample the product page itself shows",
+      "statement": "The page's own code sample is a four-finger slap route: detect_slap(image), extract_roi(image, fingers), create_template(roi), compare_templates(tmpl, ref). It is a slap route, and this benchmark holds single already-segmented impressions.",
+      "locator": "https://id3technologies.com/software-development-kits/finger-sdk/",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ],
+  "platform_observations": [
+    {
+      "observation_id": "sdk_index_lists_platforms",
+      "subject": "the platforms the Finger SDK is offered for",
+      "statement": "Windows (x86, x86-64), Linux (x86-64), macOS 10.9+ including Apple Silicon, Android 5.0+ and iOS 12.0+. The page adds that available languages may vary by platform and SDK.",
+      "locator": "https://developer.id3technologies.com/sdks/",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ],
+  "documentation_observations": [
+    {
+      "observation_id": "documentation_root_is_versioned",
+      "subject": "where the current reference documentation lives",
+      "statement": "The unversioned Finger SDK documentation path serves a redirect stub to ./v4/, and the stub's title names a different id3 product. The tree it redirects to is titled Finger SDK 4.5.0.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/",
+      "retrieval": "REDIRECTED_TO_A_VERSIONED_TREE",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "documentation_declares_one_version",
+      "subject": "the version the readable documentation tree declares",
+      "statement": "Every page under the versioned tree is titled Finger SDK 4.5.0. The mixture of 4.3.0 and 4.5.0 pages that the earlier flat layout carried is not present in the tree that resolves today.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "compare_templates_returns_an_integer_score",
+      "subject": "the 1:1 comparison API and what it returns",
+      "statement": "FingerMatcher.compareTemplates takes a reference template and a probe template and returns an integer described as 'Comparison score, in the range 0 to 65535'. The page directs the reader to FingerMatcherThreshold to take a match/no-match decision, which places the threshold outside the score.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/reference/finger/finger_matcher/compare_templates.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "matcher_class_publishes_five_options",
+      "subject": "the matcher options the class reference publishes",
+      "statement": "FingerMatcher publishes maximumRotation, minexOnly, minutiaPatchOnly, multiscaleMatch and normalizedScores, and five comparison methods including compareTemplates and compareTemplateRecords. No default value is stated for any of the five options.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/reference/finger/finger_matcher/finger_matcher.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "extractor_class_publishes_three_options",
+      "subject": "the extractor options the class reference publishes",
+      "statement": "FingerExtractor publishes minutiaDetectorModel, minutiaEncoderModel and threadCount, with createTemplate and createTemplateRecord. No finger-embedding model property appears on this class, although the performance page describes a finger-embedding fusion family.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/reference/finger/finger_extractor/finger_extractor.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "performance_page_lists_four_fusions",
+      "subject": "the template data families the vendor reports on",
+      "statement": "Four combinations are reported: MINEX only; MINEX with minutia embeddings; MINEX with finger embedding; and all three together. The page also recommends a combination by sensor size — minutiae alone for interoperability, minutiae with minutia embeddings below 200x200 px at 500 dpi, and all three above it.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/biometric_performance.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "performance_page_names_evaluation_datasets",
+      "subject": "the datasets the vendor evaluates on publicly",
+      "statement": "FVC2000, FVC2002 and FVC2004 are named as the public benchmarks behind the reported figures. The page makes no statement about training data.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/biometric_performance.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ],
+  "locators_that_did_not_resolve": [
+    {
+      "observation_id": "flat_compare_template_records_page_gone",
+      "subject": "the flat-layout page for the record-to-record comparison API",
+      "statement": "HTTP 404. The equivalent page in the versioned tree resolves, and the two are not assumed to carry the same text.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/reference/finger/finger_matcher/compare_template_records.html",
+      "retrieval": "NOT_FOUND",
+      "http_status": 404,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "flat_license_activate_buffer_page_gone",
+      "subject": "the flat-layout page for buffer activation",
+      "statement": "HTTP 404. Activation is nonetheless documented in the vendor's own public samples, which is where the activation observations below come from.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/reference/finger/finger_license/activate_buffer.html",
+      "retrieval": "NOT_FOUND",
+      "http_status": 404,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "flat_finger_capture_api_page_gone",
+      "subject": "the flat-layout capture API page",
+      "statement": "HTTP 404.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/reference/finger_capture/api.html",
+      "retrieval": "NOT_FOUND",
+      "http_status": 404,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "flat_biometric_performance_page_gone",
+      "subject": "the flat-layout performance page",
+      "statement": "HTTP 404.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/biometric_performance.html",
+      "retrieval": "NOT_FOUND",
+      "http_status": 404,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "flat_device_manager_page_gone",
+      "subject": "the flat-layout device manager page",
+      "statement": "HTTP 404. The resolution and matcher-option statements this stage needed are read from the class reference pages in the versioned tree instead, and are attributed there.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/reference/devices/device_manager/device_manager.html",
+      "retrieval": "NOT_FOUND",
+      "http_status": 404,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "second_portal_hostname_gone",
+      "subject": "a second documentation hostname that search indexes still list",
+      "statement": "developers.id3technologies.com redirects to the singular hostname, and its indexed fingerprint-sdk pages answer 404. Nothing in this stage rests on them.",
+      "locator": "https://developers.id3technologies.com/fingerprint-sdk/about/release_notes.html",
+      "retrieval": "NOT_FOUND",
+      "http_status": 404,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ],
+  "official_samples_repository": {
+    "upstream_name": "id3Technologies/finger-sdk-samples",
+    "locator": "https://github.com/id3Technologies/finger-sdk-samples",
+    "commit": "75d02adc5adef73009a85cefd48231fb7803ac48",
+    "commit_date_utc": "2026-01-27T15:09:41Z",
+    "release_label": "Release 4.5.0.0",
+    "branch_is_not_an_identity": true,
+    "cited_files": [
+      {
+        "relative_path": "README.md",
+        "sha256": "79f058e4c4eb62d178f5d8957c77f920cde554b8b15ae17817f6501c7fcfb071",
+        "size_bytes": 5943
+      },
+      {
+        "relative_path": "CHANGELOG.md",
+        "sha256": "7d84801c27fb37d3e3ca56f3c5bbc158ba973ccdc4b0ebeee9901676c499c3f0",
+        "size_bytes": 1275
+      },
+      {
+        "relative_path": "python/RecognitionCLI.py",
+        "sha256": "051b2b55a2b31f1941d6d970a3858f0ae1a6420e3789e7d9020df0bee3d61bbf",
+        "size_bytes": 4418
+      },
+      {
+        "relative_path": "python/README.md",
+        "sha256": "ad7757d32fe5014becf477dab187572a0e431a0d85500de68c036ede1d65b5b7",
+        "size_bytes": 1229
+      }
+    ],
+    "this_repository_is_not_the_sdk": true
+  },
+  "notes": [
+    "A version read from a web page identifies the web page. The package identity gate reads the version from the delivered package's own library at runtime, and until then no version here is an identity (spec section 8).",
+    "The documentation locators this stage was written against are published with the status they returned, including the five that answer 404, so that a reader can tell a checked citation from a repeated one."
+  ]
+}

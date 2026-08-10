@@ -1,0 +1,42 @@
+{
+  "schema": "stage_10b_runtime_smoke_v1",
+  "candidate": "id3_finger_sdk_1to1",
+  "gate": "LOCAL_SMOKE",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "the candidate stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was downloaded, activated, loaded or executed for it",
+  "smoke_executed": false,
+  "binding_imported": false,
+  "library_version_read_at_runtime": false,
+  "license_checked": false,
+  "models_loaded": 0,
+  "templates_created": 0,
+  "scores_produced": 0,
+  "process_restarts": 0,
+  "restart_determinism_verified": false,
+  "sd300_images_used": false,
+  "steps_the_smoke_would_run": [
+    "import the exact Python binding from the delivered package",
+    "read the library version from the running library, not from a web page",
+    "check the licence and record only its non-sensitive facts",
+    "load the exact models, by digest",
+    "build the extractor with the frozen profile",
+    "build the matcher with the frozen profile",
+    "create a template from a non-SD300 fixture",
+    "create a second, independently extracted template",
+    "produce one finite integer score",
+    "repeat the score in the same process",
+    "restart the process",
+    "repeat the score again and compare it with the first"
+  ],
+  "fixture_policy": {
+    "default": "synthetic ridge-like images generated into a temporary directory",
+    "fallback": "if the SDK refuses to extract a template from a synthetic image, an official sample fingerprint shipped inside the evaluation package may be used locally for structural smoke only",
+    "fallback_copied_into_git_or_evidence": false,
+    "fallback_score_published": false
+  },
+  "determinism_rule": "the integer score for one pair under one exact route is bit-identical within a process and across a restart; anything else is SCORE_NONDETERMINISM_OBSERVED and a failure, unless the vendor documents stochastic inference explicitly — which would be its own stage, not an allowance inside this one",
+  "this_is_not_a_production_adapter": true,
+  "notes": [
+    "The smoke is the tenth gate and runs only after the nine above it. It is bounded on purpose: one pair, two extractions, two scores and a restart (spec section 30)."
+  ]
+}

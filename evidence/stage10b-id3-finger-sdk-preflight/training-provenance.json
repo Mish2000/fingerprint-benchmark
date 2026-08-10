@@ -1,0 +1,45 @@
+{
+  "schema": "stage_10b_training_provenance_v1",
+  "candidate": "id3_finger_sdk_1to1",
+  "gate": "TRAINING_PROVENANCE",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "the candidate stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was downloaded, activated, loaded or executed for it",
+  "training_provenance_status": "NOT_REACHED",
+  "expected_status_for_a_proprietary_product": "PROPRIETARY_UNDISCLOSED",
+  "full_training_corpus_disclosure_is_not_required": true,
+  "sd300_overlap_status": "NOT_REACHED",
+  "expected_sd300_overlap_status": "NO_EVIDENCE_FOUND",
+  "no_evidence_found_is_not_proven_absent": true,
+  "sd300_data_read_by_this_stage": false,
+  "public_evaluation_datasets_named_by_the_vendor": [
+    "FVC2000",
+    "FVC2002",
+    "FVC2004",
+    "MINEX interoperable minutiae"
+  ],
+  "an_evaluation_dataset_is_not_a_training_dataset": true,
+  "observations_recorded_before_the_stop": [
+    {
+      "observation_id": "vendor_publishes_evaluation_not_training_data",
+      "subject": "what the vendor discloses about data",
+      "statement": "The performance page reports figures against FVC2000, FVC2002 and FVC2004 and describes MINEX-interoperable minutiae. Nothing on the readable pages describes the corpus the shipped models were trained on.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/biometric_performance.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "no_public_statement_mentions_sd300",
+      "subject": "what the readable sources say about this benchmark's cohort",
+      "statement": "No readable vendor page mentions SD300 in any role. That is an absence of evidence about training overlap and is recorded as such; it is not a statement that the dataset was not used.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/biometric_performance.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ],
+  "these_observations_are_not_a_gate_conclusion": true,
+  "notes": [
+    "A commercial vendor is not asked to disclose its training corpus as a condition of entry; that condition would exclude every commercial matcher by accident rather than by decision. What is recorded is what is public, what is undisclosed, and the SD300 overlap status (spec section 29)."
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "schema": "stage_10b_sdk_package_manifest_v1",
+  "candidate": "id3_finger_sdk_1to1",
+  "gate": "PACKAGE_IDENTITY",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "the candidate stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was downloaded, activated, loaded or executed for it",
+  "package_obtained": false,
+  "bytes_downloaded": 0,
+  "artifact_store_environment_variable": "FPBENCH_THIRD_PARTY_ROOT",
+  "manifests_hold_no_absolute_path": true,
+  "identity_fields_that_would_have_to_be_recorded": [
+    "delivered package filename",
+    "byte size",
+    "SHA-256",
+    "exact platform and architecture",
+    "Python binding version",
+    "native library version, read from the running library"
+  ],
+  "a_documentation_version_is_not_a_binary_identity": true,
+  "publicly_documented_version_observed": "4.5.0",
+  "observations_recorded_before_the_stop": [
+    {
+      "observation_id": "documentation_root_is_versioned",
+      "subject": "where the current reference documentation lives",
+      "statement": "The unversioned Finger SDK documentation path serves a redirect stub to ./v4/, and the stub's title names a different id3 product. The tree it redirects to is titled Finger SDK 4.5.0.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/",
+      "retrieval": "REDIRECTED_TO_A_VERSIONED_TREE",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "documentation_declares_one_version",
+      "subject": "the version the readable documentation tree declares",
+      "statement": "Every page under the versioned tree is titled Finger SDK 4.5.0. The mixture of 4.3.0 and 4.5.0 pages that the earlier flat layout carried is not present in the tree that resolves today.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "compare_templates_returns_an_integer_score",
+      "subject": "the 1:1 comparison API and what it returns",
+      "statement": "FingerMatcher.compareTemplates takes a reference template and a probe template and returns an integer described as 'Comparison score, in the range 0 to 65535'. The page directs the reader to FingerMatcherThreshold to take a match/no-match decision, which places the threshold outside the score.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/reference/finger/finger_matcher/compare_templates.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "matcher_class_publishes_five_options",
+      "subject": "the matcher options the class reference publishes",
+      "statement": "FingerMatcher publishes maximumRotation, minexOnly, minutiaPatchOnly, multiscaleMatch and normalizedScores, and five comparison methods including compareTemplates and compareTemplateRecords. No default value is stated for any of the five options.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/reference/finger/finger_matcher/finger_matcher.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "extractor_class_publishes_three_options",
+      "subject": "the extractor options the class reference publishes",
+      "statement": "FingerExtractor publishes minutiaDetectorModel, minutiaEncoderModel and threadCount, with createTemplate and createTemplateRecord. No finger-embedding model property appears on this class, although the performance page describes a finger-embedding fusion family.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/reference/finger/finger_extractor/finger_extractor.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "performance_page_lists_four_fusions",
+      "subject": "the template data families the vendor reports on",
+      "statement": "Four combinations are reported: MINEX only; MINEX with minutia embeddings; MINEX with finger embedding; and all three together. The page also recommends a combination by sensor size — minutiae alone for interoperability, minutiae with minutia embeddings below 200x200 px at 500 dpi, and all three above it.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/biometric_performance.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "performance_page_names_evaluation_datasets",
+      "subject": "the datasets the vendor evaluates on publicly",
+      "statement": "FVC2000, FVC2002 and FVC2004 are named as the public benchmarks behind the reported figures. The page makes no statement about training data.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/biometric_performance.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ],
+  "these_observations_are_not_a_gate_conclusion": true,
+  "notes": [
+    "The words 'current' and 'latest' identify nothing and are refused as identities. So is the version printed on a documentation page: the version that matters is the one the delivered library reports at runtime (spec section 8)."
+  ]
+}

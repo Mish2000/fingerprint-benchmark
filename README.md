@@ -1926,24 +1926,101 @@ checkpoint, no network — with:
 make stage10a-evidence
 ```
 
+## Stage 10B: the first candidate of that search
+
+Stage 10A's candidate search produced one: the **id3 Finger SDK**, a commercial
+matcher whose 1:1 route is exactly the shape this benchmark needs — one integer
+per comparison, in 0..65535, with the threshold applied afterwards.
+
+It is a new stage rather than a third row in Stage 10A's table. Stage 10A froze
+its candidate set *before* it knew the answer, which is what makes "neither
+survived" a result; adding a candidate afterwards would change the question after
+the answer was visible (ADR 0094). Stage 10B binds Stage 10A's fingerprint as a
+predecessor and edits nothing of it.
+
+The gates are different too, because a commercial product fails differently from
+a GitHub repository:
+
+```text
+ID3_FINGER_SDK_PREFLIGHT_FAIL
+```
+
+| # | Gate | |
+| ---: | :--- | :--- |
+| 1 | `PRODUCT_IDENTITY` | PASS |
+| 2 | `ACQUISITION_ACCESS` | **FAIL** |
+| 3–10 | package, input, profiles, score, workload, provenance, smoke | not reached |
+
+**Acquisition is gate 2 on purpose.** Every gate after it asks about a delivered
+package — its digest, its models, its input route, its extractor and matcher
+profiles, its score API, its determinism — and none of them can be answered from
+a product page. The vendor publishes no self-service download: its own samples
+state that the SDK archive and the activation key are issued together, after a
+request has been accepted, and that the library checks a licence file before any
+other call. No such request has been made from this project.
+
+**Capacity is a hard gate, and it fails as `UNRESOLVED`.** The free evaluation is
+30 days with `Limited API calls` and a single platform — a limit with no number,
+and no statement of which operations consume it. The frozen workload is 3,000
+extractions and 6,000 comparisons plus a bounded qualification allowance, at most
+9,200 metered operations. "Try it and see" is refused by name: a quota exhausted
+at comparison four thousand leaves two thousand that were never run, and that is
+not a smaller experiment (ADR 0096).
+
+**Access is not research use.** Nothing here says id3's terms forbid anything.
+Stage 8E owns that question and has no component to assess, so
+`research_use_opens_execution` is published as `null` rather than `false` — a
+`false` would be a refusal nobody made (ADR 0095).
+
+Reading the public record settled things the gates never got to use, and they are
+published as observations rather than as conclusions: the single-image sample
+performs no detection and no ROI extraction while the product page's headline
+sample does both, because it starts from a slap; `canonical_500` is already the
+500 ppi 8-bit grayscale the SDK requires; and seven score-affecting settings —
+five matcher options and two extractor models — have **no documented default
+anywhere public**, which would each have to be read from a delivered package and
+labelled `DELIVERED_SDK_DEFAULT` (ADR 0097).
+
+Cost: zero package bytes, zero model bytes, zero activations, zero SD300 reads,
+zero scores. No credential appears in the evidence, and the verifier refuses to
+publish if one does — by key name or by value shape, checked twice, once over the
+objects and once over the published bytes (ADR 0098).
+
+Details: [the Stage 10B evidence
+report](evidence/stage10b-id3-finger-sdk-preflight/README.md), [the candidate
+record](docs/algorithms/algorithm4-candidates/id3-finger-sdk.md) and
+[ADRs 0094–0098](docs/adr/README.md). Verify it — no dataset, no SDK, no licence,
+no network — with:
+
+```bash
+make stage10b-evidence
+```
+
 ## Next stage
 
-**A third algorithm-4 candidate.** Stage 10A recorded
-`opens_candidate_search: true` and `opens_algorithm4_artifact_qualification:
-false`, so the slot is empty and no artifact qualification is open.
+**Still a candidate for algorithm 4.** Stage 10A recorded
+`opens_candidate_search: true`; Stage 10B recorded `opens_stage_10c: false` and
+`opens_candidate_search: true`. The slot is empty.
 
 ```
 Stage 9A    algorithm 4 = FLARE  — artifact and method qualification   BLOCKED
 Stage 10A   algorithm 4 candidates — AFR-Net vs JIPNet preflight       NO SURVIVOR
-Stage 10B   algorithm 4 — artifact qualification                       not opened
+Stage 10B   algorithm 4 candidate — id3 Finger SDK preflight           BLOCKED (access)
+Stage 10C   algorithm 4 — artifact and runtime integration             not opened
 ```
 
-The search now starts from a written specification rather than an impression: a
-candidate must be the authors' own executable artifact, must accept
-`canonical_500` through a route somebody upstream defined, must name its
-artifacts by bytes, must produce one finite scalar per attempt with no threshold,
-must not have been fitted on SD300, and must run here. Any candidate that fails
-one of those fails, and no gate is weakened to fill the slot.
+One act would reopen Stage 10B, and it belongs to a person rather than to a
+program: request an evaluation or developer licence from id3, in your own name,
+and re-run the stage. Eight gates become answerable for the first time at that
+point. If that does not happen, the response is another candidate — never a
+licence bypass, a trial reset or a workaround.
+
+The search still starts from a written specification rather than an impression: a
+candidate must be an official artifact, must accept `canonical_500` through a
+route somebody upstream defined, must name its artifacts by bytes, must produce
+one finite scalar per attempt with no threshold, must not have been fitted on
+SD300, and must run here. Any candidate that fails one of those fails, and no
+gate is weakened to fill the slot.
 
 Four things would lift the route blockers, and each is concrete: an authoritative
 statement of the 512-to-256 resampling; an authoritative statement of what fills

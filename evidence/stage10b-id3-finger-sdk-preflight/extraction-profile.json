@@ -1,0 +1,78 @@
+{
+  "schema": "stage_10b_extraction_profile_v1",
+  "candidate": "id3_finger_sdk_1to1",
+  "gate": "EXTRACTION_PROFILE",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "the candidate stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was downloaded, activated, loaded or executed for it",
+  "profile_frozen": false,
+  "fields_that_must_be_frozen": [
+    "template format",
+    "finger data formats",
+    "detector model",
+    "encoder model",
+    "finger-embedding model, if the delivered package has one",
+    "thread count",
+    "every extraction flag and its value"
+  ],
+  "published_options": [
+    {
+      "name": "minutiaDetectorModel",
+      "published_meaning": "the model used to detect minutiae in a finger image",
+      "documented_default": null,
+      "is_score_affecting": true
+    },
+    {
+      "name": "minutiaEncoderModel",
+      "published_meaning": "the model used to encode minutiae with proprietary features",
+      "documented_default": null,
+      "is_score_affecting": true
+    },
+    {
+      "name": "threadCount",
+      "published_meaning": "the number of threads used for feature extraction",
+      "documented_default": null,
+      "is_score_affecting": false
+    }
+  ],
+  "options_with_no_documented_default": [
+    "minutiaDetectorModel",
+    "minutiaEncoderModel",
+    "threadCount"
+  ],
+  "fusion_selection_from_vendor_reported_accuracy": false,
+  "profile_source_must_be": "the documented default single-finger route of the delivered package",
+  "observations_recorded_before_the_stop": [
+    {
+      "observation_id": "sample_loads_one_mandatory_model",
+      "subject": "which models the sample loads",
+      "statement": "One model is loaded, a minutia detector, described in the sample as mandatory and self-sufficient for creating ISO templates. A fingerprint aligner and encoder are described as optional and as producing additional proprietary template data; the sample does not load them.",
+      "locator": "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/python/RecognitionCLI.py",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "sample_sets_a_thread_count",
+      "subject": "an extractor setting the sample chooses",
+      "statement": "The sample constructs the extractor with a minutia detector model and a thread count of 4. The thread count is a choice the sample makes; no documented default for it was found.",
+      "locator": "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/python/RecognitionCLI.py",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "sample_names_a_detector_model_generation",
+      "subject": "the model constant the sample names",
+      "statement": "The model constant in the sample names a minutia detector generation, while the README's models folder lists file names with a different version suffix. Which file the constant resolves to is not established from public sources.",
+      "locator": "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/python/RecognitionCLI.py",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ],
+  "these_observations_are_not_a_gate_conclusion": true,
+  "notes": [
+    "The vendor reports four fusion combinations and recommends one by sensor size. Those figures explain the product; choosing the variant with the better reported error rate would be fpbench selecting a configuration on results, which is the thing the whole preflight exists to prevent (spec section 16, docs/adr/0097).",
+    "'Use the full id3 somehow' is not a profile. Either every one of the fields above has a recorded value and a provenance, or the gate fails."
+  ]
+}

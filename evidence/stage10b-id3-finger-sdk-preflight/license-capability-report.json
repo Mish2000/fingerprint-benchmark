@@ -1,0 +1,52 @@
+{
+  "schema": "stage_10b_license_capability_report_v1",
+  "candidate": "id3_finger_sdk_1to1",
+  "gate": "ACQUISITION_ACCESS",
+  "gate_status": "FAIL",
+  "workload_feasibility_gate_status": "NOT_REACHED",
+  "capacity_status": "UNRESOLVED",
+  "capacity_admits_candidate": false,
+  "capacity_basis": "the advertised limit is the phrase 'Limited API calls' with no number; no public statement says which operations consume the quota — extraction, matching, model loading, or every API call",
+  "advertised_evaluation": {
+    "offered": true,
+    "duration_days": 30,
+    "api_call_limit_statement": "Limited API calls",
+    "api_call_limit_is_numeric": false,
+    "platform_limit_statement": "Single platform",
+    "metering_semantics_published": false,
+    "locator": "https://id3technologies.com/software-development-kits/finger-sdk/"
+  },
+  "questions_a_licence_must_answer": [
+    "which operations consume quota: extraction, matching, model loading, or every API call",
+    "how much quota the licence carries",
+    "how much of it remains",
+    "when it expires"
+  ],
+  "frozen_workload": {
+    "participating_images": 3000,
+    "extractions": 3000,
+    "comparisons": 6000,
+    "qualification_operations_upper_bound": 200,
+    "total_metered_operations_upper_bound": 9200
+  },
+  "cost_under_each_metering_semantics": {
+    "every_api_call_upper_bound": 9200,
+    "extraction_and_matching": 9000,
+    "extraction_only": 3000,
+    "matching_only": 6000
+  },
+  "workload_budget_resolved": false,
+  "workload_budget_basis": "The workload is frozen and the metering is not. Under the most expensive published reading the run costs at most 9200 metered operations, which is the figure a licence would have to cover before a single comparison is run. No reading of the public terms establishes whether an evaluation licence covers it.",
+  "publishable_license_facts": {
+    "license_type": null,
+    "enabled_module_names": [],
+    "expiry_category": null,
+    "remaining_days_category": null,
+    "sufficient_for_declared_workload": null
+  },
+  "every_publishable_fact_is_null_because_no_licence_exists": true,
+  "notes": [
+    "The workload was frozen before the capacity was asked about, and not after. A run that is trimmed to fit a quota is a different protocol reported under the same name (docs/adr/0096).",
+    "'We will try it and see' is refused explicitly. A quota exhausted at comparison four thousand leaves two thousand comparisons that were never run and a result that cannot be published."
+  ]
+}

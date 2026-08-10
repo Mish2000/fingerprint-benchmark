@@ -1,0 +1,106 @@
+{
+  "schema": "stage_10b_matcher_profile_v1",
+  "candidate": "id3_finger_sdk_1to1",
+  "gate": "MATCHER_PROFILE",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "the candidate stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was downloaded, activated, loaded or executed for it",
+  "profile_frozen": false,
+  "required_per_option": [
+    "observed runtime value",
+    "documented default",
+    "chosen value",
+    "provenance"
+  ],
+  "published_options": [
+    {
+      "name": "maximumRotation",
+      "published_meaning": "maximum supported rotation in degrees between two templates during matching, in the range 0 to 180",
+      "documented_default": null,
+      "observed_runtime_value": null,
+      "chosen_value": null,
+      "provenance": null,
+      "is_score_affecting": true
+    },
+    {
+      "name": "minexOnly",
+      "published_meaning": "forces the matcher to use interoperable minutiae data only",
+      "documented_default": null,
+      "observed_runtime_value": null,
+      "chosen_value": null,
+      "provenance": null,
+      "is_score_affecting": true
+    },
+    {
+      "name": "minutiaPatchOnly",
+      "published_meaning": "forces the matcher to use minutia patch data only",
+      "documented_default": null,
+      "observed_runtime_value": null,
+      "chosen_value": null,
+      "provenance": null,
+      "is_score_affecting": true
+    },
+    {
+      "name": "multiscaleMatch",
+      "published_meaning": "for templates from the contactless detection module, where the dpi is approximated and may vary from the expected 500",
+      "documented_default": null,
+      "observed_runtime_value": null,
+      "chosen_value": null,
+      "provenance": null,
+      "is_score_affecting": true
+    },
+    {
+      "name": "normalizedScores",
+      "published_meaning": "forces the matcher to normalise the scores, with the instruction that it should always be true",
+      "documented_default": null,
+      "observed_runtime_value": null,
+      "chosen_value": null,
+      "provenance": null,
+      "is_score_affecting": true
+    }
+  ],
+  "options_with_no_documented_default": [
+    "maximumRotation",
+    "minexOnly",
+    "minutiaPatchOnly",
+    "multiscaleMatch",
+    "normalizedScores"
+  ],
+  "undocumented_runtime_default_label": "DELIVERED_SDK_DEFAULT",
+  "minex_only_is_not_the_research_default": true,
+  "minex_only_would_be_a_separate_algorithm_profile": true,
+  "hidden_score_affecting_defaults_resolved": false,
+  "observations_recorded_before_the_stop": [
+    {
+      "observation_id": "sample_constructs_a_default_matcher",
+      "subject": "how the sample builds the matcher",
+      "statement": "The matcher is constructed with no arguments, and the sample comments that by default it uses all data found in the templates. It then sets minexOnly to True to force minutiae-only comparison for a second score.",
+      "locator": "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/python/RecognitionCLI.py",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "no_documented_default_for_matcher_options",
+      "subject": "what the class reference says about defaults",
+      "statement": "The FingerMatcher reference documents what each of the five options does and states no default for any of them. A runtime value read from the delivered package would therefore be a delivered-SDK default, not a documented one.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/reference/finger/finger_matcher/finger_matcher.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "normalized_scores_carries_an_instruction",
+      "subject": "one option the documentation qualifies",
+      "statement": "normalizedScores is documented as forcing the matcher to normalise the scores, with the added sentence that it 'Should always be True'. That is an instruction rather than a stated default, and it is score-affecting either way.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/reference/finger/finger_matcher/finger_matcher.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ],
+  "these_observations_are_not_a_gate_conclusion": true,
+  "notes": [
+    "All five published matcher options are score-affecting and none of them carries a documented default. A value read from the delivered package would be recorded as a DELIVERED_SDK_DEFAULT — a fact about that package — and never as a documented fact (spec section 17).",
+    "minexOnly is not switched on or off to make this route look different from NBIS. If a MINEX-only configuration is ever wanted it is a separate algorithm profile with its own identity (spec section 19)."
+  ]
+}

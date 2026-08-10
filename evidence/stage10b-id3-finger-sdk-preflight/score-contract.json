@@ -1,0 +1,80 @@
+{
+  "schema": "stage_10b_score_contract_v1",
+  "candidate": "id3_finger_sdk_1to1",
+  "gate": "RAW_SCORE_ROUTE",
+  "gate_status": "NOT_REACHED",
+  "why_not_reached": "the candidate stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was downloaded, activated, loaded or executed for it",
+  "raw_score_route_status": "NOT_REACHED",
+  "chosen_comparison_api": null,
+  "apis_may_not_be_mixed": true,
+  "requirements_this_gate_would_have_applied": [
+    "exactly one integer per 1:1 attempt, from one chosen comparison API, and never a mixture of two",
+    "a nominal range of 0 to 65535 and a direction where a higher score means more similar, each read from the delivered package's own documentation",
+    "no threshold anywhere in the raw route: not FingerMatcherThreshold, not a vendor recommended threshold, and not an is_match flag derived from either (spec section 22)",
+    "declared failure semantics for image decode, model loading, extraction, matching and licence, each mapped to an outcome; an extraction failure is never converted into a score",
+    "0 is a valid score and is never used as a failure sentinel, so a failure is carried by an outcome rather than by a number (spec section 27)",
+    "pair-order semantics established rather than assumed: score(A, B) and score(B, A) are run on fixtures, and if they differ fpbench keeps the reference/probe orientation the API defines rather than averaging or maximising the two",
+    "a quality value, a pose or any second output is diagnostic and never modifies the score"
+  ],
+  "self_semantics_requirements": [
+    "SELF(A, A) performs two independent extractions of A and compares the two resulting templates",
+    "a template extracted once and compared with itself is refused, however much cheaper it is",
+    "a maximum-score shortcut for equal inputs is refused",
+    "no representation cache may live between the two sides of a comparison; a smoke run may verify this with invocation counters, and never by publishing template bytes"
+  ],
+  "self_independent_extraction_required": true,
+  "pair_order_symmetry_established": false,
+  "fpbench_may_symmetrise_a_pairwise_score": false,
+  "threshold_in_raw_route": false,
+  "vendor_threshold_constants_are_not_part_of_the_raw_route": true,
+  "zero_is_a_valid_score_and_never_a_failure_sentinel": true,
+  "failure_classes_that_must_be_mapped": [
+    "image decode",
+    "model loading",
+    "template extraction",
+    "matching",
+    "licence"
+  ],
+  "extraction_failure_may_become_a_score": false,
+  "publicly_documented_score": {
+    "type": "integer",
+    "range_min": 0,
+    "range_max": 65535,
+    "direction": "HIGHER_IS_MORE_SIMILAR",
+    "this_is_an_observation_not_a_contract": true
+  },
+  "observations_recorded_before_the_stop": [
+    {
+      "observation_id": "sample_states_the_score_range",
+      "subject": "the range the sample states",
+      "statement": "The sample comments that the matching process returns a score between 0 and 65535 and that to take a decision this score must be compared to a defined threshold.",
+      "locator": "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/python/RecognitionCLI.py",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "sample_applies_a_vendor_threshold",
+      "subject": "what the sample does after scoring",
+      "statement": "The sample compares the score with a named FingerMatcherThreshold constant to print a match or no-match decision, and recommends a threshold for 1:1 authentication. fpbench's raw route would take the score and stop; the threshold constant belongs to a later stage or to nothing at all.",
+      "locator": "https://github.com/id3Technologies/finger-sdk-samples/blob/75d02adc5adef73009a85cefd48231fb7803ac48/python/RecognitionCLI.py",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "two_comparison_apis_exist_side_by_side",
+      "subject": "the choice the raw route would have to make",
+      "statement": "compareTemplates compares two templates; compareTemplateRecords compares two template records. Both are published on the matcher class, and the single-image sample uses the first.",
+      "locator": "https://developer.id3technologies.com/finger-sdk/v4/reference/finger/finger_matcher/finger_matcher.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ],
+  "these_observations_are_not_a_gate_conclusion": true,
+  "notes": [
+    "The public documentation and the vendor's own sample both describe an integer in 0..65535 with the threshold applied afterwards, which is the shape this project needs. It is recorded as an observation because the gate that would settle it was never reached, and because a contract is settled against the delivered package's documentation (spec section 8).",
+    "SELF(A, A) is frozen here even though the adapter that will obey it belongs to Stage 10C: two independent extractions, no path-equality shortcut, no constant (docs/adr/0070, spec section 24)."
+  ]
+}

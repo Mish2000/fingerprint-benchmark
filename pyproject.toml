@@ -61,4 +61,7 @@ markers = [
     "stage10a_contract: the frozen Stage 10A Algorithm 4 candidate preflight — the candidate set, the seven hard gates and their order, fail-fast and NOT_REACHED, the origin vocabulary, the input-domain rule, the refused constructions, the selection rule and the two-outcome marker (pure Python, no torch, no checkpoint, no network and no dataset)",
     "stage10a: the committed Stage 10A candidate-preflight evidence gate (no dataset, no runtime and no prior-result workspace)",
     "algorithm4_preflight_artifact: needs the pinned candidate source archive in the local third-party store (set FPBENCH_THIRD_PARTY_ROOT)",
+    "stage10b_contract: the frozen Stage 10B id3 Finger SDK preflight — the provisional candidate identity, the ten hard gates and their order, fail-fast and NOT_REACHED, the acquisition and licence-capacity rules, the frozen workload arithmetic, the extractor and matcher profile closure, the raw-score and SELF requirements, the secret guard and the two-outcome marker (pure Python, synthetic fixtures, no SDK, no licence, no network and no dataset)",
+    "stage10b: the committed Stage 10B id3 preflight evidence gate (no dataset, no runtime and no prior-result workspace)",
+    "id3_artifact: needs a delivered id3 Finger SDK package and an activated licence on this machine (set FPBENCH_THIRD_PARTY_ROOT); never runs in CI",
 ]

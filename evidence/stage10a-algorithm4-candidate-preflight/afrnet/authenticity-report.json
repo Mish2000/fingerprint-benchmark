@@ -9,7 +9,7 @@
     "AUTHOR_OFFICIAL_IMPLEMENTATION",
     "AUTHOR_OFFICIAL_RELEASE"
   ],
-  "subject": "no executable artifact attributable to the AFR-Net authors was located",
+  "subject": "no executable artifact attributable to the AFR-Net authors was located at the ten locations this stage searched",
   "supporting_locators": [],
   "upstream_self_description": "The paper describes the architecture and the realignment strategy and makes no statement about code availability.",
   "basis": "Ten locations were searched and none yielded an author-supplied implementation or checkpoint. UNKNOWN rather than PAPER_RECONSTRUCTION, because Stage 10A reconstructed nothing: there is no fpbench AFR-Net to classify.",
@@ -23,5 +23,5 @@
     "A THIRD_PARTY_REIMPLEMENTATION is never published under the name of the algorithm it reproduces, and an ADJUSTED one is not published under that name even with a qualifier attached to the run (docs/adr/0090)."
   ],
   "gate_status": "FAIL",
-  "gate_summary": "UNKNOWN: no executable artifact attributable to the AFR-Net authors was located. Accepted origins are ['AUTHOR_OFFICIAL_IMPLEMENTATION', 'AUTHOR_OFFICIAL_RELEASE']."
+  "gate_summary": "UNKNOWN: no executable artifact attributable to the AFR-Net authors was located at the ten locations this stage searched. Accepted origins are ['AUTHOR_OFFICIAL_IMPLEMENTATION', 'AUTHOR_OFFICIAL_RELEASE']."
 }

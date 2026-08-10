@@ -565,7 +565,7 @@ ORIGIN_CLAIMS: tuple[OriginClaim, ...] = (
         origin=frozen.ImplementationOrigin.UNKNOWN,
         subject=(
             "no executable artifact attributable to the AFR-Net authors was "
-            "located"
+            "located at the ten locations this stage searched"
         ),
         supporting_locators=(),
         upstream_self_description=(

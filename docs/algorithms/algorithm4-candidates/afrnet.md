@@ -23,7 +23,8 @@ Nothing in this record is a judgement about the method. It is a strong paper.
 
 ## Why it is not admissible
 
-No executable artifact attributable to the authors was located.
+No executable artifact attributable to the authors was located at the ten
+locations this stage searched.
 
 | | Found |
 | :--- | :--- |

@@ -2012,14 +2012,26 @@ make stage10b-evidence
 Stage 9A    algorithm 4 = FLARE  — artifact and method qualification   BLOCKED
 Stage 10A   algorithm 4 candidates — AFR-Net vs JIPNet preflight       NO SURVIVOR
 Stage 10B   algorithm 4 candidate — id3 Finger SDK preflight           BLOCKED (access)
-Stage 10C   algorithm 4 — artifact and runtime integration             not opened
+Stage 10C   id3 artifact and runtime integration                       reserved, unopened
+Stage 11A   the next candidate preflight                               not started
 ```
 
-One act would reopen Stage 10B, and it belongs to a person rather than to a
-program: request an evaluation or developer licence from id3, in your own name,
-and re-run the stage. Eight gates become answerable for the first time at that
-point. If that does not happen, the response is another candidate — never a
-licence bypass, a trial reset or a workaround.
+**Stage 10C stays reserved for id3.** It was defined as the id3 artifact and
+runtime integration that a passing 10B would open, and recycling the number for
+a different candidate would make the history unreadable — a later reader would
+find a 10C with nothing to do with the 10B above it. The marker carries
+`stage_10c_reserved_for_this_candidate: true` and refuses to say otherwise.
+
+**Two tracks, and neither waits for the other.** Requesting an id3 evaluation
+licence — the package, the activation, the exact quota and metering semantics,
+and confirmation that the planned research workload is permitted — is one act by
+one person, and it reopens Stage 10B if it succeeds. The next candidate preflight
+does not depend on it and should not wait for it. If id3 answers quickly and the
+quota is sufficient, 10B requalifies and 10C opens. If not, no time was lost.
+
+id3's blocker is much weaker than FLARE's or JIPNet's, and the marker says so:
+the candidate failed no gate about its input domain, its published method, its
+raw score or its research-use terms.
 
 The search still starts from a written specification rather than an impression: a
 candidate must be an official artifact, must accept `canonical_500` through a

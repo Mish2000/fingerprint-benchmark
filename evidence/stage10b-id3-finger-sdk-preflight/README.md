@@ -154,11 +154,15 @@ refuses to publish if one does — by key name or by value shape (docs/adr/0098)
 ## What opens
 
 ```text
-opens_stage_10c:          false
-opens_candidate_search:   true
+opens_stage_10c:                        false
+stage_10c_reserved_for_this_candidate:  true
+opens_candidate_search:                 true
 ```
 
-The Algorithm 4 slot stays empty. A failure on access and quota is legitimate and
+The Algorithm 4 slot stays empty, and Stage 10C stays reserved for id3 rather
+than being recycled for the next candidate: it is the artifact and runtime
+integration a passing 10B would have opened, and a 10C belonging to a different
+candidate would make this history unreadable. A failure on access and quota is legitimate and
 final for the route as it stands, and the response is another candidate — never a
 workaround (docs/adr/0095).
 

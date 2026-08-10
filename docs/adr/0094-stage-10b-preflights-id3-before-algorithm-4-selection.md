@@ -113,3 +113,11 @@ than editing this one.
 Stage 10C exists only if Stage 10B passes. Under a blocked outcome the marker
 carries `opens_stage_10c: false` and `opens_candidate_search: true`, and the
 Algorithm 4 slot stays empty.
+
+**The number 10C stays reserved for id3 even so.** It was defined as this
+candidate's artifact and runtime integration, and recycling it for the next
+candidate would put a 10C in the history that has nothing to do with the 10B
+above it. The marker carries `stage_10c_reserved_for_this_candidate: true` and
+refuses to say otherwise; the next candidate preflight takes a new stage number.
+The two are independent tracks — obtaining an id3 licence is one person's act
+and does not sit on the next preflight's critical path.

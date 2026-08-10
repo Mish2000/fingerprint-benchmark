@@ -219,15 +219,28 @@ make stage10b-publish      # the marker, against a clean tree; commit that
 ## What opens
 
 ```text
-opens_stage_10c:          false
-opens_candidate_search:   true
+opens_stage_10c:                        false
+stage_10c_reserved_for_this_candidate:  true
+opens_candidate_search:                 true
 ```
 
-The slot stays empty. One act would reopen this stage, and it belongs to a person
-rather than to a program: the maintainer requests an evaluation or developer
-licence from the vendor in their own name, receives the archive and the key, and
-re-runs the stage. Eight gates become answerable for the first time at that
-point.
+The slot stays empty and the *number* does not move. Stage 10C is the id3
+artifact and runtime integration a passing 10B would have opened, and it stays
+reserved for id3 rather than being recycled for whatever comes next: a 10C that
+had nothing to do with the 10B above it would make the history unreadable. The
+next candidate preflight is a new stage number.
 
-If that request is not made, or is refused, the response is another candidate —
+One act would reopen this stage, and it belongs to a person rather than to a
+program: the maintainer requests an evaluation or developer licence from the
+vendor in their own name — the package, the activation, the exact quota and
+metering semantics, and confirmation that the planned research workload is
+permitted — and re-runs the stage. Eight gates become answerable for the first
+time at that point.
+
+That request is not on the critical path. The next candidate preflight does not
+depend on it and should not wait for it; if id3 answers quickly and the quota is
+sufficient, this stage requalifies and 10C opens, and if it does not, no time was
+lost.
+
+If the request is not made, or is refused, the response is another candidate —
 not a workaround.

@@ -837,6 +837,7 @@ def _marker(**overrides: object) -> dict:
         "stage9a_evidence_changed": False,
         "stage10a_evidence_changed": False,
         "opens_stage_10c": False,
+        "stage_10c_reserved_for_this_candidate": True,
         "opens_candidate_search": True,
         "blockers": engine.marker_blocker_rows(preflight.blockers),
         "evidence_content_hashes": {"README.md": "d" * 64},
@@ -916,6 +917,8 @@ def test_the_self_rule_holds_under_either_outcome() -> None:
 def test_a_blocked_marker_opens_a_candidate_search_and_not_stage_10c() -> None:
     with pytest.raises(ValueError, match="opens no artifact integration"):
         _marker(opens_stage_10c=True)
+    with pytest.raises(ValueError, match="stays reserved"):
+        _marker(stage_10c_reserved_for_this_candidate=False)
     with pytest.raises(ValueError, match="search for another candidate"):
         _marker(opens_candidate_search=False)
 

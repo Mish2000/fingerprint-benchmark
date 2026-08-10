@@ -376,8 +376,9 @@ class Stage10BFinalization:
     stage9a_evidence_changed: bool
     stage10a_evidence_changed: bool
 
-    # What it opens.
+    # What it opens, and what it holds.
     opens_stage_10c: bool
+    stage_10c_reserved_for_this_candidate: bool
     opens_candidate_search: bool
 
     blockers: tuple[Mapping[str, str], ...]
@@ -718,6 +719,13 @@ class Stage10BFinalization:
             raise ValueError(
                 "a blocked Stage 10B opens no artifact integration; there is no "
                 "artifact to integrate"
+            )
+        if self.stage_10c_reserved_for_this_candidate is not True:
+            raise ValueError(
+                "Stage 10C is the id3 artifact and runtime integration and stays "
+                "reserved for it, unopened. Recycling the number for a different "
+                "candidate would make the history unreadable: a later reader "
+                "would find a 10C that has nothing to do with the 10B above it"
             )
         if self.opens_candidate_search is not True:
             raise ValueError(
@@ -1268,6 +1276,7 @@ def write_stage10b_evidence(
         "stage9a_evidence_changed": False,
         "stage10a_evidence_changed": False,
         "opens_stage_10c": passed,
+        "stage_10c_reserved_for_this_candidate": True,
         "opens_candidate_search": not passed,
         "blockers": engine.marker_blocker_rows(preflight.blockers),
         "evidence_content_hashes": {

@@ -64,11 +64,31 @@ exists. Today none does, and Stage 10B writes no usage manifest at all —
 because Stage 8E's own model refuses a manifest with no components, on the
 ground that a manifest describing nothing describes nothing.
 
-**An access failure is final for the route, and is not worked around.** Where
-the package or the licence cannot be obtained, the outcome is
-`ID3_FINGER_SDK_PREFLIGHT_FAIL` and the response is another candidate. Not a
-crack, not a licence bypass, not a trial reset, not a third-party
-redistribution, and not a reconstruction of the algorithm from its
+**Not obtained is not unobtainable.** Two families of code, and only the weak
+one is in use:
+
+```text
+ID3_PACKAGE_NOT_OBTAINED   ID3_LICENSE_NOT_OBTAINED      a fact about us
+ID3_PACKAGE_UNAVAILABLE    ID3_LICENSE_REFUSED           a fact about id3
+```
+
+The evidence records `possession: NOT_OBTAINED` beside `obtainability:
+NOT_TESTED`, because upstream describes a concrete acquisition route — a
+request, an acceptance, then the archive and the activation key — and nobody
+walked it. A route nobody walked has not been shown to be closed. This is the
+same distinction this project already draws between a checkpoint that does not
+fit a model and one whose compatibility was never inspected.
+
+**A blocked outcome says what kind of failure it is.**
+`ID3_FINGER_SDK_PREFLIGHT_FAIL` reads identically whether nobody asked or the
+vendor refused, so the marker carries a `failure_class` beside it —
+`OPERATIONAL_ACCESS_NOT_ESTABLISHED` today — and an explicit
+`id3_proven_unobtainable: false`.
+
+**An access failure is final for the route as it stands, and is not worked
+around.** The outcome is `ID3_FINGER_SDK_PREFLIGHT_FAIL` and the response is
+another candidate. Not a crack, not a licence bypass, not a trial reset, not a
+third-party redistribution, and not a reconstruction of the algorithm from its
 documentation. The marker publishes `license_bypass_attempted: false` and the
 preflight report names the four workarounds that were not considered.
 
@@ -108,3 +128,9 @@ re-runs and the eight gates below it become answerable for the first time.
 The distinction generalises. Any future commercial candidate inherits it, and so
 does any artifact that is permitted but unavailable — which, on the evidence of
 Stage 9A's six unenrolled checkpoints, is not a rare shape.
+
+And the blocked outcome cannot be read as a verdict on id3. The candidate failed
+no gate about its input domain, its published method, its raw score or its
+research-use terms; it failed on a package nobody requested. That is a much
+weaker finding than FLARE's or JIPNet's, and the marker says so in a field
+rather than leaving it to be inferred.

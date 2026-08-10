@@ -210,10 +210,25 @@ class PackageAcquisition:
     """
 
     status: frozen.AcquisitionStatus
+    possession: frozen.PossessionStatus
+    obtainability: frozen.ObtainabilityStatus
     frozen_identity_available: bool
     store_resolvable: bool
     store_holds_material: bool
     findings: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        obtained = self.status is frozen.AcquisitionStatus.OBTAINED
+        if (self.possession is frozen.PossessionStatus.OBTAINED) != obtained:
+            raise Id3AccessQualificationError(
+                "the possession status and the acquisition status disagree about "
+                "whether a package is here"
+            )
+        if obtained and self.obtainability is frozen.ObtainabilityStatus.NOT_TESTED:
+            raise Id3AccessQualificationError(
+                "a package that is here was obtained, so its obtainability was "
+                "tested by obtaining it"
+            )
 
     @property
     def obtained(self) -> bool:
@@ -237,6 +252,8 @@ def package_acquisition_state(
     except Exception:  # pragma: no cover - an unusable store is simply absent
         return PackageAcquisition(
             status=frozen.AcquisitionStatus.NOT_ATTEMPTED_HERE,
+            possession=frozen.PossessionStatus.NOT_OBTAINED,
+            obtainability=frozen.ObtainabilityStatus.NOT_TESTED,
             frozen_identity_available=False,
             store_resolvable=False,
             store_holds_material=False,
@@ -260,8 +277,14 @@ def package_acquisition_state(
         "no package identity is frozen, because no package was delivered: the "
         "vendor's published route delivers one only on request"
     )
+    findings.append(
+        "no request was made, so obtainability was never tested; this is "
+        "NOT_OBTAINED and not UNAVAILABLE"
+    )
     return PackageAcquisition(
         status=frozen.AcquisitionStatus.NOT_ATTEMPTED_HERE,
+        possession=frozen.PossessionStatus.NOT_OBTAINED,
+        obtainability=frozen.ObtainabilityStatus.NOT_TESTED,
         frozen_identity_available=False,
         store_resolvable=True,
         store_holds_material=holds,
@@ -346,42 +369,63 @@ def license_capability_state() -> LicenseCapability:
 
 @dataclass(frozen=True, slots=True)
 class WorkloadBudget:
-    """What the frozen workload costs under each metering semantics it could have.
+    """What the frozen run performs, and what nobody can yet convert it into.
 
-    A table rather than a number, because the unknown is not the size of the run
-    — that has been fixed at 3,000 extractions and 6,000 comparisons since the
-    canonical protocol was frozen — but which of those operations a quota
-    counts. Publishing the cost under each reading is what turns "we do not know
-    whether it fits" into something a vendor can be asked one question about
-    (docs/adr/0096).
+    Two halves that must not be confused. The **logical workload** is settled:
+    6,000 comparison attempts, each extracting both of its sides independently,
+    which is 12,000 extractions and 6,000 matcher invocations — Stage 8C's
+    execution semantics, already published over the same 6,000 comparisons. The
+    **metered call count** is unresolved and stays a status rather than becoming
+    a number.
+
+    An earlier version of this stage published a single "every API call upper
+    bound". It was wrong twice: it counted one extraction per participating
+    image, which no execution here performs, and it presented a bound over
+    biometric operations as a bound over API calls, which it cannot be while
+    "API call" is undefined (docs/adr/0096).
     """
 
     workload: frozen.FrozenWorkload
-    costs_by_metering_semantics: Mapping[str, int]
+    logical_operations: Mapping[str, int]
+    high_level_biometric_operations: int
+    sdk_metered_call_count: str
+    operation_classes_that_might_also_be_metered: tuple[str, ...]
     resolved: bool
     basis: str
 
 
 def workload_budget() -> WorkloadBudget:
-    """The arithmetic, under every metering semantics the licence could use."""
+    """The logical workload, and the conversion nobody can perform yet."""
     load = frozen.FROZEN_WORKLOAD
-    costs = {
-        "extraction_only": load.extractions,
-        "matching_only": load.comparisons,
-        "extraction_and_matching": load.extractions + load.comparisons,
-        "every_api_call_upper_bound": load.total_metered_operations_upper_bound,
-    }
     return WorkloadBudget(
         workload=load,
-        costs_by_metering_semantics=dict(sorted(costs.items())),
+        logical_operations={
+            "comparison_attempts": load.comparison_attempts,
+            "extraction_invocations": load.extraction_invocations,
+            "matcher_invocations": load.matcher_invocations,
+            "qualification_high_level_operations_upper_bound": (
+                load.qualification_high_level_operations_upper_bound
+            ),
+        },
+        high_level_biometric_operations=load.high_level_biometric_operations,
+        sdk_metered_call_count=frozen.SDK_METERED_CALL_COUNT_STATUS,
+        operation_classes_that_might_also_be_metered=(
+            frozen.OPERATION_CLASSES_THAT_MIGHT_ALSO_BE_METERED
+        ),
         resolved=False,
         basis=(
-            "The workload is frozen and the metering is not. Under the most "
-            f"expensive published reading the run costs at most "
-            f"{load.total_metered_operations_upper_bound} metered operations, "
-            "which is the figure a licence would have to cover before a single "
-            "comparison is run. No reading of the public terms establishes "
-            "whether an evaluation licence covers it."
+            "The logical workload is frozen and the metering is not. The run "
+            f"performs {load.extraction_invocations} extractions and "
+            f"{load.matcher_invocations} matches over "
+            f"{load.comparison_attempts} comparison attempts — "
+            f"{load.high_level_biometric_operations} high-level biometric "
+            "operations including the bounded qualification allowance. What that "
+            "costs in the licence's own unit cannot be derived here: id3 "
+            "publishes no definition of an API call, and an SDK that counts "
+            "every method invocation also counts image construction, resolution "
+            "setting, model loading, object construction and the licence calls "
+            "themselves. The conversion happens once the vendor states what is "
+            "metered, and not before."
         ),
     )
 
@@ -504,15 +548,18 @@ def run_gate_acquisition_access() -> GateResult:
         blockers.append(
             Blocker(
                 gate=frozen.PreflightGate.ACQUISITION_ACCESS,
-                blocker_code=frozen.BlockerCode.ID3_PACKAGE_NOT_OBTAINABLE,
+                blocker_code=frozen.BlockerCode.ID3_PACKAGE_NOT_OBTAINED,
                 affected_component="the delivered id3 Finger SDK package",
                 evidence=(
                     "access-qualification.json: the vendor publishes no "
-                    "self-service download. Its own samples state that the SDK "
-                    "archive and the activation key arrive together, and only "
-                    "after a request to the vendor has been accepted. No such "
-                    "request has been made from this project, so no package has "
-                    "been delivered and there is nothing here to identify."
+                    "self-service download. Its own samples describe a concrete "
+                    "acquisition route instead — a request to the vendor, an "
+                    "acceptance, and then the SDK archive and the activation key "
+                    "together. No such request has been made from this project, "
+                    "so no package has been delivered and there is nothing here "
+                    "to identify. The route was not walked and was therefore not "
+                    "shown to be closed: possession is NOT_OBTAINED and "
+                    "obtainability is NOT_TESTED."
                 ),
                 why_this_blocks_algorithm_4=(
                     "Every remaining gate is a question about a delivered "
@@ -536,15 +583,15 @@ def run_gate_acquisition_access() -> GateResult:
         blockers.append(
             Blocker(
                 gate=frozen.PreflightGate.ACQUISITION_ACCESS,
-                blocker_code=frozen.BlockerCode.ID3_LICENSE_NOT_OBTAINABLE,
+                blocker_code=frozen.BlockerCode.ID3_LICENSE_NOT_OBTAINED,
                 affected_component="an activated id3 Finger SDK licence",
                 evidence=(
                     "access-qualification.json: activation runs against an "
                     "activation key issued by the vendor and a host hardware "
                     "code, and the vendor's own sample checks a licence file "
                     "before any other SDK call. No activation key has been "
-                    "issued to this project and no activation has been "
-                    "attempted."
+                    "issued to this project, because none was requested, and no "
+                    "activation has been attempted. Nothing here was refused."
                 ),
                 why_this_blocks_algorithm_4=(
                     "The SDK refuses every call before its licence check, so "
@@ -579,9 +626,13 @@ def run_gate_acquisition_access() -> GateResult:
                     f"with {observed.EVALUATION_TERMS.api_call_limit_statement!r} "
                     "and a single platform. No number accompanies the limit and "
                     "no public statement says which operations consume it, while "
-                    "the frozen workload costs at most "
-                    f"{budget.workload.total_metered_operations_upper_bound} "
-                    "metered operations."
+                    "the frozen run performs "
+                    f"{budget.workload.extraction_invocations} extractions and "
+                    f"{budget.workload.matcher_invocations} matches over "
+                    f"{budget.workload.comparison_attempts} comparison attempts. "
+                    "What that costs in the licence's own unit is unresolved in "
+                    "both directions: the metering semantics are unpublished and "
+                    "so is the quota."
                 ),
                 why_this_blocks_algorithm_4=(
                     "A quota that runs out partway through 6,000 comparisons "
@@ -593,9 +644,10 @@ def run_gate_acquisition_access() -> GateResult:
                 how_this_would_be_lifted=(
                     "The delivered licence documentation, or one question to the "
                     "vendor, states which operations are metered and how many "
-                    "remain. Sufficiency is then arithmetic against the frozen "
-                    "workload, and it is recorded as a boolean beside the "
-                    "workload it was computed against."
+                    "remain. The logical workload is then converted into that "
+                    "unit and compared with the quota, and sufficiency is "
+                    "recorded as a boolean beside the workload it was computed "
+                    "against."
                 ),
             )
         )
@@ -705,6 +757,53 @@ class Id3Preflight:
     @property
     def selected_candidate(self) -> str | None:
         return frozen.CANDIDATE_ID if self.passed else None
+
+    @property
+    def failure_class(self) -> frozen.FailureClass | None:
+        """What kind of failure this is, derived from the blockers that stopped it.
+
+        ``ID3_FINGER_SDK_PREFLIGHT_FAIL`` is the same string whether nobody
+        asked the vendor for a package or the vendor refused one, and those are
+        very different results. Only the strong codes — a package observed to be
+        unavailable, a licence observed to be refused — produce the vendor-facing
+        class; not having asked produces ``OPERATIONAL_ACCESS_NOT_ESTABLISHED``
+        (docs/adr/0095).
+        """
+        if self.passed:
+            return None
+        codes = {blocker.blocker_code for blocker in self.blockers}
+        if codes & {
+            frozen.BlockerCode.ID3_PACKAGE_UNAVAILABLE,
+            frozen.BlockerCode.ID3_LICENSE_REFUSED,
+        }:
+            return frozen.FailureClass.OPERATIONAL_ACCESS_REFUSED_BY_VENDOR
+        if frozen.BlockerCode.LICENSE_WORKLOAD_CAPACITY_INSUFFICIENT in codes:
+            return frozen.FailureClass.LICENSE_CAPACITY_INSUFFICIENT
+        if self.stopped_at is frozen.PreflightGate.ACQUISITION_ACCESS:
+            return frozen.FailureClass.OPERATIONAL_ACCESS_NOT_ESTABLISHED
+        return frozen.FailureClass.ROUTE_NOT_QUALIFIABLE
+
+    @property
+    def proven_unobtainable(self) -> bool:
+        """Whether anything here shows the package cannot be had.
+
+        False, and it stays false until a strong blocker is actually raised. The
+        difference between "we did not ask" and "we cannot have it" is the whole
+        point of the two blocker families.
+        """
+        return self.failure_class is (
+            frozen.FailureClass.OPERATIONAL_ACCESS_REFUSED_BY_VENDOR
+        )
+
+    @property
+    def sd300_overlap_status(self) -> frozen.SD300OverlapStatus:
+        """The overlap status, or ``NOT_REACHED`` where the gate never ran."""
+        if (
+            self.status(frozen.PreflightGate.TRAINING_PROVENANCE)
+            is frozen.GateStatus.NOT_REACHED
+        ):
+            return frozen.SD300OverlapStatus.NOT_REACHED
+        return frozen.SD300OverlapStatus.NO_EVIDENCE_FOUND
 
     @property
     def gates_reached(self) -> int:
@@ -1039,14 +1138,7 @@ def candidate_identity_document() -> Mapping[str, Any]:
             "ppi": frozen.BENCHMARK_INPUT_PPI,
             "pixel_format": frozen.BENCHMARK_INPUT_PIXEL_FORMAT,
         },
-        "frozen_workload": {
-            "participating_images": frozen.FROZEN_WORKLOAD.participating_images,
-            "extractions": frozen.FROZEN_WORKLOAD.extractions,
-            "comparisons": frozen.FROZEN_WORKLOAD.comparisons,
-            "qualification_operations_upper_bound": (
-                frozen.FROZEN_WORKLOAD.qualification_operations_upper_bound
-            ),
-        },
+        "frozen_workload": _frozen_workload_rows(),
         "non_goals": list(frozen.NON_GOALS),
         # A list of rows rather than a map keyed by surface name: "threshold"
         # and "calibration" are refused *keys* in a published document, and a
@@ -1121,6 +1213,32 @@ def public_product_observations_document(
     }
 
 
+def _frozen_workload_rows() -> Mapping[str, Any]:
+    """The frozen run, in the operations an execution actually performs.
+
+    ``participating_images`` is the cohort and is deliberately not an operation
+    count: 3,000 images produce 12,000 extractions here, because each of the
+    6,000 comparisons extracts both of its sides independently (docs/adr/0070).
+    """
+    load = frozen.FROZEN_WORKLOAD
+    return {
+        "participating_images": load.participating_images,
+        "participating_images_is_a_cohort_not_an_operation_count": True,
+        "comparison_attempts": load.comparison_attempts,
+        "extraction_invocations": load.extraction_invocations,
+        "extractions_per_comparison": 2,
+        "matcher_invocations": load.matcher_invocations,
+        "qualification_high_level_operations_upper_bound": (
+            load.qualification_high_level_operations_upper_bound
+        ),
+        "high_level_biometric_operations": load.high_level_biometric_operations,
+        "execution_semantics_source": (
+            "the Stage 8C execution semantics, which published 12,000 logical "
+            "extractions over the same 6,000 comparisons"
+        ),
+    }
+
+
 def _acquisition_checklist() -> tuple[tuple[str, bool, str], ...]:
     """Gate 2's six requirements, each with what settles it.
 
@@ -1138,7 +1256,8 @@ def _acquisition_checklist() -> tuple[tuple[str, bool, str], ...]:
             frozen.ACQUISITION_CHECKLIST[0],
             package.obtained,
             "access-qualification.json: no request has been made and no package "
-            "has been delivered",
+            "has been delivered. This line reports possession, not "
+            "obtainability: nobody tested whether the vendor would supply one",
         ),
         (
             frozen.ACQUISITION_CHECKLIST[1],
@@ -1219,6 +1338,11 @@ def access_qualification_document(preflight: Id3Preflight) -> Mapping[str, Any]:
         ),
         "acquisition_state": {
             "status": package.status.value,
+            "package_possession_status": package.possession.value,
+            "package_obtainability_status": package.obtainability.value,
+            "obtainability_is_a_negative_finding": (
+                package.obtainability.is_a_negative_finding
+            ),
             "package_obtained": package.obtained,
             "frozen_package_identity_available": package.frozen_identity_available,
             "local_artifact_store_resolvable": package.store_resolvable,
@@ -1226,13 +1350,23 @@ def access_qualification_document(preflight: Id3Preflight) -> Mapping[str, Any]:
             "findings": list(package.findings),
             "request_made_by_this_project": False,
             "vendor_refused": False,
+            "package_proven_unobtainable": False,
         },
         "license_state": {
+            "license_possession_status": (
+                frozen.PossessionStatus.OBTAINED.value
+                if licence.license_present
+                else frozen.PossessionStatus.NOT_OBTAINED.value
+            ),
+            "license_obtainability_status": (
+                frozen.ObtainabilityStatus.NOT_TESTED.value
+            ),
             "license_present": licence.license_present,
             "activation_attempted": licence.activation_attempted,
             "activation_verified": licence.activation_verified,
             "required_modules_confirmed_enabled": False,
             "usable_for_local_research": None,
+            "license_refused_by_vendor": False,
         },
         "runtime_target": {
             "locked": False,
@@ -1311,20 +1445,14 @@ def license_capability_report_document(
         },
         "questions_a_licence_must_answer": list(frozen.LICENSE_CAPACITY_QUESTIONS),
         "none_of_these_questions_is_answered_by_a_public_page": True,
-        "frozen_workload": {
-            "participating_images": budget.workload.participating_images,
-            "extractions": budget.workload.extractions,
-            "comparisons": budget.workload.comparisons,
-            "qualification_operations_upper_bound": (
-                budget.workload.qualification_operations_upper_bound
-            ),
-            "total_metered_operations_upper_bound": (
-                budget.workload.total_metered_operations_upper_bound
-            ),
-        },
-        "cost_under_each_metering_semantics": dict(
-            budget.costs_by_metering_semantics
+        "frozen_workload": _frozen_workload_rows(),
+        "logical_workload": dict(budget.logical_operations),
+        "high_level_biometric_operations": budget.high_level_biometric_operations,
+        "sdk_metered_call_count": budget.sdk_metered_call_count,
+        "operation_classes_that_might_also_be_metered": list(
+            budget.operation_classes_that_might_also_be_metered
         ),
+        "a_biometric_operation_count_is_not_an_api_call_count": True,
         "workload_budget_resolved": budget.resolved,
         "workload_budget_basis": budget.basis,
         "publishable_license_facts": {
@@ -1672,7 +1800,9 @@ def training_provenance_document(preflight: Id3Preflight) -> Mapping[str, Any]:
         frozen.TrainingProvenanceStatus.PROPRIETARY_UNDISCLOSED.value
     )
     document["full_training_corpus_disclosure_is_not_required"] = True
-    document["sd300_overlap_status"] = frozen.SD300OverlapStatus.NOT_REACHED.value
+    document["sd300_overlap_status"] = preflight.sd300_overlap_status.value
+    document["sd300_training_overlap_found"] = None
+    document["a_not_reached_gate_publishes_no_boolean"] = True
     document["expected_sd300_overlap_status"] = (
         frozen.SD300OverlapStatus.NO_EVIDENCE_FOUND.value
     )
@@ -1753,6 +1883,17 @@ def preflight_report_document(preflight: Id3Preflight) -> Mapping[str, Any]:
         "implementation_origin": frozen.IMPLEMENTATION_ORIGIN,
         "verdict": preflight.verdict,
         "outcome": preflight.outcome,
+        "failure_class": (
+            preflight.failure_class.value if preflight.failure_class else None
+        ),
+        "id3_proven_unobtainable": preflight.proven_unobtainable,
+        "what_this_outcome_does_not_say": [
+            "that the id3 Finger SDK cannot be obtained",
+            "that id3 refused anything",
+            "that the licence terms forbid research use",
+            "that the input domain, the published method or the raw score are "
+            "unsuitable",
+        ],
         "passed_every_hard_gate": preflight.passed,
         "stopped_at_gate": (
             preflight.stopped_at.value if preflight.stopped_at else None
@@ -1767,12 +1908,15 @@ def preflight_report_document(preflight: Id3Preflight) -> Mapping[str, Any]:
         "decisive_answer": "NO",
         "decisive_answer_basis": (
             "The vendor publishes no self-service download. Its own samples "
-            "state that the archive and the activation key are issued together "
-            "after a request has been accepted, and that the SDK checks a "
-            "licence file before any other call. No request has been made from "
-            "this project, so there is no package, no licence and no route — and "
-            "the advertised evaluation quota is a phrase without a number, which "
-            "could not be checked against the frozen workload even if there were."
+            "describe an acquisition route instead — a request, an acceptance, "
+            "then the archive and the activation key together — and state that "
+            "the SDK checks a licence file before any other call. No request has "
+            "been made from this project, so there is no package, no licence and "
+            "no route. Nothing was refused and nothing was shown to be "
+            "unavailable: the route was not walked. The advertised evaluation "
+            "quota is separately a phrase without a number, so even a delivered "
+            "licence would leave the capacity question open until the vendor "
+            "states what is metered."
         ),
         "gates": [
             {

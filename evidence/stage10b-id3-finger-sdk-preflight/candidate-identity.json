@@ -72,9 +72,14 @@
   },
   "frozen_workload": {
     "participating_images": 3000,
-    "extractions": 3000,
-    "comparisons": 6000,
-    "qualification_operations_upper_bound": 200
+    "participating_images_is_a_cohort_not_an_operation_count": true,
+    "comparison_attempts": 6000,
+    "extraction_invocations": 12000,
+    "extractions_per_comparison": 2,
+    "matcher_invocations": 6000,
+    "qualification_high_level_operations_upper_bound": 200,
+    "high_level_biometric_operations": 18200,
+    "execution_semantics_source": "the Stage 8C execution semantics, which published 12,000 logical extractions over the same 6,000 comparisons"
   },
   "non_goals": [
     "no production adapter",

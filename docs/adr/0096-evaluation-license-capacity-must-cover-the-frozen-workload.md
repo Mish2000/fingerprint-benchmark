@@ -22,11 +22,19 @@ The benchmark's workload, by contrast, has been fixed since the canonical
 protocol was frozen:
 
 ```text
-3,000 participating images
-3,000 extractions          one per image
-6,000 comparisons
+3,000 participating images        the cohort, not an operation count
+6,000 comparison attempts
+12,000 extraction invocations     two per comparison, both sides independent
+6,000 matcher invocations
 + a bounded allowance for the qualification itself
 ```
+
+Twelve thousand rather than three thousand, and that number is not a choice made
+here. It is Stage 8C's execution semantics, already published over the same
+6,000 comparisons: every comparison extracts both of its sides afresh, and
+`SELF(A, A)` extracts A twice rather than comparing one template with itself
+(docs/adr/0070). A workload of 3,000 extractions would be a workload with a
+representation cache in it, and this project does not have one.
 
 The tempting move is to obtain an evaluation licence and start, on the reasoning
 that most of the run will probably fit and the rest can be dealt with when it
@@ -46,9 +54,11 @@ protocol reported under the name of this one.
 Licence capacity is a **hard gate**, settled before the first comparison.
 
 **The workload is frozen first, and never trimmed to fit.** `FROZEN_WORKLOAD`
-is a constant of the stage: 3,000 images, 3,000 extractions, 6,000 comparisons
-and an upper bound of 200 qualification operations. The capacity question is
-asked against that and against nothing else.
+is a constant of the stage: a 3,000-image cohort, 6,000 comparison attempts,
+12,000 extraction invocations, 6,000 matcher invocations and an upper bound of
+200 qualification operations — 18,200 high-level biometric operations in total.
+The capacity question is asked against that and against nothing else, and the
+constant refuses a workload whose extractions are not twice its comparisons.
 
 **Unresolved is a failure, not a caution.**
 
@@ -60,19 +70,32 @@ LICENSE_WORKLOAD_CAPACITY_INSUFFICIENT   -> FAIL
 A capacity nobody can state is a run nobody can plan, and the difference between
 "we know it is too small" and "we cannot tell" does not matter to the run.
 
-**The cost is published under every metering semantics it could have.** The
-unknown is not the size of the run but which operations a quota counts, so the
-evidence carries a table rather than a number:
+**The logical workload is published; the metered call count is not derived.**
+The two are different quantities and the evidence keeps them apart:
 
 ```text
-extraction_only               3,000
-matching_only                 6,000
-extraction_and_matching       9,000
-every_api_call_upper_bound    9,200
+logical_workload:
+    comparison_attempts                              6,000
+    extraction_invocations                          12,000
+    matcher_invocations                              6,000
+    qualification_high_level_operations_upper_bound     200
+
+high_level_biometric_operations                     18,200
+
+sdk_metered_call_count:                         UNRESOLVED
 ```
 
-That turns "we do not know whether it fits" into a single question a vendor can
-answer, and it makes the arithmetic checkable once an answer exists.
+18,200 is a count of *biometric* operations. It is not an upper bound on API
+calls and must never be published as one: id3 publishes no definition of an API
+call, and an SDK that counts every method invocation also counts image
+construction, resolution setting, model loading, extractor and matcher
+construction and the licence calls themselves — none of them countable in
+advance without knowing how often a process starts.
+
+The conversion from the logical workload into the licence's own unit happens
+once the vendor states what is metered, and not before. That turns "we do not
+know whether it fits" into a single question a vendor can answer, and it makes
+the arithmetic checkable the moment an answer exists.
 
 **What may be published about a licence is a closed list.** `license_type`,
 `enabled_module_names`, `expiry_category`, `remaining_days_category` and
@@ -107,6 +130,14 @@ risk would be accepting a partial run as an outcome.
 Today's outcome is decided by this ADR as much as by the missing package: even
 with an evaluation licence in hand, the capacity could not be checked against
 the frozen workload from public information alone.
+
+The first version of this stage got the workload wrong in both halves — it
+counted one extraction per participating image, which no execution here
+performs, and it published a biometric-operation bound under the name of an
+API-call bound. The contract suite passed throughout, because it asserted that
+the code matched the constant rather than that the constant matched the
+protocol. A contract test cannot catch a wrong premise it was written from; that
+is what review is for.
 
 The gate is cheap to satisfy later. One statement in the delivered licence
 documentation, or one question to the vendor, resolves it, and the arithmetic is

@@ -8,6 +8,8 @@
   "expected_status_for_a_proprietary_product": "PROPRIETARY_UNDISCLOSED",
   "full_training_corpus_disclosure_is_not_required": true,
   "sd300_overlap_status": "NOT_REACHED",
+  "sd300_training_overlap_found": null,
+  "a_not_reached_gate_publishes_no_boolean": true,
   "expected_sd300_overlap_status": "NO_EVIDENCE_FOUND",
   "no_evidence_found_is_not_proven_absent": true,
   "sd300_data_read_by_this_stage": false,

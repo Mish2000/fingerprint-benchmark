@@ -28,19 +28,34 @@
   "none_of_these_questions_is_answered_by_a_public_page": true,
   "frozen_workload": {
     "participating_images": 3000,
-    "extractions": 3000,
-    "comparisons": 6000,
-    "qualification_operations_upper_bound": 200,
-    "total_metered_operations_upper_bound": 9200
+    "participating_images_is_a_cohort_not_an_operation_count": true,
+    "comparison_attempts": 6000,
+    "extraction_invocations": 12000,
+    "extractions_per_comparison": 2,
+    "matcher_invocations": 6000,
+    "qualification_high_level_operations_upper_bound": 200,
+    "high_level_biometric_operations": 18200,
+    "execution_semantics_source": "the Stage 8C execution semantics, which published 12,000 logical extractions over the same 6,000 comparisons"
   },
-  "cost_under_each_metering_semantics": {
-    "every_api_call_upper_bound": 9200,
-    "extraction_and_matching": 9000,
-    "extraction_only": 3000,
-    "matching_only": 6000
+  "logical_workload": {
+    "comparison_attempts": 6000,
+    "extraction_invocations": 12000,
+    "matcher_invocations": 6000,
+    "qualification_high_level_operations_upper_bound": 200
   },
+  "high_level_biometric_operations": 18200,
+  "sdk_metered_call_count": "UNRESOLVED",
+  "operation_classes_that_might_also_be_metered": [
+    "image construction and loading",
+    "setting an image's resolution",
+    "model loading and unloading",
+    "extractor construction",
+    "matcher construction",
+    "licence checks and activation calls"
+  ],
+  "a_biometric_operation_count_is_not_an_api_call_count": true,
   "workload_budget_resolved": false,
-  "workload_budget_basis": "The workload is frozen and the metering is not. Under the most expensive published reading the run costs at most 9200 metered operations, which is the figure a licence would have to cover before a single comparison is run. No reading of the public terms establishes whether an evaluation licence covers it.",
+  "workload_budget_basis": "The logical workload is frozen and the metering is not. The run performs 12000 extractions and 6000 matches over 6000 comparison attempts — 18200 high-level biometric operations including the bounded qualification allowance. What that costs in the licence's own unit cannot be derived here: id3 publishes no definition of an API call, and an SDK that counts every method invocation also counts image construction, resolution setting, model loading, object construction and the licence calls themselves. The conversion happens once the vendor states what is metered, and not before.",
   "publishable_license_facts": {
     "license_type": null,
     "enabled_module_names": [],

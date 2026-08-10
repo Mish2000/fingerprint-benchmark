@@ -85,6 +85,9 @@ __all__ = [
     "GATE_BLOCKERS",
     "gate_of_blocker",
     "AcquisitionStatus",
+    "PossessionStatus",
+    "ObtainabilityStatus",
+    "FailureClass",
     "OperationalAccessDecision",
     "LicenseCapacityStatus",
     "SingleFingerRouteStatus",
@@ -96,6 +99,8 @@ __all__ = [
     "BENCHMARK_INPUT_PIXEL_FORMAT",
     "FROZEN_WORKLOAD",
     "FrozenWorkload",
+    "SDK_METERED_CALL_COUNT_STATUS",
+    "OPERATION_CLASSES_THAT_MIGHT_ALSO_BE_METERED",
     "SCORE_CONTRACT_REQUIREMENTS",
     "SELF_SEMANTICS_REQUIREMENTS",
     "RUNTIME_TARGET_FIELDS",
@@ -190,10 +195,14 @@ COMPLETE_IDENTITY_FINGERPRINT_COMPONENTS: tuple[str, ...] = (
 #: package that cannot be obtained stops the list at its first line, and each
 #: later line is a separate way for access to fail with the package in hand
 #: (spec section 4).
+#: Each line is a state this project can *observe*, not a capability it can
+#: predict. "obtained" rather than "obtainable", and "issued" rather than
+#: "obtainable", because nothing here has tested whether the vendor would supply
+#: one — the distinction the possession and obtainability statuses below carry.
 ACQUISITION_CHECKLIST: tuple[str, ...] = (
-    "exact SDK package obtainable",
+    "exact SDK package obtained",
     "target platform supported",
-    "evaluation or developer licence obtainable",
+    "evaluation or developer licence issued to this project",
     "licence activation succeeds",
     "required Finger modules are enabled",
     "licence is usable for local research",
@@ -389,8 +398,17 @@ class BlockerCode(str, Enum):
     among them and cannot be expressed here.
     """
 
-    ID3_PACKAGE_NOT_OBTAINABLE = "ID3_PACKAGE_NOT_OBTAINABLE"
-    ID3_LICENSE_NOT_OBTAINABLE = "ID3_LICENSE_NOT_OBTAINABLE"
+    #: What this project has not done. The weak, honest codes, and the ones in
+    #: use today: nobody requested the package, so nobody was refused it.
+    ID3_PACKAGE_NOT_OBTAINED = "ID3_PACKAGE_NOT_OBTAINED"
+    ID3_LICENSE_NOT_OBTAINED = "ID3_LICENSE_NOT_OBTAINED"
+
+    #: What id3 would have to do for the route to be closed. Strong claims about
+    #: the vendor, published only where one was actually observed. None has
+    #: been, and a code that is never raised is better than a code that
+    #: overstates the one thing this stage did establish.
+    ID3_PACKAGE_UNAVAILABLE = "ID3_PACKAGE_UNAVAILABLE"
+    ID3_LICENSE_REFUSED = "ID3_LICENSE_REFUSED"
     ID3_LICENSE_ACTIVATION_FAILED = "ID3_LICENSE_ACTIVATION_FAILED"
     ID3_REQUIRED_MODULE_NOT_LICENSED = "ID3_REQUIRED_MODULE_NOT_LICENSED"
     LICENSE_WORKLOAD_CAPACITY_UNRESOLVED = "LICENSE_WORKLOAD_CAPACITY_UNRESOLVED"
@@ -430,8 +448,10 @@ GATE_BLOCKERS: tuple[tuple[PreflightGate, tuple[BlockerCode, ...]], ...] = (
     (
         PreflightGate.ACQUISITION_ACCESS,
         (
-            BlockerCode.ID3_PACKAGE_NOT_OBTAINABLE,
-            BlockerCode.ID3_LICENSE_NOT_OBTAINABLE,
+            BlockerCode.ID3_PACKAGE_NOT_OBTAINED,
+            BlockerCode.ID3_LICENSE_NOT_OBTAINED,
+            BlockerCode.ID3_PACKAGE_UNAVAILABLE,
+            BlockerCode.ID3_LICENSE_REFUSED,
             BlockerCode.ID3_LICENSE_ACTIVATION_FAILED,
             BlockerCode.ID3_REQUIRED_MODULE_NOT_LICENSED,
             BlockerCode.LICENSE_WORKLOAD_CAPACITY_UNRESOLVED,
@@ -513,6 +533,55 @@ class AcquisitionStatus(str, Enum):
     REQUESTED_AND_PENDING = "REQUESTED_AND_PENDING"
     REFUSED_BY_VENDOR = "REFUSED_BY_VENDOR"
     UNAVAILABLE_FOR_TARGET_PLATFORM = "UNAVAILABLE_FOR_TARGET_PLATFORM"
+
+
+class PossessionStatus(str, Enum):
+    """Whether this project holds the thing. A fact about this project."""
+
+    OBTAINED = "OBTAINED"
+    NOT_OBTAINED = "NOT_OBTAINED"
+
+
+class ObtainabilityStatus(str, Enum):
+    """Whether the thing *could* be obtained. A fact about the route.
+
+    ``NOT_TESTED`` is the honest answer where nobody asked, and it is the answer
+    this stage publishes today. It is not ``UNAVAILABLE``: upstream describes a
+    concrete acquisition route — request, acceptance, archive and activation key
+    — and a route nobody walked has not been shown to be closed. The same
+    distinction this project already draws between a checkpoint that does not
+    fit a model and one whose compatibility was never inspected.
+    """
+
+    NOT_TESTED = "NOT_TESTED"
+    REQUESTED_AND_PENDING = "REQUESTED_AND_PENDING"
+    OBTAINABLE = "OBTAINABLE"
+    UNAVAILABLE = "UNAVAILABLE"
+    REFUSED_BY_VENDOR = "REFUSED_BY_VENDOR"
+
+    @property
+    def is_a_negative_finding(self) -> bool:
+        """Whether this says something about id3 rather than about this project."""
+        return self in (
+            ObtainabilityStatus.UNAVAILABLE,
+            ObtainabilityStatus.REFUSED_BY_VENDOR,
+        )
+
+
+class FailureClass(str, Enum):
+    """What kind of failure a blocked outcome is, in one word.
+
+    Published beside the outcome because ``ID3_FINGER_SDK_PREFLIGHT_FAIL`` is
+    the same string whether nobody asked for the package or the vendor refused
+    it, and those are very different results. Today it is the first one, and the
+    marker says so rather than leaving a reader to infer impossibility from a
+    verdict (docs/adr/0095).
+    """
+
+    OPERATIONAL_ACCESS_NOT_ESTABLISHED = "OPERATIONAL_ACCESS_NOT_ESTABLISHED"
+    OPERATIONAL_ACCESS_REFUSED_BY_VENDOR = "OPERATIONAL_ACCESS_REFUSED_BY_VENDOR"
+    LICENSE_CAPACITY_INSUFFICIENT = "LICENSE_CAPACITY_INSUFFICIENT"
+    ROUTE_NOT_QUALIFIABLE = "ROUTE_NOT_QUALIFIABLE"
 
 
 class OperationalAccessDecision(str, Enum):
@@ -658,16 +727,18 @@ class FrozenWorkload:
     """
 
     participating_images: int
-    extractions: int
-    comparisons: int
-    qualification_operations_upper_bound: int
+    comparison_attempts: int
+    extraction_invocations: int
+    matcher_invocations: int
+    qualification_high_level_operations_upper_bound: int
 
     def __post_init__(self) -> None:
         for name in (
             "participating_images",
-            "extractions",
-            "comparisons",
-            "qualification_operations_upper_bound",
+            "comparison_attempts",
+            "extraction_invocations",
+            "matcher_invocations",
+            "qualification_high_level_operations_upper_bound",
         ):
             value = int(getattr(self, name))
             if value <= 0:
@@ -676,40 +747,75 @@ class FrozenWorkload:
                     "it is a workload nobody has to plan for"
                 )
             object.__setattr__(self, name, value)
-        if self.extractions != self.participating_images:
+        if self.extraction_invocations != 2 * self.comparison_attempts:
             raise Id3CandidateIdentityError(
-                "one extraction per participating image, and one image per "
-                "extraction. SELF pairs are two independent extractions of the "
-                "same image and are counted at the comparison, not here "
-                "(docs/adr/0070)"
+                "each comparison extracts both of its sides independently, so a "
+                "run of N comparisons performs 2N extractions. Counting one "
+                "extraction per participating image would be counting a "
+                "representation cache this project refuses to have: SELF(A, A) "
+                "extracts A twice, and every other pair extracts both sides "
+                "afresh (docs/adr/0070, Stage 8C's 12,000 logical extractions "
+                "over 6,000 comparisons)"
+            )
+        if self.matcher_invocations != self.comparison_attempts:
+            raise Id3CandidateIdentityError(
+                "one matcher invocation per comparison attempt; a run that "
+                "matched more or fewer times than it compared would be a "
+                "different protocol"
             )
 
     @property
-    def total_metered_operations_upper_bound(self) -> int:
-        """The largest number of API calls the run could consume.
+    def high_level_biometric_operations(self) -> int:
+        """Extractions, matches and the bounded qualification allowance.
 
-        An upper bound rather than an estimate, because the metering semantics
-        are exactly what is unknown: if model loading, extraction and matching
-        all consume quota, this is what it costs; if only some do, the true
-        figure is lower and the bound still holds.
+        A count of *biometric* operations, and deliberately not a count of API
+        calls: an SDK that meters every method invocation also meters image
+        construction, resolution setting, model loading, extractor and matcher
+        construction and the licence calls themselves, and how id3 counts an
+        "API call" is exactly what is unresolved (docs/adr/0096).
         """
         return (
-            self.extractions
-            + self.comparisons
-            + self.qualification_operations_upper_bound
+            self.extraction_invocations
+            + self.matcher_invocations
+            + self.qualification_high_level_operations_upper_bound
         )
 
 
-#: 3,000 participating images, one extraction each, 6,000 comparisons, and a
-#: bounded allowance for the qualification itself. The first three come from the
-#: canonical protocol this project has already run three times; the fourth is a
-#: ceiling this stage sets so that the qualification cannot quietly become the
-#: thing that exhausts the licence (spec section 28).
+#: The canonical protocol this project has already run three times, expressed in
+#: the operations an execution actually performs.
+#:
+#: 3,000 participating images is the cohort, not an operation count. The
+#: execution semantics are Stage 8C's, frozen: 6,000 comparisons, each
+#: extracting both of its sides independently, which is 12,000 extractions —
+#: the same 12,000 logical extractions Stage 8C published over the same 6,000
+#: comparisons. The qualification allowance is a ceiling this stage sets so that
+#: the qualification cannot quietly become the thing that exhausts the licence
+#: (spec section 28).
 FROZEN_WORKLOAD = FrozenWorkload(
     participating_images=3_000,
-    extractions=3_000,
-    comparisons=6_000,
-    qualification_operations_upper_bound=200,
+    comparison_attempts=6_000,
+    extraction_invocations=12_000,
+    matcher_invocations=6_000,
+    qualification_high_level_operations_upper_bound=200,
+)
+
+#: What the run costs *in the licence's own unit*. Unresolved, and it stays a
+#: status rather than becoming a number: converting the logical workload into a
+#: metered call count needs a statement from the vendor about what is counted,
+#: and inventing one here would be inventing the very fact the capacity gate
+#: refuses to guess (docs/adr/0096).
+SDK_METERED_CALL_COUNT_STATUS = "UNRESOLVED"
+
+#: Operations that would also consume quota if id3 meters every method
+#: invocation. None of them is a biometric operation, and none of them is
+#: countable in advance without knowing how often a process starts.
+OPERATION_CLASSES_THAT_MIGHT_ALSO_BE_METERED: tuple[str, ...] = (
+    "image construction and loading",
+    "setting an image's resolution",
+    "model loading and unloading",
+    "extractor construction",
+    "matcher construction",
+    "licence checks and activation calls",
 )
 
 

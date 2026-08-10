@@ -49,13 +49,22 @@ before any other function of the SDK.
 
 The free evaluation is advertised as 30 days, `Limited API calls` and `Single
 platform`. The limit has no number and no public statement says which operations
-consume it, while the frozen workload costs at most 9,200 metered operations.
+consume it, while the frozen run performs 12,000 extractions and 6,000 matches
+over 6,000 comparison attempts.
 
 ```text
-ID3_PACKAGE_NOT_OBTAINABLE
-ID3_LICENSE_NOT_OBTAINABLE
+ID3_PACKAGE_NOT_OBTAINED
+ID3_LICENSE_NOT_OBTAINED
 LICENSE_WORKLOAD_CAPACITY_UNRESOLVED
+
+failure_class:            OPERATIONAL_ACCESS_NOT_ESTABLISHED
+id3_proven_unobtainable:  false
 ```
+
+`NOT_OBTAINED`, not `NOT_OBTAINABLE`. Nobody requested a package, so nobody was
+refused one, and the route upstream describes was never walked. The codes for
+the strong claims exist — `ID3_PACKAGE_UNAVAILABLE`, `ID3_LICENSE_REFUSED` —
+and are deliberately unused.
 
 All three are access findings. None of them is a statement about id3's licence
 terms, which were not read for that purpose and are Stage 8E's question when a

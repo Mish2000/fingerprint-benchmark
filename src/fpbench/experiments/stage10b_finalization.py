@@ -351,7 +351,10 @@ class Stage10BFinalization:
     pair_order_semantics_resolved: bool
     restart_determinism_verified: bool
     training_provenance_status: str
-    sd300_training_overlap_found: bool
+    sd300_overlap_status: str
+    sd300_training_overlap_found: bool | None
+    failure_class: str | None
+    id3_proven_unobtainable: bool
 
     # What the stage did not do.
     sd300_image_bytes_read: bool
@@ -410,7 +413,7 @@ class Stage10BFinalization:
         "stage9a_evidence_changed",
         "stage10a_evidence_changed",
         "research_use_blocked",
-        "sd300_training_overlap_found",
+        "id3_proven_unobtainable",
         "threshold_in_raw_route",
     )
 
@@ -627,6 +630,19 @@ class Stage10BFinalization:
                 "a SELECTED marker carries no blockers; a blocker is not a "
                 "reservation to be weighed"
             )
+        if self.failure_class is not None:
+            raise ValueError("a SELECTED marker classifies no failure")
+        if self.sd300_overlap_status == "NOT_REACHED":
+            raise ValueError(
+                "a SELECTED Stage 10B reached the provenance gate, so the "
+                "overlap status is a finding rather than NOT_REACHED"
+            )
+        if self.sd300_training_overlap_found is not False:
+            raise ValueError(
+                "a SELECTED Stage 10B found no SD300 training overlap; a "
+                "selection with one would be a benchmark reporting on its own "
+                "training data"
+            )
         if self.opens_stage_10c is not True:
             raise ValueError("a SELECTED Stage 10B opens Stage 10C")
         if self.opens_candidate_search is not False:
@@ -680,6 +696,24 @@ class Stage10BFinalization:
                     "it; what a vendor page says is an observation and lives in "
                     "the score contract document"
                 )
+        if self.failure_class is None:
+            raise ValueError(
+                "a blocked marker says what kind of failure it is. "
+                "ID3_FINGER_SDK_PREFLIGHT_FAIL reads the same whether nobody "
+                "asked for the package or the vendor refused it, and those are "
+                "different results (docs/adr/0095)"
+            )
+        if self.sd300_overlap_status != "NOT_REACHED":
+            raise ValueError(
+                "the provenance gate was never reached, so its status is "
+                "NOT_REACHED and not a finding"
+            )
+        if self.sd300_training_overlap_found is not None:
+            raise ValueError(
+                "a gate that was never reached publishes no boolean. A false "
+                "here would read as 'we looked and found none', which is what "
+                "NO_EVIDENCE_FOUND means and is not what happened"
+            )
         if self.opens_stage_10c is not False:
             raise ValueError(
                 "a blocked Stage 10B opens no artifact integration; there is no "
@@ -1209,7 +1243,12 @@ def write_stage10b_evidence(
         "training_provenance_status": (
             "PROPRIETARY_UNDISCLOSED" if passed else "NOT_REACHED"
         ),
-        "sd300_training_overlap_found": False,
+        "sd300_overlap_status": preflight.sd300_overlap_status.value,
+        "sd300_training_overlap_found": False if passed else None,
+        "failure_class": (
+            preflight.failure_class.value if preflight.failure_class else None
+        ),
+        "id3_proven_unobtainable": preflight.proven_unobtainable,
         "sd300_image_bytes_read": False,
         "sd300_scores_read": False,
         "sd300_pair_manifest_read": False,
@@ -1274,6 +1313,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"candidate                {CANDIDATE_ID}")
         print(f"outcome                  {preflight.outcome}")
         print(f"verdict                  {preflight.verdict}")
+        print(
+            "failure class            "
+            + (
+                preflight.failure_class.value
+                if preflight.failure_class
+                else "none"
+            )
+        )
+        print(f"proven unobtainable      {preflight.proven_unobtainable}")
         print(f"selected candidate       {preflight.selected_candidate}")
         print(f"observations             {observed.observations_fingerprint()}")
         print(f"preflight                {preflight.preflight_fingerprint}")

@@ -184,10 +184,18 @@ def test_the_licence_report_publishes_the_cost_under_each_metering() -> None:
     document = _document(frozen.LICENSE_CAPABILITY_REPORT_NAME)
     assert document["capacity_status"] == "UNRESOLVED"
     assert document["capacity_admits_candidate"] is False
-    assert document["cost_under_each_metering_semantics"][
-        "every_api_call_upper_bound"
-    ] == 9_200
-    assert document["frozen_workload"]["comparisons"] == 6_000
+    assert document["logical_workload"] == {
+        "comparison_attempts": 6_000,
+        "extraction_invocations": 12_000,
+        "matcher_invocations": 6_000,
+        "qualification_high_level_operations_upper_bound": 200,
+    }
+    assert document["high_level_biometric_operations"] == 18_200
+    assert document["sdk_metered_call_count"] == "UNRESOLVED"
+    assert document["a_biometric_operation_count_is_not_an_api_call_count"] is True
+    assert "cost_under_each_metering_semantics" not in document
+    assert document["frozen_workload"]["comparison_attempts"] == 6_000
+    assert document["frozen_workload"]["extraction_invocations"] == 12_000
     assert document["every_publishable_fact_is_null_because_no_licence_exists"] is True
 
 
@@ -287,7 +295,35 @@ def test_the_marker_publishes_the_unestablished_as_unestablished() -> None:
     for name in ("score_type", "score_range_min", "score_range_max", "score_direction"):
         assert document[name] is None, name
     assert document["training_provenance_status"] == "NOT_REACHED"
+    assert document["sd300_overlap_status"] == "NOT_REACHED"
+    assert document["sd300_training_overlap_found"] is None
     assert document["hidden_score_affecting_defaults"] == 7
+
+
+def test_the_marker_says_the_failure_is_access_and_not_impossibility() -> None:
+    document = _marker()
+    assert document["failure_class"] == "OPERATIONAL_ACCESS_NOT_ESTABLISHED"
+    assert document["id3_proven_unobtainable"] is False
+
+
+def test_the_access_document_separates_possession_from_obtainability() -> None:
+    document = _document(frozen.ACCESS_QUALIFICATION_NAME)
+    state = document["acquisition_state"]
+    assert state["package_possession_status"] == "NOT_OBTAINED"
+    assert state["package_obtainability_status"] == "NOT_TESTED"
+    assert state["obtainability_is_a_negative_finding"] is False
+    assert state["package_proven_unobtainable"] is False
+    assert document["license_state"]["license_obtainability_status"] == "NOT_TESTED"
+    assert document["license_state"]["license_refused_by_vendor"] is False
+
+
+def test_the_report_says_what_the_outcome_does_not_say() -> None:
+    document = _document(frozen.PREFLIGHT_REPORT_NAME)
+    assert document["failure_class"] == "OPERATIONAL_ACCESS_NOT_ESTABLISHED"
+    assert document["id3_proven_unobtainable"] is False
+    joined = " ".join(document["what_this_outcome_does_not_say"]).lower()
+    assert "cannot be obtained" in joined
+    assert "refused" in joined
 
 
 def test_the_marker_opens_a_candidate_search_and_not_stage_10c() -> None:

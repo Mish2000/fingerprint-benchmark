@@ -4,13 +4,21 @@
   "implementation_origin": "VENDOR_OFFICIAL_SDK",
   "verdict": "ID3_FINGER_SDK_PREFLIGHT_FAIL",
   "outcome": "ID3_FINGER_SDK_PREFLIGHT_FAIL",
+  "failure_class": "OPERATIONAL_ACCESS_NOT_ESTABLISHED",
+  "id3_proven_unobtainable": false,
+  "what_this_outcome_does_not_say": [
+    "that the id3 Finger SDK cannot be obtained",
+    "that id3 refused anything",
+    "that the licence terms forbid research use",
+    "that the input domain, the published method or the raw score are unsuitable"
+  ],
   "passed_every_hard_gate": false,
   "stopped_at_gate": "ACQUISITION_ACCESS",
   "gate_count_defined": 10,
   "gates_reached": 2,
   "decisive_question": "Does this project hold an exact, licensed, operable copy of the id3 Finger SDK that defines a complete 1:1 route from canonical_500 to a raw score?",
   "decisive_answer": "NO",
-  "decisive_answer_basis": "The vendor publishes no self-service download. Its own samples state that the archive and the activation key are issued together after a request has been accepted, and that the SDK checks a licence file before any other call. No request has been made from this project, so there is no package, no licence and no route — and the advertised evaluation quota is a phrase without a number, which could not be checked against the frozen workload even if there were.",
+  "decisive_answer_basis": "The vendor publishes no self-service download. Its own samples describe an acquisition route instead — a request, an acceptance, then the archive and the activation key together — and state that the SDK checks a licence file before any other call. No request has been made from this project, so there is no package, no licence and no route. Nothing was refused and nothing was shown to be unavailable: the route was not walked. The advertised evaluation quota is separately a phrase without a number, so even a delivered licence would leave the capacity question open until the vendor states what is metered.",
   "gates": [
     {
       "order": 1,
@@ -32,8 +40,8 @@
         "license-capability-report.json"
       ],
       "blocker_codes": [
-        "ID3_PACKAGE_NOT_OBTAINABLE",
-        "ID3_LICENSE_NOT_OBTAINABLE",
+        "ID3_PACKAGE_NOT_OBTAINED",
+        "ID3_LICENSE_NOT_OBTAINED",
         "LICENSE_WORKLOAD_CAPACITY_UNRESOLVED"
       ]
     },
@@ -120,17 +128,17 @@
   "blockers": [
     {
       "gate": "ACQUISITION_ACCESS",
-      "blocker_code": "ID3_LICENSE_NOT_OBTAINABLE",
+      "blocker_code": "ID3_LICENSE_NOT_OBTAINED",
       "affected_component": "an activated id3 Finger SDK licence",
-      "evidence": "access-qualification.json: activation runs against an activation key issued by the vendor and a host hardware code, and the vendor's own sample checks a licence file before any other SDK call. No activation key has been issued to this project and no activation has been attempted.",
+      "evidence": "access-qualification.json: activation runs against an activation key issued by the vendor and a host hardware code, and the vendor's own sample checks a licence file before any other SDK call. No activation key has been issued to this project, because none was requested, and no activation has been attempted. Nothing here was refused.",
       "why_this_blocks_algorithm_4": "The SDK refuses every call before its licence check, so without a licence there is no route to smoke, no version to read from the running library and no score to contract over. This is an operational access finding and not a licence-terms finding: nothing here says the terms forbid research use (docs/adr/0095).",
       "how_this_would_be_lifted": "The same vendor request that delivers the package delivers the activation key. Activation then happens locally, on one chosen platform, and this stage records only the licence type, the enabled modules and an expiry category."
     },
     {
       "gate": "ACQUISITION_ACCESS",
-      "blocker_code": "ID3_PACKAGE_NOT_OBTAINABLE",
+      "blocker_code": "ID3_PACKAGE_NOT_OBTAINED",
       "affected_component": "the delivered id3 Finger SDK package",
-      "evidence": "access-qualification.json: the vendor publishes no self-service download. Its own samples state that the SDK archive and the activation key arrive together, and only after a request to the vendor has been accepted. No such request has been made from this project, so no package has been delivered and there is nothing here to identify.",
+      "evidence": "access-qualification.json: the vendor publishes no self-service download. Its own samples describe a concrete acquisition route instead — a request to the vendor, an acceptance, and then the SDK archive and the activation key together. No such request has been made from this project, so no package has been delivered and there is nothing here to identify. The route was not walked and was therefore not shown to be closed: possession is NOT_OBTAINED and obtainability is NOT_TESTED.",
       "why_this_blocks_algorithm_4": "Every remaining gate is a question about a delivered package: its exact version, its models, its input route, its extraction and matcher profiles and its score API. None of them can be answered from a product page, and answering them from one would be publishing a benchmark route this project had never seen.",
       "how_this_would_be_lifted": "The maintainer requests an evaluation or developer licence from the vendor in their own name, receives the archive and the activation key, and re-runs this stage. The request is a person-to-vendor exchange; it is not something this preflight performs, and no credential from it enters this repository (docs/adr/0098)."
     },
@@ -138,9 +146,9 @@
       "gate": "ACQUISITION_ACCESS",
       "blocker_code": "LICENSE_WORKLOAD_CAPACITY_UNRESOLVED",
       "affected_component": "the evaluation licence's capacity against the frozen workload",
-      "evidence": "license-capability-report.json: the free evaluation is advertised as 30 days with 'Limited API calls' and a single platform. No number accompanies the limit and no public statement says which operations consume it, while the frozen workload costs at most 9200 metered operations.",
+      "evidence": "license-capability-report.json: the free evaluation is advertised as 30 days with 'Limited API calls' and a single platform. No number accompanies the limit and no public statement says which operations consume it, while the frozen run performs 12000 extractions and 6000 matches over 6000 comparison attempts. What that costs in the licence's own unit is unresolved in both directions: the metering semantics are unpublished and so is the quota.",
       "why_this_blocks_algorithm_4": "A quota that runs out partway through 6,000 comparisons produces a partial run, and a partial run is not a result. Capacity is a hard gate precisely so that this is settled before the first comparison rather than discovered during the four thousandth (docs/adr/0096).",
-      "how_this_would_be_lifted": "The delivered licence documentation, or one question to the vendor, states which operations are metered and how many remain. Sufficiency is then arithmetic against the frozen workload, and it is recorded as a boolean beside the workload it was computed against."
+      "how_this_would_be_lifted": "The delivered licence documentation, or one question to the vendor, states which operations are metered and how many remain. The logical workload is then converted into that unit and compared with the quota, and sufficiency is recorded as a boolean beside the workload it was computed against."
     }
   ],
   "no_workaround_was_considered": [

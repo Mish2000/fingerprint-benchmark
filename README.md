@@ -1957,13 +1957,19 @@ profiles, its score API, its determinism — and none of them can be answered fr
 a product page. The vendor publishes no self-service download: its own samples
 state that the SDK archive and the activation key are issued together, after a
 request has been accepted, and that the library checks a licence file before any
-other call. No such request has been made from this project.
+other call. No such request has been made from this project — so the blockers
+are `ID3_PACKAGE_NOT_OBTAINED` and `ID3_LICENSE_NOT_OBTAINED`, and the marker
+classifies the failure as `OPERATIONAL_ACCESS_NOT_ESTABLISHED` with
+`id3_proven_unobtainable: false`. Nobody asked, so nobody was refused.
 
 **Capacity is a hard gate, and it fails as `UNRESOLVED`.** The free evaluation is
 30 days with `Limited API calls` and a single platform — a limit with no number,
-and no statement of which operations consume it. The frozen workload is 3,000
-extractions and 6,000 comparisons plus a bounded qualification allowance, at most
-9,200 metered operations. "Try it and see" is refused by name: a quota exhausted
+and no statement of which operations consume it. The frozen run performs 12,000
+extraction invocations and 6,000 matcher invocations over 6,000 comparison
+attempts — two extractions per comparison, Stage 8C's execution semantics —
+which is 18,200 high-level biometric operations. What that costs in the licence's
+own unit is not derived, because "API call" is undefined; the metered call count
+stays `UNRESOLVED`. "Try it and see" is refused by name: a quota exhausted
 at comparison four thousand leaves two thousand that were never run, and that is
 not a smaller experiment (ADR 0096).
 

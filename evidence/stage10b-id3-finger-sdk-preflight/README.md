@@ -57,13 +57,24 @@ licence activations, zero runtimes, zero SD300 reads, zero scores.
 
 | Code | Affects |
 | :--- | :--- |
-| `ID3_PACKAGE_NOT_OBTAINABLE` | the delivered SDK package |
-| `ID3_LICENSE_NOT_OBTAINABLE` | an activated licence |
+| `ID3_PACKAGE_NOT_OBTAINED` | the delivered SDK package |
+| `ID3_LICENSE_NOT_OBTAINED` | an activated licence |
 | `LICENSE_WORKLOAD_CAPACITY_UNRESOLVED` | the evaluation quota against the frozen workload |
+
+```text
+failure_class:            OPERATIONAL_ACCESS_NOT_ESTABLISHED
+id3_proven_unobtainable:  false
+```
 
 All three are at Gate 2, and all three are about **access**, not about terms.
 Nothing here says id3's licence forbids research use; that question was not
 reached and is Stage 8E's to answer when a component exists (docs/adr/0095).
+
+`NOT_OBTAINED`, not `NOT_OBTAINABLE`. Upstream describes a concrete acquisition
+route — a request, an acceptance, then the archive and the activation key — and
+nobody walked it. Possession is `NOT_OBTAINED`; obtainability is `NOT_TESTED`.
+The codes for the strong claims exist and are unused: `ID3_PACKAGE_UNAVAILABLE`
+and `ID3_LICENSE_REFUSED` would say something about id3, and nothing here does.
 
 ## The decisive question
 
@@ -81,6 +92,13 @@ request has been made from this project. The advertised evaluation is 30 days
 with `Limited API calls` and a single platform — a limit with no number, and no
 statement of which operations consume it — so the quota could not have been
 checked against the frozen workload even with a package in hand.
+
+The frozen run performs 12,000 extraction invocations and 6,000 matcher
+invocations over 6,000 comparison attempts, because each comparison extracts
+both of its sides independently — Stage 8C's execution semantics, over the same
+6,000 comparisons. That is 18,200 high-level biometric operations. It is *not*
+an API-call bound: `sdk_metered_call_count` is `UNRESOLVED`, and stays a status
+until id3 says what a call is.
 
 ## The files
 

@@ -115,8 +115,10 @@ def test_every_blocker_code_belongs_to_at_least_one_gate() -> None:
 
 def test_the_blocker_vocabulary_is_the_one_the_specification_fixed() -> None:
     assert {code.value for code in frozen.BlockerCode} == {
-        "ID3_PACKAGE_NOT_OBTAINABLE",
-        "ID3_LICENSE_NOT_OBTAINABLE",
+        "ID3_PACKAGE_NOT_OBTAINED",
+        "ID3_LICENSE_NOT_OBTAINED",
+        "ID3_PACKAGE_UNAVAILABLE",
+        "ID3_LICENSE_REFUSED",
         "ID3_LICENSE_ACTIVATION_FAILED",
         "ID3_REQUIRED_MODULE_NOT_LICENSED",
         "LICENSE_WORKLOAD_CAPACITY_UNRESOLVED",
@@ -155,7 +157,7 @@ def test_a_blocker_must_say_how_it_would_be_lifted() -> None:
     with pytest.raises(Id3GateError, match="how_this_would_be_lifted"):
         engine.Blocker(
             gate=frozen.PreflightGate.ACQUISITION_ACCESS,
-            blocker_code=frozen.BlockerCode.ID3_PACKAGE_NOT_OBTAINABLE,
+            blocker_code=frozen.BlockerCode.ID3_PACKAGE_NOT_OBTAINED,
             affected_component="x",
             evidence="y",
             why_this_blocks_algorithm_4="z",
@@ -198,7 +200,7 @@ def test_a_gate_that_was_never_reached_found_nothing() -> None:
 def _blocker() -> engine.Blocker:
     return engine.Blocker(
         gate=frozen.PreflightGate.ACQUISITION_ACCESS,
-        blocker_code=frozen.BlockerCode.ID3_PACKAGE_NOT_OBTAINABLE,
+        blocker_code=frozen.BlockerCode.ID3_PACKAGE_NOT_OBTAINED,
         affected_component="the delivered package",
         evidence="nothing was delivered",
         why_this_blocks_algorithm_4="there is nothing to qualify",
@@ -305,6 +307,51 @@ def test_no_package_is_present_and_none_is_claimed() -> None:
     assert state.findings
 
 
+def test_not_obtained_is_not_the_same_claim_as_not_obtainable() -> None:
+    """Possession is a fact about this project; obtainability is about the route.
+
+    Upstream describes a concrete acquisition route — request, acceptance,
+    archive and activation key. Nobody walked it, so nothing here shows it is
+    closed (docs/adr/0095).
+    """
+    state = engine.package_acquisition_state()
+    assert state.possession is frozen.PossessionStatus.NOT_OBTAINED
+    assert state.obtainability is frozen.ObtainabilityStatus.NOT_TESTED
+    assert state.obtainability.is_a_negative_finding is False
+    assert frozen.ObtainabilityStatus.UNAVAILABLE.is_a_negative_finding is True
+    assert frozen.ObtainabilityStatus.REFUSED_BY_VENDOR.is_a_negative_finding is True
+
+
+def test_the_weak_and_strong_access_codes_are_both_available() -> None:
+    """The strong ones exist and are unused, which is the point of having both."""
+    raised = {blocker.blocker_code for blocker in engine.run_preflight().blockers}
+    assert frozen.BlockerCode.ID3_PACKAGE_NOT_OBTAINED in raised
+    assert frozen.BlockerCode.ID3_LICENSE_NOT_OBTAINED in raised
+    assert frozen.BlockerCode.ID3_PACKAGE_UNAVAILABLE not in raised
+    assert frozen.BlockerCode.ID3_LICENSE_REFUSED not in raised
+
+
+def test_the_failure_is_classified_as_access_not_established() -> None:
+    preflight = engine.run_preflight()
+    assert (
+        preflight.failure_class
+        is frozen.FailureClass.OPERATIONAL_ACCESS_NOT_ESTABLISHED
+    )
+    assert preflight.proven_unobtainable is False
+
+
+def test_an_acquisition_state_cannot_disagree_with_itself() -> None:
+    with pytest.raises(Id3AccessQualificationError, match="disagree"):
+        engine.PackageAcquisition(
+            status=frozen.AcquisitionStatus.OBTAINED,
+            possession=frozen.PossessionStatus.NOT_OBTAINED,
+            obtainability=frozen.ObtainabilityStatus.OBTAINABLE,
+            frozen_identity_available=True,
+            store_resolvable=True,
+            store_holds_material=True,
+        )
+
+
 def test_a_capacity_cannot_be_called_sufficient_without_an_activation() -> None:
     with pytest.raises(Id3AccessQualificationError, match="activated licence"):
         engine.LicenseCapability(
@@ -347,33 +394,66 @@ def test_an_unresolved_capacity_does_not_admit_the_candidate() -> None:
 
 def test_the_workload_is_frozen_before_the_capacity_is_asked_about() -> None:
     load = frozen.FROZEN_WORKLOAD
-    assert (load.participating_images, load.extractions, load.comparisons) == (
-        3_000,
-        3_000,
-        6_000,
-    )
-    assert load.total_metered_operations_upper_bound == 9_200
+    assert load.participating_images == 3_000
+    assert load.comparison_attempts == 6_000
+    assert load.matcher_invocations == 6_000
+    assert load.high_level_biometric_operations == 18_200
 
 
-def test_a_workload_with_mismatched_extractions_is_refused() -> None:
-    with pytest.raises(Id3CandidateIdentityError, match="one extraction per"):
+def test_each_comparison_extracts_both_of_its_sides_independently() -> None:
+    """Stage 8C's execution semantics: 12,000 extractions over 6,000 comparisons.
+
+    Not one extraction per participating image. A run that extracted 3,000
+    times would be a run with a representation cache between the two sides of a
+    comparison, which SELF(A, A) is defined to refuse (docs/adr/0070).
+    """
+    load = frozen.FROZEN_WORKLOAD
+    assert load.extraction_invocations == 12_000
+    assert load.extraction_invocations == 2 * load.comparison_attempts
+
+
+def test_a_workload_with_one_extraction_per_image_is_refused() -> None:
+    with pytest.raises(Id3CandidateIdentityError, match="both of its sides"):
         frozen.FrozenWorkload(
             participating_images=3_000,
-            extractions=6_000,
-            comparisons=6_000,
-            qualification_operations_upper_bound=10,
+            comparison_attempts=6_000,
+            extraction_invocations=3_000,
+            matcher_invocations=6_000,
+            qualification_high_level_operations_upper_bound=10,
         )
 
 
-def test_the_budget_publishes_a_cost_under_every_metering_semantics() -> None:
+def test_a_workload_that_matches_more_often_than_it_compares_is_refused() -> None:
+    with pytest.raises(Id3CandidateIdentityError, match="one matcher invocation"):
+        frozen.FrozenWorkload(
+            participating_images=3_000,
+            comparison_attempts=6_000,
+            extraction_invocations=12_000,
+            matcher_invocations=12_000,
+            qualification_high_level_operations_upper_bound=10,
+        )
+
+
+def test_the_budget_publishes_logical_operations_and_no_api_call_bound() -> None:
+    """The metered call count is a status, and never a number this stage derived.
+
+    An earlier version published an "every API call upper bound". It was a
+    count of biometric operations wearing the name of a count of API calls, and
+    "API call" is exactly what id3 has not defined (docs/adr/0096).
+    """
     budget = engine.workload_budget()
     assert budget.resolved is False
-    assert budget.costs_by_metering_semantics == {
-        "every_api_call_upper_bound": 9_200,
-        "extraction_and_matching": 9_000,
-        "extraction_only": 3_000,
-        "matching_only": 6_000,
+    assert budget.logical_operations == {
+        "comparison_attempts": 6_000,
+        "extraction_invocations": 12_000,
+        "matcher_invocations": 6_000,
+        "qualification_high_level_operations_upper_bound": 200,
     }
+    assert budget.high_level_biometric_operations == 18_200
+    assert budget.sdk_metered_call_count == "UNRESOLVED"
+    assert budget.operation_classes_that_might_also_be_metered
+    assert not hasattr(budget, "costs_by_metering_semantics")
+    assert not hasattr(frozen.FROZEN_WORKLOAD, "total_metered_operations_upper_bound")
 
 
 # --------------------------------------------------------------- the profiles
@@ -504,6 +584,16 @@ def test_no_evidence_found_is_never_proven_absent() -> None:
     assert document["no_evidence_found_is_not_proven_absent"] is True
     assert document["expected_sd300_overlap_status"] == "NO_EVIDENCE_FOUND"
     assert document["an_evaluation_dataset_is_not_a_training_dataset"] is True
+
+
+def test_a_not_reached_provenance_gate_publishes_no_overlap_boolean() -> None:
+    """`false` would read as "we looked and found none", which is not what happened."""
+    preflight = engine.run_preflight()
+    assert preflight.sd300_overlap_status is frozen.SD300OverlapStatus.NOT_REACHED
+    document = engine.training_provenance_document(preflight)
+    assert document["sd300_overlap_status"] == "NOT_REACHED"
+    assert document["sd300_training_overlap_found"] is None
+    assert document["a_not_reached_gate_publishes_no_boolean"] is True
 
 
 def test_a_proprietary_product_is_not_required_to_disclose_its_corpus() -> None:
@@ -724,7 +814,10 @@ def _marker(**overrides: object) -> dict:
         "pair_order_semantics_resolved": False,
         "restart_determinism_verified": False,
         "training_provenance_status": "NOT_REACHED",
-        "sd300_training_overlap_found": False,
+        "sd300_overlap_status": "NOT_REACHED",
+        "sd300_training_overlap_found": None,
+        "failure_class": "OPERATIONAL_ACCESS_NOT_ESTABLISHED",
+        "id3_proven_unobtainable": False,
         "sd300_image_bytes_read": False,
         "sd300_scores_read": False,
         "sd300_pair_manifest_read": False,
@@ -778,6 +871,21 @@ def test_a_third_outcome_cannot_be_expressed() -> None:
 def test_a_blocked_marker_cannot_name_a_candidate() -> None:
     with pytest.raises(ValueError, match="selects nothing"):
         _marker(selected_candidate=frozen.CANDIDATE_ID)
+
+
+def test_a_blocked_marker_says_what_kind_of_failure_it_is() -> None:
+    document = _marker()
+    assert document["failure_class"] == "OPERATIONAL_ACCESS_NOT_ESTABLISHED"
+    assert document["id3_proven_unobtainable"] is False
+    with pytest.raises(ValueError, match="what kind of failure"):
+        _marker(failure_class=None)
+
+
+def test_a_blocked_marker_publishes_no_overlap_boolean() -> None:
+    with pytest.raises(ValueError, match="never reached publishes no boolean"):
+        _marker(sd300_training_overlap_found=False)
+    with pytest.raises(ValueError, match="NOT_REACHED and not a finding"):
+        _marker(sd300_overlap_status="NO_EVIDENCE_FOUND")
 
 
 def test_a_blocked_marker_cannot_claim_an_unestablished_fact() -> None:
@@ -903,11 +1011,19 @@ def test_a_selected_marker_requires_every_score_fact() -> None:
         "pair_order_semantics_resolved": True,
         "restart_determinism_verified": True,
         "training_provenance_status": "PROPRIETARY_UNDISCLOSED",
+        "sd300_overlap_status": "NO_EVIDENCE_FOUND",
+        "sd300_training_overlap_found": False,
+        "failure_class": None,
         "blockers": (),
         "opens_stage_10c": True,
         "opens_candidate_search": False,
     }
     assert _marker(**selected)["outcome"] == "ALGORITHM4_CANDIDATE_SELECTED"
+
+    with pytest.raises(ValueError, match="overlap status is a finding"):
+        _marker(**{**selected, "sd300_overlap_status": "NOT_REACHED"})
+    with pytest.raises(ValueError, match="found no SD300 training overlap"):
+        _marker(**{**selected, "sd300_training_overlap_found": None})
 
     with pytest.raises(ValueError, match="score-affecting default"):
         _marker(**{**selected, "hidden_score_affecting_defaults": 1})

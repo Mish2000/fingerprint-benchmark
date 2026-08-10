@@ -26,7 +26,9 @@ directory (docs/adr/0094).
 ## The outcome
 
 ```text
-ID3_FINGER_SDK_PREFLIGHT_FAIL
+outcome:                  ID3_FINGER_SDK_PREFLIGHT_FAIL
+failure_class:            OPERATIONAL_ACCESS_NOT_ESTABLISHED
+id3_proven_unobtainable:  false
 ```
 
 | # | Gate | Status |
@@ -69,10 +71,12 @@ read at runtime, no model to load, no template to create and no score.
 **The evaluation quota is a phrase, not a number.** The product page offers a
 free 30-day trial qualified by `Limited API calls` and `Single platform`. No
 number accompanies the limit, and nothing public says which operations consume
-it. The frozen workload is 3,000 extractions and 6,000 comparisons plus a bounded
-qualification allowance — at most 9,200 metered operations — and no reading of
-the public terms establishes whether an evaluation licence carries that
-(docs/adr/0096).
+it. The frozen run performs 12,000 extraction invocations and 6,000 matcher
+invocations over 6,000 comparison attempts — two extractions per comparison,
+Stage 8C's execution semantics — plus a bounded qualification allowance: 18,200
+high-level biometric operations. What that costs in the licence's own unit is
+not derived here, because "API call" is undefined; `sdk_metered_call_count`
+stays `UNRESOLVED` until the vendor states what is metered (docs/adr/0096).
 
 ## Why acquisition is Gate 2 and not Gate 9
 

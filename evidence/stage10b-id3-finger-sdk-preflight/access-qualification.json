@@ -24,9 +24,9 @@
   },
   "acquisition_checklist": [
     {
-      "requirement": "exact SDK package obtainable",
+      "requirement": "exact SDK package obtained",
       "established": false,
-      "basis": "access-qualification.json: no request has been made and no package has been delivered"
+      "basis": "access-qualification.json: no request has been made and no package has been delivered. This line reports possession, not obtainability: nobody tested whether the vendor would supply one"
     },
     {
       "requirement": "target platform supported",
@@ -34,7 +34,7 @@
       "basis": "public-product-observations.json: sdk_index_lists_platforms — the vendor offers Linux x86-64 and Windows x86-64 builds, which is what this project could host. Support for the *delivered* package is confirmed against that package at delivery"
     },
     {
-      "requirement": "evaluation or developer licence obtainable",
+      "requirement": "evaluation or developer licence issued to this project",
       "established": false,
       "basis": "access-qualification.json: an activation key is issued by the vendor with the package, and none has been issued here"
     },
@@ -54,26 +54,34 @@
       "basis": "access-qualification.json: usability for local research needs both a licence and Stage 8E's decision over it, and there is neither"
     }
   ],
-  "acquisition_checklist_stops_at": "exact SDK package obtainable",
+  "acquisition_checklist_stops_at": "exact SDK package obtained",
   "acquisition_state": {
     "status": "NOT_ATTEMPTED_HERE",
+    "package_possession_status": "NOT_OBTAINED",
+    "package_obtainability_status": "NOT_TESTED",
+    "obtainability_is_a_negative_finding": false,
     "package_obtained": false,
     "frozen_package_identity_available": false,
     "local_artifact_store_resolvable": true,
     "local_artifact_store_holds_material": false,
     "findings": [
       "no delivered package is present in the local artifact store",
-      "no package identity is frozen, because no package was delivered: the vendor's published route delivers one only on request"
+      "no package identity is frozen, because no package was delivered: the vendor's published route delivers one only on request",
+      "no request was made, so obtainability was never tested; this is NOT_OBTAINED and not UNAVAILABLE"
     ],
     "request_made_by_this_project": false,
-    "vendor_refused": false
+    "vendor_refused": false,
+    "package_proven_unobtainable": false
   },
   "license_state": {
+    "license_possession_status": "NOT_OBTAINED",
+    "license_obtainability_status": "NOT_TESTED",
     "license_present": false,
     "activation_attempted": false,
     "activation_verified": false,
     "required_modules_confirmed_enabled": false,
-    "usable_for_local_research": null
+    "usable_for_local_research": null,
+    "license_refused_by_vendor": false
   },
   "runtime_target": {
     "locked": false,

@@ -1,0 +1,139 @@
+{
+  "schema": "stage_11a_runtime_identity_v1",
+  "candidate": "neurotechnology_verifinger_2025_2_1to1",
+  "gate": "RUNTIME_IDENTITY",
+  "gate_status": "PASS",
+  "gate_summary": "VENDOR_OFFICIAL_SDK: VeriFinger 2025.2 SDK by Neurotechnology, identified from inside the pinned bytes by 5 independent statements. 5 native libraries of the chosen platform carry ProductVersion '2025, 2, 0, 0', and the archive declares revision 20260612. No version here was read from a web page, and none was read from a running library.",
+  "blocker_codes": [],
+  "identity_fields_required": [
+    "product version, as the artifact itself declares it",
+    "build or revision identifier",
+    "language binding version",
+    "native library identities",
+    "operating system",
+    "architecture",
+    "language ABI"
+  ],
+  "identity_source": "PINNED_ARTIFACT_BINARIES_AND_DOCUMENTS",
+  "a_web_page_version_is_not_an_algorithm_identity": true,
+  "web_page_version_used_as_identity": false,
+  "runtime_reported_version_read_by_execution": false,
+  "why_not_read_by_execution": "no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software, and the second step starts a 30-day trial bound to one machine — a decision that belongs to the maintainer rather than to a preflight (spec section 32)",
+  "declared_version": "2025.2",
+  "archive_revision_number": "20260612",
+  "archive_revision_hash": "0738caf6a69459241bff6e800789cd61c160bbce",
+  "language_bindings_in_the_archive": [
+    "C",
+    "C++",
+    ".NET",
+    ".NET Standard",
+    "Java",
+    "Android (Java)"
+  ],
+  "python_binding_in_main_sdk": false,
+  "python_package_version": null,
+  "python_abi": null,
+  "why_the_python_fields_are_null": "The main 2025.2 archive ships no Python binding, so there is no Python package version and no Python ABI to record for this route. The vendor's Python distribution is version 2025.1 and is a different artifact, refused at the route decision (spec section 3).",
+  "operating_systems_available": [
+    "windows",
+    "linux",
+    "macos",
+    "android",
+    "ios"
+  ],
+  "architectures_available": [
+    "x86_64",
+    "arm64",
+    "armhf"
+  ],
+  "platform_locked": false,
+  "why_platform_not_locked": "The trial is single-platform, so the target is a decision taken before activation. No activation has been attempted, so no platform has been locked, and alternating between two platforms under one algorithm fingerprint is refused whichever one is eventually chosen.",
+  "native_libraries": [
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Bin/Win64_x64/NBiometrics.dll",
+      "size_bytes": 10459192,
+      "sha256": "d66a702e2b4ffe4b98e737b195a72e5fc72e0e649533555793d77b60d8f20386",
+      "product_name": "Neurotechnology Biometrics",
+      "file_description": "Neurotechnology Biometrics 2025.2",
+      "product_version": "2025, 2, 0, 0"
+    },
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Bin/Win64_x64/NBiometricClient.dll",
+      "size_bytes": 2886712,
+      "sha256": "15988f0e20bf1f6290fcd81ece7d2581bfa64519973675effa19a6f30f0a0edf",
+      "product_name": "Neurotechnology Biometric Client",
+      "file_description": "Neurotechnology Biometric Client 2025.2",
+      "product_version": "2025, 2, 0, 0"
+    },
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Bin/Win64_x64/NCore.dll",
+      "size_bytes": 1867320,
+      "sha256": "ecef1f2921283a1e1414285c26872770fa8464545bf29c6f5967f4071e199c1c",
+      "product_name": "Neurotechnology Core",
+      "file_description": "Neurotechnology Core 2025.2",
+      "product_version": "2025, 2, 0, 0"
+    },
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Bin/Win64_x64/NMedia.dll",
+      "size_bytes": 5605432,
+      "sha256": "91d6897461df67ab1db3403e2c0a9fa43297a1ae91c726e0b1213b0515544171",
+      "product_name": "Neurotechnology Media",
+      "file_description": "Neurotechnology Media 2025.2",
+      "product_version": "2025, 2, 0, 0"
+    },
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Bin/Win64_x64/NLicensing.dll",
+      "size_bytes": 4785720,
+      "sha256": "5b129f0031c7333a9eca23f97cf04582f7044de9f1df1f419507d0e44ae628dc",
+      "product_name": null,
+      "file_description": "Neurotechnology Activation Service (Trial)",
+      "product_version": "2025, 2, 0, 0"
+    }
+  ],
+  "observations": [
+    {
+      "observation_id": "archive_declares_its_own_revision",
+      "subject": "the build identity the artifact carries",
+      "statement": "Revision.txt reads 'Product revision number: 20260612' and 'Product revision hash: 0738caf6a69459241bff6e800789cd61c160bbce'.",
+      "source_class": "PINNED_SDK_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Revision.txt",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "native_libraries_declare_2025_2",
+      "subject": "what the binaries say they are",
+      "statement": "The Windows x86-64 native libraries carry version resources naming ProductVersion '2025, 2, 0, 0' and descriptions such as 'Neurotechnology Biometrics 2025.2'. This is the version compiled into the code, not a version printed on a page.",
+      "source_class": "PINNED_SDK_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Bin/Win64_x64/NBiometrics.dll",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "readme_defines_what_installation_means",
+      "subject": "what installing this SDK consists of",
+      "statement": "The ReadMe states that installation is two steps: extract the archive to a location on the local computer, and activate the licensing software, which is necessary for the SDK to work correctly.",
+      "source_class": "PINNED_SDK_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/ReadMe.txt",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "main_archive_ships_no_python_binding",
+      "subject": "which bindings the qualified route could use",
+      "statement": "The archive's Bin tree holds Android, Java, dotNET, dotNET_Standard, Linux, macOS and Windows directories, and Include and Lib trees for C and C++. There is no Python binding anywhere in it.",
+      "source_class": "PINNED_SDK_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Bin/",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ]
+}

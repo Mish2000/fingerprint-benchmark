@@ -1,0 +1,167 @@
+name: Stage 11A VeriFinger 2025.2 preflight
+
+# What this workflow proves, and what it deliberately does not.
+#
+# It runs the whole Stage 11A contract — the provisional candidate identity, the
+# seventeen hard gates and the order they run in, fail-fast and the NOT_REACHED
+# states it produces, the source-class rule that stops a web page standing in for
+# the artifact, the acquisition pin fields and the refusal of signed locators,
+# the setting-provenance vocabulary and its one refused answer, the raw-score and
+# SELF requirements, the secret guard, the vendor byte guard, and a marker that
+# can only be VERIFINGER_PREFLIGHT_PASS or VERIFINGER_PREFLIGHT_FAIL.
+#
+# All of it is pure Python over *descriptions* of an artifact this runner does
+# not hold. **The workflow downloads nothing.** The stage itself acquired 4.8 GB
+# of vendor bytes and every one of them stayed in a local artifact store outside
+# the repository; paying for that transfer on every push would buy nothing a
+# digest does not already record (docs/adr/0100).
+#
+# It activates **nothing** and holds **no credential**. There is no
+# Neurotechnology serial, activation identifier or licence file in GitHub
+# Secrets for this stage and there will not be one. Tests that need the real
+# artifacts carry the `verifinger_artifact` marker and are not run here.
+#
+# A green tick here does not say an Algorithm 4 exists. At the time of writing it
+# says the stage passed five of seventeen gates on artifact evidence and stopped
+# at the sixth, and that every blocker names what would lift it.
+
+on:
+  push:
+    paths:
+      - "src/fpbench/core/verifinger_preflight_errors.py"
+      - "src/fpbench/experiments/stage11a_verifinger_identity.py"
+      - "src/fpbench/experiments/stage11a_verifinger_observations.py"
+      - "src/fpbench/experiments/stage11a_artifacts.py"
+      - "src/fpbench/experiments/stage11a_preflight.py"
+      - "src/fpbench/experiments/stage11a_finalization.py"
+      - "evidence/stage11a-verifinger-2025_2-preflight/**"
+      - "tests/**stage11a**"
+      # Stage 11A binds Stage 10B as its predecessor and reuses Stage 8E's
+      # policy. A change to either changes what this stage's decisions mean, so
+      # the stage is re-run rather than trusted.
+      - "evidence/stage10b-id3-finger-sdk-preflight/**"
+      - "src/fpbench/third_party/**"
+      - "src/fpbench/core/third_party_models.py"
+      - "src/fpbench/core/third_party_errors.py"
+      - "evidence/stage8e-research-only-policy/**"
+      - "docs/adr/01[0-9][0-9]*.md"
+      - "docs/adr/0099*.md"
+      - "docs/algorithms/algorithm4-candidates/**"
+      - "docs/experiments/stage11a-verifinger-2025_2-preflight.md"
+      - ".github/workflows/**"
+      - ".gitignore"
+      - ".gitattributes"
+      - "pyproject.toml"
+      - "Makefile"
+  pull_request:
+    paths:
+      - "src/fpbench/core/verifinger_preflight_errors.py"
+      - "src/fpbench/experiments/stage11a_verifinger_identity.py"
+      - "src/fpbench/experiments/stage11a_verifinger_observations.py"
+      - "src/fpbench/experiments/stage11a_artifacts.py"
+      - "src/fpbench/experiments/stage11a_preflight.py"
+      - "src/fpbench/experiments/stage11a_finalization.py"
+      - "evidence/stage11a-verifinger-2025_2-preflight/**"
+      - "tests/**stage11a**"
+      - "evidence/stage10b-id3-finger-sdk-preflight/**"
+      - "src/fpbench/third_party/**"
+      - "src/fpbench/core/third_party_models.py"
+      - "src/fpbench/core/third_party_errors.py"
+      - "evidence/stage8e-research-only-policy/**"
+      - "docs/adr/01[0-9][0-9]*.md"
+      - "docs/adr/0099*.md"
+      - "docs/algorithms/algorithm4-candidates/**"
+      - "docs/experiments/stage11a-verifinger-2025_2-preflight.md"
+      - ".github/workflows/**"
+      - ".gitignore"
+      - ".gitattributes"
+      - "pyproject.toml"
+      - "Makefile"
+
+permissions:
+  contents: read
+
+jobs:
+  verifinger-preflight-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[dev]"
+
+      - name: The frozen Stage 11A preflight contract
+        run: pytest -m "stage11a_contract" -q
+
+      - name: Committed Stage 11A evidence gate
+        run: pytest -m "stage11a" -q
+
+      - name: No Neurotechnology archive, model or licence material is tracked here
+        # Beside Stage 8E's generic guard rather than inside it. Stage 8E is a
+        # closed stage, so its hard-coded registry is not extended from here.
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.experiments.stage11a_artifacts import (
+              require_no_verifinger_bytes_in_git,
+          )
+          from fpbench.third_party import require_no_third_party_bytes_in_git
+
+          generic = require_no_third_party_bytes_in_git(Path("."))
+          exact = require_no_verifinger_bytes_in_git(Path("."))
+          print(
+              f"{generic.tracked_file_count} tracked files scanned against "
+              f"{len(generic.rules)} generic rules, "
+              f"{exact.known_digest_count} exact VeriFinger digests and the "
+              "vendor artifact name rules."
+          )
+          print(f"Findings: {len(generic.findings)} generic, {len(exact.findings)} exact.")
+          PY
+
+      - name: No credential is present, and none is published
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          from fpbench.experiments.stage11a_finalization import (
+              require_no_sensitive_published_data,
+          )
+          from fpbench.experiments.stage11a_preflight import find_sensitive_material
+
+          leaked = sorted(
+              name
+              for name in os.environ
+              if any(
+                  vendor in name.lower()
+                  for vendor in ("neurotec", "verifinger", "megamatcher")
+              )
+          )
+          assert not leaked, f"the runner carries vendor variables: {leaked}"
+          require_no_sensitive_published_data(Path("."))
+          print("No credential in the environment, and none in the evidence.")
+          PY
+
+      - name: This runner downloaded no vendor byte
+        # The claim the workflow header makes, checked rather than asserted: the
+        # artifact store is absent on a runner, so the acquisition gate fails
+        # here even though it passes where the stage was published.
+        run: |
+          python - <<'PY'
+          from fpbench.experiments.stage11a_artifacts import acquisition_state
+
+          state = acquisition_state()
+          print(f"acquisition on this runner: {state.status.value}")
+          assert not state.obtained, (
+              "a CI runner is holding the VeriFinger artifacts, which this "
+              "workflow promises never to fetch"
+          )
+          PY
+
+      - name: Re-derive the preflight and print the gates
+        run: python -m fpbench.experiments.stage11a_finalization status

@@ -1,0 +1,41 @@
+{
+  "schema": "stage_11a_training_provenance_v1",
+  "candidate": "neurotechnology_verifinger_2025_2_1to1",
+  "gate": "TRAINING_PROVENANCE",
+  "gate_status": "NOT_REACHED",
+  "gate_summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+  "blocker_codes": [],
+  "training_provenance_status": "NOT_REACHED",
+  "full_disclosure_required_of_a_commercial_vendor": false,
+  "sd300_overlap_status": "NOT_REACHED",
+  "sd300_training_overlap_found": null,
+  "no_evidence_found_is_not_proven_absent": true,
+  "proven_absent_would_need_an_upstream_statement": true,
+  "sd300_data_read_by_this_stage": false,
+  "performance_used_to_answer_provenance": false,
+  "why_not": "A score distribution that looks good or bad on SD300 says nothing about whether SD300 was in the development set, and treating it as though it did would be inventing evidence out of a result (spec section 38).",
+  "observations": [
+    {
+      "observation_id": "manual_makes_no_statement_about_development_data",
+      "subject": "what upstream discloses about how the algorithm was built",
+      "statement": "The manual documents the API, the formats and the algorithm's behaviour, and says nothing about the corpus the fingerprint algorithm was developed, trained, validated or calibrated on.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "no_pinned_source_mentions_sd300",
+      "subject": "what the pinned sources say about this benchmark's cohort",
+      "statement": "Neither the manual, the activation guide, the licence agreement nor the archive's own text files mentions SD300 in any role. That is an absence of evidence about development overlap and is recorded as such; it is not a statement that the dataset was not used.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ]
+}

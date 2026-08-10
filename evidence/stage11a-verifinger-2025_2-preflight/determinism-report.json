@@ -1,0 +1,74 @@
+{
+  "schema": "stage_11a_determinism_report_v1",
+  "candidate": "neurotechnology_verifinger_2025_2_1to1",
+  "gate": "SCORE_DETERMINISM",
+  "gate_status": "NOT_REACHED",
+  "gate_summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+  "blocker_codes": [],
+  "levels": [
+    {
+      "level": "same objects, same process",
+      "verified": false
+    },
+    {
+      "level": "fresh objects, same process",
+      "verified": false
+    },
+    {
+      "level": "fresh process, clean restart",
+      "verified": false
+    }
+  ],
+  "scores_compared": 0,
+  "process_restarts": 0,
+  "templates_must_be_byte_identical": false,
+  "why_templates_need_not_be_identical": "This stage qualifies a verification route, not a serialisation. If the proprietary templates vary between extractions while the score does not, that is acceptable; upstream promises nothing about template bytes and this project does not require it to (spec section 29).",
+  "score_must_be_identical": true,
+  "nondeterminism_observed": false,
+  "nondeterminism_would_be": "SCORE_NONDETERMINISM_OBSERVED",
+  "network_dependency_gate_status": "NOT_REACHED",
+  "network_role": "LICENSE_VALIDATION_ONLY",
+  "network_questions": [
+    "is the network used for licence validation only?",
+    "or does the network participate in the biometric computation?",
+    "if a remote service computes any part of the score, can that service be pinned at all?"
+  ],
+  "remote_service_participates_in_the_score": false,
+  "licence_was_disconnected_to_test_this": false,
+  "why_not": "There is no bypass experiment in this stage. The network question is answered from the pinned agreement and the SDK's own structure, using documented behaviour only (spec section 32).",
+  "observations": [
+    {
+      "observation_id": "eula_describes_internet_activation_as_a_licence_check",
+      "subject": "what the network is used for",
+      "statement": "The agreement defines Internet Activation as storing a licence file on the computer, which allows the component to run on that computer after checking the licence over the internet, and states that an internet connection should be available for a short period at least once in seven days.",
+      "source_class": "PINNED_SDK_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/SDK License.html",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "download_page_requires_a_constant_connection_for_trials",
+      "subject": "what the trial requires",
+      "statement": "The download page states that a constant internet connection is required during SDK evaluation, and the activation guide repeats it for trial products.",
+      "source_class": "OFFICIAL_DOWNLOAD_PAGE",
+      "source_is_artifact_evidence": false,
+      "locator": "https://www.neurotechnology.com/download.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "the_components_are_local_native_libraries",
+      "subject": "where the computation happens",
+      "statement": "The extraction and matching components are native libraries inside the archive, and the fingerprint data files they load are inside it too. The licence agreement's server-side components — Matching Server, Management Service, Image Processing Service — are separate licensed components that the 1:1 route does not use.",
+      "source_class": "PINNED_SDK_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Bin/Win64_x64/",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ]
+}

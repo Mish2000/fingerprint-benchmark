@@ -2002,19 +2002,102 @@ no network — with:
 make stage10b-evidence
 ```
 
+## Stage 11A: the first candidate whose package was actually opened
+
+The candidate search's next candidate is **VeriFinger 2025.2**, and this is the
+first preflight in the project that begins by downloading something.
+
+That is the whole difference. Stage 10B could not get id3's package — the vendor
+issues it on request, after acceptance — so eight of its ten gates were questions
+about an archive that did not exist. Neurotechnology publishes a direct link with
+no form, no account and no approval step, so publishing "unresolved" here would
+have meant staying ignorant of facts one transfer away (ADR 0100).
+
+```text
+VERIFINGER_PREFLIGHT_FAIL          5 of 17 gates passed, stopped at gate 6
+```
+
+| # | Gate | |
+| ---: | :--- | :--- |
+| 1 | `OFFICIAL_ARTIFACT_ACQUISITION` | PASS |
+| 2 | `RUNTIME_IDENTITY` | PASS |
+| 3 | `RESEARCH_USE_PERMISSION` | PASS |
+| 4 | `ARTIFACT_CLOSURE` | PASS |
+| 5 | `CANONICAL500_INPUT_ROUTE` | PASS |
+| 6 | `EXTRACTION_PROFILE` | **FAIL** |
+| 7–17 | representation, matcher, score, pair order, SELF, determinism, failures, network, feasibility, capacity, provenance | not reached |
+
+**What was acquired.** 4,743,229,435 bytes of SDK archive (`e30a0b60…`) and
+124,277,015 bytes of manual (`ae8acd23…`), both verified against the length the
+server declared. The manual is *provably* the right one: it is byte-for-byte the
+copy inside the archive, so a citation cannot drift away from the runtime. All
+8,702 archive members were hashed. Zero bytes are in Git, and a guard refuses the
+repository if that ever changes.
+
+**The route was chosen by a version number, not a preference.** The research
+before this stage expected the vendor's Python packages to be the better route —
+they bundle their own native libraries and are meant for research. They are
+published at **2025.1**. Opening the 2025.2 archive also settled that it ships C,
+C++, .NET and Java bindings and no Python binding at all, so an integration would
+go through a Java bridge, as SourceAFIS already does.
+
+**Why it stops at gate 6.** The manual's parameter tables state a default for
+every `Faces.*` entry and for no `Fingers.*` or `Matching.*` entry. The inventory
+of settings is closed — the complete published set was enumerated from the pinned
+manual — but nine score-affecting values across extraction and matching have no
+upstream authority behind them. Two do, because upstream's own tutorials set them
+(`FingersTemplateSize = LARGE`, `FingersMatchingSpeed = LOW`), and the profile
+identity records that as the official-sample route rather than as "the VeriFinger
+default". Passing on a closed inventory alone would publish a profile called
+frozen while most of what decides the score went unrecorded (ADR 0101).
+
+**What was read but not used.** Gates 7–17 were never reached, so these are
+published as observations: the raw score is one integer, higher is more similar,
+on the vendor's own claimed-FAR scale (`score = -12·log₁₀(FAR)`), with the
+threshold a separate engine property that the tutorial applies *after* reading
+the score — a native transformed quantity is still a raw score, and fpbench
+converts nothing (ADR 0102). The representation compared is the vendor's
+proprietary template. The required internet connection is a licence check, not
+part of the computation (ADR 0103). The trial is 30 days with no stated call
+quota — an absence in the documentation, not permission.
+
+**One act would move it, and it is not a program's to take.** Activating the
+30-day trial starts a clock bound to one machine and excludes other licensed
+Neurotechnology products on it. Acquisition was this stage's job; activation is
+the maintainer's (ADR 0099).
+
+Details: [the Stage 11A evidence
+report](evidence/stage11a-verifinger-2025_2-preflight/README.md), [the candidate
+record](docs/algorithms/algorithm4-candidates/verifinger-2025-2.md), [the stage
+write-up](docs/experiments/stage11a-verifinger-2025_2-preflight.md) and
+[ADRs 0099–0103](docs/adr/README.md). Verify it — no dataset, no SDK, no licence,
+no network — with:
+
+```bash
+make stage11a-evidence
+```
+
 ## Next stage
 
 **Still a candidate for algorithm 4.** Stage 10A recorded
-`opens_candidate_search: true`; Stage 10B recorded `opens_stage_10c: false` and
-`opens_candidate_search: true`. The slot is empty.
+`opens_candidate_search: true`; Stage 10B recorded `opens_stage_10c: false`; and
+Stage 11A recorded `opens_stage_11b: false`. The slot is empty.
 
 ```
 Stage 9A    algorithm 4 = FLARE  — artifact and method qualification   BLOCKED
 Stage 10A   algorithm 4 candidates — AFR-Net vs JIPNet preflight       NO SURVIVOR
 Stage 10B   algorithm 4 candidate — id3 Finger SDK preflight           BLOCKED (access)
 Stage 10C   id3 artifact and runtime integration                       reserved, unopened
-Stage 11A   the next candidate preflight                               not started
+Stage 11A   algorithm 4 candidate — VeriFinger 2025.2 preflight        BLOCKED (execution)
+Stage 11B   VeriFinger production integration                          not opened
 ```
+
+**VeriFinger's blocker is the weakest any candidate has had.** It is not access,
+not licensing, not the input domain, not the score, and not provenance. It is
+that a licensed engine has never been constructed on this machine, so nine
+settings have no recorded value and eleven gates were never asked. Everything
+needed to lift it is written down in one place, and lifting it is a re-run rather
+than an edit.
 
 **Stage 10C stays reserved for id3.** It was defined as the id3 artifact and
 runtime integration that a passing 10B would open, and recycling the number for

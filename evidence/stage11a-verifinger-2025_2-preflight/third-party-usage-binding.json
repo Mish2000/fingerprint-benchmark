@@ -1,0 +1,147 @@
+{
+  "schema": "stage_11a_third_party_usage_binding_v1",
+  "candidate": "neurotechnology_verifinger_2025_2_1to1",
+  "gate": "RESEARCH_USE_PERMISSION",
+  "gate_status": "PASS",
+  "gate_summary": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION with intended-use permission ESTABLISHED: every plausible reading of 2 notices inside the pinned archive permits one person executing this locally for non-commercial educational research. 5 restrictions are recorded and respected, and redistribution is NOT_ALLOWED — which changes nothing, because fpbench redistributes nothing.",
+  "blocker_codes": [],
+  "mechanism": "stage_8e",
+  "stage_8e_policy_fingerprint": "de9cdbaa23522c4a15337d86b0ec2df8af8b79383a1f8014294e8c7855bf972a",
+  "stage_8e_purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+  "license_observation": {
+    "observation_id": "verifinger_2025_2_sdk_trial_license",
+    "component_kind": "RUNTIME_BINARY",
+    "subject": "the VeriFinger 2025.2 SDK as delivered in the pinned Neurotec_Biometric_2025_2_SDK archive, under its trial licence",
+    "status": "NON_COMMERCIAL",
+    "declared_license_names": [
+      "Neurotechnology SDK License Agreement"
+    ],
+    "stated_restrictions": [
+      "a personal, non-exclusive licence to use the SDK for designing, developing, testing and distributing Licensee Products",
+      "copyright and attribution notices may not be removed or obscured",
+      "reverse engineering, decompiling and deriving the algorithms is forbidden, as is circumventing the protection mechanisms",
+      "sharing, publishing, renting, leasing or transferring the software is forbidden, as is redistribution other than as prescribed",
+      "the SDK may only be used for a purpose or in a manner for which it was designed",
+      "the trial is a 30-day period whose purpose is to explore SDK functionality rather than end-user deployment"
+    ],
+    "evidence": [
+      {
+        "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Activation.pdf",
+        "description": "the activation guide shipped inside the same archive, which states the trial terms and that engaging with the products through trial or activation constitutes agreement to the licence agreement",
+        "document_sha256": "7bfd029689c56796bcb7f5b5e3a2d94daefe325eb8e904afeb5a2e36ae2162b3"
+      },
+      {
+        "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/SDK License.html",
+        "description": "the SDK licence agreement shipped inside the pinned archive, headed 'VeriFinger 2025.2, VeriLook 2025.2, VeriEye 2025.2, VeriSpeak 2025.2, MegaMatcher 2025.2 SDK'",
+        "document_sha256": "e630df7aa7d72f7f030875cf911ffab7f2a2e1fd3b99de26b8f803a95e7aee10"
+      }
+    ],
+    "observation_fingerprint": "de6d419474a30f86a66ada7f9a62e693b6ce29e41aef11d85a419b4b95691a8f"
+  },
+  "research_use_assessment": {
+    "assessment_id": "verifinger_2025_2_local_research_execution",
+    "observation_fingerprint": "de6d419474a30f86a66ada7f9a62e693b6ce29e41aef11d85a419b4b95691a8f",
+    "decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+    "opens_execution": true,
+    "intended_use_permission_status": "ESTABLISHED",
+    "intersection_permits_intended_use": true,
+    "non_blocking_restrictions": [
+      "ATTRIBUTION_AND_NOTICE_RETENTION",
+      "COMMERCIAL_LICENSE_REQUIRED_FOR_COMMERCIAL_DEPLOYMENT",
+      "NON_COMMERCIAL_ONLY",
+      "NO_REDISTRIBUTION",
+      "NO_SUBLICENSING"
+    ],
+    "blockers": [],
+    "basis": "One person, on one machine, runs the vendor's own 1:1 verification route over fingerprint images, keeps every byte of the SDK outside this public repository, publishes no template and sells nothing. Every plausible reading of both notices permits local execution for non-commercial educational research: the agreement grants use for designing, developing and testing, and the trial exists to explore the SDK's functionality. The restrictions that do bite — no redistribution, no sublicensing, a commercial licence for deployment, notice retention — are recorded and respected, and none of them touches this operation (docs/adr/0081, docs/adr/0082).",
+    "assessment_fingerprint": "7283df969cd5d1397375ce8f5de4ef2ab9b812999467ce1468a920765f885132"
+  },
+  "redistribution_record": {
+    "decision": "NOT_ALLOWED",
+    "redistributed_by_fpbench": false,
+    "basis": "The agreement forbids sharing, publishing, renting or leasing the software and any redistribution other than as prescribed. fpbench redistributes nothing in any case: the archive, the manual, the data files and every native library stay in the local artifact store, outside the working tree, and the repository holds only descriptions of them — a locator, a size, a digest (docs/adr/0083)."
+  },
+  "vocabulary_limitation": "Stage 8E's observation vocabulary has no member for a proprietary commercial SDK licence. NON_COMMERCIAL is the narrowest member that is true of the route acquired here — the trial, whose stated purpose is to explore SDK functionality rather than to deploy — and it is published beside COMMERCIAL_LICENSE_REQUIRED_FOR_COMMERCIAL_DEPLOYMENT so that both halves are visible. Stage 8E is closed and was not extended to add a member (docs/adr/0099).",
+  "open_question_for_stage_11b": "The agreement does not address publishing measurements obtained with the SDK. Stage 11A publishes no score, so the question is not live here; a stage that published 6,000 of them would have to settle it first, and it is recorded now rather than discovered then.",
+  "usage_manifest_written": false,
+  "why_no_usage_manifest": "A manifest binds components this project executes. Stage 11A executes nothing, so the record here is the observation, the assessment and the redistribution position — and a manifest of executed components would describe an execution that did not happen.",
+  "observations": [
+    {
+      "observation_id": "eula_names_verifinger_2025_2",
+      "subject": "what the licence agreement covers",
+      "statement": "The agreement is headed 'VeriFinger 2025.2, VeriLook 2025.2, VeriEye 2025.2, VeriSpeak 2025.2, MegaMatcher 2025.2 SDK' and defines the SDK's components, among them Fingerprint Extractor and Fingerprint Matcher.",
+      "source_class": "PINNED_SDK_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/SDK License.html",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "eula_grants_a_personal_development_licence",
+      "subject": "what the licence permits",
+      "statement": "Neurotechnology grants a personal, non-exclusive licence to use the SDK for the purpose of designing, developing, testing and distributing Licensee Products, and states that the SDK may only be used for a purpose or in a manner for which it was designed.",
+      "source_class": "PINNED_SDK_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/SDK License.html",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "eula_forbids_redistribution_and_circumvention",
+      "subject": "what the licence forbids",
+      "statement": "The agreement forbids sharing, publishing, renting or leasing the software, redistribution other than as prescribed, and any attempt to defeat, bypass, remove or circumvent the SDK's protection mechanisms or to reverse engineer it.",
+      "source_class": "PINNED_SDK_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/SDK License.html",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "activation_guide_states_trial_needs_no_serial",
+      "subject": "how a trial licence is obtained",
+      "statement": "The activation guide states that trial licensing grants a 30-day free trial period without any obligations, that activation is mandatory for trial versions as for purchased ones, and that activation does not involve the transmission of personal information. Manual trial activation is described as setting Trial = true in the licensing configuration file and starting the licensing service; no serial number is involved.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Activation.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "trial_flag_ships_enabled",
+      "subject": "the state the archive is delivered in",
+      "statement": "Bin/Licenses/TrialFlag.txt contains TRUE, and its own comment explains that a TRUE first line makes the samples and tutorials use trial mode.",
+      "source_class": "PINNED_SDK_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Bin/Licenses/TrialFlag.txt",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "verifinger_standard_licence_names_two_finger_components",
+      "subject": "which licences the 1:1 route needs",
+      "statement": "The activation guide's VeriFinger Standard SDK section lists two licence names: Fingerprint Extractor, covering Biometrics.FingerExtraction and the detection and segmentation components, and Fingerprint Matcher, covering Biometrics.FingerMatching and MatchingFusion.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Activation.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "official_sample_obtains_the_two_finger_licences",
+      "subject": "what upstream's own 1:1 code asks for",
+      "statement": "The verify-finger tutorial obtains the licences 'FingerMatcher,FingerExtractor' from the local licensing service before constructing anything, and exits if they cannot be obtained.",
+      "source_class": "OFFICIAL_SAMPLE_IN_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Tutorials/Biometrics/Java/verify-finger/src/main/java/com/neurotec/tutorials/biometrics/VerifyFinger.java",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ]
+}

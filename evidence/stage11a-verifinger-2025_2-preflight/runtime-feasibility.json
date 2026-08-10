@@ -1,0 +1,70 @@
+{
+  "schema": "stage_11a_runtime_feasibility_v1",
+  "candidate": "neurotechnology_verifinger_2025_2_1to1",
+  "gate": "RUNTIME_FEASIBILITY",
+  "gate_status": "NOT_REACHED",
+  "gate_summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+  "blocker_codes": [],
+  "measurements_required": [
+    "import or startup cost",
+    "extraction latency, to an order of magnitude",
+    "matching latency, to an order of magnitude",
+    "approximate peak memory",
+    "CPU or GPU requirement"
+  ],
+  "measurements_taken": 0,
+  "measured_on_fixtures_only": true,
+  "this_is_not_a_performance_benchmark": true,
+  "this_is_not_a_comparison_with_another_algorithm": true,
+  "rare_dependency_rule": "a route that needs an accelerator this project does not have, or a further proprietary external service that cannot be pinned, is a failure or an explicit blocker — never something to be worked around",
+  "accelerator_required": false,
+  "license_capacity_gate_status": "NOT_REACHED",
+  "license_capacity_questions": [
+    "when does it expire?",
+    "is there an API-call quota, and what is it?",
+    "which machines or platforms may it run on?",
+    "does it require an internet connection, and how often?",
+    "can it complete the whole frozen workload before any of the above bites?"
+  ],
+  "trial_terms": {
+    "duration_days": 30,
+    "api_call_quota_stated": false,
+    "requires_constant_internet": true,
+    "excludes_simultaneous_licensed_products": true,
+    "activation_mandatory": true,
+    "activation_transmits_personal_information": false,
+    "platform_bound": true
+  },
+  "an_absent_quota_statement_is_not_permission": true,
+  "frozen_workload_operations": {
+    "comparison_attempts": 6000,
+    "extraction_invocations": 12000,
+    "matcher_invocations": 6000
+  },
+  "workload_fits_the_licence_window": null,
+  "why_null": "The window is known and the per-operation cost is not, so the product of the two is not known either. A false here would claim the workload had been measured and found not to fit.",
+  "observations": [
+    {
+      "observation_id": "trial_is_thirty_days_with_no_stated_call_quota",
+      "subject": "what the trial licence limits",
+      "statement": "The activation guide states that all trial versions come with a 30-day trial period and that access ends when it expires, and adds that trial use requires a constant internet connection and excludes simultaneous use of licensed products on the same computer. No API-call quota is stated anywhere in the guide.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Activation.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "download_page_calls_the_trial_thirty_days",
+      "subject": "what the vendor advertises",
+      "statement": "The download page offers 30-day trial versions of the biometric SDKs and states that the trial package allows evaluation on Windows, Linux, macOS, iOS, Android and ARM Linux.",
+      "source_class": "OFFICIAL_DOWNLOAD_PAGE",
+      "source_is_artifact_evidence": false,
+      "locator": "https://www.neurotechnology.com/download.html",
+      "retrieval": "READ",
+      "http_status": 200,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ]
+}

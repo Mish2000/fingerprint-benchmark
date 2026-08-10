@@ -1,0 +1,161 @@
+{
+  "schema": "stage_11a_candidate_identity_v1",
+  "algorithm_slot": "algorithm_4",
+  "question": "does an official, exact VeriFinger 2025.2 artifact let fpbench take canonical_500 in and get a reproducible raw 1:1 score out, with every externally selectable behaviour that can affect that score defined by Neurotechnology rather than invented here",
+  "candidate_id": "neurotechnology_verifinger_2025_2_1to1",
+  "candidate_id_is_provisional": true,
+  "implementation_origin": "VENDOR_OFFICIAL_SDK",
+  "production_algorithm_id_frozen": false,
+  "final_identity_would_have_to_name": [
+    "the delivered package, by filename, byte size and SHA-256",
+    "the build, as the artifact itself reports it rather than as a web page prints it",
+    "the platform: operating system, architecture and the exact native libraries loaded",
+    "the template profile: which representation is compared, and in which format",
+    "the extractor profile: every externally selectable extraction setting and its value",
+    "the matcher profile: every externally selectable matching setting and its value"
+  ],
+  "product_name": "VeriFinger 2025.2 SDK",
+  "vendor": "Neurotechnology",
+  "declared_version": "2025.2",
+  "identity_sources_inside_the_artifact": [
+    "Documentation/SDK License.html inside the pinned archive — the licence agreement is headed 'VeriFinger 2025.2, VeriLook 2025.2, VeriEye 2025.2, VeriSpeak 2025.2, MegaMatcher 2025.2 SDK'",
+    "Revision.txt inside the pinned archive — product revision number 20260612",
+    "Bin/Win64_x64/NBiometrics.dll version resource — ProductVersion '2025, 2, 0, 0', FileDescription 'Neurotechnology Biometrics 2025.2'",
+    "Documentation/Activation.pdf inside the pinned archive — 'Version: 2025.2.0.0. Release date: 6/12/2026.'",
+    "Tutorials/Biometrics/Java/verify-finger — the official 1:1 tutorial declares VERSION '2025.2.0.0'"
+  ],
+  "declared_non_candidates": [
+    {
+      "identity": "neurotec_biometric_python_packages_2025_1",
+      "description": "The vendor's experimental Python packages. A separate download, a separate distribution, and — decisively — version 2025.1 rather than 2025.2. Qualifying it would qualify a different product version from the one this stage is named for, and mixing its runtime files with the 2025.2 archive's is refused outright (spec section 3)."
+    },
+    {
+      "identity": "neurotec_megamatcher_2025_2",
+      "description": "MegaMatcher 2025.2 SDK, shipped inside the same archive. A different product with its own licences and its own matcher; sharing an archive is not sharing an identity."
+    },
+    {
+      "identity": "neurotechnology_verifinger_algorithm_demo",
+      "description": "The separately downloadable Algorithm Demo application. A GUI over the technology, not the SDK this stage would integrate."
+    },
+    {
+      "identity": "neurotechnology_verifinger_nist_submission",
+      "description": "Any MINEX, PFT or FpVTE submission. An evaluation submission is a configuration of a product under somebody else's protocol, not the delivered package this stage pins."
+    },
+    {
+      "identity": "verifinger_standard_versus_extended_sdk",
+      "description": "Standard and Extended are different licence sets over the same archive. Which components a licence enables is part of the identity, and this stage records it rather than assuming Standard."
+    }
+  ],
+  "predecessor": {
+    "stage": "stage_10b",
+    "outcome": "ID3_FINGER_SDK_PREFLIGHT_FAIL",
+    "finalization_fingerprint": "48bf4a9b745bec9d73607152561249f6e5981c7053fca4adfd78c15acb23697a",
+    "relation": "Stage 10B preflighted the id3 Finger SDK, failed at its acquisition gate, reserved Stage 10C for that candidate and opened a candidate search. Stage 11A is that search's next candidate and adds nothing to Stage 10B.",
+    "stage_10b_evidence_modified_by_stage_11a": false
+  },
+  "gate_order": [
+    "OFFICIAL_ARTIFACT_ACQUISITION",
+    "RUNTIME_IDENTITY",
+    "RESEARCH_USE_PERMISSION",
+    "ARTIFACT_CLOSURE",
+    "CANONICAL500_INPUT_ROUTE",
+    "EXTRACTION_PROFILE",
+    "REPRESENTATION_PROFILE",
+    "MATCHER_PROFILE",
+    "RAW_SCORE_ROUTE",
+    "PAIR_ORIENTATION",
+    "SELF_SEMANTICS",
+    "SCORE_DETERMINISM",
+    "FAILURE_SEMANTICS",
+    "NETWORK_DEPENDENCY",
+    "RUNTIME_FEASIBILITY",
+    "LICENSE_CAPACITY",
+    "TRAINING_PROVENANCE"
+  ],
+  "gates_are_conjunctive_and_unweighted": true,
+  "gate_count_defined": 17,
+  "gates_reached": 6,
+  "gates_passed": 5,
+  "benchmark_input": {
+    "profile": "canonical_500",
+    "ppi": 500,
+    "pixel_format": "gray8"
+  },
+  "frozen_workload": {
+    "participating_images": 3000,
+    "participating_images_is_a_cohort_not_an_operation_count": true,
+    "comparison_attempts": 6000,
+    "extractions_per_comparison": 2,
+    "extraction_invocations": 12000,
+    "matcher_invocations": 6000,
+    "execution_semantics_source": "the Stage 8C execution semantics, which published 12,000 logical extractions over the same 6,000 comparisons"
+  },
+  "setting_provenance_vocabulary": [
+    "UPSTREAM_DOCUMENTED_DEFAULT",
+    "DELIVERED_RUNTIME_DEFAULT",
+    "OFFICIAL_SAMPLE_EXPLICIT",
+    "UPSTREAM_EXPLICIT_RECOMMENDATION"
+  ],
+  "refused_setting_provenance": "FPBENCH_CHOICE",
+  "non_goals": [
+    "no production adapter",
+    "no configs/algorithms/verifinger configuration",
+    "no generic-engine adapter",
+    "no ResultSet",
+    "no 6,000-comparison runner",
+    "no threshold",
+    "no DecisionProfile",
+    "no calibration",
+    "no metrics",
+    "no SD300 read of any kind, including one image to see whether it works",
+    "no licence activation in CI and no credentials in CI",
+    "no selection of a preset from score distributions or vendor-reported accuracy"
+  ],
+  "production_integration_not_created": [
+    {
+      "surface": "algorithm_config",
+      "created": false
+    },
+    {
+      "surface": "generic_engine_adapter",
+      "created": false
+    },
+    {
+      "surface": "production_adapter",
+      "created": false
+    },
+    {
+      "surface": "comparison_runner",
+      "created": false
+    },
+    {
+      "surface": "result_set",
+      "created": false
+    },
+    {
+      "surface": "threshold",
+      "created": false
+    },
+    {
+      "surface": "decision_profile",
+      "created": false
+    },
+    {
+      "surface": "calibration",
+      "created": false
+    },
+    {
+      "surface": "metrics",
+      "created": false
+    }
+  ],
+  "stage_11b_scope_if_this_passes": [
+    "VeriFinger production integration",
+    "the generic adapter",
+    "runtime qualification",
+    "a frozen AlgorithmConfig",
+    "raw-score execution readiness",
+    "and still no threshold and no calibration"
+  ],
+  "observations_fingerprint": "60dd51090532ad58a5bc716016119b75651d100ee6364c616fcb41939ede12aa"
+}

@@ -1,0 +1,155 @@
+{
+  "schema": "stage_11a_matcher_profile_v1",
+  "candidate": "neurotechnology_verifinger_2025_2_1to1",
+  "gate": "MATCHER_PROFILE",
+  "gate_status": "NOT_REACHED",
+  "gate_summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+  "blocker_codes": [],
+  "inventory_classes_searched": [
+    "rotation tolerance",
+    "matching mode",
+    "normalization",
+    "speed or accuracy mode",
+    "template compatibility mode",
+    "any threshold-related setting",
+    "any quality weighting"
+  ],
+  "inventory_closed": true,
+  "inventory_names_were_discovered_not_assumed": true,
+  "published_settings": [
+    {
+      "setting_name": "FingersMatchingSpeed",
+      "published_meaning": "Low (slower but more accurate), Medium, or High (faster but less accurate)",
+      "is_score_affecting": true,
+      "documented_default": null,
+      "official_sample_value": "NMatchingSpeed.LOW",
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "OFFICIAL_SAMPLE_EXPLICIT",
+      "provenance_is_upstream_authority": true
+    },
+    {
+      "setting_name": "FingersMaximalRotation",
+      "published_meaning": "the maximal rotation of the fingerprint",
+      "is_score_affecting": true,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "MatchingScenario",
+      "published_meaning": "NotUsed, LatentFinger, FingerFastMatcherLicense, or Minex for MINEX-compliant ISO template matching",
+      "is_score_affecting": true,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "MatchingWithDetails",
+      "published_meaning": "whether the results include the per-record details",
+      "is_score_affecting": false,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "MatchingMaximalResultCount",
+      "published_meaning": "the maximum number of returned matching results",
+      "is_score_affecting": false,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "MatchingFirstResultOnly",
+      "published_meaning": "whether matching stops at the first positive result",
+      "is_score_affecting": false,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    }
+  ],
+  "setting_count": 6,
+  "score_affecting_count": 3,
+  "score_affecting_with_upstream_provenance": [
+    "FingersMatchingSpeed"
+  ],
+  "score_affecting_without_upstream_provenance": [
+    "FingersMaximalRotation",
+    "MatchingScenario"
+  ],
+  "profile_frozen": false,
+  "permitted_provenances": [
+    "UPSTREAM_DOCUMENTED_DEFAULT",
+    "DELIVERED_RUNTIME_DEFAULT",
+    "OFFICIAL_SAMPLE_EXPLICIT",
+    "UPSTREAM_EXPLICIT_RECOMMENDATION"
+  ],
+  "refused_provenance": "FPBENCH_CHOICE",
+  "settings_chosen_by_fpbench": 0,
+  "preset_selected_from_score_distributions": false,
+  "preset_selected_from_vendor_reported_accuracy": false,
+  "profile_identity_would_name_the_official_sample_route": true,
+  "why": "Where a value comes from upstream's own 1:1 tutorial rather than from a stated default, the profile is the official-sample route and its identity says so. Calling it 'the VeriFinger default' would claim something the manual does not state (spec section 16).",
+  "observations": [
+    {
+      "observation_id": "engine_publishes_the_matching_settings",
+      "subject": "which matching settings are externally selectable",
+      "statement": "The biometric engine publishes FingersMatchingSpeed, FingersMaximalRotation, MatchingThreshold, MatchingScenario, MatchingWithDetails, MatchingFirstResultOnly and MatchingMaximalResultCount.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "matching_speed_is_a_documented_accuracy_tradeoff",
+      "subject": "the preset family and what upstream says it costs",
+      "statement": "NMatchingSpeed publishes Low = 0, Medium = 128 and High = 256, documented as 'Low matching speed (slower but more accurate)' and 'High matching speed (faster but less accurate)'. The manual adds that the slow matcher offers low and medium and the fast matcher offers all three.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "official_sample_sets_matching_speed_explicitly",
+      "subject": "which preset upstream's own 1:1 code selects",
+      "statement": "The verify-finger tutorial calls setFingersMatchingSpeed(NMatchingSpeed.LOW) before verifying. It is an explicit choice in upstream's own working 1:1 example, not a value fpbench picked.",
+      "source_class": "OFFICIAL_SAMPLE_IN_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Tutorials/Biometrics/Java/verify-finger/src/main/java/com/neurotec/tutorials/biometrics/VerifyFinger.java",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "matching_is_a_fusion_over_records",
+      "subject": "how a single score is arrived at",
+      "statement": "The manual states that matching is performed at the record level and the resulting scores are fused into a single similarity score, with the intermediate scores available through NMatchingDetails.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ]
+}

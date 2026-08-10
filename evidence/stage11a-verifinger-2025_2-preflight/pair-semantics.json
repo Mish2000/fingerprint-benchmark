@@ -1,0 +1,58 @@
+{
+  "schema": "stage_11a_pair_semantics_v1",
+  "candidate": "neurotechnology_verifinger_2025_2_1to1",
+  "gate": "PAIR_ORIENTATION",
+  "gate_status": "NOT_REACHED",
+  "gate_summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+  "blocker_codes": [],
+  "requirements": [
+    "score(A, B) and score(B, A) are both run, on fixtures that are not SD300",
+    "if they agree, symmetry is recorded as observed rather than assumed",
+    "if they differ, the reference/probe contract is discovered and preserved",
+    "fpbench never averages the two and never takes the maximum"
+  ],
+  "api_distinguishes_reference_and_probe": true,
+  "symmetry_observed": null,
+  "a_gate_that_did_not_run_publishes_no_boolean": true,
+  "fpbench_may_average_the_two_orderings": false,
+  "fpbench_may_take_the_maximum": false,
+  "self_semantics_requirements": [
+    "SELF(A, A) loads A twice and extracts it twice, independently",
+    "the two resulting representations are compared with each other",
+    "representation reuse between the two sides is refused",
+    "an equal-input shortcut returning a constant is refused"
+  ],
+  "self_independent_extraction_required": true,
+  "self_semantics_gate_status": "NOT_REACHED",
+  "self_demonstrated": false,
+  "fixtures_that_may_be_used": [
+    "synthetic ridge-like fixtures generated into a temporary directory",
+    "an official vendor sample fingerprint shipped inside the pinned artifact, if a synthetic fixture will not extract",
+    "a vendor sample stays in the local artifact store and never enters Git while its redistribution terms are anything but clear"
+  ],
+  "sd300_used_for_any_of_this": false,
+  "observations": [
+    {
+      "observation_id": "no_licence_was_activated_here",
+      "subject": "what this stage did not do",
+      "statement": "No licensing service was started, no trial was activated and no library was loaded. The archive was inspected as files. Everything that needs a running licensed engine is therefore unestablished, and is published as unestablished rather than inferred from the documentation.",
+      "source_class": "TRANSFER_METADATA",
+      "source_is_artifact_evidence": false,
+      "locator": "the local artifact store under this stage's prefix",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "activation_installs_a_licensing_service",
+      "subject": "what activating would involve",
+      "statement": "The activation guide describes starting the licensing service — 'pg.exe -i' on Windows, 'sudo ./run_pgd.sh start' on Linux and macOS — and states that trial products may not be used on a computer that is simultaneously running licensed Neurotechnology products. A 30-day clock starts at activation.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Activation.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ]
+}

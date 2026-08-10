@@ -1,0 +1,88 @@
+{
+  "schema": "stage_11a_input_domain_contract_v1",
+  "candidate": "neurotechnology_verifinger_2025_2_1to1",
+  "gate": "CANONICAL500_INPUT_ROUTE",
+  "gate_status": "PASS",
+  "gate_summary": "the pinned manual puts PNG in the official input domain, requires resolution attributes on a fingerprint image, and expresses minutia coordinates in 500 DPI units — which is what canonical_500 already is. Upstream's own 1:1 tutorial sets a file name and verifies: no crop, no resize, no rotation, no enhancement. All 7 refused preprocessing steps stay refused, and the segmentation and quality processing the SDK performs internally needs no external choice from fpbench.",
+  "blocker_codes": [],
+  "benchmark_input": {
+    "profile": "canonical_500",
+    "ppi": 500,
+    "pixel_format": "gray8"
+  },
+  "required_route": [
+    "canonical_500 PNG",
+    "the official VeriFinger image loader",
+    "explicit 500 ppi metadata, where the API requires it",
+    "official fingerprint extraction"
+  ],
+  "supported_image_containers": [
+    "BMP",
+    "JPG",
+    "PNG",
+    "WebP"
+  ],
+  "png_is_in_the_official_input_domain": true,
+  "resolution_must_be_declared_on_a_fingerprint_image": true,
+  "fpbench_preprocessing_performed": [],
+  "refused_preprocessing": [
+    "crop",
+    "region-of-interest selection",
+    "resize",
+    "rotate",
+    "enhancement",
+    "histogram manipulation",
+    "minutiae generation outside VeriFinger"
+  ],
+  "internal_black_box_preprocessing_is_acceptable": true,
+  "internal_black_box_note": "The SDK performs its own segmentation, alignment and quality assessment inside the pinned binaries. fpbench has no external choice about any of it and therefore needs no account of the mathematics; what must be frozen is every behaviour that *can* be selected from outside (spec section 13).",
+  "sd300b_1000_ppi_offered_to_this_candidate": false,
+  "sd300c_2000_ppi_offered_to_this_candidate": false,
+  "sd300_bytes_read": false,
+  "observations": [
+    {
+      "observation_id": "manual_accepts_png_fingerprint_images",
+      "subject": "which containers the official loader reads",
+      "statement": "The manual states that the technology accepts fingerprint, face and iris images for further processing as BMP, JPG, PNG or WebP files, so that almost any third-party capture hardware can be used.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "manual_requires_resolution_on_fingerprint_images",
+      "subject": "whether resolution must be declared",
+      "statement": "The manual states that an image can have horizontal and vertical resolution attributes and that they are required for a fingerprint image, while they do not make sense for a face image.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "manual_uses_500_dpi_as_the_minutia_coordinate_unit",
+      "subject": "the resolution the representation is expressed in",
+      "statement": "The manual describes each minutia as located by X and Y coordinates in 500 DPI units, and describes NFIQ 2.0 as optimised for plain impressions captured at 500 dpi.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "official_sample_loads_an_image_by_file_name_only",
+      "subject": "what upstream's own 1:1 code does to an image",
+      "statement": "The verify-finger tutorial creates an NFinger, sets its file name to the image path, adds it to an NSubject and verifies. There is no crop, no resize, no rotation, no enhancement and no segmentation step anywhere in it.",
+      "source_class": "OFFICIAL_SAMPLE_IN_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Tutorials/Biometrics/Java/verify-finger/src/main/java/com/neurotec/tutorials/biometrics/VerifyFinger.java",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ]
+}

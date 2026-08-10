@@ -1,0 +1,63 @@
+{
+  "schema": "stage_11a_representation_profile_v1",
+  "candidate": "neurotechnology_verifinger_2025_2_1to1",
+  "gate": "REPRESENTATION_PROFILE",
+  "gate_status": "NOT_REACHED",
+  "gate_summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+  "blocker_codes": [],
+  "representation_candidates": [
+    "proprietary fingerprint template",
+    "ISO template",
+    "ANSI template",
+    "another vendor template type"
+  ],
+  "representation_type": "NOT_REACHED",
+  "interoperable_format_chosen_for_convenience": false,
+  "iso_and_ansi_are_export_formats_here": true,
+  "minex_is_a_separate_matching_scenario": true,
+  "templates_are_ephemeral": true,
+  "template_bytes_published": 0,
+  "publishable_facts": [
+    "type",
+    "format or profile identifier",
+    "size metadata, where publishing it is safe",
+    "configuration fingerprint"
+  ],
+  "template_size_metadata": null,
+  "why_size_metadata_is_null": "Template size depends on the extraction profile, and the extraction profile is not frozen. A size published now would describe a configuration nobody has chosen.",
+  "observations": [
+    {
+      "observation_id": "manual_describes_the_proprietary_template_hierarchy",
+      "subject": "what the matcher compares",
+      "statement": "The manual describes NFTemplate as the fingerprint template and NTemplate as the container that consolidates a subject's templates, and states that a packed NTemplate is the piece of information the matchers should receive.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "official_sample_offers_iso_and_ansi_as_export_formats",
+      "subject": "the standard formats and where they sit in the route",
+      "statement": "The enroll-finger-from-image tutorial writes an ISO or ANSI record only when asked for one on the command line, and otherwise reports the template as proprietary. The verification tutorial exports neither: it matches the subjects directly.",
+      "source_class": "OFFICIAL_SAMPLE_IN_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Tutorials/Biometrics/Java/enroll-finger-from-image/src/main/java/com/neurotec/tutorials/biometrics/EnrollFingerFromImage.java",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "minex_is_a_separate_matching_scenario",
+      "subject": "what interoperable matching would be",
+      "statement": "NMatchingScenario publishes NotUsed, LatentFinger, FingerFastMatcherLicense and Minex, the last documented as matching ISO templates in a MINEX-compliant way. Interoperable matching is therefore a distinct scenario rather than the default route.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ]
+}

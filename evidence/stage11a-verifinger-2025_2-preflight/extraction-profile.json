@@ -1,0 +1,253 @@
+{
+  "schema": "stage_11a_extraction_profile_v1",
+  "candidate": "neurotechnology_verifinger_2025_2_1to1",
+  "gate": "EXTRACTION_PROFILE",
+  "gate_status": "FAIL",
+  "gate_summary": "the inventory is closed over 14 published extraction settings and 7 score-affecting values have no upstream authority behind them",
+  "blocker_codes": [
+    "HIDDEN_SCORE_AFFECTING_DEFAULT_UNRESOLVED"
+  ],
+  "inventory_classes_searched": [
+    "template type",
+    "template size or profile",
+    "extraction mode",
+    "quality mode",
+    "processing speed or accuracy mode",
+    "image resolution handling",
+    "rotation or alignment options",
+    "finger position or type fields",
+    "model or profile identifiers",
+    "any other extraction flag"
+  ],
+  "inventory_closed": true,
+  "inventory_names_were_discovered_not_assumed": true,
+  "published_settings": [
+    {
+      "setting_name": "FingersTemplateSize",
+      "published_meaning": "defines the size of the biometric template",
+      "is_score_affecting": true,
+      "documented_default": null,
+      "official_sample_value": "NTemplateSize.LARGE",
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "OFFICIAL_SAMPLE_EXPLICIT",
+      "provenance_is_upstream_authority": true
+    },
+    {
+      "setting_name": "FingersExtractionScenario",
+      "published_meaning": "defines the fingerprint extraction scenario",
+      "is_score_affecting": true,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "FingersFastExtraction",
+      "published_meaning": "quicker than regular extraction, but creates a lower-quality template which can reduce matching accuracy",
+      "is_score_affecting": true,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "FingersQualityThreshold",
+      "published_meaning": "fingerprints with quality below this value will not be accepted",
+      "is_score_affecting": true,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "FingersMinimalMinutiaCount",
+      "published_meaning": "defines the minimal fingerprint minutia count",
+      "is_score_affecting": true,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "FingersDetectTips",
+      "published_meaning": "defines whether only a tip of the fingerprint is present",
+      "is_score_affecting": true,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "FingersDeterminePatternClass",
+      "published_meaning": "whether the fingerprint pattern class should be determined",
+      "is_score_affecting": false,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "FingersReturnBinarizedImage",
+      "published_meaning": "whether a binarized image should be returned",
+      "is_score_affecting": false,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "FingersCalculateNfiq",
+      "published_meaning": "whether the NFIQ 1.0 quality value should be calculated",
+      "is_score_affecting": false,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "FingersCalculateNfiq2",
+      "published_meaning": "whether the NFIQ 2.0 quality value should be calculated",
+      "is_score_affecting": false,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "FingersCalculateNfiq21",
+      "published_meaning": "whether the NFIQ 2.1 quality value should be calculated",
+      "is_score_affecting": false,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "FingersDetectLiveness",
+      "published_meaning": "enables fingerprint presentation attack detection",
+      "is_score_affecting": true,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "FingersLivenessConfidenceThreshold",
+      "published_meaning": "the fingerprint liveness confidence value",
+      "is_score_affecting": true,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    },
+    {
+      "setting_name": "MaximalThreadCount",
+      "published_meaning": "the maximum number of threads in the engine",
+      "is_score_affecting": false,
+      "documented_default": null,
+      "official_sample_value": null,
+      "delivered_runtime_default": null,
+      "chosen_value": null,
+      "provenance": "UNRESOLVED",
+      "provenance_is_upstream_authority": false
+    }
+  ],
+  "setting_count": 14,
+  "score_affecting_count": 8,
+  "score_affecting_with_upstream_provenance": [
+    "FingersTemplateSize"
+  ],
+  "score_affecting_without_upstream_provenance": [
+    "FingersExtractionScenario",
+    "FingersFastExtraction",
+    "FingersQualityThreshold",
+    "FingersMinimalMinutiaCount",
+    "FingersDetectTips",
+    "FingersDetectLiveness",
+    "FingersLivenessConfidenceThreshold"
+  ],
+  "profile_frozen": false,
+  "permitted_provenances": [
+    "UPSTREAM_DOCUMENTED_DEFAULT",
+    "DELIVERED_RUNTIME_DEFAULT",
+    "OFFICIAL_SAMPLE_EXPLICIT",
+    "UPSTREAM_EXPLICIT_RECOMMENDATION"
+  ],
+  "refused_provenance": "FPBENCH_CHOICE",
+  "settings_chosen_by_fpbench": 0,
+  "preset_selected_from_score_distributions": false,
+  "preset_selected_from_vendor_reported_accuracy": false,
+  "profile_identity_would_name_the_official_sample_route": true,
+  "why": "Where a value comes from upstream's own 1:1 tutorial rather than from a stated default, the profile is the official-sample route and its identity says so. Calling it 'the VeriFinger default' would claim something the manual does not state (spec section 16).",
+  "observations": [
+    {
+      "observation_id": "engine_publishes_the_finger_extraction_settings",
+      "subject": "which extraction settings are externally selectable",
+      "statement": "The biometric engine publishes FingersExtractionScenario, FingersTemplateSize, FingersFastExtraction, FingersQualityThreshold, FingersMinimalMinutiaCount, FingersReturnBinarizedImage, FingersDeterminePatternClass, FingersDetectLiveness, FingersLivenessConfidenceThreshold, the three NFIQ calculation switches and MaximalThreadCount.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "finger_settings_carry_no_documented_default",
+      "subject": "what the manual states about the fingerprint defaults",
+      "statement": "The manual's parameter tables give each Fingers.* and Matching.* entry a type and a meaning and state no default value for any of them. The same tables do state defaults for the Faces.* entries — 'Default: false', 'Default: 90 pixels', 'Default: ntsMedium' — so the absence on the fingerprint side is a property of the document rather than of the reading.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "official_sample_sets_template_size_explicitly",
+      "subject": "an extraction setting upstream's own code chooses",
+      "statement": "The enroll-finger-from-image tutorial sets FingersTemplateSize to NTemplateSize.LARGE before creating the template.",
+      "source_class": "OFFICIAL_SAMPLE_IN_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Tutorials/Biometrics/Java/enroll-finger-from-image/src/main/java/com/neurotec/tutorials/biometrics/EnrollFingerFromImage.java",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "manual_warns_fast_extraction_changes_accuracy",
+      "subject": "a setting whose effect on the score upstream states",
+      "statement": "FingersFastExtraction is documented as quicker than regular extraction but as creating a lower-quality template, which can reduce matching accuracy. It is therefore score-affecting by upstream's own description.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ]
+}

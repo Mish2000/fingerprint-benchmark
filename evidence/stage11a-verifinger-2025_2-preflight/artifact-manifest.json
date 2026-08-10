@@ -1,0 +1,138 @@
+{
+  "schema": "stage_11a_artifact_manifest_v1",
+  "candidate": "neurotechnology_verifinger_2025_2_1to1",
+  "gate": "OFFICIAL_ARTIFACT_ACQUISITION",
+  "gate_status": "PASS",
+  "gate_summary": "2 official artifacts obtained from Neurotechnology's own download host and verified by size and SHA-256: the 4743229435-byte 2025.2 SDK archive and the 124277015-byte manual, which is byte-for-byte the manual inside the archive. One route was chosen — MAIN_SDK_PACKAGE — and 1 was not.",
+  "blocker_codes": [],
+  "closure_gate": "ARTIFACT_CLOSURE",
+  "closure_gate_status": "PASS",
+  "closure_gate_summary": "closed over 8702 archive members totalling 6796855547 bytes, every one hashed. The fingerprint algorithm's 2 data files — 127187766 bytes — are inside the pinned archive, so nothing is fetched at first use and the EMBEDDED_IN_PINNED_VENDOR_ARTIFACT case does not arise for them. No external model, service or accelerator is required.",
+  "archive_member_count": 8702,
+  "archive_uncompressed_bytes": 6796855547,
+  "every_member_was_hashed": true,
+  "artifact_classes_inventoried": [
+    "embedded models",
+    "external model or data files",
+    "configuration databases",
+    "licence runtime",
+    "native dependencies"
+  ],
+  "external_model_downloads_required": 0,
+  "embedded_model_marker": "EMBEDDED_IN_PINNED_VENDOR_ARTIFACT",
+  "checkpoint_file_required": false,
+  "why_no_checkpoint_is_required": "This is a black-box commercial matcher. Its algorithm data ships as vendor data files inside the pinned archive, and where a model has no separate file at all the correct record is EMBEDDED_IN_PINNED_VENDOR_ARTIFACT rather than a missing artifact (spec section 10).",
+  "fingerprint_data_files": [
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Bin/Data/Fingers.ndf",
+      "size_bytes": 122945738,
+      "sha256": "ecca8454d80820ceed7798d91db400bc84e92d1712adb82428c2c857b0cff2b1",
+      "role": "the fingerprint extraction data file the engine loads",
+      "inside_the_pinned_archive": true
+    },
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Bin/Data/FingersMatching.ndf",
+      "size_bytes": 4242028,
+      "sha256": "6c05234db491930118e993baf2c45655c6f8c63266979150336c11adae9ec585",
+      "role": "the fingerprint matching data file the engine loads",
+      "inside_the_pinned_archive": true
+    }
+  ],
+  "cited_members": [
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Revision.txt",
+      "size_bytes": 100,
+      "sha256": "cd0b12a058a25ec48d0b585a7c36943c3191a9495cd8d2ad50750b2f399751f6",
+      "role": "the archive's own build identity"
+    },
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/ReadMe.txt",
+      "size_bytes": 4153,
+      "sha256": "2c116904a8fffe28ecd4d3234dca444d87f4ba8f77db643a40549d71c3088f25",
+      "role": "what the archive is, and what installing it means"
+    },
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Documentation/SDK License.html",
+      "size_bytes": 40239,
+      "sha256": "e630df7aa7d72f7f030875cf911ffab7f2a2e1fd3b99de26b8f803a95e7aee10",
+      "role": "the licence agreement Stage 8E is assessed against"
+    },
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Documentation/Activation.pdf",
+      "size_bytes": 2260719,
+      "sha256": "7bfd029689c56796bcb7f5b5e3a2d94daefe325eb8e904afeb5a2e36ae2162b3",
+      "role": "the licensing and activation guide, 67 pages"
+    },
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "size_bytes": 124277015,
+      "sha256": "ae8acd238e096f9849bb5ad9772e314baeac0ceedf64951898119d69a786a34d",
+      "role": "the SDK manual, byte-for-byte the separately downloaded documentation artifact"
+    },
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Bin/Licenses/TrialFlag.txt",
+      "size_bytes": 220,
+      "sha256": "739cc7821fc784ccfae1dca1512a90b125b6ee4635b9a75dcc00a06092f575ad",
+      "role": "the shipped trial-mode switch, delivered set to TRUE"
+    }
+  ],
+  "java_binding_jars": [
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Bin/Java/neurotec-biometrics.jar",
+      "size_bytes": 1521353,
+      "sha256": "1ba85cb1512d033e3e9c9383a048112950324e1f77aef8deda84ea9761ab1f97",
+      "role": "NBiometricClient, NSubject, NFinger and the matching result types"
+    },
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Bin/Java/neurotec-core.jar",
+      "size_bytes": 729966,
+      "sha256": "6457f9d040f2b9bee3bbad8e414f20cccd5c4d3671d62ca3ac2cf91f4ae44760",
+      "role": "the object model the bindings are built on"
+    },
+    {
+      "relative_path": "Neurotec_Biometric_2025_2_SDK/Bin/Java/neurotec-licensing.jar",
+      "size_bytes": 58016,
+      "sha256": "bdb8bb0c6c4a87ad2a613f52dfcb91b8844aa446d7d57f602ca9fa6c78b94e91",
+      "role": "NLicense and NLicenseManager, the licence gate before any call"
+    }
+  ],
+  "rare_dependency_rule": "a route that needs an accelerator this project does not have, or a further proprietary external service that cannot be pinned, is a failure or an explicit blocker — never something to be worked around",
+  "accelerator_required": false,
+  "further_proprietary_service_required": false,
+  "bytes_of_any_of_this_in_git": 0,
+  "observations": [
+    {
+      "observation_id": "finger_data_files_ship_inside_the_archive",
+      "subject": "where the algorithm's models come from",
+      "statement": "Bin/Data holds 27 Neurotechnology data files, of which two are the fingerprint ones: Fingers.ndf at 122945738 bytes and FingersMatching.ndf at 4242028 bytes. Both are inside the pinned archive; neither is fetched at first use.",
+      "source_class": "PINNED_SDK_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Bin/Data/",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "manual_describes_ndf_files_as_algorithm_dependencies",
+      "subject": "what the data files are",
+      "statement": "The manual states that the biometric engines use Neurotechnology data file dependencies which are required by the algorithm, that these files are saved in the SDK's Bin/Data folder, and lists which data file each modality needs.",
+      "source_class": "PINNED_DOCUMENTATION",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/Documentation/Neurotechnology Biometric SDK.pdf",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    },
+    {
+      "observation_id": "every_archive_member_was_hashed",
+      "subject": "how far the inventory was taken",
+      "statement": "All 8702 regular files in the archive were decompressed and hashed, totalling 6796855547 bytes. The inventory is therefore closed over the archive rather than sampled from it.",
+      "source_class": "PINNED_SDK_ARCHIVE",
+      "source_is_artifact_evidence": true,
+      "locator": "Neurotec_Biometric_2025_2_SDK/",
+      "retrieval": "READ",
+      "http_status": null,
+      "observed_utc": "2026-08-10T00:00:00Z"
+    }
+  ]
+}

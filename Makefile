@@ -71,6 +71,15 @@ help:
 	@echo "stage10b-guard          refuse if any id3 package, model or licence material is tracked here"
 	@echo "stage10b-documents      write the thirteen derivable evidence documents (commit them, then publish)"
 	@echo "stage10b-publish        write the marker too; refuses a dirty tree"
+	@echo "stage11a-contract       the VeriFinger 2025.2 preflight: seventeen gates, provenance, raw score, secrets"
+	@echo "stage11a-evidence       verify the committed Stage 11A VeriFinger-preflight evidence"
+	@echo "stage11a-acquire        fetch the official VeriFinger artifacts (~4.8 GB) into the local store"
+	@echo "stage11a-verify         report whether this machine holds the pinned artifacts"
+	@echo "stage11a-artifacts      run the checks that need the pinned artifacts locally"
+	@echo "stage11a-status         re-derive and print the gates, the verdict and the blockers"
+	@echo "stage11a-guard          refuse if any Neurotechnology archive, model or licence material is tracked here"
+	@echo "stage11a-documents      write the fifteen derivable evidence documents (commit them, then publish)"
+	@echo "stage11a-publish        write the marker too; refuses a dirty tree"
 	@echo "stage8c-workspace       Stage 8C alignment and preflight over the real inputs"
 	@echo "stage8c-verify          re-derive and print the Stage 8C evidence-only verification"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
@@ -388,6 +397,47 @@ stage10b-documents:
 
 stage10b-publish:
 	python -m fpbench.experiments.stage10b_finalization publish
+
+# ------------------------------------------------------------------ stage 11A
+
+# The VeriFinger 2025.2 artifact and API preflight (docs/adr/0099-0103). Same
+# two-write shape as every stage since 8D: `stage11a-documents`, commit,
+# `stage11a-publish`, commit.
+#
+# Unlike Stage 10B there *is* an acquire target, because Neurotechnology
+# publishes a direct locator that needs no account, no form and no approval
+# (docs/adr/0100). It fetches about 4.8 GB into the local artifact store, outside
+# the repository, and verifies both artifacts by size and SHA-256.
+#
+# There is no activate target and there will not be one. Activation starts a
+# 30-day trial bound to one machine and excludes other licensed Neurotechnology
+# products on it; that is the maintainer's decision, taken once, by hand.
+stage11a-contract:
+	pytest -m "stage11a_contract" -q
+
+stage11a-evidence:
+	pytest -m "stage11a" -q
+
+stage11a-artifacts:
+	pytest -m "verifinger_artifact" -q -rs
+
+stage11a-status:
+	python -m fpbench.experiments.stage11a_finalization status
+
+stage11a-acquire:
+	python -c "import json, urllib.request; from pathlib import Path; from fpbench.experiments.stage11a_artifacts import artifact_store_prefix_path, inspect_local_artifact; from fpbench.experiments.stage11a_verifinger_observations import ACQUIRED_ARTIFACTS; d = artifact_store_prefix_path(); d.mkdir(parents=True, exist_ok=True); [urllib.request.urlretrieve(a.locator, d / a.filename) for a in ACQUIRED_ARTIFACTS if not (d / a.filename).is_file()]; [print(inspect_local_artifact(a).presence.value, a.filename) for a in ACQUIRED_ARTIFACTS]"
+
+stage11a-verify:
+	python -c "from pathlib import Path; from fpbench.experiments.stage11a_artifacts import acquisition_state as s; a = s(repository_root=Path('.')); print('obtained', a.obtained); [print(' ', i.presence.value, i.filename, i.detail) for i in a.states]"
+
+stage11a-guard:
+	python -c "from pathlib import Path; from fpbench.experiments.stage11a_artifacts import require_no_verifinger_bytes_in_git as g; a = g(Path('.')); print(a.tracked_file_count, 'tracked files scanned against', a.known_digest_count, 'exact VeriFinger digests and the vendor artifact name rules,', len(a.findings), 'findings')"
+
+stage11a-documents:
+	python -m fpbench.experiments.stage11a_finalization documents
+
+stage11a-publish:
+	python -m fpbench.experiments.stage11a_finalization publish
 
 # ------------------------------------------------------------------- SourceAFIS
 

@@ -1,0 +1,242 @@
+{
+  "schema": "stage_11a_preflight_report_v1",
+  "candidate": "neurotechnology_verifinger_2025_2_1to1",
+  "implementation_origin": "VENDOR_OFFICIAL_SDK",
+  "verdict": "VERIFINGER_PREFLIGHT_FAIL",
+  "outcome": "VERIFINGER_PREFLIGHT_FAIL",
+  "failure_class": "EXECUTION_NOT_ESTABLISHED",
+  "artifact_was_obtained_and_opened": true,
+  "decisive_question": "Does an official, exact VeriFinger 2025.2 artifact let fpbench take canonical_500 in and get a reproducible raw 1:1 score out, with every externally selectable behaviour that can affect that score defined by Neurotechnology?",
+  "decisive_answer": "NOT YET",
+  "what_this_outcome_does_not_say": [
+    "that the artifact could not be obtained",
+    "that Neurotechnology refused anything",
+    "that the licence terms forbid research use",
+    "that canonical_500 cannot enter the official route",
+    "that the raw score is unsuitable",
+    "that the algorithm was developed on SD300"
+  ],
+  "passed_every_hard_gate": false,
+  "stopped_at_gate": "EXTRACTION_PROFILE",
+  "gate_count_defined": 17,
+  "gates_reached": 6,
+  "gates_passed": 5,
+  "gates": [
+    {
+      "order": 1,
+      "gate": "OFFICIAL_ARTIFACT_ACQUISITION",
+      "status": "PASS",
+      "summary": "2 official artifacts obtained from Neurotechnology's own download host and verified by size and SHA-256: the 4743229435-byte 2025.2 SDK archive and the 124277015-byte manual, which is byte-for-byte the manual inside the archive. One route was chosen — MAIN_SDK_PACKAGE — and 1 was not.",
+      "documents": [
+        "acquisition-manifest.json",
+        "artifact-manifest.json"
+      ],
+      "blocker_codes": []
+    },
+    {
+      "order": 2,
+      "gate": "RUNTIME_IDENTITY",
+      "status": "PASS",
+      "summary": "VENDOR_OFFICIAL_SDK: VeriFinger 2025.2 SDK by Neurotechnology, identified from inside the pinned bytes by 5 independent statements. 5 native libraries of the chosen platform carry ProductVersion '2025, 2, 0, 0', and the archive declares revision 20260612. No version here was read from a web page, and none was read from a running library.",
+      "documents": [
+        "runtime-identity.json"
+      ],
+      "blocker_codes": []
+    },
+    {
+      "order": 3,
+      "gate": "RESEARCH_USE_PERMISSION",
+      "status": "PASS",
+      "summary": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION with intended-use permission ESTABLISHED: every plausible reading of 2 notices inside the pinned archive permits one person executing this locally for non-commercial educational research. 5 restrictions are recorded and respected, and redistribution is NOT_ALLOWED — which changes nothing, because fpbench redistributes nothing.",
+      "documents": [
+        "third-party-usage-binding.json"
+      ],
+      "blocker_codes": []
+    },
+    {
+      "order": 4,
+      "gate": "ARTIFACT_CLOSURE",
+      "status": "PASS",
+      "summary": "closed over 8702 archive members totalling 6796855547 bytes, every one hashed. The fingerprint algorithm's 2 data files — 127187766 bytes — are inside the pinned archive, so nothing is fetched at first use and the EMBEDDED_IN_PINNED_VENDOR_ARTIFACT case does not arise for them. No external model, service or accelerator is required.",
+      "documents": [],
+      "blocker_codes": []
+    },
+    {
+      "order": 5,
+      "gate": "CANONICAL500_INPUT_ROUTE",
+      "status": "PASS",
+      "summary": "the pinned manual puts PNG in the official input domain, requires resolution attributes on a fingerprint image, and expresses minutia coordinates in 500 DPI units — which is what canonical_500 already is. Upstream's own 1:1 tutorial sets a file name and verifies: no crop, no resize, no rotation, no enhancement. All 7 refused preprocessing steps stay refused, and the segmentation and quality processing the SDK performs internally needs no external choice from fpbench.",
+      "documents": [
+        "input-domain-contract.json"
+      ],
+      "blocker_codes": []
+    },
+    {
+      "order": 6,
+      "gate": "EXTRACTION_PROFILE",
+      "status": "FAIL",
+      "summary": "the inventory is closed over 14 published extraction settings and 7 score-affecting values have no upstream authority behind them",
+      "documents": [
+        "extraction-profile.json"
+      ],
+      "blocker_codes": [
+        "HIDDEN_SCORE_AFFECTING_DEFAULT_UNRESOLVED"
+      ]
+    },
+    {
+      "order": 7,
+      "gate": "REPRESENTATION_PROFILE",
+      "status": "NOT_REACHED",
+      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "documents": [
+        "representation-profile.json"
+      ],
+      "blocker_codes": []
+    },
+    {
+      "order": 8,
+      "gate": "MATCHER_PROFILE",
+      "status": "NOT_REACHED",
+      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "documents": [
+        "matcher-profile.json"
+      ],
+      "blocker_codes": []
+    },
+    {
+      "order": 9,
+      "gate": "RAW_SCORE_ROUTE",
+      "status": "NOT_REACHED",
+      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "documents": [
+        "score-contract.json"
+      ],
+      "blocker_codes": []
+    },
+    {
+      "order": 10,
+      "gate": "PAIR_ORIENTATION",
+      "status": "NOT_REACHED",
+      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "documents": [
+        "pair-semantics.json"
+      ],
+      "blocker_codes": []
+    },
+    {
+      "order": 11,
+      "gate": "SELF_SEMANTICS",
+      "status": "NOT_REACHED",
+      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "documents": [],
+      "blocker_codes": []
+    },
+    {
+      "order": 12,
+      "gate": "SCORE_DETERMINISM",
+      "status": "NOT_REACHED",
+      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "documents": [
+        "determinism-report.json"
+      ],
+      "blocker_codes": []
+    },
+    {
+      "order": 13,
+      "gate": "FAILURE_SEMANTICS",
+      "status": "NOT_REACHED",
+      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "documents": [],
+      "blocker_codes": []
+    },
+    {
+      "order": 14,
+      "gate": "NETWORK_DEPENDENCY",
+      "status": "NOT_REACHED",
+      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "documents": [],
+      "blocker_codes": []
+    },
+    {
+      "order": 15,
+      "gate": "RUNTIME_FEASIBILITY",
+      "status": "NOT_REACHED",
+      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "documents": [
+        "runtime-feasibility.json"
+      ],
+      "blocker_codes": []
+    },
+    {
+      "order": 16,
+      "gate": "LICENSE_CAPACITY",
+      "status": "NOT_REACHED",
+      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "documents": [],
+      "blocker_codes": []
+    },
+    {
+      "order": 17,
+      "gate": "TRAINING_PROVENANCE",
+      "status": "NOT_REACHED",
+      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "documents": [
+        "training-provenance.json"
+      ],
+      "blocker_codes": []
+    }
+  ],
+  "blockers": [
+    {
+      "gate": "EXTRACTION_PROFILE",
+      "blocker_code": "HIDDEN_SCORE_AFFECTING_DEFAULT_UNRESOLVED",
+      "affected_component": "7 score-affecting extraction settings: FingersExtractionScenario, FingersFastExtraction, FingersQualityThreshold, FingersMinimalMinutiaCount, FingersDetectTips, FingersDetectLiveness, FingersLivenessConfidenceThreshold",
+      "evidence": "no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software, and the second step starts a 30-day trial bound to one machine — a decision that belongs to the maintainer rather than to a preflight (spec section 32). The artifact is present and verified, and the documentation describes the intended behaviour, but a documented intention is not a measurement: this gate is about what a running licensed engine does.",
+      "why_this_blocks_algorithm_4": "Each of these changes the template, and therefore the score. The pinned manual gives every one of them a type and a meaning and states a default for none of them — while it does state defaults for the face-side settings in the same tables, so the absence is a property of the document rather than of the reading. A value nobody recorded still decides the score, and a profile with 7 unrecorded values is not frozen. What is settled is the inventory itself and the 1 setting whose value upstream's own 1:1 tutorial chooses explicitly (docs/adr/0101).",
+      "how_this_would_be_lifted": "The maintainer activates the 30-day trial on one chosen platform — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number and no personal information — runs the bounded qualification harness on fixtures that are not SD300, and re-runs this stage. No licence is bypassed, no trial is reset and no protection mechanism is touched (spec section 32)."
+    }
+  ],
+  "no_workaround_was_considered": [
+    "no licence bypass",
+    "no trial reset",
+    "no protection mechanism touched",
+    "no redistribution of the artifact",
+    "no reconstruction of the algorithm from documentation",
+    "no preset chosen from score distributions"
+  ],
+  "what_this_candidate_cost": {
+    "artifact_bytes_downloaded": 4867506450,
+    "artifact_bytes_added_to_git": 0,
+    "licences_activated": 0,
+    "sd300_images_read": 0,
+    "scores_produced": 0
+  },
+  "acceptance_conditions": [
+    "official artifact obtained",
+    "exact package identity pinned",
+    "Stage 8E permits execution",
+    "complete runtime dependency closure",
+    "canonical_500 route resolved",
+    "extractor profile resolved",
+    "representation profile resolved",
+    "matcher profile resolved",
+    "raw scalar score resolved",
+    "SELF semantics demonstrated",
+    "pair orientation resolved",
+    "restart determinism demonstrated",
+    "workload, runtime and licence feasible",
+    "no positive SD300 development overlap",
+    "no SD300 consulted"
+  ],
+  "acceptance_conditions_are_conjunctive": true,
+  "acceptance_conditions_met": false,
+  "opens_stage_11b": false,
+  "stage_11b_scope": [
+    "VeriFinger production integration",
+    "the generic adapter",
+    "runtime qualification",
+    "a frozen AlgorithmConfig",
+    "raw-score execution readiness",
+    "and still no threshold and no calibration"
+  ]
+}

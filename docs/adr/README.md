@@ -105,6 +105,11 @@ can be held to.
 | [0096](0096-evaluation-license-capacity-must-cover-the-frozen-workload.md) | An evaluation licence must be shown to cover the frozen workload | Accepted, implemented |
 | [0097](0097-id3-extractor-and-matcher-defaults-are-part-of-algorithm-identity.md) | Extractor and matcher defaults are part of the algorithm's identity | Accepted, implemented |
 | [0098](0098-id3-secrets-and-license-material-never-enter-public-evidence.md) | Licence material never enters public evidence or CI | Accepted, implemented |
+| [0099](0099-stage-11a-qualifies-verifinger-from-the-artifact-itself.md) | Stage 11A qualifies VeriFinger from the artifact itself, not from vendor pages | Accepted, implemented |
+| [0100](0100-preflight-acquires-when-upstream-publishes-a-direct-locator.md) | A preflight acquires when upstream publishes a direct locator | Accepted, implemented |
+| [0101](0101-every-score-affecting-setting-carries-an-upstream-provenance.md) | Every score-affecting setting carries an upstream provenance, never an fpbench choice | Accepted, implemented |
+| [0102](0102-a-native-transformed-score-is-a-raw-score.md) | A native transformed score is a raw score; fpbench converts nothing | Accepted, implemented |
+| [0103](0103-network-for-licensing-is-not-network-in-the-computation.md) | Network for licensing is not network in the computation | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

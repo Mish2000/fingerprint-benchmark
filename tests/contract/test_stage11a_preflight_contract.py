@@ -190,6 +190,73 @@ def test_fail_fast_produces_one_failure_and_the_rest_not_reached() -> None:
             assert later.status is frozen.GateStatus.NOT_REACHED
 
 
+def test_a_not_reached_gate_publishes_no_settled_conclusion() -> None:
+    """The invariant that keeps observations from being read as findings.
+
+    Every document belonging to an unreached gate must say so twice: once in its
+    status, and once by refusing to fill in the block a reached gate would have
+    filled. Holds on any machine, because both the gate statuses and the
+    documents are derived from the same run.
+    """
+    preflight = engine.run_preflight()
+    settled = {
+        frozen.SCORE_CONTRACT_NAME: (
+            "settled_contract",
+            "these_are_observations_not_a_settled_contract",
+        ),
+        frozen.REPRESENTATION_PROFILE_NAME: (
+            None,
+            "these_are_observations_not_a_settled_profile",
+        ),
+    }
+    for name, (settled_key, flag_key) in settled.items():
+        gate = next(
+            item for item, names in frozen.GATE_DOCUMENTS if name in names
+        )
+        document = engine.evidence_document(preflight, name)
+        unreached = preflight.status(gate) is frozen.GateStatus.NOT_REACHED
+        assert document[flag_key] is unreached, name
+        if settled_key is not None and unreached:
+            assert document[settled_key] is None, name
+
+
+def test_a_not_reached_gate_publishes_no_status_it_did_not_establish() -> None:
+    """A vocabulary status is a finding, and an unreached gate has none."""
+    preflight = engine.run_preflight()
+    checks = (
+        (
+            frozen.PreflightGate.RAW_SCORE_ROUTE,
+            frozen.SCORE_CONTRACT_NAME,
+            "raw_score_route_status",
+            frozen.ScoreRouteStatus.NOT_REACHED.value,
+        ),
+        (
+            frozen.PreflightGate.REPRESENTATION_PROFILE,
+            frozen.REPRESENTATION_PROFILE_NAME,
+            "representation_type",
+            frozen.RepresentationType.NOT_REACHED.value,
+        ),
+        (
+            frozen.PreflightGate.NETWORK_DEPENDENCY,
+            frozen.DETERMINISM_REPORT_NAME,
+            "network_role",
+            frozen.NetworkRole.NOT_REACHED.value,
+        ),
+        (
+            frozen.PreflightGate.TRAINING_PROVENANCE,
+            frozen.TRAINING_PROVENANCE_NAME,
+            "training_provenance_status",
+            frozen.TrainingProvenanceStatus.NOT_REACHED.value,
+        ),
+    )
+    for gate, name, key, unreached_value in checks:
+        document = engine.evidence_document(preflight, name)
+        if preflight.status(gate) is frozen.GateStatus.NOT_REACHED:
+            assert document[key] == unreached_value, name
+        else:
+            assert document[key] != unreached_value, name
+
+
 def test_not_reached_is_not_a_pass() -> None:
     preflight = engine.run_preflight()
     if preflight.stopped_at is not None:

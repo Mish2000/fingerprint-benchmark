@@ -27,13 +27,14 @@
   "nondeterminism_observed": false,
   "nondeterminism_would_be": "SCORE_NONDETERMINISM_OBSERVED",
   "network_dependency_gate_status": "NOT_REACHED",
-  "network_role": "LICENSE_VALIDATION_ONLY",
+  "network_role": "NOT_REACHED",
   "network_questions": [
     "is the network used for licence validation only?",
     "or does the network participate in the biometric computation?",
     "if a remote service computes any part of the score, can that service be pinned at all?"
   ],
-  "remote_service_participates_in_the_score": false,
+  "remote_service_participates_in_the_score": null,
+  "what_the_pinned_notices_say_about_the_network": "The licence agreement defines Internet Activation as storing a licence file locally that allows the component to run on that computer after a licence check, with a connection needed briefly at least once in seven days; the extraction and matching components are native libraries in the archive and their data files are beside them. That is what the gate would conclude from, and it is recorded as an observation while the gate is unreached (docs/adr/0103).",
   "licence_was_disconnected_to_test_this": false,
   "why_not": "There is no bypass experiment in this stage. The network question is answered from the pinned agreement and the SDK's own structure, using documented behaviour only (spec section 32).",
   "observations": [

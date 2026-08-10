@@ -12,6 +12,7 @@
     "another vendor template type"
   ],
   "representation_type": "NOT_REACHED",
+  "these_are_observations_not_a_settled_profile": true,
   "interoperable_format_chosen_for_convenience": false,
   "iso_and_ansi_are_export_formats_here": true,
   "minex_is_a_separate_matching_scenario": true,

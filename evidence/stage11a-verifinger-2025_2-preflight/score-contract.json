@@ -15,66 +15,71 @@
     "a transformed native quantity — a claimed FAR, a log-FAR, a normalised similarity — is acceptable while it is the number upstream returns; fpbench performs no conversion of its own"
   ],
   "raw_score_route_status": "NOT_REACHED",
-  "scalar_per_attempt": 1,
-  "numeric_type": "integer",
-  "direction": "HIGHER_IS_MORE_SIMILAR",
-  "nominal_range_published_by_upstream": false,
-  "why_no_nominal_range": "Upstream defines the scale by its correspondence with a claimed false acceptance rate rather than by a maximum. A range invented here would be fpbench asserting a bound the vendor does not state.",
-  "native_transform": "a native similarity score on a claimed-FAR scale: upstream publishes score = -12 * log10(FAR) with FAR as a fraction, so 12 is a claimed 10% FAR, 48 a claimed 0.01% and 96 a claimed 0.000001%. fpbench performs no conversion of its own in either direction (spec section 24)",
-  "upstream_anchor_points": [
-    {
-      "claimed_far": "100%",
-      "score_value": 0
-    },
-    {
-      "claimed_far": "10%",
-      "score_value": 12
-    },
-    {
-      "claimed_far": "1%",
-      "score_value": 24
-    },
-    {
-      "claimed_far": "0.1%",
-      "score_value": 36
-    },
-    {
-      "claimed_far": "0.01%",
-      "score_value": 48
-    },
-    {
-      "claimed_far": "0.001%",
-      "score_value": 60
-    },
-    {
-      "claimed_far": "0.0001%",
-      "score_value": 72
-    },
-    {
-      "claimed_far": "0.00001%",
-      "score_value": 84
-    },
-    {
-      "claimed_far": "0.000001%",
-      "score_value": 96
-    }
-  ],
+  "documented_by_the_pinned_artifact": {
+    "scalar_per_attempt": 1,
+    "numeric_type": "integer",
+    "direction": "HIGHER_IS_MORE_SIMILAR",
+    "nominal_range_published_by_upstream": false,
+    "why_no_nominal_range": "Upstream defines the scale by its correspondence with a claimed false acceptance rate rather than by a maximum. A range invented here would be fpbench asserting a bound the vendor does not state.",
+    "native_transform": "a native similarity score on a claimed-FAR scale: upstream publishes score = -12 * log10(FAR) with FAR as a fraction, so 12 is a claimed 10% FAR, 48 a claimed 0.01% and 96 a claimed 0.000001%. fpbench performs no conversion of its own in either direction (spec section 24)",
+    "upstream_anchor_points": [
+      {
+        "claimed_far": "100%",
+        "score_value": 0
+      },
+      {
+        "claimed_far": "10%",
+        "score_value": 12
+      },
+      {
+        "claimed_far": "1%",
+        "score_value": 24
+      },
+      {
+        "claimed_far": "0.1%",
+        "score_value": 36
+      },
+      {
+        "claimed_far": "0.01%",
+        "score_value": 48
+      },
+      {
+        "claimed_far": "0.001%",
+        "score_value": 60
+      },
+      {
+        "claimed_far": "0.0001%",
+        "score_value": 72
+      },
+      {
+        "claimed_far": "0.00001%",
+        "score_value": 84
+      },
+      {
+        "claimed_far": "0.000001%",
+        "score_value": 96
+      }
+    ],
+    "threshold_is_a_separate_engine_property": true,
+    "boolean_only_api": false,
+    "official_one_to_one_route": [
+      "obtain the FingerExtractor and FingerMatcher licences",
+      "construct one NBiometricClient",
+      "create an NSubject per side, each holding one NFinger set to an image file",
+      "select the score-affecting settings the sample selects",
+      "call verify(reference, candidate)",
+      "accept OK and MATCH_NOT_FOUND alike",
+      "read the integer score from the reference subject's first matching result",
+      "stop there — the decision the sample prints after that is not part of the raw route"
+    ]
+  },
+  "these_are_observations_not_a_settled_contract": true,
+  "settled_contract": null,
+  "why_nothing_is_settled_here": "The gate was never reached, so nothing above it was applied. What the manual states is recorded because a reader comparing this stage with the next one needs to see what was already known — and because publishing it as a conclusion would be exactly the substitution this stage refuses elsewhere.",
   "fpbench_conversion_performed": false,
   "threshold_applied_inside_the_number": false,
-  "threshold_is_a_separate_engine_property": true,
-  "boolean_only_api": false,
   "raw_route_stops_at_the_score": true,
   "vendor_threshold_constants_enter_this_stage": false,
-  "official_one_to_one_route": [
-    "obtain the FingerExtractor and FingerMatcher licences",
-    "construct one NBiometricClient",
-    "create an NSubject per side, each holding one NFinger set to an image file",
-    "select the score-affecting settings the sample selects",
-    "call verify(reference, candidate)",
-    "accept OK and MATCH_NOT_FOUND alike",
-    "read the integer score from the reference subject's first matching result",
-    "stop there — the decision the sample prints after that is not part of the raw route"
-  ],
   "failure_semantics_classes": [
     "invalid image",
     "unsupported image",
@@ -143,7 +148,7 @@
     }
   ],
   "notes": [
-    "This is the gate the specification calls decisive, and the artifact answers it: a scalar exists, it is not a boolean, and no threshold has been applied to it (docs/adr/0102).",
+    "This is the gate the specification calls decisive, and the artifact does answer it: a scalar exists, it is not a boolean, and no threshold has been applied to it. The gate order put an unresolved extraction profile in front of it, so the answer is recorded and not applied (docs/adr/0102).",
     "A transformed native quantity is still a raw score. What would not be is a number fpbench computed from one."
   ]
 }

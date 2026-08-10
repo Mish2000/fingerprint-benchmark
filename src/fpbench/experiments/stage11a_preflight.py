@@ -1917,6 +1917,7 @@ def _representation_profile_document(
         if reached
         else frozen.RepresentationType.NOT_REACHED.value
     )
+    document["these_are_observations_not_a_settled_profile"] = not reached
     document["interoperable_format_chosen_for_convenience"] = False
     document["iso_and_ansi_are_export_formats_here"] = True
     document["minex_is_a_separate_matching_scenario"] = True
@@ -1951,27 +1952,52 @@ def _score_contract_document(preflight: VeriFingerPreflight) -> Mapping[str, Any
         if reached
         else frozen.ScoreRouteStatus.NOT_REACHED.value
     )
-    document["scalar_per_attempt"] = 1
-    document["numeric_type"] = observed.DOCUMENTED_SCORE_TYPE
-    document["direction"] = observed.DOCUMENTED_SCORE_DIRECTION
-    document["nominal_range_published_by_upstream"] = False
-    document["why_no_nominal_range"] = (
-        "Upstream defines the scale by its correspondence with a claimed false "
-        "acceptance rate rather than by a maximum. A range invented here would "
-        "be fpbench asserting a bound the vendor does not state."
-    )
-    document["native_transform"] = observed.DOCUMENTED_SCORE_TRANSFORM
-    document["upstream_anchor_points"] = [
-        {"claimed_far": far, "score_value": value}
-        for far, value in observed.DOCUMENTED_SCORE_ANCHORS
-    ]
+
+    # What the pinned manual and upstream's own 1:1 tutorial say. Kept in one
+    # labelled block rather than spread across the document as flat fields,
+    # because this gate was not reached: a reader who sees `numeric_type:
+    # integer` beside `gate_status: NOT_REACHED` should be able to tell in one
+    # glance which of the two is a finding. Where the gate *is* reached the same
+    # values are promoted to settled fields below.
+    documented = {
+        "scalar_per_attempt": 1,
+        "numeric_type": observed.DOCUMENTED_SCORE_TYPE,
+        "direction": observed.DOCUMENTED_SCORE_DIRECTION,
+        "nominal_range_published_by_upstream": False,
+        "why_no_nominal_range": (
+            "Upstream defines the scale by its correspondence with a claimed "
+            "false acceptance rate rather than by a maximum. A range invented "
+            "here would be fpbench asserting a bound the vendor does not state."
+        ),
+        "native_transform": observed.DOCUMENTED_SCORE_TRANSFORM,
+        "upstream_anchor_points": [
+            {"claimed_far": far, "score_value": value}
+            for far, value in observed.DOCUMENTED_SCORE_ANCHORS
+        ],
+        "threshold_is_a_separate_engine_property": True,
+        "boolean_only_api": False,
+        "official_one_to_one_route": list(observed.OFFICIAL_ONE_TO_ONE_ROUTE),
+    }
+    document["documented_by_the_pinned_artifact"] = documented
+    document["these_are_observations_not_a_settled_contract"] = not reached
+    if reached:
+        document["settled_contract"] = documented
+    else:
+        document["settled_contract"] = None
+        document["why_nothing_is_settled_here"] = (
+            "The gate was never reached, so nothing above it was applied. What "
+            "the manual states is recorded because a reader comparing this stage "
+            "with the next one needs to see what was already known — and because "
+            "publishing it as a conclusion would be exactly the substitution "
+            "this stage refuses elsewhere."
+        )
+
+    # Requirements and refusals, which hold under either outcome because they are
+    # rules rather than findings.
     document["fpbench_conversion_performed"] = False
     document["threshold_applied_inside_the_number"] = False
-    document["threshold_is_a_separate_engine_property"] = True
-    document["boolean_only_api"] = False
     document["raw_route_stops_at_the_score"] = True
     document["vendor_threshold_constants_enter_this_stage"] = False
-    document["official_one_to_one_route"] = list(observed.OFFICIAL_ONE_TO_ONE_ROUTE)
     document["failure_semantics_classes"] = list(frozen.FAILURE_SEMANTICS_CLASSES)
     document["a_failure_may_never_become_a_score_of_zero"] = True
     document["failure_semantics_gate_status"] = preflight.status(
@@ -1980,8 +2006,10 @@ def _score_contract_document(preflight: VeriFingerPreflight) -> Mapping[str, Any
     document["observations"] = observed.observation_rows(observed.SCORE_OBSERVATIONS)
     document["notes"] = [
         "This is the gate the specification calls decisive, and the artifact "
-        "answers it: a scalar exists, it is not a boolean, and no threshold has "
-        "been applied to it (docs/adr/0102).",
+        "does answer it: a scalar exists, it is not a boolean, and no threshold "
+        "has been applied to it. The gate order put an unresolved extraction "
+        "profile in front of it, so the answer is recorded and not applied "
+        "(docs/adr/0102).",
         "A transformed native quantity is still a raw score. What would not be "
         "is a number fpbench computed from one.",
     ]
@@ -2039,12 +2067,27 @@ def _determinism_report_document(preflight: VeriFingerPreflight) -> Mapping[str,
     document["nondeterminism_would_be"] = (
         frozen.BlockerCode.SCORE_NONDETERMINISM_OBSERVED.value
     )
-    document["network_dependency_gate_status"] = preflight.status(
-        frozen.PreflightGate.NETWORK_DEPENDENCY
-    ).value
-    document["network_role"] = frozen.NetworkRole.LICENSE_VALIDATION_ONLY.value
+    network = preflight.status(frozen.PreflightGate.NETWORK_DEPENDENCY)
+    network_reached = network is not frozen.GateStatus.NOT_REACHED
+    document["network_dependency_gate_status"] = network.value
+    document["network_role"] = (
+        frozen.NetworkRole.LICENSE_VALIDATION_ONLY.value
+        if network_reached
+        else frozen.NetworkRole.NOT_REACHED.value
+    )
     document["network_questions"] = list(frozen.NETWORK_DEPENDENCY_QUESTIONS)
-    document["remote_service_participates_in_the_score"] = False
+    document["remote_service_participates_in_the_score"] = (
+        False if network_reached else None
+    )
+    document["what_the_pinned_notices_say_about_the_network"] = (
+        "The licence agreement defines Internet Activation as storing a licence "
+        "file locally that allows the component to run on that computer after a "
+        "licence check, with a connection needed briefly at least once in seven "
+        "days; the extraction and matching components are native libraries in "
+        "the archive and their data files are beside them. That is what the gate "
+        "would conclude from, and it is recorded as an observation while the "
+        "gate is unreached (docs/adr/0103)."
+    )
     document["licence_was_disconnected_to_test_this"] = False
     document["why_not"] = (
         "There is no bypass experiment in this stage. The network question is "

@@ -178,7 +178,7 @@ jobs:
           body = workflow.split("jobs:", 1)[1]
           tokens = [
               "secrets." + "ID3",
-              "activationkey",
+              "activation" + "key",
               "--acti" + "vate",
               "code" + "load",
               "w" + "get",

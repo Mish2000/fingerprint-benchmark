@@ -395,17 +395,67 @@ class TrackedByteAudit:
 #: digest list below covers what this stage actually hashed; these cover the
 #: 8,600-odd members it did not cite, which is where a stray file would come
 #: from.
-_VENDOR_ARTIFACT_SUFFIXES = (".ndf", ".lic", ".id3nn")
-_VENDOR_ARTIFACT_NAME_FRAGMENTS = (
-    "neurotec_biometric",
-    "neurotec-biometric",
-    "verifinger",
-    "megamatcher",
-    "activationwizard",
-    "nlicensing",
-    "nbiometric",
-    "neurotechnology.id",
+#:
+#: **These match vendor artifacts, not writing about them.** An earlier version of
+#: this table matched the bare word ``verifinger`` and refused the repository over
+#: this stage's own source files, its ADRs and its workflow — the same shape of
+#: mistake as a stage gate auditing itself. A guard that cannot tell a native
+#: library from a document about one is a guard nobody can leave switched on.
+_VENDOR_ARTIFACT_SUFFIXES = (".ndf", ".lic", ".id3nn", ".chm")
+
+#: Distribution archives and the extracted tree they produce, by the exact naming
+#: Neurotechnology uses.
+#: ``neurotec-`` covers the Java bindings, which are hyphenated where the
+#: distribution archives are not. No file this project writes begins with it, and
+#: the test suite asserts that in both directions.
+_VENDOR_ARTIFACT_NAME_PREFIXES = (
+    "neurotec_biometric_",
+    "neurotec_ai_",
+    "neurotec-",
+    "megamatcher_",
 )
+
+#: The vendor's native libraries, matched on the stem so that the Windows,
+#: Linux and macOS builds are all covered by one entry each.
+_VENDOR_LIBRARY_STEMS = (
+    "nbiometrics",
+    "nbiometricclient",
+    "ncore",
+    "nmedia",
+    "nlicensing",
+    "ntemplates",
+    "nimages",
+)
+_VENDOR_LIBRARY_SUFFIXES = (".dll", ".so", ".dylib", ".jar", ".lib", ".a")
+
+#: Exact file names that are vendor material wherever they appear.
+_VENDOR_ARTIFACT_EXACT_NAMES = (
+    "neurotechnology.id",
+    "activationwizard.exe",
+    "trialflag.txt",
+    "sdk license.html",
+)
+
+
+def _looks_like_a_vendor_artifact(relative: str) -> bool:
+    """Whether one tracked path is a Neurotechnology artifact by its shape.
+
+    Checked against the file name and against the extracted archive's own root
+    directory, so an unpacked SDK anywhere under the tree is caught even where
+    none of its individual members was ever hashed by this stage.
+    """
+    lowered = PurePosixPath(relative).name.lower()
+    if lowered.endswith(_VENDOR_ARTIFACT_SUFFIXES):
+        return True
+    if lowered in _VENDOR_ARTIFACT_EXACT_NAMES:
+        return True
+    if lowered.startswith(_VENDOR_ARTIFACT_NAME_PREFIXES):
+        return True
+    stem, _, suffix = lowered.rpartition(".")
+    if stem in _VENDOR_LIBRARY_STEMS and f".{suffix}" in _VENDOR_LIBRARY_SUFFIXES:
+        return True
+    parts = [part.lower() for part in PurePosixPath(relative).parts[:-1]]
+    return any(part.startswith(_VENDOR_ARTIFACT_NAME_PREFIXES) for part in parts)
 
 
 def verifinger_artifact_digests() -> Mapping[str, tuple[str, str]]:
@@ -473,10 +523,7 @@ def audit_tracked_bytes_against_verifinger_artifacts(
     findings: list[TrackedByteFinding] = []
     tracked = _tracked_files(repository_root)
     for relative in tracked:
-        lowered = PurePosixPath(relative).name.lower()
-        if lowered.endswith(_VENDOR_ARTIFACT_SUFFIXES) or any(
-            fragment in lowered for fragment in _VENDOR_ARTIFACT_NAME_FRAGMENTS
-        ):
+        if _looks_like_a_vendor_artifact(relative):
             findings.append(
                 TrackedByteFinding(
                     path=relative,

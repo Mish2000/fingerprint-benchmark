@@ -542,6 +542,44 @@ def test_no_vendor_byte_is_tracked_in_this_repository() -> None:
     assert audit.clean
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        "src/fpbench/experiments/stage11a_verifinger_identity.py",
+        "src/fpbench/core/verifinger_preflight_errors.py",
+        "docs/algorithms/algorithm4-candidates/verifinger-2025-2.md",
+        "docs/experiments/stage11a-verifinger-2025_2-preflight.md",
+        ".github/workflows/stage11a-verifinger-preflight.yml",
+        "tests/contract/test_stage11a_verifinger_artifact_local.py",
+    ],
+)
+def test_the_byte_guard_does_not_refuse_writing_about_the_vendor(path: str) -> None:
+    """The guard must tell a native library from a document about one.
+
+    An earlier version matched the bare word ``verifinger`` and refused this
+    stage's own source, its ADRs and its workflow — a guard auditing itself,
+    which is the recurring shape of this mistake in this repository.
+    """
+    assert not store._looks_like_a_vendor_artifact(path), path
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "Neurotec_Biometric_2025_2_SDK_2026-06-12.zip",
+        "vendor/Neurotec_Biometric_2025_2_SDK/Bin/Data/Fingers.ndf",
+        "somewhere/Bin/Win64_x64/NBiometrics.dll",
+        "somewhere/Bin/Java/neurotec-core.jar",
+        "Bin/Licenses/TrialFlag.txt",
+        "x/y/FingerMatcher.lic",
+        "Neurotechnology.id",
+    ],
+)
+def test_the_byte_guard_catches_vendor_material_by_shape(path: str) -> None:
+    """Never skips. These are the shapes an unpacked SDK would arrive as."""
+    assert store._looks_like_a_vendor_artifact(path), path
+
+
 # ------------------------------------------------------------------ the marker
 
 

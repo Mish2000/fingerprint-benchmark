@@ -4,7 +4,7 @@
   "outcome": "ALGORITHM4_PREFLIGHT_NO_SURVIVOR",
   "algorithm_slot": "algorithm_4",
   "stage8e_policy_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
-  "stage10a_source_fingerprint": "79e0520c50d01b13d2cce3ddc870086f45f357843519149e654c107c8dc00a53",
+  "stage10a_source_fingerprint": "61e945fa1220d68f5642b62bd8bb632ed068e343294cd6a8d832fd7095d00bce",
   "reconnaissance_fingerprint": "6d6e1b45db4f3bcdf80ff3e26b6e362e2b77ffde5f8d14a5f6d2538b67a8c0e9",
   "preflight_fingerprint": "1439e186136f64d9f91be9ac48083d88d663922d4a8dfa07b326b0a0b6d5fcd8",
   "third_party_usage_manifest_fingerprint": "ba4b3d801618edffd948afafb1498718074cd7051aaecc5ebfed53ff4d77969f",
@@ -13,7 +13,7 @@
   "jipnet_preflight": "JIPNET_PREFLIGHT_FAIL",
   "candidate_count": 2,
   "survivor_count": 0,
-  "gates_evaluated_per_candidate": 7,
+  "gate_count_defined_per_candidate": 7,
   "selection_based_on_reported_performance": false,
   "reported_performance_read": false,
   "sd300_image_bytes_read": false,
@@ -85,10 +85,10 @@
   "evidence_content_hashes": {
     "README.md": "84b9b8df789e4322b98aafef65ca92e44761ee58deb3759d6681dd369761cd24",
     "afrnet/artifact-manifest.json": "4a253d272c7fe5f8e5f6835b7bcd788fb19e366fa2173d45024e8c84824e0f45",
-    "afrnet/authenticity-report.json": "906f793915cbcea7d8f691e68bc09b46d5c74503a1b50f00f11c6a29d2d12b0b",
+    "afrnet/authenticity-report.json": "08cd00901c00dbdda2a2a09fd8824fe62e456d3b05ee662cbd063bec00fce10a",
     "afrnet/inference-route-audit.json": "f1a80c3561ce9f54be25031b0ba5b91ba98eef2d8b48eb5d036d354a8345d8fb",
     "afrnet/input-domain-contract.json": "68d26db547d167f4b2aecfd0b44dbd9f4aa23b7720fc45f38f1c4a2d836e4ee5",
-    "afrnet/preflight-report.json": "bbce957eadc3b935c7f658216072bdfb3b69a1b6ed06b9ad9490f3a21eabf77a",
+    "afrnet/preflight-report.json": "5d9698adf94706e1a362ff90bd6d1d9057569f5040048cdab49aa7f54f17f9f4",
     "afrnet/runtime-smoke.json": "1734d9c431e9767ce3c7ee097bfb8906b6e9288828df820f998b9638239c804a",
     "afrnet/score-contract.json": "c3b7952dbcc159fef0b7031b5d601aede545e5c924ab27ba44a32e513ddeb7e4",
     "afrnet/source-discovery.json": "483806dec568aee8517c7791b5f86543cdcef3693e7c8345dce344f5ffce8973",
@@ -105,10 +105,10 @@
     "jipnet/source-manifest.json": "ecfd161bd616481877fce6ef10311ee2202be1e335aa78b3175a28aa178cc579",
     "jipnet/training-provenance.json": "5d0daf8b2850c59873abdc0d8b0f281971f80865e15978449732bef3b1b525fc"
   },
-  "source_commit": "7d005aa4a52d699595c7663c93e0a8d967d129a5",
+  "source_commit": "217f8ea8c0d1d62a99903b9ade376722797e5e78",
   "source_tree_clean": true,
-  "verifier_source_commit": "7d005aa4a52d699595c7663c93e0a8d967d129a5",
+  "verifier_source_commit": "217f8ea8c0d1d62a99903b9ade376722797e5e78",
   "verifier_source_tree_clean": true,
-  "stage_10a_finalization_fingerprint": "6bf1277fb311ea4218aebe75fdd7a2fe892cb9c62747690f9046d27f3531ecaa",
-  "created_utc": "2026-08-09T10:26:21Z"
+  "stage_10a_finalization_fingerprint": "a229993522bdf007461b68226abf1e308030b4635b3e6e90aa390d3cf3c242d8",
+  "created_utc": "2026-08-10T06:43:00Z"
 }

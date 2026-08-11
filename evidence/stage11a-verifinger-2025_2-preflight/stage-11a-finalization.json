@@ -5,9 +5,9 @@
   "algorithm_slot": "algorithm_4",
   "predecessor_stage_10b_fingerprint": "48bf4a9b745bec9d73607152561249f6e5981c7053fca4adfd78c15acb23697a",
   "stage8e_policy_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
-  "stage11a_source_fingerprint": "55f3a23d49c08ae338f3da874377099ad341540b40139b261408e28bf34548b3",
+  "stage11a_source_fingerprint": "bc2c73e60bb21b1442d21c71bcff64f22df01a904be8a0e49a058c8cb3a00862",
   "observations_fingerprint": "cb81f913e01f711802cb8bb23cb500afcb6f67479915b2a3d99c2970f647d019",
-  "preflight_fingerprint": "7a4f5c3335f69c549fb229f39bffb12c83805abd64fd0a803d68aa6d77ad6d55",
+  "preflight_fingerprint": "965009b21cf2cda58751bf1a1914b904169f1db70d5703aa8951567fed0086da",
   "candidate_verdict": "VERIFINGER_PREFLIGHT_INCOMPLETE",
   "selected_candidate": null,
   "gate_count_defined": 17,
@@ -82,67 +82,67 @@
   "blockers": [],
   "pending_actions": [
     {
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "gate": "EXTRACTION_PROFILE",
       "what_is_missing": "a value with an upstream provenance for 8 score-affecting extraction settings: FingersTemplateSize, FingersExtractionScenario, FingersFastExtraction, FingersQualityThreshold, FingersMinimalMinutiaCount, FingersDetectTips, FingersDetectLiveness, FingersLivenessConfidenceThreshold. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
       "what_it_would_answer": "Each of these changes the score, and the pinned manual states a default for none of them — while stating defaults for the face-side settings in the same tables, so the absence is a property of the document rather than of the reading. One constructed engine reports all of them, and each becomes a DELIVERED_RUNTIME_DEFAULT: an upstream authority, recorded rather than chosen.",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32)."
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300."
     },
     {
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "gate": "FAILURE_SEMANTICS",
       "what_is_missing": "the 6 failure classes, each actually provoked. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
       "what_it_would_answer": "What each failure returns. A failure that arrives as a score of 0 is a false match rate computed over comparisons that never happened. The API has a status type beside the score, which is the right shape — but which status each failure produces, and whether a score sits beside it, is behaviour.",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32)."
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300."
     },
     {
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "gate": "LICENSE_CAPACITY",
-      "what_is_missing": "the per-operation cost the expiry has to be weighed against. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_it_would_answer": "Whether 12000 extractions and 6000 matches fit inside 30 days. The expiry is known and the cost is not, so the product of the two is not known either. Two further terms are already recorded rather than assumed away: the trial needs a constant internet connection, and it excludes simultaneous use of licensed Neurotechnology products on the same computer.",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32)."
+      "what_is_missing": "the end-to-end verify latency the expiry has to be weighed against. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_it_would_answer": "Whether 6000 verification attempts fit inside 30 days. The expiry is known and the per-call cost is not, so the product of the two is not known either. The protocol's 12000 extractions remain its logical semantics — two per comparison — and are not billed separately, because the route's only entry point is one verify call per attempt. Two further terms are recorded rather than assumed away: the trial needs a constant internet connection, and it excludes simultaneous use of licensed Neurotechnology products on the same computer.",
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300."
     },
     {
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "gate": "MATCHER_PROFILE",
       "what_is_missing": "a value with an upstream provenance for 2 score-affecting matching settings: FingersMaximalRotation, MatchingScenario. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
       "what_it_would_answer": "Each of these changes the score, and the pinned manual states a default for none of them — while stating defaults for the face-side settings in the same tables, so the absence is a property of the document rather than of the reading. One constructed engine reports all of them, and each becomes a DELIVERED_RUNTIME_DEFAULT: an upstream authority, recorded rather than chosen.",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32)."
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300."
     },
     {
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "gate": "PAIR_ORIENTATION",
       "what_is_missing": "both orderings of a fixture pair, actually scored. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
       "what_it_would_answer": "Whether the two orderings agree. If they differ, a run that fed pairs in whichever order they arrived would be averaging two different measurements without saying so — and fpbench may neither average them nor take their maximum, so the orientation has to be discovered and preserved.",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32)."
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300."
     },
     {
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "gate": "RUNTIME_FEASIBILITY",
-      "what_is_missing": "the 5 feasibility measurements. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_is_missing": "the 4 feasibility measurements. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
       "what_it_would_answer": "What the route costs per operation. A second per extraction turns the frozen workload's 12000 extractions into hours, and that is worth knowing before the run rather than during it — and it is what the licence-capacity gate needs in order to decide anything at all.",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32)."
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300."
     },
     {
       "action_code": "RUNTIME_PLATFORM_NOT_LOCKED",
       "gate": "RUNTIME_IDENTITY",
       "what_is_missing": "the platform this route is bound to, and the version the running library reports. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
       "what_it_would_answer": "Which operating system, architecture, native libraries and language runtime a VeriFinger score would come from — the half of runtime identity that a file cannot state about itself. The lock records 7 fields at activation, because the trial is single-platform and alternating between two under one algorithm fingerprint is refused whichever is chosen.",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32)."
+      "what_to_do": "The platform is locked by the qualification run itself, which records the operating system, the architecture, the native libraries it loaded and the language runtime. Run `make stage11a-qualify-check` first: it reports which chore is actually outstanding on this machine."
     },
     {
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "gate": "SCORE_DETERMINISM",
       "what_is_missing": "the same fixture pair scored at all 3 levels. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
       "what_it_would_answer": "Whether a VeriFinger score is reproducible at all. This is the one gate whose failure would be a genuine methodological blocker rather than a chore, which is why it is measured rather than assumed.",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32)."
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300."
     },
     {
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "gate": "SELF_SEMANTICS",
       "what_is_missing": "SELF(A, A) executed as two independent extractions. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
       "what_it_would_answer": "Whether the engine shortcuts equal inputs. A pairwise route that noticed both sides were the same file could return a constant, and that constant would be a number about this project's own plumbing rather than about the algorithm. The rule is frozen either way — two loads, two extractions, no representation reuse (docs/adr/0070).",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32)."
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300."
     }
   ],
   "evidence_content_hashes": {
@@ -150,23 +150,23 @@
     "acquisition-manifest.json": "41b18de67e6dcbf9e7fe99dad67c35d03f68921847544afdd38541e27c655574",
     "artifact-manifest.json": "6ac6faff20f3e66484a5d779671bb65209a872700f9591725e61ce5f35470816",
     "candidate-identity.json": "cc1e75849087ddd24b1bad2c5f39792c8e3f99ec6518aaa3329099fa7f667537",
-    "determinism-report.json": "2427f7f1038a877341800aa582f41f2dd0b2ea5ec2d4d48e66dfbabf1be6461c",
-    "extraction-profile.json": "2859fc72805c12344fdecbe06e31505675b61790383e75643520cdf9a6f2d28b",
+    "determinism-report.json": "fb6c5c73e14f897d62bd72b5b7041e3ffd744d7903c945e6760c1552ae5cffdb",
+    "extraction-profile.json": "18121b4d8017d85287c9bcbbaabf3cc4233d97e74eb6cb43ab8eca4a46594cb0",
     "input-domain-contract.json": "49eb53ec37a5c4aba9bf56ed486c458f8b689e59f38cdb596ee033fc4d8e643b",
-    "matcher-profile.json": "7f6dea4b72fe05134761af424be172d86471975662546657119eaf3f1bb028db",
-    "pair-semantics.json": "9fbb5730e027ad29dc995406cb35ff28c3d939333ef650e1d5e5b7102aae9d4e",
-    "preflight-report.json": "e455965b433ec09f5f356d1d07a5b02f31b62487e7b391138edf7d70bf56fe09",
+    "matcher-profile.json": "290274a7da022083ecd7dade4a8ff3e009df05716ac9c7641970b28ee87a3e41",
+    "pair-semantics.json": "ecf3761ab34f678ec9d80f2d7ae6f40d0b7d7a2bb843816144bfd88eadd701f2",
+    "preflight-report.json": "143d8bbefbd15b8ef444079860a6e4a65eed8700a1d995a27faa1c45cb07224b",
     "representation-profile.json": "04dc6c35f56aad1bd821c8023c0fbc87642d23f170f4bed7b581bdd44df5309b",
-    "runtime-feasibility.json": "533f3346d53d78fb2c821693d3c58242efb6dd05f28beda73a6c7e9229b4990e",
-    "runtime-identity.json": "757b28d84e8b7187205c1dbf8ceffc62170304fefeb600be2e393955972530a9",
+    "runtime-feasibility.json": "2eee4a915dacfa4f4a3c381ef7c2b1620890b56eed9e8ef892dcee112272731f",
+    "runtime-identity.json": "9109f9087ab89bef38ba1a28179874555d76b3699c1096cb805a9307b3916095",
     "score-contract.json": "0f521d6855297854ba6c25f009d8386d1150acd204d780fa55e93c6c49b1b961",
     "third-party-usage-binding.json": "62d714bd273350c29f0b6f05a9c49be66e0d505333a9b376e60669caec81381a",
     "training-provenance.json": "415937cf21450fe89411594da44289586b1dbcf3ad22efd647a372386f4991d1"
   },
-  "source_commit": "7efe1907cfb6d54d97b6e34a2dd487ebf52b5df1",
+  "source_commit": "cbea89ec0daafc5aef15853653d806d10217c834",
   "source_tree_clean": true,
-  "verifier_source_commit": "7efe1907cfb6d54d97b6e34a2dd487ebf52b5df1",
+  "verifier_source_commit": "cbea89ec0daafc5aef15853653d806d10217c834",
   "verifier_source_tree_clean": true,
-  "stage_11a_finalization_fingerprint": "b39869927376e1f993c96012fae2bd164486c564cc9141311cec0665c8d11220",
-  "created_utc": "2026-08-11T14:37:54Z"
+  "stage_11a_finalization_fingerprint": "23ed14d9e6f9d8d8be63ed31b0dd106d5662bb7f7d3f5430dacfa6f9991e8d5e",
+  "created_utc": "2026-08-11T18:47:32Z"
 }

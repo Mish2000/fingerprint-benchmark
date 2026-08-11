@@ -112,6 +112,7 @@ can be held to.
 | [0103](0103-network-for-licensing-is-not-network-in-the-computation.md) | Network for licensing is not network in the computation | Accepted, implemented |
 | [0104](0104-a-preflight-that-was-not-run-is-not-a-preflight-that-failed.md) | A preflight that was not run is not a preflight that failed | Accepted, implemented |
 | [0105](0105-one-upstream-sample-is-the-route-not-several.md) | One upstream sample is the route, not several | Accepted, implemented |
+| [0106](0106-the-qualification-harness-must-be-able-to-reach-pass.md) | The qualification harness must be able to reach PASS, and must not overstate what it read | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

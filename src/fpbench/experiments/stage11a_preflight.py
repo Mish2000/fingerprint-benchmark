@@ -519,9 +519,62 @@ def _platform_lock() -> Mapping[str, Any] | None:
 
 
 def _delivered_defaults() -> Mapping[str, Any]:
+    """The settings a running engine actually reported a value for.
+
+    ``UNREADABLE:*`` is filtered out here rather than at the reader, so no gate
+    can accidentally treat "the engine would not tell us" as a value. A setting
+    nobody could read is exactly as unfrozen as a setting nobody looked for
+    (spec correction 2).
+    """
     record = _record()
     values = {} if record is None else record.get("delivered_runtime_defaults") or {}
-    return values if isinstance(values, Mapping) else {}
+    if not isinstance(values, Mapping):
+        return {}
+    return {
+        name: value
+        for name, value in values.items()
+        if frozen.setting_value_is_resolved(value)
+    }
+
+
+def _failed_run() -> Any:
+    """The state of a run that started and did not finish, or ``None``.
+
+    Kept separate from :func:`_record` because the two mean opposite things: a
+    record answers gates, and a failure *is* an answer — a real observed blocker
+    rather than an outstanding chore (spec correction 5).
+    """
+    state = _qualification_state()
+    return state if getattr(state, "failed", False) else None
+
+
+def _execution_failure_blocker(gate: frozen.PreflightGate) -> Blocker:
+    """The blocker a failed qualification run raises, wherever it is noticed."""
+    state = _failed_run()
+    return Blocker(
+        gate=gate,
+        blocker_code=frozen.BlockerCode.LOCAL_SMOKE_FAILED,
+        affected_component=(
+            "the bounded qualification run, which started and did not finish"
+        ),
+        evidence=(
+            f"a qualification run on this machine reached {state.failed_at_stage!r} "
+            f"and failed there: {state.failure_detail}. The runtime had started, "
+            "so this is an observation about the route rather than an outstanding "
+            "action."
+        ),
+        why_this_blocks_algorithm_4=(
+            "Every gate that needs a running engine is unanswerable while the "
+            "engine cannot complete a bounded pass over two synthetic "
+            "fingerprints. A route that will not survive four comparisons will "
+            "not survive six thousand."
+        ),
+        how_this_would_be_lifted=(
+            "Diagnose the recorded step, fix the cause if it is this project's, "
+            "and re-run `make stage11a-qualify`. If the cause is upstream's, that "
+            "is the finding and the candidate is refused on it."
+        ),
+    )
 
 
 def _pending_action_code() -> frozen.PendingActionCode:
@@ -535,6 +588,49 @@ def _pending_action_code() -> frozen.PendingActionCode:
 
     found = _cached("preconditions", check_preconditions).status.pending_action
     return found or frozen.PendingActionCode.QUALIFICATION_RUN_NOT_PERFORMED
+
+
+#: What each outstanding action actually asks for, in the order the chores have
+#: to be done. An earlier version told every gate to activate the trial, which
+#: was wrong on a machine with no Java: it would have started a 30-day clock to
+#: discover that nothing could compile against the bindings (spec correction 8).
+_WHAT_TO_DO = {
+    frozen.PendingActionCode.JAVA_RUNTIME_NOT_AVAILABLE: (
+        "Install the toolchain first, **before** touching the trial. The main "
+        "2025.2 archive ships no Python binding, so the qualification runs "
+        "through upstream's Java binding, and this project pins openjdk=17 in "
+        "environment.yml. Then run `make stage11a-qualify-check`, which writes "
+        "nothing and starts no clock, and confirm the harness compiles against "
+        "the pinned bindings. Only then is activating the trial worth doing."
+    ),
+    frozen.PendingActionCode.TRIAL_LICENCE_NOT_ACTIVATED: (
+        "Activate the 30-day trial once, on the one platform this route is "
+        "locked to — the vendor's documented route is Trial = true in the "
+        "licensing configuration and starting the licensing service, with no "
+        "serial number, no account and no personal information. Then run "
+        "`make stage11a-qualify`. No licence is bypassed, no trial reset and no "
+        "protection mechanism touched (spec section 32)."
+    ),
+    frozen.PendingActionCode.QUALIFICATION_RUN_NOT_PERFORMED: (
+        "Everything checkable is in place: the artifacts verify and a Java "
+        "toolchain is available. Run `make stage11a-qualify`. It will ask the "
+        "SDK for the FingerExtractor and FingerMatcher licences and stop with "
+        "TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated "
+        "— the licence is the one precondition that cannot be checked without "
+        "loading the SDK, so the harness asks it rather than predicting it. The "
+        "run scores only synthetic fixtures and never SD300."
+    ),
+    frozen.PendingActionCode.RUNTIME_PLATFORM_NOT_LOCKED: (
+        "The platform is locked by the qualification run itself, which records "
+        "the operating system, the architecture, the native libraries it loaded "
+        "and the language runtime. Run `make stage11a-qualify-check` first: it "
+        "reports which chore is actually outstanding on this machine."
+    ),
+}
+
+
+def _what_to_do(code: frozen.PendingActionCode) -> str:
+    return _WHAT_TO_DO[code]
 
 
 def _execution_action(
@@ -562,15 +658,7 @@ def _execution_action(
                 else ""
             )
         ),
-        what_to_do=(
-            "Activate the 30-day trial once, on the one platform this route is "
-            "locked to — the vendor's documented route is Trial = true in the "
-            "licensing configuration and starting the licensing service, with no "
-            "serial number, no account and no personal information — then run "
-            "`make stage11a-qualify` and re-derive the stage. The harness scores "
-            "only synthetic fixtures, never SD300, and no licence is bypassed, "
-            "no trial reset and no protection mechanism touched (spec section 32)."
-        ),
+        what_to_do=_what_to_do(code or _pending_action_code()),
         what_it_would_answer=answers,
     )
 
@@ -1397,13 +1485,18 @@ def _gate_license_capacity() -> GateResult:
     load = frozen.FROZEN_WORKLOAD
     feasibility = (_record() or {}).get("feasibility")
     if isinstance(feasibility, Mapping) and feasibility:
-        extractions = max(int(feasibility.get("extraction_invocations") or 0), 1)
-        matches = max(int(feasibility.get("matching_invocations") or 0), 1)
-        per_extraction = float(feasibility.get("extraction_millis_total") or 0) / extractions
-        per_match = float(feasibility.get("matching_millis_total") or 0) / matches
+        # One number, because the route has one entry point. ``verify`` loads
+        # both images, extracts both templates and matches them behind a single
+        # call, so the protocol costs 6,000 verify calls. The 12,000 extractions
+        # remain the logical execution semantics — two independent extractions
+        # per comparison — and are not a second thing to bill for
+        # (spec correction 7).
+        calls = max(int(feasibility.get("verify_invocations") or 0), 1)
+        per_verify_millis = (
+            float(feasibility.get("end_to_end_verify_millis_total") or 0) / calls
+        )
         projected_seconds = (
-            per_extraction * load.extraction_invocations
-            + per_match * load.matcher_invocations
+            per_verify_millis * frozen.FROZEN_VERIFICATION_ATTEMPTS
         ) / 1000.0
         window_seconds = terms.duration_days * 24 * 3600
         if projected_seconds >= window_seconds:
@@ -1418,13 +1511,14 @@ def _gate_license_capacity() -> GateResult:
                         ),
                         affected_component=(
                             f"the {terms.duration_days}-day trial against "
-                            f"{load.extraction_invocations} extractions and "
-                            f"{load.matcher_invocations} matches"
+                            f"{frozen.FROZEN_VERIFICATION_ATTEMPTS} verification "
+                            "attempts"
                         ),
                         evidence=(
-                            "the measured per-operation cost projects the frozen "
-                            f"workload to about {projected_seconds / 3600:.1f} "
-                            f"hours, against a {terms.duration_days}-day window"
+                            "the measured end-to-end verify latency projects the "
+                            "frozen workload to about "
+                            f"{projected_seconds / 3600:.1f} hours, against a "
+                            f"{terms.duration_days}-day window"
                         ),
                         why_this_blocks_algorithm_4=(
                             "A quota or a clock that runs out partway through "
@@ -1443,7 +1537,8 @@ def _gate_license_capacity() -> GateResult:
             gate=frozen.PreflightGate.LICENSE_CAPACITY,
             status=frozen.GateStatus.PASS,
             summary=(
-                f"the measured cost projects the frozen workload to about "
+                f"{frozen.FROZEN_VERIFICATION_ATTEMPTS} verification attempts at "
+                f"the measured end-to-end latency project to about "
                 f"{projected_seconds / 3600:.1f} hours, inside the "
                 f"{terms.duration_days}-day trial window. No API-call quota is "
                 "stated anywhere in the pinned activation guide, and that absence "
@@ -1457,17 +1552,21 @@ def _gate_license_capacity() -> GateResult:
             _execution_action(
                 frozen.PreflightGate.LICENSE_CAPACITY,
                 missing=(
-                    "the per-operation cost the expiry has to be weighed against"
+                    "the end-to-end verify latency the expiry has to be weighed "
+                    "against"
                 ),
                 answers=(
-                    f"Whether {load.extraction_invocations} extractions and "
-                    f"{load.matcher_invocations} matches fit inside "
-                    f"{terms.duration_days} days. The expiry is known and the "
-                    "cost is not, so the product of the two is not known either. "
-                    "Two further terms are already recorded rather than assumed "
-                    "away: the trial needs a constant internet connection, and it "
-                    "excludes simultaneous use of licensed Neurotechnology "
-                    "products on the same computer."
+                    f"Whether {frozen.FROZEN_VERIFICATION_ATTEMPTS} verification "
+                    f"attempts fit inside {terms.duration_days} days. The expiry "
+                    "is known and the per-call cost is not, so the product of the "
+                    "two is not known either. The protocol's "
+                    f"{load.extraction_invocations} extractions remain its "
+                    "logical semantics — two per comparison — and are not billed "
+                    "separately, because the route's only entry point is one "
+                    "verify call per attempt. Two further terms are recorded "
+                    "rather than assumed away: the trial needs a constant "
+                    "internet connection, and it excludes simultaneous use of "
+                    "licensed Neurotechnology products on the same computer."
                 ),
             ),
         ),
@@ -1742,6 +1841,21 @@ def run_preflight() -> VeriFingerPreflight:
                 "question, not a passed one"
             )
         result = runner()
+        # A run that started and failed converts every outstanding action into a
+        # real blocker, in one place rather than in nine gate bodies. The gates
+        # ask "has this been measured"; whether the reason it was not is a chore
+        # or a failure is one fact about the machine, and it belongs here
+        # (spec correction 5).
+        if result.status is frozen.GateStatus.ACTION_REQUIRED and _failed_run():
+            result = GateResult(
+                gate=gate,
+                status=frozen.GateStatus.FAIL,
+                summary=(
+                    "a qualification run started on this machine and failed, so "
+                    "this question has an answer and the answer is adverse"
+                ),
+                blockers=(_execution_failure_blocker(gate),),
+            )
         results.append(result)
         if result.status is frozen.GateStatus.FAIL:
             stopped_at = gate

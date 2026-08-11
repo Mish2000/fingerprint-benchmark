@@ -1,31 +1,47 @@
 // The bounded Stage 11A qualification pass, in upstream's own Java binding.
 //
 // This program answers the nine Stage 11A gates that cannot be answered by
-// reading files. It is deliberately small: one pair of synthetic fixtures, a
-// handful of comparisons, and a JSON report on stdout. It is not a benchmark, it
-// never sees SD300, and it prints no score.
+// reading files. It is deliberately small: two synthetic fixtures, a handful of
+// comparisons, and a JSON report on stdout. It is not a benchmark, it never sees
+// SD300, and it prints no score.
 //
 // **No score value leaves this process.** Determinism is proved by emitting a
 // SHA-256 over the canonical decimal form of each score and comparing digests,
 // which is the same trick this repository uses everywhere else it needs to
-// compare a quantity without publishing it. The driver that invokes this program
-// records equalities and counts only.
+// compare a quantity without publishing it.
 //
-// The route is upstream's own `verify-finger` tutorial and nothing else: obtain
-// the two finger licences, construct one NBiometricClient, set only what that
+// **The route is upstream's own `verify-finger` and nothing else**: obtain the
+// two finger licences, construct one NBiometricClient, set only what that
 // tutorial sets, and read the score from the reference subject's first matching
 // result under both OK and MATCH_NOT_FOUND. Settings the tutorial does not touch
-// are *read*, never set — that is the whole point of the pass (docs/adr/0105).
+// are *read*, never set — that is the point of the pass (docs/adr/0105).
+//
+// **One number is measured, not two.** `verify(reference, candidate)` loads both
+// images, extracts both templates and matches them behind a single call, so the
+// only honest latency is end to end. Timing the construction of two NSubject
+// objects and calling it extraction latency would measure object allocation.
+//
+// Four modes, because three of the failure classes are about a runtime that is
+// missing something and a process cannot un-load what it has already loaded:
+//
+//     full        the licensed route on the complete installation
+//     restart     the same, run again by the driver for the third determinism level
+//     no-models   the licensed route against an installation without Fingers.ndf
+//     no-licence  the complete installation, with no licence obtained
 //
 // Invoked as:
-//     java VeriFingerQualification <fixtureDir> <passLabel>
-// and it writes one JSON object to stdout.
+//     java VeriFingerQualification <fixtureDir> <mode>
+// and it writes one JSON object to stdout. If the runtime started and something
+// then went wrong, it still writes one, with ok=false and a stage label — an
+// execution that failed is a finding, and must not look like an execution that
+// never happened.
 
 import com.neurotec.biometrics.NBiometricStatus;
 import com.neurotec.biometrics.NFinger;
 import com.neurotec.biometrics.NMatchingSpeed;
 import com.neurotec.biometrics.NSubject;
 import com.neurotec.biometrics.client.NBiometricClient;
+import com.neurotec.lang.NModule;
 import com.neurotec.licensing.NLicense;
 import com.neurotec.licensing.NLicenseManager;
 
@@ -45,10 +61,10 @@ public final class VeriFingerQualification {
     /** The documented parameter names, read through the generic property
      *  interface rather than through bean accessors.
      *
-     *  Two reasons. The manual documents these names, so a value read under one
-     *  is a value under the name the vendor published; and several documented
-     *  parameters have no dedicated Java accessor at all, so a bean-only pass
-     *  would silently report a shorter profile than the one that exists. */
+     *  The manual documents these names, so a value read under one is a value
+     *  under the name the vendor published; and several documented parameters
+     *  have no dedicated Java accessor, so a bean-only pass would silently
+     *  report a shorter profile than the one that exists. */
     private static final String[] EXTRACTION_PARAMETERS = {
         "Fingers.TemplateSize",
         "Fingers.ExtractionScenario",
@@ -75,84 +91,148 @@ public final class VeriFingerQualification {
         "Matching.FirstResultOnly",
     };
 
-    private static long extractionNanos = 0L;
-    private static long extractionCount = 0L;
-    private static long matchingNanos = 0L;
-    private static long matchingCount = 0L;
+    private static long verifyNanos = 0L;
+    private static long verifyCount = 0L;
     private static int scoresProduced = 0;
+
+    private static final Map<String, Object> REPORT = new LinkedHashMap<>();
 
     public static void main(String[] args) {
         long startedAt = System.nanoTime();
         if (args.length < 2) {
-            System.err.println("usage: VeriFingerQualification <fixtureDir> <passLabel>");
+            System.err.println("usage: VeriFingerQualification <fixtureDir> <mode>");
             System.exit(2);
         }
         File fixtures = new File(args[0]);
-        String passLabel = args[1];
+        String mode = args[1];
 
-        Map<String, Object> report = new LinkedHashMap<>();
-        report.put("pass_label", passLabel);
+        REPORT.put("mode", mode);
+        REPORT.put("ok", false);
+        REPORT.put("stage", "starting");
+        REPORT.put("runtime_started", false);
 
         NBiometricClient client = null;
         try {
             // Trial mode, exactly as the shipped TrialFlag.txt and every upstream
             // sample set it. Nothing here bypasses or resets anything.
+            REPORT.put("stage", "licensing");
             NLicenseManager.setTrialMode(true);
-            boolean obtained = NLicense.obtain("/local", 5000, LICENCES);
-            report.put("licences_requested", LICENCES);
-            report.put("licences_obtained", obtained);
-            if (!obtained) {
-                report.put("error", "LICENCES_NOT_OBTAINED");
-                emit(report);
+
+            boolean wantsLicence = !"no-licence".equals(mode);
+            boolean obtained = false;
+            if (wantsLicence) {
+                obtained = NLicense.obtain("/local", 5000, LICENCES);
+            }
+            REPORT.put("licences_requested", wantsLicence ? LICENCES : "");
+            REPORT.put("licences_obtained", obtained);
+            if (wantsLicence && !obtained) {
+                REPORT.put("stage", "licensing");
+                REPORT.put("error", "LICENCES_NOT_OBTAINED");
+                emit(REPORT);
                 System.exit(3);
             }
 
+            REPORT.put("stage", "engine-construction");
             client = new NBiometricClient();
+            // The engine loads its native modules lazily; touching one property
+            // forces that before the module inventory is read.
+            client.getMatchingThreshold();
+            REPORT.put("runtime_started", true);
+
+            // --- the runtime's own identity, from the loaded modules ----------
+            // Not the Java version. `NModule.getLoadedModules()` reports the
+            // native Neurotechnology modules this process actually loaded, each
+            // with its own product name and version, which is what "the version
+            // the running library reports" means (spec correction 6).
+            REPORT.put("loaded_modules", loadedModules());
+
+            if ("no-licence".equals(mode)) {
+                // The controlled cause for the licence failure class: a complete
+                // installation, an engine that constructed, and no licence.
+                REPORT.put("stage", "failure-probe");
+                REPORT.put(
+                    "failure_semantics",
+                    List.of(failureCase(
+                        client,
+                        "licence or runtime failure",
+                        new File(fixtures, "fixture_a.png"),
+                        new File(fixtures, "fixture_b.png"))));
+                REPORT.put("ok", true);
+                REPORT.put("stage", "complete");
+                emit(REPORT);
+                return;
+            }
+
+            if ("no-models".equals(mode)) {
+                // The controlled cause for the missing-component class: the
+                // engine is licensed and constructed and the algorithm's own
+                // data file is not on disk.
+                REPORT.put("stage", "failure-probe");
+                REPORT.put(
+                    "failure_semantics",
+                    List.of(failureCase(
+                        client,
+                        "missing runtime component",
+                        new File(fixtures, "fixture_a.png"),
+                        new File(fixtures, "fixture_b.png"))));
+                REPORT.put("ok", true);
+                REPORT.put("stage", "complete");
+                emit(REPORT);
+                return;
+            }
 
             // --- what the authoritative sample sets, and only that ------------
+            REPORT.put("stage", "configuration");
             client.setFingersMatchingSpeed(NMatchingSpeed.LOW);
-            report.put("settings_set_by_this_pass", new String[] {
+            REPORT.put("settings_set_by_this_pass", new String[] {
                 "Fingers.MatchingSpeed=Low (verify-finger sets it)",
             });
-            report.put("threshold_set_by_this_pass", false);
+            REPORT.put("threshold_set_by_this_pass", false);
 
             // --- delivered runtime defaults ----------------------------------
-            report.put("delivered_extraction_defaults", readParameters(client, EXTRACTION_PARAMETERS));
-            report.put("delivered_matching_defaults", readParameters(client, MATCHING_PARAMETERS));
+            REPORT.put("stage", "reading-defaults");
+            REPORT.put("delivered_extraction_defaults", readParameters(client, EXTRACTION_PARAMETERS));
+            REPORT.put("delivered_matching_defaults", readParameters(client, MATCHING_PARAMETERS));
 
             long startupNanos = System.nanoTime() - startedAt;
 
-            // --- the fixtures ------------------------------------------------
             File a = new File(fixtures, "fixture_a.png");
             File b = new File(fixtures, "fixture_b.png");
+            File blank = new File(fixtures, "fixture_blank.png");
             File invalid = new File(fixtures, "fixture_invalid.png");
             File unsupported = new File(fixtures, "fixture_unsupported.dat");
-            File missing = new File(fixtures, "fixture_absent.png");
 
             // --- pair orientation: both orderings ----------------------------
+            REPORT.put("stage", "pair-orientation");
             String forward = scoreDigest(client, a, b);
             String reverse = scoreDigest(client, b, a);
+            if (forward == null || reverse == null) {
+                throw new IllegalStateException(
+                    "a fixture pair produced no score, so the route cannot be qualified");
+            }
             Map<String, Object> orientation = new LinkedHashMap<>();
             orientation.put("orderings_scored", 2);
-            orientation.put("score_digests_equal", forward != null && forward.equals(reverse));
-            orientation.put("both_orderings_produced_a_score", forward != null && reverse != null);
-            report.put("pair_orientation", orientation);
+            orientation.put("score_digests_equal", forward.equals(reverse));
+            orientation.put("both_orderings_produced_a_score", true);
+            REPORT.put("pair_orientation", orientation);
 
             // --- SELF(A, A) as two independent extractions -------------------
             // Two NSubjects built from the same file. Nothing is reused between
             // them: each carries its own NFinger and each is extracted by the
             // engine on its own, which is what the SELF rule requires.
+            REPORT.put("stage", "self-semantics");
             String selfDigest = scoreDigest(client, a, a);
             Map<String, Object> self = new LinkedHashMap<>();
             self.put("independent_extractions", 2);
             self.put("representation_reused", false);
             self.put("score_present", selfDigest != null);
             self.put("equals_cross_pair_digest", selfDigest != null && selfDigest.equals(forward));
-            report.put("self_semantics", self);
+            REPORT.put("self_semantics", self);
 
             // --- determinism, two of the three levels ------------------------
             // The third level is a fresh process, which this program cannot
             // perform on itself; the driver runs it twice and compares.
+            REPORT.put("stage", "determinism");
             String sameObjects = scoreDigest(client, a, b);
             NBiometricClient fresh = new NBiometricClient();
             fresh.setFingersMatchingSpeed(NMatchingSpeed.LOW);
@@ -161,48 +241,102 @@ public final class VeriFingerQualification {
             Map<String, Object> determinism = new LinkedHashMap<>();
             determinism.put("same objects, same process", forward.equals(sameObjects));
             determinism.put("fresh objects, same process", forward.equals(freshObjects));
-            report.put("determinism_within_process", determinism);
-            report.put("pair_score_digest", forward);
+            REPORT.put("determinism_within_process", determinism);
+            REPORT.put("pair_score_digest", forward);
 
-            // --- failure semantics -------------------------------------------
+            // --- failure semantics, four of the six in this process ----------
+            REPORT.put("stage", "failure-semantics");
             List<Map<String, Object>> failures = new ArrayList<>();
             failures.add(failureCase(client, "invalid image", a, invalid));
             failures.add(failureCase(client, "unsupported image", a, unsupported));
-            failures.add(failureCase(client, "extraction failure", a, missing));
-            failures.add(failureCase(client, "matcher failure", missing, missing));
-            report.put("failure_semantics", failures);
+            failures.add(failureCase(client, "extraction failure", a, blank));
+            failures.add(failureCase(client, "matcher failure", blank, a));
+            REPORT.put("failure_semantics", failures);
 
             // --- feasibility, to an order of magnitude -----------------------
+            REPORT.put("stage", "feasibility");
             Map<String, Object> feasibility = new LinkedHashMap<>();
             feasibility.put("startup_millis", startupNanos / 1_000_000L);
-            feasibility.put("extraction_invocations", extractionCount);
-            feasibility.put("extraction_millis_total", extractionNanos / 1_000_000L);
-            feasibility.put("matching_invocations", matchingCount);
-            feasibility.put("matching_millis_total", matchingNanos / 1_000_000L);
+            feasibility.put("verify_invocations", verifyCount);
+            feasibility.put("end_to_end_verify_millis_total", verifyNanos / 1_000_000L);
+            feasibility.put(
+                "end_to_end_verify_millis_mean",
+                verifyCount == 0 ? 0L : (verifyNanos / verifyCount) / 1_000_000L);
+            feasibility.put(
+                "end_to_end_verify_micros_mean",
+                verifyCount == 0 ? 0L : (verifyNanos / verifyCount) / 1_000L);
             Runtime runtime = Runtime.getRuntime();
             feasibility.put("peak_heap_megabytes",
                 (runtime.totalMemory() - runtime.freeMemory()) / (1024L * 1024L));
             feasibility.put("accelerator_required", false);
-            report.put("feasibility", feasibility);
+            feasibility.put(
+                "what_was_measured",
+                "one end-to-end verify call: both images loaded, both templates "
+                    + "extracted and the pair matched, behind the single API call "
+                    + "the 1:1 route uses");
+            REPORT.put("feasibility", feasibility);
 
-            report.put("qualification_scores_produced", scoresProduced);
-            report.put("benchmark_scores_produced", 0);
-            report.put("sd300_used", false);
-            report.put("java_runtime_version", System.getProperty("java.version"));
-            report.put("java_vendor", System.getProperty("java.vendor"));
-            report.put("operating_system", System.getProperty("os.name"));
-            report.put("architecture", System.getProperty("os.arch"));
-            report.put("ok", true);
-            emit(report);
+            REPORT.put("qualification_scores_produced", scoresProduced);
+            REPORT.put("benchmark_scores_produced", 0);
+            REPORT.put("sd300_used", false);
+            REPORT.put("java_runtime_version", System.getProperty("java.version"));
+            REPORT.put("java_vendor", System.getProperty("java.vendor"));
+            REPORT.put("operating_system", System.getProperty("os.name"));
+            REPORT.put("architecture", System.getProperty("os.arch"));
+            REPORT.put("ok", true);
+            REPORT.put("stage", "complete");
+            emit(REPORT);
         } catch (Throwable error) {
-            report.put("ok", false);
-            report.put("error", error.getClass().getName() + ": " + error.getMessage());
-            emit(report);
+            // The runtime may already have started. Saying so is what lets the
+            // driver write a FAILED record rather than an absent one, and a
+            // failed execution is a finding (spec correction 5).
+            REPORT.put("ok", false);
+            REPORT.put("error", error.getClass().getName() + ": " + error.getMessage());
+            REPORT.put("qualification_scores_produced", scoresProduced);
+            emit(REPORT);
             System.exit(4);
         } finally {
             if (client != null) {
-                client.dispose();
+                try {
+                    client.dispose();
+                } catch (Throwable ignored) {
+                    // Disposal noise must not overwrite the report above.
+                }
             }
+        }
+    }
+
+    /** The native modules this process actually loaded, each with its version. */
+    private static List<Map<String, Object>> loadedModules() {
+        List<Map<String, Object>> modules = new ArrayList<>();
+        try {
+            for (NModule module : NModule.getLoadedModules()) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("name", safely(module::getName));
+                row.put("product", safely(module::getProduct));
+                row.put("company", safely(module::getCompany));
+                row.put("version", safely(module::getVersion));
+                row.put("file_name", safely(module::getFileName));
+                modules.add(row);
+            }
+        } catch (Throwable unreadable) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("name", "UNREADABLE:" + unreadable.getClass().getSimpleName());
+            modules.add(row);
+        }
+        return modules;
+    }
+
+    private interface Reader {
+        Object read() throws Exception;
+    }
+
+    private static String safely(Reader reader) {
+        try {
+            Object value = reader.read();
+            return value == null ? "null" : String.valueOf(value);
+        } catch (Throwable unreadable) {
+            return "UNREADABLE:" + unreadable.getClass().getSimpleName();
         }
     }
 
@@ -215,8 +349,9 @@ public final class VeriFingerQualification {
                 values.put(name, value == null ? "null" : String.valueOf(value));
             } catch (Throwable unreadable) {
                 // A parameter the delivered package does not expose is recorded
-                // as unreadable rather than omitted: a shorter profile that
-                // looked complete would be the worst of the three outcomes.
+                // as unreadable, and the preflight counts that as unresolved
+                // rather than as a value. A shorter profile that looked complete
+                // would be the worst of the three outcomes.
                 values.put(name, "UNREADABLE:" + unreadable.getClass().getSimpleName());
             }
         }
@@ -228,16 +363,15 @@ public final class VeriFingerQualification {
         NSubject referenceSubject = null;
         NSubject candidateSubject = null;
         try {
-            long extractionStart = System.nanoTime();
             referenceSubject = subjectOf(reference);
             candidateSubject = subjectOf(candidate);
-            extractionNanos += System.nanoTime() - extractionStart;
-            extractionCount += 2;
 
-            long matchStart = System.nanoTime();
+            // The whole route is behind this one call, so this is the whole
+            // measurement: load, extract, extract, match.
+            long started = System.nanoTime();
             NBiometricStatus status = client.verify(referenceSubject, candidateSubject);
-            matchingNanos += System.nanoTime() - matchStart;
-            matchingCount += 1;
+            verifyNanos += System.nanoTime() - started;
+            verifyCount += 1;
 
             if (status != NBiometricStatus.OK && status != NBiometricStatus.MATCH_NOT_FOUND) {
                 return null;
@@ -253,11 +387,13 @@ public final class VeriFingerQualification {
         }
     }
 
-    /** One failure class, reported by the outcome it produced. */
+    /** One failure class, reported by the outcome its controlled cause produced. */
     private static Map<String, Object> failureCase(
             NBiometricClient client, String failureClass, File reference, File candidate) {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("failure_class", failureClass);
+        row.put("reference_fixture", reference.getName());
+        row.put("candidate_fixture", candidate.getName());
         NSubject referenceSubject = null;
         NSubject candidateSubject = null;
         try {
@@ -265,8 +401,14 @@ public final class VeriFingerQualification {
             candidateSubject = subjectOf(candidate);
             NBiometricStatus status = client.verify(referenceSubject, candidateSubject);
             row.put("status", String.valueOf(status));
-            boolean scored = status == NBiometricStatus.OK
-                || status == NBiometricStatus.MATCH_NOT_FOUND;
+            boolean scored = false;
+            if (status == NBiometricStatus.OK || status == NBiometricStatus.MATCH_NOT_FOUND) {
+                try {
+                    scored = !referenceSubject.getMatchingResults().isEmpty();
+                } catch (Throwable noResults) {
+                    scored = false;
+                }
+            }
             row.put("score_present", scored);
             row.put("raised", false);
         } catch (Throwable failed) {
@@ -304,7 +446,6 @@ public final class VeriFingerQualification {
 
     // A three-hundred-line JSON dependency would be a third-party component this
     // stage would have to enrol, for one object. This writes what it needs.
-    @SuppressWarnings("unchecked")
     private static void emit(Object value) {
         StringBuilder out = new StringBuilder();
         write(out, value);

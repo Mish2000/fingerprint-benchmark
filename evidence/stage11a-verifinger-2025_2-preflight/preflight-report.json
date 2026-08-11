@@ -109,7 +109,7 @@
       ],
       "blocker_codes": [],
       "pending_action_codes": [
-        "JAVA_RUNTIME_NOT_AVAILABLE"
+        "QUALIFICATION_RUN_NOT_PERFORMED"
       ]
     },
     {
@@ -135,7 +135,7 @@
       ],
       "blocker_codes": [],
       "pending_action_codes": [
-        "JAVA_RUNTIME_NOT_AVAILABLE"
+        "QUALIFICATION_RUN_NOT_PERFORMED"
       ]
     },
     {
@@ -161,7 +161,7 @@
       ],
       "blocker_codes": [],
       "pending_action_codes": [
-        "JAVA_RUNTIME_NOT_AVAILABLE"
+        "QUALIFICATION_RUN_NOT_PERFORMED"
       ]
     },
     {
@@ -173,7 +173,7 @@
       "documents": [],
       "blocker_codes": [],
       "pending_action_codes": [
-        "JAVA_RUNTIME_NOT_AVAILABLE"
+        "QUALIFICATION_RUN_NOT_PERFORMED"
       ]
     },
     {
@@ -187,7 +187,7 @@
       ],
       "blocker_codes": [],
       "pending_action_codes": [
-        "JAVA_RUNTIME_NOT_AVAILABLE"
+        "QUALIFICATION_RUN_NOT_PERFORMED"
       ]
     },
     {
@@ -199,7 +199,7 @@
       "documents": [],
       "blocker_codes": [],
       "pending_action_codes": [
-        "JAVA_RUNTIME_NOT_AVAILABLE"
+        "QUALIFICATION_RUN_NOT_PERFORMED"
       ]
     },
     {
@@ -223,7 +223,7 @@
       ],
       "blocker_codes": [],
       "pending_action_codes": [
-        "JAVA_RUNTIME_NOT_AVAILABLE"
+        "QUALIFICATION_RUN_NOT_PERFORMED"
       ]
     },
     {
@@ -235,7 +235,7 @@
       "documents": [],
       "blocker_codes": [],
       "pending_action_codes": [
-        "JAVA_RUNTIME_NOT_AVAILABLE"
+        "QUALIFICATION_RUN_NOT_PERFORMED"
       ]
     },
     {
@@ -257,68 +257,68 @@
       "gate": "RUNTIME_IDENTITY",
       "action_code": "RUNTIME_PLATFORM_NOT_LOCKED",
       "what_is_missing": "the platform this route is bound to, and the version the running library reports. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_to_do": "The platform is locked by the qualification run itself, which records the operating system, the architecture, the native libraries it loaded and the language runtime. Run `make stage11a-qualify-check` first: it reports which chore is actually outstanding on this machine.",
       "what_it_would_answer": "Which operating system, architecture, native libraries and language runtime a VeriFinger score would come from — the half of runtime identity that a file cannot state about itself. The lock records 7 fields at activation, because the trial is single-platform and alternating between two under one algorithm fingerprint is refused whichever is chosen."
     },
     {
       "gate": "EXTRACTION_PROFILE",
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "what_is_missing": "a value with an upstream provenance for 8 score-affecting extraction settings: FingersTemplateSize, FingersExtractionScenario, FingersFastExtraction, FingersQualityThreshold, FingersMinimalMinutiaCount, FingersDetectTips, FingersDetectLiveness, FingersLivenessConfidenceThreshold. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300.",
       "what_it_would_answer": "Each of these changes the score, and the pinned manual states a default for none of them — while stating defaults for the face-side settings in the same tables, so the absence is a property of the document rather than of the reading. One constructed engine reports all of them, and each becomes a DELIVERED_RUNTIME_DEFAULT: an upstream authority, recorded rather than chosen."
     },
     {
       "gate": "MATCHER_PROFILE",
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "what_is_missing": "a value with an upstream provenance for 2 score-affecting matching settings: FingersMaximalRotation, MatchingScenario. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300.",
       "what_it_would_answer": "Each of these changes the score, and the pinned manual states a default for none of them — while stating defaults for the face-side settings in the same tables, so the absence is a property of the document rather than of the reading. One constructed engine reports all of them, and each becomes a DELIVERED_RUNTIME_DEFAULT: an upstream authority, recorded rather than chosen."
     },
     {
       "gate": "PAIR_ORIENTATION",
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "what_is_missing": "both orderings of a fixture pair, actually scored. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300.",
       "what_it_would_answer": "Whether the two orderings agree. If they differ, a run that fed pairs in whichever order they arrived would be averaging two different measurements without saying so — and fpbench may neither average them nor take their maximum, so the orientation has to be discovered and preserved."
     },
     {
       "gate": "SELF_SEMANTICS",
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "what_is_missing": "SELF(A, A) executed as two independent extractions. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300.",
       "what_it_would_answer": "Whether the engine shortcuts equal inputs. A pairwise route that noticed both sides were the same file could return a constant, and that constant would be a number about this project's own plumbing rather than about the algorithm. The rule is frozen either way — two loads, two extractions, no representation reuse (docs/adr/0070)."
     },
     {
       "gate": "SCORE_DETERMINISM",
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "what_is_missing": "the same fixture pair scored at all 3 levels. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300.",
       "what_it_would_answer": "Whether a VeriFinger score is reproducible at all. This is the one gate whose failure would be a genuine methodological blocker rather than a chore, which is why it is measured rather than assumed."
     },
     {
       "gate": "FAILURE_SEMANTICS",
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "what_is_missing": "the 6 failure classes, each actually provoked. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300.",
       "what_it_would_answer": "What each failure returns. A failure that arrives as a score of 0 is a false match rate computed over comparisons that never happened. The API has a status type beside the score, which is the right shape — but which status each failure produces, and whether a score sits beside it, is behaviour."
     },
     {
       "gate": "RUNTIME_FEASIBILITY",
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
-      "what_is_missing": "the 5 feasibility measurements. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
+      "what_is_missing": "the 4 feasibility measurements. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300.",
       "what_it_would_answer": "What the route costs per operation. A second per extraction turns the frozen workload's 12000 extractions into hours, and that is worth knowing before the run rather than during it — and it is what the licence-capacity gate needs in order to decide anything at all."
     },
     {
       "gate": "LICENSE_CAPACITY",
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
-      "what_is_missing": "the per-operation cost the expiry has to be weighed against. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
-      "what_it_would_answer": "Whether 12000 extractions and 6000 matches fit inside 30 days. The expiry is known and the cost is not, so the product of the two is not known either. Two further terms are already recorded rather than assumed away: the trial needs a constant internet connection, and it excludes simultaneous use of licensed Neurotechnology products on the same computer."
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
+      "what_is_missing": "the end-to-end verify latency the expiry has to be weighed against. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300.",
+      "what_it_would_answer": "Whether 6000 verification attempts fit inside 30 days. The expiry is known and the per-call cost is not, so the product of the two is not known either. The protocol's 12000 extractions remain its logical semantics — two per comparison — and are not billed separately, because the route's only entry point is one verify call per attempt. Two further terms are recorded rather than assumed away: the trial needs a constant internet connection, and it excludes simultaneous use of licensed Neurotechnology products on the same computer."
     }
   ],
   "distinct_pending_action_codes": [
-    "JAVA_RUNTIME_NOT_AVAILABLE",
+    "QUALIFICATION_RUN_NOT_PERFORMED",
     "RUNTIME_PLATFORM_NOT_LOCKED"
   ],
   "one_run_would_close": [

@@ -7,13 +7,13 @@
   "gate_summary": "the inventory is closed over 14 published extraction settings; 0 score-affecting values come from the authoritative sample and 8 are delivered runtime defaults nobody has read yet",
   "blocker_codes": [],
   "pending_action_codes": [
-    "JAVA_RUNTIME_NOT_AVAILABLE"
+    "QUALIFICATION_RUN_NOT_PERFORMED"
   ],
   "pending_actions": [
     {
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
       "what_is_missing": "a value with an upstream provenance for 8 score-affecting extraction settings: FingersTemplateSize, FingersExtractionScenario, FingersFastExtraction, FingersQualityThreshold, FingersMinimalMinutiaCount, FingersDetectTips, FingersDetectLiveness, FingersLivenessConfidenceThreshold. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300.",
       "what_it_would_answer": "Each of these changes the score, and the pinned manual states a default for none of them — while stating defaults for the face-side settings in the same tables, so the absence is a property of the document rather than of the reading. One constructed engine reports all of them, and each becomes a DELIVERED_RUNTIME_DEFAULT: an upstream authority, recorded rather than chosen."
     }
   ],

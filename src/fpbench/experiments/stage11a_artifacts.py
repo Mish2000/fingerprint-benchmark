@@ -337,6 +337,9 @@ class QualificationRunState:
     reason: str
     record: Mapping[str, object] | None = None
     invalid_reason: str | None = None
+    failed: bool = False
+    failed_at_stage: str | None = None
+    failure_detail: str | None = None
 
     def __post_init__(self) -> None:
         if self.performed and self.record is None:
@@ -348,10 +351,28 @@ class QualificationRunState:
             raise VeriFingerAcquisitionError(
                 "a record that did not verify has not answered anything"
             )
+        if self.failed and self.performed:
+            raise VeriFingerAcquisitionError(
+                "a run that failed did not complete; the two states are the "
+                "whole difference between a blocker and a chore"
+            )
+        if self.failed and not self.failed_at_stage:
+            raise VeriFingerAcquisitionError(
+                "a failed run names the step it died at, or nobody can act on it"
+            )
 
     @property
     def answers_execution_gates(self) -> bool:
         return self.performed and self.record is not None
+
+    @property
+    def is_a_finding(self) -> bool:
+        """Whether this state says something about VeriFinger.
+
+        A completed run and a failed one both do. An absent run does not, and
+        that is the distinction the whole third outcome rests on.
+        """
+        return self.performed or self.failed
 
 
 def _validate_qualification_record(payload: object) -> tuple[Mapping[str, object] | None, str]:
@@ -367,7 +388,9 @@ def _validate_qualification_record(payload: object) -> tuple[Mapping[str, object
         DETERMINISM_LEVELS,
         FAILURE_SEMANTICS_CLASSES,
         QUALIFICATION_RUN_MAX_SCORES,
+        QualificationOutcome,
         RUNTIME_PLATFORM_LOCK_FIELDS,
+        setting_value_is_resolved,
     )
     from fpbench.experiments.stage11a_verifinger_observations import (
         PUBLISHED_EXTRACTOR_SETTINGS,
@@ -391,6 +414,36 @@ def _validate_qualification_record(payload: object) -> tuple[Mapping[str, object
         return None, "the record does not deny using SD300"
     if payload.get("benchmark_scores_produced") != 0:
         return None, "the record claims benchmark scores, which this stage forbids"
+
+    # What produced this record. Without it the record could have come from any
+    # combination of archive, libraries, harness, driver and fixtures
+    # (spec correction 3).
+    fingerprint = payload.get("inputs_fingerprint")
+    if not isinstance(fingerprint, str) or len(fingerprint) != 64:
+        return None, (
+            "the record carries no inputs_fingerprint, so it cannot say which "
+            "bytes produced it"
+        )
+    if payload.get("fixture_version") is None:
+        return None, "the record does not say which fixtures it ran on"
+
+    outcome = payload.get("outcome")
+    if outcome not in {item.value for item in QualificationOutcome}:
+        return None, (
+            f"the record declares outcome {outcome!r}, and a run either "
+            "completed or failed"
+        )
+    if outcome == QualificationOutcome.FAILED.value:
+        # A failed run is read, not rejected: it is a finding, and the caller
+        # turns it into a blocker. Only its own fields are required.
+        if not payload.get("runtime_started"):
+            return None, (
+                "a FAILED record claims the runtime never started, which is an "
+                "absent run rather than a failed one"
+            )
+        if not payload.get("failed_at_stage"):
+            return None, "a FAILED record names the step it died at"
+        return payload, ""
 
     produced = payload.get("qualification_scores_produced")
     if not isinstance(produced, int) or produced < 1:
@@ -422,6 +475,19 @@ def _validate_qualification_record(payload: object) -> tuple[Mapping[str, object
             "the record read no delivered default for "
             f"{missing_defaults}; a partial profile is not a smaller answer"
         )
+    # ``UNREADABLE:*`` is an honest thing for the harness to write and is not a
+    # value. Counting it as one would let a profile nobody could read pass a gate
+    # about values nobody may guess (spec correction 2).
+    unreadable = sorted(
+        name
+        for name in expected
+        if not setting_value_is_resolved(defaults.get(name))
+    )
+    if unreadable:
+        return None, (
+            f"the engine would not report a value for {unreadable}; an "
+            "UNREADABLE setting is unresolved, never a default"
+        )
 
     determinism = payload.get("determinism")
     if not isinstance(determinism, dict) or sorted(determinism) != sorted(
@@ -441,7 +507,11 @@ def _validate_qualification_record(payload: object) -> tuple[Mapping[str, object
     }
     missing_failures = sorted(set(FAILURE_SEMANTICS_CLASSES) - seen)
     if missing_failures:
-        return None, f"the record exercised no {missing_failures}"
+        return None, (
+            f"the record exercised no {missing_failures}; every one of the "
+            f"{len(FAILURE_SEMANTICS_CLASSES)} classes needs a controlled cause, "
+            "and a class nobody provoked is a class nobody knows the behaviour of"
+        )
     if any(item.get("score_present") for item in failures if isinstance(item, dict)):
         return None, (
             "a failure returned a score, which would let a failure enter a rate "
@@ -506,6 +576,21 @@ def qualification_run_state(
                 "answers nothing"
             ),
             invalid_reason=why,
+        )
+    if record.get("outcome") == "FAILED":
+        stage = str(record.get("failed_at_stage"))
+        return QualificationRunState(
+            performed=False,
+            record_present=True,
+            failed=True,
+            failed_at_stage=stage,
+            failure_detail=str(record.get("failure_detail") or ""),
+            reason=(
+                "a qualification run started on this machine and failed at "
+                f"{stage}. That is an observed finding about the route, not an "
+                "outstanding action"
+            ),
+            record=None,
         )
     return QualificationRunState(
         performed=True,

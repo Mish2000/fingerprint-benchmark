@@ -120,6 +120,7 @@ __all__ = [
     "FAILURE_SEMANTICS_CLASSES",
     "NETWORK_DEPENDENCY_QUESTIONS",
     "RUNTIME_FEASIBILITY_MEASUREMENTS",
+    "FEASIBILITY_LATENCY_MEASURE",
     "RARE_DEPENDENCY_RULE",
     "LICENSE_CAPACITY_QUESTIONS",
     "FrozenWorkload",
@@ -130,6 +131,14 @@ __all__ = [
     "RUNTIME_PLATFORM_LOCK_FIELDS",
     "QUALIFICATION_RUN_STEPS",
     "QUALIFICATION_RUN_MAX_SCORES",
+    "QUALIFICATION_RUN_INPUT_COMPONENTS",
+    "QUALIFICATION_PASSES",
+    "QualificationOutcome",
+    "FAILURE_SEMANTICS_CAUSES",
+    "FIXTURE_VERSION",
+    "UNREADABLE_SETTING_PREFIX",
+    "setting_value_is_resolved",
+    "FROZEN_VERIFICATION_ATTEMPTS",
     "PendingActionCode",
     "GATE_PENDING_ACTIONS",
     "gate_pending_actions",
@@ -488,16 +497,20 @@ class BlockerCode(str, Enum):
 #: Which gates each blocker may be raised at. A blocker raised against a gate
 #: that was never reached is a contradiction, and the engine refuses one.
 #:
-#: ``LOCAL_SMOKE_FAILED`` belongs to four gates rather than one: the smoke is not
-#: a gate of its own here — it is how the pair-orientation, SELF, determinism and
-#: feasibility gates are answered at all, and a smoke that will not run is the
-#: same finding wherever it is discovered (spec sections 25, 26, 28 and 33).
+#: ``LOCAL_SMOKE_FAILED`` belongs to every execution-dependent gate rather than
+#: to one: the smoke is not a gate of its own here — it is *how* those gates are
+#: answered at all, and a run that starts and dies is the same finding wherever
+#: it is noticed (spec sections 25, 26, 28 and 33). The vocabulary itself is
+#: unchanged; only which gates may raise which member.
 GATE_BLOCKERS: tuple[tuple[PreflightGate, tuple[BlockerCode, ...]], ...] = (
     (
         PreflightGate.OFFICIAL_ARTIFACT_ACQUISITION,
         (BlockerCode.OFFICIAL_ARTIFACT_NOT_OBTAINABLE,),
     ),
-    (PreflightGate.RUNTIME_IDENTITY, (BlockerCode.ARTIFACT_IDENTITY_UNRESOLVED,)),
+    (
+        PreflightGate.RUNTIME_IDENTITY,
+        (BlockerCode.ARTIFACT_IDENTITY_UNRESOLVED, BlockerCode.LOCAL_SMOKE_FAILED),
+    ),
     (PreflightGate.RESEARCH_USE_PERMISSION, (BlockerCode.RESEARCH_USE_BLOCKED,)),
     (
         PreflightGate.ARTIFACT_CLOSURE,
@@ -518,6 +531,7 @@ GATE_BLOCKERS: tuple[tuple[PreflightGate, tuple[BlockerCode, ...]], ...] = (
         (
             BlockerCode.EXTRACTION_PROFILE_UNRESOLVED,
             BlockerCode.HIDDEN_SCORE_AFFECTING_DEFAULT_UNRESOLVED,
+            BlockerCode.LOCAL_SMOKE_FAILED,
         ),
     ),
     (
@@ -529,6 +543,7 @@ GATE_BLOCKERS: tuple[tuple[PreflightGate, tuple[BlockerCode, ...]], ...] = (
         (
             BlockerCode.MATCHER_PROFILE_UNRESOLVED,
             BlockerCode.HIDDEN_SCORE_AFFECTING_DEFAULT_UNRESOLVED,
+            BlockerCode.LOCAL_SMOKE_FAILED,
         ),
     ),
     (PreflightGate.RAW_SCORE_ROUTE, (BlockerCode.RAW_SCORE_ROUTE_UNRESOLVED,)),
@@ -558,7 +573,10 @@ GATE_BLOCKERS: tuple[tuple[PreflightGate, tuple[BlockerCode, ...]], ...] = (
     ),
     (
         PreflightGate.LICENSE_CAPACITY,
-        (BlockerCode.LICENSE_WORKLOAD_CAPACITY_INSUFFICIENT,),
+        (
+            BlockerCode.LICENSE_WORKLOAD_CAPACITY_INSUFFICIENT,
+            BlockerCode.LOCAL_SMOKE_FAILED,
+        ),
     ),
     (PreflightGate.TRAINING_PROVENANCE, (BlockerCode.SD300_TRAINING_OVERLAP_FOUND,)),
 )
@@ -1028,11 +1046,26 @@ NETWORK_DEPENDENCY_QUESTIONS: tuple[str, ...] = (
 #: (spec section 33). It is not a benchmark and it is not a comparison.
 RUNTIME_FEASIBILITY_MEASUREMENTS: tuple[str, ...] = (
     "import or startup cost",
-    "extraction latency, to an order of magnitude",
-    "matching latency, to an order of magnitude",
+    "end-to-end verification latency, to an order of magnitude",
     "approximate peak memory",
     "CPU or GPU requirement",
 )
+
+#: What the feasibility gate measures, and why it is not two numbers.
+#:
+#: The 1:1 route's only entry point is ``verify(reference, candidate)``, which
+#: loads both images, extracts both templates and matches them behind one call.
+#: An earlier harness timed the construction of the two ``NSubject`` objects and
+#: called it extraction latency; that measured object allocation, because the
+#: extraction happens inside ``verify``. There is one honest number here and this
+#: is it (spec correction 7).
+FEASIBILITY_LATENCY_MEASURE = "end_to_end_verify_latency"
+
+#: What the capacity arithmetic multiplies. The protocol performs 6,000
+#: verification attempts; the 12,000 extractions remain the logical execution
+#: semantics — two independent extractions per comparison — and are *not* a
+#: second thing to bill for, because the route bills per verify call.
+FROZEN_VERIFICATION_ATTEMPTS = 6_000
 
 #: The rule that turns an exotic dependency into a refusal rather than a project
 #: (spec section 34).
@@ -1177,6 +1210,107 @@ QUALIFICATION_RUN_STEPS: tuple[str, ...] = (
 #: contract, not to measure accuracy, and a harness that drifted towards the
 #: benchmark's size would start to look like an unpublished experiment.
 QUALIFICATION_RUN_MAX_SCORES = 64
+
+#: Every failure class, with the cause the harness uses to provoke it. A class
+#: "checked" by whatever happened to go wrong is not checked; each of these is a
+#: deliberate, reproducible cause, and three of them need their own process
+#: because they are about a runtime that is missing something.
+FAILURE_SEMANTICS_CAUSES: tuple[tuple[str, str], ...] = (
+    (
+        "invalid image",
+        "a file carrying the PNG signature over a body that is not a valid "
+        "image, so the decoder is reached and fails",
+    ),
+    (
+        "unsupported image",
+        "a file whose bytes are not an image in any container the loader "
+        "accepts",
+    ),
+    (
+        "missing runtime component",
+        "a second process run against an installation with the fingerprint data "
+        "file deliberately withheld, so the engine loads and the algorithm's own "
+        "dependency is absent",
+    ),
+    (
+        "extraction failure",
+        "a valid, decodable image with no ridge structure at all, so extraction "
+        "runs and produces no template",
+    ),
+    (
+        "matcher failure",
+        "a comparison whose reference side has no template, so the matcher is "
+        "reached with nothing to match",
+    ),
+    (
+        "licence or runtime failure",
+        "a third process that deliberately does not obtain the finger licences "
+        "before calling the engine",
+    ),
+)
+
+#: The three passes one qualification performs. Separate processes because two of
+#: the failure classes are about a runtime that is *missing* something, and a
+#: process cannot un-load a data file it has already loaded.
+QUALIFICATION_PASSES: tuple[tuple[str, str], ...] = (
+    ("full", "the licensed route, on the complete installation"),
+    ("restart", "the same route again, to settle the fresh-process determinism level"),
+    ("no-models", "the licensed route against an installation missing Fingers.ndf"),
+    ("no-licence", "the complete installation, with no licence obtained"),
+)
+
+#: What the run's identity is computed over (spec correction 3). A record that
+#: cannot say which bytes produced it is a record about nothing in particular,
+#: and every one of these can change a score.
+QUALIFICATION_RUN_INPUT_COMPONENTS: tuple[str, ...] = (
+    "the pinned SDK archive",
+    "every native library, binding jar and data file actually loaded",
+    "the Java harness source",
+    "the Python qualification driver source",
+    "the fixture generator version",
+)
+
+#: Bumped whenever the synthetic fixtures change in any way that could move a
+#: score. It is part of the run's identity, so a record produced against older
+#: fixtures does not silently answer for newer ones.
+FIXTURE_VERSION = "1"
+
+
+class QualificationOutcome(str, Enum):
+    """How a qualification run ended, and it is not the same as whether it passed.
+
+    ``COMPLETED`` means every step ran and the record carries their answers.
+    ``FAILED`` means the runtime started and something went wrong afterwards —
+    which is a **real observed blocker**, not a return to "nobody has run it".
+    A harness whose failure looked the same as its absence could never move this
+    stage off ``INCOMPLETE`` (spec correction 5).
+    """
+
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+    @property
+    def is_a_finding(self) -> bool:
+        return True
+
+    @property
+    def answers_execution_gates(self) -> bool:
+        return self is QualificationOutcome.COMPLETED
+
+
+#: The marker a delivered default carries when the engine would not report it.
+#: Counted as unresolved wherever a value is required: a setting nobody could
+#: read is exactly as unfrozen as a setting nobody looked for, and treating the
+#: string as a value would let an unreadable profile pass (spec correction 2).
+UNREADABLE_SETTING_PREFIX = "UNREADABLE:"
+
+
+def setting_value_is_resolved(value: object) -> bool:
+    """Whether a delivered-default reading actually settled anything."""
+    if not isinstance(value, str) or not value.strip():
+        return False
+    return not value.startswith(UNREADABLE_SETTING_PREFIX)
+
 
 #: What may be put through the route before the candidate passes
 #: (spec section 39).
@@ -1456,6 +1590,9 @@ STAGE_11A_ADRS: tuple[str, ...] = (
         "failed.md"
     ),
     "docs/adr/0105-one-upstream-sample-is-the-route-not-several.md",
+    (
+        "docs/adr/0106-the-qualification-harness-must-be-able-to-reach-pass.md"
+    ),
 )
 
 #: The qualification harness lives in the repository and is reviewable; the

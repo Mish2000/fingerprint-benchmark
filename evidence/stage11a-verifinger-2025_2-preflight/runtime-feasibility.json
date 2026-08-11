@@ -7,20 +7,19 @@
   "gate_summary": "latency and memory are measured, and nothing has been measured",
   "blocker_codes": [],
   "pending_action_codes": [
-    "JAVA_RUNTIME_NOT_AVAILABLE"
+    "QUALIFICATION_RUN_NOT_PERFORMED"
   ],
   "pending_actions": [
     {
-      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
-      "what_is_missing": "the 5 feasibility measurements. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
+      "what_is_missing": "the 4 feasibility measurements. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300.",
       "what_it_would_answer": "What the route costs per operation. A second per extraction turns the frozen workload's 12000 extractions into hours, and that is worth knowing before the run rather than during it — and it is what the licence-capacity gate needs in order to decide anything at all."
     }
   ],
   "measurements_required": [
     "import or startup cost",
-    "extraction latency, to an order of magnitude",
-    "matching latency, to an order of magnitude",
+    "end-to-end verification latency, to an order of magnitude",
     "approximate peak memory",
     "CPU or GPU requirement"
   ],

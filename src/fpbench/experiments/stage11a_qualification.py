@@ -33,6 +33,7 @@ the tests that exercise the real thing carry the ``verifinger_artifact`` marker.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -61,22 +62,31 @@ from fpbench.experiments.stage11a_artifacts import (
 )
 from fpbench.experiments.stage11a_verifinger_identity import (
     DETERMINISM_LEVELS,
+    FAILURE_SEMANTICS_CAUSES,
+    FIXTURE_VERSION,
     PendingActionCode,
     QUALIFICATION_RUN_MAX_SCORES,
+    QualificationOutcome,
 )
 from fpbench.experiments.stage11a_verifinger_observations import (
+    FINGER_DATA_FILES,
+    JAVA_BINDING_JARS,
     SDK_ARCHIVE,
     WINDOWS_X64_NATIVE_LIBRARIES,
 )
 
 __all__ = [
     "HARNESS_SOURCE",
+    "DRIVER_SOURCE",
     "MINIMUM_JAVA_MAJOR",
     "PLATFORM_NATIVE_DIRECTORY",
     "PreconditionStatus",
     "Preconditions",
     "check_preconditions",
     "prepare_installation",
+    "verify_installation_digests",
+    "loaded_component_fingerprint",
+    "inputs_fingerprint",
     "write_fixtures",
     "run_qualification",
     "main",
@@ -86,6 +96,11 @@ __all__ = [
 HARNESS_SOURCE = Path("integrations") / "verifinger-qualification" / (
     "VeriFingerQualification.java"
 )
+
+#: This module's own source. Part of the run's identity, because the driver
+#: decides which passes run, which fixtures they see and how their answers are
+#: merged — all of which can change what a record says (spec correction 3).
+DRIVER_SOURCE = Path("src") / "fpbench" / "experiments" / "stage11a_qualification.py"
 
 #: This project's reference JVM, as ``environment.yml`` pins it. Anything older
 #: is refused rather than tried: a qualification produced on an unpinned runtime
@@ -287,6 +302,88 @@ def prepare_installation(*, repository_root: Path | None = None) -> Path:
     return install
 
 
+def _digest_of(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def verify_installation_digests(install: Path) -> dict[str, str]:
+    """Re-hash what was extracted, before anything loads it.
+
+    Extraction is not verification: a truncated write, a partially replaced
+    directory or a stale tree from an earlier archive would all produce files
+    that exist. Every component this stage pinned by digest is re-read from the
+    installation and compared, and the CRC-32 the archive recorded is checked for
+    everything else (spec correction 4).
+
+    Returns:
+        The digest of every verified component, keyed by its path inside the
+        installation — which is also what the run's identity is computed over.
+
+    Raises:
+        VeriFingerArtifactInspectionError: a file is missing or is not the bytes
+            the archive said it was.
+    """
+    pinned = {
+        item.relative_path.split("/", 1)[1]: item.sha256
+        for item in (
+            *WINDOWS_X64_NATIVE_LIBRARIES,
+            *FINGER_DATA_FILES,
+            *JAVA_BINDING_JARS,
+        )
+    }
+    verified: dict[str, str] = {}
+    for relative, expected in sorted(pinned.items()):
+        target = install / Path(relative)
+        if not target.is_file():
+            raise VeriFingerArtifactInspectionError(
+                f"the prepared installation is missing {relative}, which this "
+                "stage pinned by digest"
+            )
+        found = _digest_of(target)
+        if found != expected:
+            raise VeriFingerArtifactInspectionError(
+                f"{relative} in the prepared installation is not the bytes the "
+                "pinned archive holds; nothing loaded from this tree would "
+                "describe the qualified route"
+            )
+        verified[relative] = found
+    return verified
+
+
+def loaded_component_fingerprint(install: Path) -> str:
+    """One digest over every component the route loads."""
+    return _stable_digest(verify_installation_digests(install))
+
+
+def _stable_digest(value: Mapping[str, str]) -> str:
+    payload = "\n".join(f"{key}={value[key]}" for key in sorted(value))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def inputs_fingerprint(install: Path, *, repository_root: Path | None = None) -> str:
+    """What produced this record, in one digest (spec correction 3).
+
+    The archive, every component actually loaded, the Java harness, this driver
+    and the fixture version. A record that cannot say which bytes produced it is
+    a record about nothing in particular — and each of these five can change a
+    score or change which questions were asked.
+    """
+    root = Path(repository_root) if repository_root is not None else Path(".")
+    return _stable_digest(
+        {
+            "sdk_archive": SDK_ARCHIVE.sha256,
+            "loaded_components": loaded_component_fingerprint(install),
+            "java_harness": _digest_of(root / HARNESS_SOURCE),
+            "python_driver": _digest_of(root / DRIVER_SOURCE),
+            "fixture_version": FIXTURE_VERSION,
+        }
+    )
+
+
 # ------------------------------------------------------------------ the fixtures
 
 
@@ -346,24 +443,31 @@ def _ridge_field(width: int, height: int, *, phase: float, curve: float) -> list
 
 
 def write_fixtures(directory: Path) -> tuple[Path, ...]:
-    """The non-SD300 inputs the pass runs on (spec sections 39 and 40).
+    """The non-SD300 inputs the passes run on (spec sections 39 and 40).
 
-    Five files: two ridge-like impressions, an image that decodes to nothing, a
-    file whose bytes are not an image at all, and — by omission — a path that
-    does not exist. Between them they exercise every failure class the contract
-    names.
+    Five files, each with a job. Two ridge-like impressions carry the route
+    itself. A uniform grey image decodes perfectly and contains no ridge at all,
+    which is the controlled cause for an extraction failure — and, used as a
+    reference side, for a matcher failure. A PNG signature over a broken body is
+    the controlled cause for an invalid image. A file that is not an image in any
+    container is the controlled cause for an unsupported one.
+
+    The two remaining failure classes are about a runtime that is missing
+    something, so their causes are whole processes rather than files.
     """
     directory.mkdir(parents=True, exist_ok=True)
     a = directory / "fixture_a.png"
     b = directory / "fixture_b.png"
+    blank = directory / "fixture_blank.png"
     invalid = directory / "fixture_invalid.png"
     unsupported = directory / "fixture_unsupported.dat"
     _write_png(a, _ridge_field(400, 500, phase=0.0, curve=3.0))
     _write_png(b, _ridge_field(400, 500, phase=0.6, curve=3.4))
-    # A PNG header over bytes that are not a valid image body.
-    invalid.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 64)
+    _write_png(blank, [[128] * 400 for _ in range(500)])
+    # A PNG signature over bytes that are not a valid image body.
+    invalid.write_bytes(bytes((0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)) + b"\x00" * 64)
     unsupported.write_bytes(b"not an image, and not claiming to be one\n")
-    return (a, b, invalid, unsupported)
+    return (a, b, blank, invalid, unsupported)
 
 
 # ------------------------------------------------------------------ the run
@@ -426,20 +530,68 @@ def _one_pass(
     )
 
 
-def run_qualification(
-    *, repository_root: Path | None = None, timeout: float = 900.0
-) -> Mapping[str, Any]:
-    """Prepare, compile, run twice, and write the record.
+def _write_record(store_path: Path, record: dict[str, Any]) -> Path:
+    path = store_path / QUALIFICATION_RUN_RECORD_NAME
+    path.write_text(
+        json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    return path
 
-    Two passes in two processes, because the third determinism level is a fresh
-    process and no program can perform that on itself. The record is written only
-    if both passes report success and their score digests agree — a harness that
-    wrote a record for a half-finished run would be the thing this whole stage
-    refuses.
+
+def _failed_record(
+    install: Path,
+    *,
+    repository_root: Path | None,
+    stage: str,
+    detail: str,
+    passes: Mapping[str, Any],
+) -> dict[str, Any]:
+    """A run that started and did not finish, written down as a finding.
+
+    The single most important record this module can produce, and the one an
+    earlier version could not: a harness whose failure looked the same as its
+    absence could never move this stage off ``INCOMPLETE``. A ``FAILED`` record
+    says the runtime started, names the step it died at, and turns into a real
+    blocker rather than an outstanding chore (spec correction 5).
+    """
+    return {
+        "schema": QUALIFICATION_RUN_SCHEMA,
+        "outcome": QualificationOutcome.FAILED.value,
+        "performed_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "archive_sha256": SDK_ARCHIVE.sha256,
+        "inputs_fingerprint": inputs_fingerprint(
+            install, repository_root=repository_root
+        ),
+        "fixture_version": FIXTURE_VERSION,
+        "runtime_started": True,
+        "failed_at_stage": stage,
+        "failure_detail": detail,
+        "passes_attempted": dict(passes),
+        "sd300_used": False,
+        "benchmark_scores_produced": 0,
+        "qualification_scores_produced": 0,
+    }
+
+
+def run_qualification(
+    *, repository_root: Path | None = None, timeout: float = 1800.0
+) -> Mapping[str, Any]:
+    """Prepare, verify, compile, run four passes, and write the record.
+
+    Four passes because the questions need different runtimes. ``full`` and
+    ``restart`` are the same route in two processes, which is the only way to
+    settle the third determinism level. ``no-models`` runs against an
+    installation with the fingerprint data file withheld, and ``no-licence``
+    against a complete one with no licence obtained — the controlled causes for
+    the two failure classes that are about a runtime missing something.
+
+    If the runtime starts and something then goes wrong, a ``FAILED`` record is
+    written rather than none, so the preflight reports a real blocker instead of
+    returning to "nobody has run it".
 
     Raises:
-        VeriFingerAcquisitionError: a precondition is missing, named.
-        VeriFingerArtifactInspectionError: the run started and did not finish.
+        VeriFingerAcquisitionError: a precondition is missing, named. Nothing has
+            started, so nothing is recorded.
     """
     preconditions = check_preconditions(repository_root=repository_root)
     if not preconditions.ready:
@@ -456,23 +608,18 @@ def run_qualification(
         )
 
     install = prepare_installation(repository_root=repository_root)
-    store = artifact_store_prefix_path(repository_root=repository_root)
-    fixtures = store / "fixtures"
+    verify_installation_digests(install)
+
+    store_path = artifact_store_prefix_path(repository_root=repository_root)
+    fixtures = store_path / "fixtures"
     write_fixtures(fixtures)
-    classes = store / "harness-classes"
+    classes = store_path / "harness-classes"
     classes.mkdir(parents=True, exist_ok=True)
 
     javac = _java_tool("javac")
     assert javac is not None
     compiled = subprocess.run(
-        (
-            javac,
-            "-cp",
-            _classpath(install),
-            "-d",
-            str(classes),
-            str(source),
-        ),
+        (javac, "-cp", _classpath(install), "-d", str(classes), str(source)),
         check=False,
         capture_output=True,
         text=True,
@@ -482,19 +629,33 @@ def run_qualification(
     if compiled.returncode != 0:
         raise VeriFingerArtifactInspectionError(
             "the qualification harness did not compile against the pinned "
-            f"bindings: {(compiled.stderr or '').strip()[:600]}"
+            f"bindings: {(compiled.stderr or '').strip()[:800]}"
         )
 
-    first = _one_pass(
-        java=preconditions.java_home,
-        install=install,
-        fixtures=fixtures,
-        classes=classes,
-        label="first",
-        timeout=timeout,
-    )
+    attempted: dict[str, Any] = {}
+
+    def one(mode: str, tree: Path) -> Mapping[str, Any]:
+        report = _one_pass(
+            java=preconditions.java_home,
+            install=tree,
+            fixtures=fixtures,
+            classes=classes,
+            label=mode,
+            timeout=timeout,
+        )
+        attempted[mode] = {
+            "ok": bool(report.get("ok")),
+            "stage": report.get("stage"),
+            "runtime_started": bool(report.get("runtime_started")),
+            "error": report.get("error"),
+        }
+        return report
+
+    first = one("full", install)
     if not first.get("ok"):
         if first.get("error") == "LICENCES_NOT_OBTAINED":
+            # Nothing ran: the engine was never constructed. This is the third
+            # precondition failing, not a finding about VeriFinger.
             raise VeriFingerAcquisitionError(
                 f"{PreconditionStatus.LICENCE_NOT_ACTIVATED.value}: the SDK "
                 "refused the FingerExtractor and FingerMatcher licences. "
@@ -502,70 +663,152 @@ def run_qualification(
                 "Trial = true in pgd.conf and start the licensing service — and "
                 "run this again. Nothing here bypasses a licence."
             )
-        raise VeriFingerArtifactInspectionError(
-            f"the first qualification pass failed: {first.get('error')}"
+        _write_record(
+            store_path,
+            _failed_record(
+                install,
+                repository_root=repository_root,
+                stage=str(first.get("stage")),
+                detail=str(first.get("error")),
+                passes=attempted,
+            ),
         )
-    second = _one_pass(
-        java=preconditions.java_home,
-        install=install,
-        fixtures=fixtures,
-        classes=classes,
-        label="second",
-        timeout=timeout,
-    )
-    if not second.get("ok"):
         raise VeriFingerArtifactInspectionError(
-            f"the second qualification pass failed: {second.get('error')}"
+            "the qualification run started and failed at "
+            f"{first.get('stage')}: {first.get('error')}. A FAILED record has "
+            "been written, so the preflight will report a real blocker rather "
+            "than an outstanding action"
         )
 
-    record = _build_record(install, first, second)
-    path = store / QUALIFICATION_RUN_RECORD_NAME
-    path.write_text(
-        json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    second = one("restart", install)
+    if not second.get("ok"):
+        _write_record(
+            store_path,
+            _failed_record(
+                install,
+                repository_root=repository_root,
+                stage=str(second.get("stage")),
+                detail=str(second.get("error")),
+                passes=attempted,
+            ),
+        )
+        raise VeriFingerArtifactInspectionError(
+            "the restart pass failed after the runtime had started: "
+            f"{second.get('error')}"
+        )
+
+    # The two probes that need a deliberately incomplete runtime.
+    without_models = _prepare_installation_without_models(install)
+    third = one("no-models", without_models)
+    fourth = one("no-licence", install)
+
+    record = _build_record(
+        install,
+        first,
+        second,
+        third,
+        fourth,
+        repository_root=repository_root,
     )
+    missing = sorted(
+        {name for name, _ in FAILURE_SEMANTICS_CAUSES}
+        - {
+            row.get("failure_class")
+            for row in record["failure_semantics"]
+            if isinstance(row, dict)
+        }
+    )
+    if missing:
+        _write_record(
+            store_path,
+            _failed_record(
+                install,
+                repository_root=repository_root,
+                stage="failure-semantics",
+                detail=f"these failure classes were never provoked: {missing}",
+                passes=attempted,
+            ),
+        )
+        raise VeriFingerArtifactInspectionError(
+            f"the run did not provoke {missing}; a FAILED record has been written"
+        )
+
+    _write_record(store_path, record)
     state = qualification_run_state(repository_root=repository_root)
     if not state.performed:
         raise VeriFingerArtifactInspectionError(
-            "the record this run wrote does not verify: "
-            f"{state.invalid_reason}"
+            f"the record this run wrote does not verify: {state.invalid_reason}"
         )
     return record
 
 
-def _build_record(
-    install: Path, first: Mapping[str, Any], second: Mapping[str, Any]
-) -> dict[str, Any]:
-    """Merge the two passes into the shape the preflight reads.
+def _prepare_installation_without_models(install: Path) -> Path:
+    """A copy of the installation with the fingerprint data file withheld.
 
-    The only thing the second pass contributes is the restart level of
-    determinism. Everything else is the first pass's, because two passes that
-    disagreed about anything else would be a nondeterminism finding rather than
-    something to average.
+    The controlled cause for the missing-runtime-component class. A copy rather
+    than a deletion, because a probe that damaged the real installation would
+    make the next pass measure something else.
+    """
+    incomplete = install.parent / "installation-without-models"
+    if incomplete.exists():
+        shutil.rmtree(incomplete)
+    shutil.copytree(install, incomplete)
+    for item in FINGER_DATA_FILES:
+        target = incomplete / Path(item.relative_path.split("/", 1)[1])
+        if target.is_file():
+            target.unlink()
+    return incomplete
+
+
+def _build_record(
+    install: Path,
+    first: Mapping[str, Any],
+    second: Mapping[str, Any],
+    third: Mapping[str, Any],
+    fourth: Mapping[str, Any],
+    *,
+    repository_root: Path | None = None,
+) -> dict[str, Any]:
+    """Merge the four passes into the shape the preflight reads.
+
+    The restart pass contributes exactly one thing — the third determinism level
+    — because two passes that disagreed about anything else would be a
+    nondeterminism finding rather than something to average. The two probe passes
+    contribute one failure class each.
     """
     determinism = dict(first.get("determinism_within_process") or {})
     determinism[DETERMINISM_LEVELS[2]] = bool(
         first.get("pair_score_digest")
         and first.get("pair_score_digest") == second.get("pair_score_digest")
     )
+
     defaults: dict[str, str] = {}
     defaults.update(first.get("delivered_extraction_defaults") or {})
     defaults.update(first.get("delivered_matching_defaults") or {})
     # The engine publishes its parameters under the manual's dotted names; the
     # profile documents key them by the accessor name the reference uses, so the
     # record carries both rather than making the reader map them.
-    normalised = {
-        _accessor_name(name): value for name, value in defaults.items()
-    }
+    normalised = {_accessor_name(name): value for name, value in defaults.items()}
     normalised.update(defaults)
 
-    produced = int(first.get("qualification_scores_produced") or 0) + int(
-        second.get("qualification_scores_produced") or 0
+    failures: list[Any] = list(first.get("failure_semantics") or ())
+    for probe in (third, fourth):
+        failures.extend(probe.get("failure_semantics") or ())
+
+    produced = sum(
+        int(item.get("qualification_scores_produced") or 0)
+        for item in (first, second, third, fourth)
     )
-    native = install / "Bin" / "Win64_x64"
     return {
         "schema": QUALIFICATION_RUN_SCHEMA,
+        "outcome": QualificationOutcome.COMPLETED.value,
         "performed_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "archive_sha256": SDK_ARCHIVE.sha256,
+        "inputs_fingerprint": inputs_fingerprint(
+            install, repository_root=repository_root
+        ),
+        "fixture_version": FIXTURE_VERSION,
+        "runtime_started": True,
         "platform_lock": {
             "operating_system": PLATFORM_OPERATING_SYSTEM,
             "architecture": PLATFORM_ARCHITECTURE,
@@ -580,6 +823,10 @@ def _build_record(
         },
         "reported_operating_system": first.get("operating_system"),
         "reported_architecture": first.get("architecture"),
+        # The native modules the process actually loaded, each with its own
+        # version. This — not the Java version beside it — is what "the version
+        # the running library reports" means (spec correction 6).
+        "loaded_modules": first.get("loaded_modules") or [],
         "licences_obtained": bool(first.get("licences_obtained")),
         "settings_set_by_the_run": list(first.get("settings_set_by_this_pass") or ()),
         "threshold_set_by_the_run": bool(first.get("threshold_set_by_this_pass")),
@@ -587,13 +834,16 @@ def _build_record(
         "pair_orientation": first.get("pair_orientation"),
         "self_semantics": first.get("self_semantics"),
         "determinism": determinism,
-        "failure_semantics": first.get("failure_semantics"),
+        "failure_semantics": failures,
+        "failure_semantics_causes": [
+            {"failure_class": name, "controlled_cause": cause}
+            for name, cause in FAILURE_SEMANTICS_CAUSES
+        ],
         "feasibility": first.get("feasibility"),
         "qualification_scores_produced": min(produced, QUALIFICATION_RUN_MAX_SCORES),
         "benchmark_scores_produced": 0,
         "sd300_used": False,
         "fixture_kind": "SYNTHETIC_RIDGE_LIKE",
-        "native_library_directory_present": native.is_dir(),
     }
 
 

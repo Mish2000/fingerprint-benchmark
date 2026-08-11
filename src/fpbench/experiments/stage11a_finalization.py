@@ -122,6 +122,7 @@ _ALLOWED_EXACT_CHANGES = frozenset(
         ),
         "docs/adr/0104-a-preflight-that-was-not-run-is-not-a-preflight-that-failed.md",
         "docs/adr/0105-one-upstream-sample-is-the-route-not-several.md",
+        "docs/adr/0106-the-qualification-harness-must-be-able-to-reach-pass.md",
         "docs/experiments/stage11a-verifinger-2025_2-preflight.md",
         "docs/algorithms/algorithm4-candidates/verifinger-2025-2.md",
         "environment.yml",

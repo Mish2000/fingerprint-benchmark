@@ -73,6 +73,21 @@ def _require_the_artifact_is_here() -> None:
             "the VeriFinger artifacts are not in this machine's artifact store, "
             "so the gates that depend on them re-derive differently here"
         )
+    # The toolchain counts as machine state too. Which chore is outstanding is a
+    # fact about this computer, and a machine without a JDK legitimately derives
+    # JAVA_RUNTIME_NOT_AVAILABLE where the publishing machine derived something
+    # else. Comparing the published codes with the ones this machine produces is
+    # the honest guard, and it never silently passes.
+    published = _document(frozen.PREFLIGHT_REPORT_NAME)
+    derived = engine.run_preflight()
+    if sorted(published["distinct_pending_action_codes"]) != sorted(
+        derived.distinct_pending_action_codes
+    ):
+        pytest.skip(
+            "this machine has different chores outstanding than the one that "
+            f"published: {published['distinct_pending_action_codes']} there, "
+            f"{list(derived.distinct_pending_action_codes)} here"
+        )
 
 
 # ---------------------------------------------------------------- the documents

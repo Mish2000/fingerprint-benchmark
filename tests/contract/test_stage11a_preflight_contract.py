@@ -945,7 +945,7 @@ def test_the_fixtures_are_synthetic_and_never_sd300(tmp_path: Path) -> None:
     from fpbench.experiments.stage11a_qualification import write_fixtures
 
     made = write_fixtures(tmp_path / "fixtures")
-    assert len(made) == 4
+    assert len(made) == 5
     assert made[0].read_bytes()[:8] == bytes(
         (0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
     )
@@ -1017,31 +1017,7 @@ def test_a_record_carrying_score_values_is_refused() -> None:
         _validate_qualification_record,
     )
 
-    record, why = _validate_qualification_record(
-        {
-            "schema": "stage_11a_qualification_run_v1",
-            "archive_sha256": observed.SDK_ARCHIVE.sha256,
-            "sd300_used": False,
-            "benchmark_scores_produced": 0,
-            "qualification_scores_produced": 4,
-            "platform_lock": {
-                name: "x" for name in frozen.RUNTIME_PLATFORM_LOCK_FIELDS
-            },
-            "delivered_runtime_defaults": {
-                item.name: "x"
-                for item in (
-                    *observed.PUBLISHED_EXTRACTOR_SETTINGS,
-                    *observed.PUBLISHED_MATCHER_SETTINGS,
-                )
-            },
-            "determinism": {level: True for level in frozen.DETERMINISM_LEVELS},
-            "failure_semantics": [
-                {"failure_class": name, "score_present": False}
-                for name in frozen.FAILURE_SEMANTICS_CLASSES
-            ],
-            "scores": [1, 2, 3],
-        }
-    )
+    record, why = _validate_qualification_record(_complete_record(scores=[1, 2, 3]))
     assert record is None
     assert "never score values" in why
 
@@ -1052,16 +1028,288 @@ def test_an_unbounded_run_is_refused() -> None:
     )
 
     record, why = _validate_qualification_record(
-        {
-            "schema": "stage_11a_qualification_run_v1",
-            "archive_sha256": observed.SDK_ARCHIVE.sha256,
-            "sd300_used": False,
-            "benchmark_scores_produced": 0,
-            "qualification_scores_produced": frozen.QUALIFICATION_RUN_MAX_SCORES + 1,
-        }
+        _complete_record(
+            qualification_scores_produced=frozen.QUALIFICATION_RUN_MAX_SCORES + 1
+        )
     )
     assert record is None
     assert "bound" in why
+
+
+# ------------------------------------------- the eight harness corrections
+
+
+def test_every_failure_class_has_a_controlled_cause() -> None:
+    """A class checked by whatever happened to go wrong is not checked."""
+    causes = dict(frozen.FAILURE_SEMANTICS_CAUSES)
+    assert set(causes) == set(frozen.FAILURE_SEMANTICS_CLASSES)
+    assert len(causes) == 6
+    for name, cause in causes.items():
+        assert cause.strip(), name
+
+
+def test_the_harness_provokes_the_four_in_process_failure_classes() -> None:
+    text = (
+        REPOSITORY_ROOT / Path(frozen.QUALIFICATION_HARNESS_SOURCE)
+    ).read_text(encoding="utf-8")
+    for name in (
+        "invalid image",
+        "unsupported image",
+        "extraction failure",
+        "matcher failure",
+    ):
+        assert f'"{name}"' in text, name
+
+
+def test_the_two_missing_runtime_classes_need_their_own_process() -> None:
+    """A process cannot un-load a data file it has already loaded."""
+    text = (
+        REPOSITORY_ROOT / Path(frozen.QUALIFICATION_HARNESS_SOURCE)
+    ).read_text(encoding="utf-8")
+    assert '"no-models".equals(mode)' in text
+    assert '"no-licence".equals(mode)' in text
+    assert "missing runtime component" in text
+    assert "licence or runtime failure" in text
+    modes = {name for name, _ in frozen.QUALIFICATION_PASSES}
+    assert {"full", "restart", "no-models", "no-licence"} == modes
+
+
+def test_a_record_missing_a_failure_class_is_refused() -> None:
+    from fpbench.experiments.stage11a_artifacts import (
+        _validate_qualification_record,
+    )
+
+    record, why = _validate_qualification_record(
+        _complete_record(
+            failure_semantics=[
+                {"failure_class": name, "score_present": False}
+                for name in frozen.FAILURE_SEMANTICS_CLASSES[:-1]
+            ]
+        )
+    )
+    assert record is None
+    assert "licence or runtime failure" in why
+
+
+def test_an_unreadable_setting_is_unresolved_and_never_a_value() -> None:
+    """Correction 2, at both layers that could get it wrong."""
+    assert frozen.setting_value_is_resolved("Low") is True
+    assert frozen.setting_value_is_resolved("UNREADABLE:NoSuchProperty") is False
+    assert frozen.setting_value_is_resolved("") is False
+    assert frozen.setting_value_is_resolved(None) is False
+
+    from fpbench.experiments.stage11a_artifacts import (
+        _validate_qualification_record,
+    )
+
+    defaults = {
+        item.name: "x"
+        for item in (
+            *observed.PUBLISHED_EXTRACTOR_SETTINGS,
+            *observed.PUBLISHED_MATCHER_SETTINGS,
+        )
+    }
+    defaults["FingersTemplateSize"] = "UNREADABLE:NoSuchProperty"
+    record, why = _validate_qualification_record(
+        _complete_record(delivered_runtime_defaults=defaults)
+    )
+    assert record is None
+    assert "FingersTemplateSize" in why
+    assert "UNREADABLE" in why
+
+
+def test_a_record_without_an_inputs_fingerprint_is_refused() -> None:
+    """Correction 3: a record that cannot say what produced it."""
+    from fpbench.experiments.stage11a_artifacts import (
+        _validate_qualification_record,
+    )
+
+    payload = _complete_record()
+    del payload["inputs_fingerprint"]
+    record, why = _validate_qualification_record(payload)
+    assert record is None
+    assert "inputs_fingerprint" in why
+
+
+def test_the_inputs_fingerprint_covers_the_five_named_components() -> None:
+    assert len(frozen.QUALIFICATION_RUN_INPUT_COMPONENTS) == 5
+    joined = " ".join(frozen.QUALIFICATION_RUN_INPUT_COMPONENTS).lower()
+    for needle in ("archive", "native library", "java harness", "driver", "fixture"):
+        assert needle in joined
+
+
+def test_the_driver_verifies_extracted_digests_before_running() -> None:
+    """Correction 4: extraction is not verification."""
+    from fpbench.experiments import stage11a_qualification as harness
+    import inspect
+
+    source = inspect.getsource(harness.run_qualification)
+    assert "verify_installation_digests" in source
+    order = source.index("verify_installation_digests")
+    assert order < source.index("_one_pass") if "_one_pass" in source else True
+
+
+def test_a_failed_record_is_a_finding_and_not_an_absence() -> None:
+    """Correction 5, the one that lets this stage leave INCOMPLETE."""
+    from fpbench.experiments.stage11a_artifacts import (
+        _validate_qualification_record,
+    )
+
+    record, why = _validate_qualification_record(
+        {
+            "schema": "stage_11a_qualification_run_v1",
+            "outcome": "FAILED",
+            "archive_sha256": observed.SDK_ARCHIVE.sha256,
+            "inputs_fingerprint": "a" * 64,
+            "fixture_version": frozen.FIXTURE_VERSION,
+            "sd300_used": False,
+            "benchmark_scores_produced": 0,
+            "runtime_started": True,
+            "failed_at_stage": "determinism",
+        }
+    )
+    assert record is not None, why
+    assert frozen.QualificationOutcome.FAILED.is_a_finding
+    assert not frozen.QualificationOutcome.FAILED.answers_execution_gates
+    assert frozen.QualificationOutcome.COMPLETED.answers_execution_gates
+
+
+def test_a_failed_record_that_never_started_is_refused() -> None:
+    from fpbench.experiments.stage11a_artifacts import (
+        _validate_qualification_record,
+    )
+
+    record, why = _validate_qualification_record(
+        {
+            "schema": "stage_11a_qualification_run_v1",
+            "outcome": "FAILED",
+            "archive_sha256": observed.SDK_ARCHIVE.sha256,
+            "inputs_fingerprint": "a" * 64,
+            "fixture_version": frozen.FIXTURE_VERSION,
+            "sd300_used": False,
+            "benchmark_scores_produced": 0,
+            "runtime_started": False,
+            "failed_at_stage": "licensing",
+        }
+    )
+    assert record is None
+    assert "absent run" in why
+
+
+def test_the_harness_reads_native_module_versions_not_the_java_version() -> None:
+    """Correction 6: do not call a Java version a VeriFinger runtime version."""
+    text = (
+        REPOSITORY_ROOT / Path(frozen.QUALIFICATION_HARNESS_SOURCE)
+    ).read_text(encoding="utf-8")
+    assert "NModule.getLoadedModules()" in text
+    assert "loaded_modules" in text
+    # The Java version is still recorded, under its own name, beside the lock.
+    assert "java_runtime_version" in text
+
+
+def test_latency_is_end_to_end_verify_and_capacity_uses_verification_attempts() -> None:
+    """Correction 7: one entry point, one honest number."""
+    assert frozen.FEASIBILITY_LATENCY_MEASURE == "end_to_end_verify_latency"
+    assert frozen.FROZEN_VERIFICATION_ATTEMPTS == 6_000
+    assert frozen.FROZEN_WORKLOAD.extraction_invocations == 12_000
+    measures = " ".join(frozen.RUNTIME_FEASIBILITY_MEASUREMENTS).lower()
+    assert "end-to-end verification latency" in measures
+    assert "extraction latency" not in measures
+
+    text = (
+        REPOSITORY_ROOT / Path(frozen.QUALIFICATION_HARNESS_SOURCE)
+    ).read_text(encoding="utf-8")
+    assert "end_to_end_verify_millis_total" in text
+    assert "extraction_millis_total" not in text
+
+
+def test_a_missing_java_toolchain_says_install_java_first() -> None:
+    """Correction 8: do not send somebody to burn a 30-day clock."""
+    java = engine._what_to_do(frozen.PendingActionCode.JAVA_RUNTIME_NOT_AVAILABLE)
+    assert "openjdk" in java
+    assert "before" in java.lower()
+    assert "qualify-check" in java
+    trial = engine._what_to_do(frozen.PendingActionCode.TRIAL_LICENCE_NOT_ACTIVATED)
+    assert "30-day trial" in trial
+    assert java != trial
+
+
+def test_every_pending_action_code_has_its_own_instruction() -> None:
+    for code in frozen.PendingActionCode:
+        assert engine._what_to_do(code).strip()
+
+
+def test_a_failed_run_turns_every_outstanding_action_into_a_blocker() -> None:
+    """The whole point of correction 5, exercised through the engine."""
+    preflight = engine.run_preflight()
+    failed = engine._failed_run()
+    if failed is None:
+        assert not preflight.blocked or preflight.blockers
+        return
+    assert preflight.blocked
+    assert preflight.outcome == frozen.STAGE_11A_BLOCKED_OUTCOME
+    assert frozen.BlockerCode.LOCAL_SMOKE_FAILED in {
+        item.blocker_code for item in preflight.blockers
+    }
+
+
+def test_local_smoke_failed_may_be_raised_at_every_execution_gate() -> None:
+    for gate in frozen.EXECUTION_DEPENDENT_GATES:
+        assert frozen.BlockerCode.LOCAL_SMOKE_FAILED in dict(frozen.GATE_BLOCKERS)[gate]
+
+
+def test_the_blank_fixture_decodes_and_carries_no_ridges(tmp_path: Path) -> None:
+    """The controlled cause for the extraction-failure class."""
+    from fpbench.experiments.stage11a_qualification import write_fixtures
+
+    made = write_fixtures(tmp_path / "fixtures")
+    names = {item.name for item in made}
+    assert "fixture_blank.png" in names
+    blank = next(item for item in made if item.name == "fixture_blank.png")
+    assert blank.read_bytes()[:8] == bytes(
+        (0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+    )
+
+
+def _complete_record(**overrides: object) -> dict:
+    """A record that verifies, so one field at a time can be made wrong."""
+    payload: dict = {
+        "schema": "stage_11a_qualification_run_v1",
+        "outcome": "COMPLETED",
+        "archive_sha256": observed.SDK_ARCHIVE.sha256,
+        "inputs_fingerprint": "a" * 64,
+        "fixture_version": frozen.FIXTURE_VERSION,
+        "sd300_used": False,
+        "benchmark_scores_produced": 0,
+        "qualification_scores_produced": 6,
+        "platform_lock": {
+            name: "x" for name in frozen.RUNTIME_PLATFORM_LOCK_FIELDS
+        },
+        "delivered_runtime_defaults": {
+            item.name: "x"
+            for item in (
+                *observed.PUBLISHED_EXTRACTOR_SETTINGS,
+                *observed.PUBLISHED_MATCHER_SETTINGS,
+            )
+        },
+        "determinism": {level: True for level in frozen.DETERMINISM_LEVELS},
+        "failure_semantics": [
+            {"failure_class": name, "score_present": False}
+            for name in frozen.FAILURE_SEMANTICS_CLASSES
+        ],
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_the_complete_record_helper_actually_verifies() -> None:
+    """Otherwise every negative case above could pass for the wrong reason."""
+    from fpbench.experiments.stage11a_artifacts import (
+        _validate_qualification_record,
+    )
+
+    record, why = _validate_qualification_record(_complete_record())
+    assert record is not None, why
 
 
 # ------------------------------------------------------------- non-goals & layering

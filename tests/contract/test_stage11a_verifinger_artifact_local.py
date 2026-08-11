@@ -216,9 +216,45 @@ def test_the_harness_compiles_against_the_pinned_bindings_or_says_why(
     found = check_preconditions(repository_root=REPOSITORY_ROOT)
     if found.status is PreconditionStatus.JAVA_MISSING:
         pytest.skip(f"no Java toolchain here: {found.detail}")
+    import subprocess
+
+    from fpbench.experiments.stage11a_qualification import (
+        HARNESS_SOURCE,
+        _classpath,
+        _clean_environment,
+        _java_tool,
+        verify_installation_digests,
+    )
+
     install = prepare_installation(repository_root=REPOSITORY_ROOT)
-    assert (install / "Bin" / "Java").is_dir()
-    assert list((install / "Bin" / "Java").glob("*.jar"))
+    verified = verify_installation_digests(install)
+    assert verified, "every pinned component is re-hashed before anything loads it"
+
+    javac = _java_tool("javac")
+    assert javac is not None
+    classes = install.parent / "harness-classes"
+    classes.mkdir(parents=True, exist_ok=True)
+    compiled = subprocess.run(
+        (
+            javac,
+            "-cp",
+            _classpath(install),
+            "-d",
+            str(classes),
+            str(REPOSITORY_ROOT / HARNESS_SOURCE),
+        ),
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=600,
+        env=_clean_environment(install),
+    )
+    assert compiled.returncode == 0, (
+        "the harness does not compile against the pinned 2025.2 bindings, so "
+        "every API name in it is a guess: "
+        + (compiled.stderr or "").strip()[:1500]
+    )
+    assert (classes / "VeriFingerQualification.class").is_file()
 
 
 def test_no_vendor_material_is_reachable_from_the_working_tree() -> None:

@@ -13,7 +13,7 @@
     {
       "action_code": "RUNTIME_PLATFORM_NOT_LOCKED",
       "what_is_missing": "the platform this route is bound to, and the version the running library reports. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_to_do": "The platform is locked by the qualification run itself, which records the operating system, the architecture, the native libraries it loaded and the language runtime. Run `make stage11a-qualify-check` first: it reports which chore is actually outstanding on this machine.",
       "what_it_would_answer": "Which operating system, architecture, native libraries and language runtime a VeriFinger score would come from — the half of runtime identity that a file cannot state about itself. The lock records 7 fields at activation, because the trial is single-platform and alternating between two under one algorithm fingerprint is refused whichever is chosen."
     }
   ],

@@ -214,8 +214,8 @@ def test_the_marker_denials_are_all_false() -> None:
     marker = _marker()
     for name in Stage11AFinalization.DENIED_FLAGS:
         assert marker[name] is False, name
-    assert marker["licenses_activated"] == 0
-    assert marker["scores_produced"] == 0
+    assert marker["benchmark_scores_produced"] == 0
+    assert marker["sd300_scores_produced"] == 0
 
 
 def test_the_marker_says_the_artifact_was_obtained() -> None:

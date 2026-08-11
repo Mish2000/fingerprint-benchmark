@@ -56,6 +56,7 @@ __all__ = [
     "AcquisitionState",
     "QualificationRunState",
     "QUALIFICATION_RUN_RECORD_NAME",
+    "QUALIFICATION_RUN_SCHEMA",
     "qualification_run_state",
     "TrackedByteFinding",
     "TrackedByteAudit",
@@ -305,29 +306,155 @@ def acquisition_state(*, repository_root: Path | None = None) -> AcquisitionStat
 QUALIFICATION_RUN_RECORD_NAME = "qualification-run.json"
 
 
+#: The schema a qualification record must declare. A file that does not is not a
+#: record of this harness's run, whatever it contains.
+QUALIFICATION_RUN_SCHEMA = "stage_11a_qualification_run_v1"
+
+
 @dataclass(frozen=True, slots=True)
 class QualificationRunState:
-    """Whether a licensed engine was ever run on this machine, and what it left.
+    """Whether a licensed engine was ever run here, and what it left behind.
 
-    Seven of the seventeen gates cannot be answered by reading files. The
+    Nine of the seventeen gates cannot be answered by reading files. The
     delivered runtime defaults of every setting the manual leaves undocumented,
     the two orderings of a pair, SELF as two independent extractions, determinism
-    across a restart, what each failure class actually returns, and the latency
-    and memory of the route — every one of those is a fact about a running
-    licensed engine, and no amount of documentation substitutes for it.
+    across a restart, what each failure class returns, the latency and memory of
+    the route, and the platform the whole thing is bound to — every one of those
+    is a fact about a running licensed engine.
 
-    This class is how the preflight asks. It never runs anything: activating a
-    licence is a person's decision about their own machine, taken once, with a
-    30-day clock attached (spec section 32).
+    This class is how the preflight asks, and it never runs anything. Absence is
+    reported as an *action*, not as a failure: "nobody has activated the trial"
+    says nothing whatever about VeriFinger (docs/adr/0104).
+
+    ``invalid_reason`` carries the third case, which is the one worth having a
+    field for: a record that is present and does not verify. That is not an
+    absent run and it is not a good one, and treating it as either would let a
+    hand-written file answer nine gates.
     """
 
     performed: bool
     record_present: bool
     reason: str
+    record: Mapping[str, object] | None = None
+    invalid_reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.performed and self.record is None:
+            raise VeriFingerAcquisitionError(
+                "a performed qualification run has a record; a run reported "
+                "without one is a claim about an execution nobody can inspect"
+            )
+        if self.performed and self.invalid_reason is not None:
+            raise VeriFingerAcquisitionError(
+                "a record that did not verify has not answered anything"
+            )
 
     @property
     def answers_execution_gates(self) -> bool:
-        return self.performed and self.record_present
+        return self.performed and self.record is not None
+
+
+def _validate_qualification_record(payload: object) -> tuple[Mapping[str, object] | None, str]:
+    """Check a record hard enough that a hand-written one cannot pass.
+
+    The checks that matter are the ones tying the record to *this* artifact and
+    *this* stage's refusals: the archive digest it ran against, that no SD300
+    byte took part, that no benchmark score was produced, and that the run is
+    bounded. A record failing any of them is rejected with the reason, and the
+    gates stay unanswered.
+    """
+    from fpbench.experiments.stage11a_verifinger_identity import (
+        DETERMINISM_LEVELS,
+        FAILURE_SEMANTICS_CLASSES,
+        QUALIFICATION_RUN_MAX_SCORES,
+        RUNTIME_PLATFORM_LOCK_FIELDS,
+    )
+    from fpbench.experiments.stage11a_verifinger_observations import (
+        PUBLISHED_EXTRACTOR_SETTINGS,
+        PUBLISHED_MATCHER_SETTINGS,
+        SDK_ARCHIVE,
+    )
+
+    if not isinstance(payload, dict):
+        return None, "the record is not a JSON object"
+    if payload.get("schema") != QUALIFICATION_RUN_SCHEMA:
+        return None, (
+            f"the record declares schema {payload.get('schema')!r} and this "
+            f"stage reads {QUALIFICATION_RUN_SCHEMA!r}"
+        )
+    if payload.get("archive_sha256") != SDK_ARCHIVE.sha256:
+        return None, (
+            "the record was produced against a different archive than the one "
+            "this stage pinned, so none of its findings describe this route"
+        )
+    if payload.get("sd300_used") is not False:
+        return None, "the record does not deny using SD300"
+    if payload.get("benchmark_scores_produced") != 0:
+        return None, "the record claims benchmark scores, which this stage forbids"
+
+    produced = payload.get("qualification_scores_produced")
+    if not isinstance(produced, int) or produced < 1:
+        return None, "a qualification run scores at least one fixture pair"
+    if produced > QUALIFICATION_RUN_MAX_SCORES:
+        return None, (
+            f"{produced} qualification scores exceeds the bound of "
+            f"{QUALIFICATION_RUN_MAX_SCORES}; a harness this size is an "
+            "unpublished experiment rather than a contract check"
+        )
+
+    lock = payload.get("platform_lock")
+    if not isinstance(lock, dict):
+        return None, "the record locks no platform"
+    missing_lock = sorted(set(RUNTIME_PLATFORM_LOCK_FIELDS) - set(lock))
+    if missing_lock:
+        return None, f"the platform lock is missing {missing_lock}"
+
+    defaults = payload.get("delivered_runtime_defaults")
+    if not isinstance(defaults, dict):
+        return None, "the record read no delivered runtime defaults"
+    expected = {
+        item.name
+        for item in (*PUBLISHED_EXTRACTOR_SETTINGS, *PUBLISHED_MATCHER_SETTINGS)
+    }
+    missing_defaults = sorted(expected - set(defaults))
+    if missing_defaults:
+        return None, (
+            "the record read no delivered default for "
+            f"{missing_defaults}; a partial profile is not a smaller answer"
+        )
+
+    determinism = payload.get("determinism")
+    if not isinstance(determinism, dict) or sorted(determinism) != sorted(
+        DETERMINISM_LEVELS
+    ):
+        return None, (
+            f"determinism must be reported at all {len(DETERMINISM_LEVELS)} levels"
+        )
+
+    failures = payload.get("failure_semantics")
+    if not isinstance(failures, list):
+        return None, "the record exercised no failure class"
+    seen = {
+        item.get("failure_class")
+        for item in failures
+        if isinstance(item, dict)
+    }
+    missing_failures = sorted(set(FAILURE_SEMANTICS_CLASSES) - seen)
+    if missing_failures:
+        return None, f"the record exercised no {missing_failures}"
+    if any(item.get("score_present") for item in failures if isinstance(item, dict)):
+        return None, (
+            "a failure returned a score, which would let a failure enter a rate "
+            "as a number rather than as an outcome"
+        )
+
+    for forbidden in ("scores", "score_values", "qualification_scores"):
+        if forbidden in payload:
+            return None, (
+                f"the record carries {forbidden!r}: a qualification run publishes "
+                "counts and equalities, never score values"
+            )
+    return payload, ""
 
 
 def qualification_run_state(
@@ -335,34 +462,59 @@ def qualification_run_state(
 ) -> QualificationRunState:
     """Look for a local qualification record, without requiring one.
 
-    Absent is the ordinary state and the published one: no licence has been
-    activated from this project, so nothing has run.
+    Absent is the ordinary state today: no licence has been activated from this
+    project, so nothing has run. That is reported as an action with a name, and
+    the preflight turns it into ``ACTION_REQUIRED`` rather than into a verdict
+    about the candidate.
     """
+    import json
+
     try:
         prefix = artifact_store_prefix_path(repository_root=repository_root)
     except VeriFingerAcquisitionError:
         prefix = None
-    present = bool(prefix is not None and (prefix / QUALIFICATION_RUN_RECORD_NAME).is_file())
-    if present:
+    path = None if prefix is None else prefix / QUALIFICATION_RUN_RECORD_NAME
+    if path is None or not path.is_file():
         return QualificationRunState(
-            performed=True,
-            record_present=True,
+            performed=False,
+            record_present=False,
             reason=(
-                "a local qualification record is present in the artifact store; "
-                "the gates that need a running engine read their facts from it"
+                "no licence has been activated from this project and nothing has "
+                "been executed, so no qualification record exists. The SDK's own "
+                "ReadMe defines installation as extracting the archive and then "
+                "activating the licensing software; the second step starts a "
+                "30-day trial bound to one machine, and that is the maintainer's "
+                "decision rather than a preflight's (spec section 32)"
             ),
         )
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return QualificationRunState(
+            performed=False,
+            record_present=True,
+            reason="a qualification record is present and could not be read",
+            invalid_reason=str(exc),
+        )
+    record, why = _validate_qualification_record(payload)
+    if record is None:
+        return QualificationRunState(
+            performed=False,
+            record_present=True,
+            reason=(
+                "a qualification record is present and does not verify, so it "
+                "answers nothing"
+            ),
+            invalid_reason=why,
+        )
     return QualificationRunState(
-        performed=False,
-        record_present=False,
+        performed=True,
+        record_present=True,
         reason=(
-            "no licence has been activated from this project and nothing has "
-            "been executed, so no qualification record exists. The SDK's own "
-            "ReadMe defines installation as extracting the archive and then "
-            "activating the licensing software, and the second step starts a "
-            "30-day trial bound to one machine — a decision that belongs to the "
-            "maintainer rather than to a preflight (spec section 32)"
+            "a verified qualification record is present; the gates that need a "
+            "running engine read their facts from it"
         ),
+        record=record,
     )
 
 

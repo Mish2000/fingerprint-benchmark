@@ -2,9 +2,21 @@
   "schema": "stage_11a_runtime_identity_v1",
   "candidate": "neurotechnology_verifinger_2025_2_1to1",
   "gate": "RUNTIME_IDENTITY",
-  "gate_status": "PASS",
-  "gate_summary": "VENDOR_OFFICIAL_SDK: VeriFinger 2025.2 SDK by Neurotechnology, identified from inside the pinned bytes by 5 independent statements. 5 native libraries of the chosen platform carry ProductVersion '2025, 2, 0, 0', and the archive declares revision 20260612. No version here was read from a web page, and none was read from a running library.",
+  "gate_status": "ACTION_REQUIRED",
+  "gate_status_is_a_finding": false,
+  "gate_summary": "VENDOR_OFFICIAL_SDK: VeriFinger 2025.2 SDK by Neurotechnology, identified from inside the pinned bytes by 5 independent statements; 5 native libraries carry ProductVersion '2025, 2, 0, 0' and the archive declares revision 20260612. The platform is not locked and no version has been read from a running library, so the runtime half of the identity is outstanding.",
   "blocker_codes": [],
+  "pending_action_codes": [
+    "RUNTIME_PLATFORM_NOT_LOCKED"
+  ],
+  "pending_actions": [
+    {
+      "action_code": "RUNTIME_PLATFORM_NOT_LOCKED",
+      "what_is_missing": "the platform this route is bound to, and the version the running library reports. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_it_would_answer": "Which operating system, architecture, native libraries and language runtime a VeriFinger score would come from — the half of runtime identity that a file cannot state about itself. The lock records 7 fields at activation, because the trial is single-platform and alternating between two under one algorithm fingerprint is refused whichever is chosen."
+    }
+  ],
   "identity_fields_required": [
     "product version, as the artifact itself declares it",
     "build or revision identifier",
@@ -18,7 +30,7 @@
   "a_web_page_version_is_not_an_algorithm_identity": true,
   "web_page_version_used_as_identity": false,
   "runtime_reported_version_read_by_execution": false,
-  "why_not_read_by_execution": "no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software, and the second step starts a 30-day trial bound to one machine — a decision that belongs to the maintainer rather than to a preflight (spec section 32)",
+  "why_not_read_by_execution": "no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
   "declared_version": "2025.2",
   "archive_revision_number": "20260612",
   "archive_revision_hash": "0738caf6a69459241bff6e800789cd61c160bbce",

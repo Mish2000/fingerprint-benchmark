@@ -2,9 +2,22 @@
   "schema": "stage_11a_matcher_profile_v1",
   "candidate": "neurotechnology_verifinger_2025_2_1to1",
   "gate": "MATCHER_PROFILE",
-  "gate_status": "NOT_REACHED",
-  "gate_summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+  "gate_status": "ACTION_REQUIRED",
+  "gate_status_is_a_finding": false,
+  "gate_summary": "the inventory is closed over 6 published matching settings; 1 score-affecting values come from the authoritative sample and 2 are delivered runtime defaults nobody has read yet",
   "blocker_codes": [],
+  "pending_action_codes": [
+    "JAVA_RUNTIME_NOT_AVAILABLE"
+  ],
+  "pending_actions": [
+    {
+      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "what_is_missing": "a value with an upstream provenance for 2 score-affecting matching settings: FingersMaximalRotation, MatchingScenario. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_it_would_answer": "Each of these changes the score, and the pinned manual states a default for none of them — while stating defaults for the face-side settings in the same tables, so the absence is a property of the document rather than of the reading. One constructed engine reports all of them, and each becomes a DELIVERED_RUNTIME_DEFAULT: an upstream authority, recorded rather than chosen."
+    }
+  ],
+  "scope": "this document counts only the settings of this gate; the other profile gate counts its own, and no number here spans both",
   "inventory_classes_searched": [
     "rotation tolerance",
     "matching mode",
@@ -86,14 +99,19 @@
   ],
   "setting_count": 6,
   "score_affecting_count": 3,
-  "score_affecting_with_upstream_provenance": [
+  "score_affecting_from_authoritative_sample": [
     "FingersMatchingSpeed"
   ],
-  "score_affecting_without_upstream_provenance": [
+  "score_affecting_read_from_the_running_engine": [],
+  "score_affecting_still_without_provenance": [
     "FingersMaximalRotation",
     "MatchingScenario"
   ],
+  "score_affecting_still_without_provenance_count": 2,
   "profile_frozen": false,
+  "authoritative_sample": "Tutorials/Biometrics/Java/verify-finger — upstream's own complete 1:1 verification program, the only sample in the archive that performs the whole route this benchmark needs",
+  "settings_taken_from_any_other_sample": 0,
+  "why_one_sample_only": "Upstream ships many tutorials and they configure the engine differently: the enrolment tutorial sets a template size the verification tutorial never touches, and the verification tutorial sets a matching speed the enrolment tutorial never touches. A profile taking one value from each would be a configuration no upstream program has ever run, so only the complete 1:1 program counts (docs/adr/0105).",
   "permitted_provenances": [
     "UPSTREAM_DOCUMENTED_DEFAULT",
     "DELIVERED_RUNTIME_DEFAULT",
@@ -105,7 +123,6 @@
   "preset_selected_from_score_distributions": false,
   "preset_selected_from_vendor_reported_accuracy": false,
   "profile_identity_would_name_the_official_sample_route": true,
-  "why": "Where a value comes from upstream's own 1:1 tutorial rather than from a stated default, the profile is the official-sample route and its identity says so. Calling it 'the VeriFinger default' would claim something the manual does not state (spec section 16).",
   "observations": [
     {
       "observation_id": "engine_publishes_the_matching_settings",

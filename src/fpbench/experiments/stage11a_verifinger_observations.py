@@ -46,6 +46,14 @@ from fpbench.experiments.stage11a_verifinger_identity import (
     SettingProvenance,
 )
 
+#: The one sample settings may be taken from, as a path inside the archive.
+#: The prose form lives in the identity module; this is what an observation
+#: cites, so the two cannot disagree about which tutorial is authoritative.
+AUTHORITATIVE_ROUTE_SAMPLE_PATH = (
+    "Neurotec_Biometric_2025_2_SDK/Tutorials/Biometrics/Java/verify-finger/"
+    "src/main/java/com/neurotec/tutorials/biometrics/VerifyFinger.java"
+)
+
 __all__ = [
     "OBSERVED_UTC",
     "ACQUIRED_UTC",
@@ -56,6 +64,7 @@ __all__ = [
     "ArchiveMember",
     "NativeLibraryIdentity",
     "PublishedSetting",
+    "AUTHORITATIVE_ROUTE_SAMPLE_PATH",
     "PRODUCT_IDENTITY_CLAIM",
     "ProductIdentityClaim",
     "SDK_ARCHIVE",
@@ -318,15 +327,41 @@ class PublishedSetting:
     is_score_affecting: bool
     documented_default: str | None = None
     official_sample_value: str | None = None
+    official_sample_locator: str | None = None
+
+    def __post_init__(self) -> None:
+        if (self.official_sample_value is None) != (
+            self.official_sample_locator is None
+        ):
+            raise VeriFingerObservationError(
+                f"{self.name}: a value taken from an official sample names which "
+                "sample, and a named sample without a value says nothing"
+            )
+        if (
+            self.official_sample_locator is not None
+            and self.official_sample_locator != AUTHORITATIVE_ROUTE_SAMPLE_PATH
+        ):
+            raise VeriFingerObservationError(
+                f"{self.name}: the value comes from "
+                f"{self.official_sample_locator!r}, and the authoritative route "
+                f"is {AUTHORITATIVE_ROUTE_SAMPLE_PATH!r}. Upstream's tutorials do "
+                "not agree with each other, so a profile assembled from two of "
+                "them would be a configuration no upstream program has ever run "
+                "(docs/adr/0105)"
+            )
 
     @property
     def provenance(self) -> SettingProvenance:
         """Where a frozen value for this setting would come from, today.
 
-        The sample outranks the manual here, and deliberately: where upstream's
-        own working code sets a value explicitly, that is the route being
-        qualified, and the profile identity says so rather than claiming to be
-        "the VeriFinger default" (spec section 16).
+        The authoritative sample outranks the manual, and deliberately: where
+        upstream's own complete 1:1 program sets a value explicitly, that *is*
+        the route being qualified, and the profile identity says so rather than
+        claiming to be "the VeriFinger default" (spec section 16).
+
+        Only one sample counts. A setting the authoritative sample leaves alone
+        is a delivered runtime default to be read off the engine — never a value
+        borrowed from a neighbouring tutorial that does set it.
         """
         if self.official_sample_value is not None:
             return SettingProvenance.OFFICIAL_SAMPLE_EXPLICIT
@@ -955,17 +990,36 @@ EXTRACTION_OBSERVATIONS: tuple[Observation, ...] = (
         locator=f"{_ROOT}Documentation/Neurotechnology Biometric SDK.pdf",
     ),
     Observation(
-        observation_id="official_sample_sets_template_size_explicitly",
-        subject="an extraction setting upstream's own code chooses",
+        observation_id="a_different_tutorial_sets_template_size",
+        subject="why the archive's tutorials cannot be combined",
         statement=(
             "The enroll-finger-from-image tutorial sets FingersTemplateSize to "
-            "NTemplateSize.LARGE before creating the template."
+            "NTemplateSize.LARGE before creating a template. The verify-finger "
+            "tutorial — the complete 1:1 program this stage qualifies — never "
+            "touches that setting, and enroll-finger-from-image never sets the "
+            "matching speed that verify-finger does. The two programs are "
+            "configured differently, so a profile taking one value from each "
+            "would be a configuration neither of them runs."
         ),
         source_class=SourceClass.OFFICIAL_SAMPLE_IN_ARCHIVE,
         locator=(
             f"{_ROOT}Tutorials/Biometrics/Java/enroll-finger-from-image/src/main/"
             "java/com/neurotec/tutorials/biometrics/EnrollFingerFromImage.java"
         ),
+    ),
+    Observation(
+        observation_id="the_authoritative_sample_sets_two_things_only",
+        subject="what upstream's own 1:1 program configures",
+        statement=(
+            "verify-finger sets exactly two engine properties before verifying: "
+            "setMatchingThreshold(48) and "
+            "setFingersMatchingSpeed(NMatchingSpeed.LOW). The threshold is "
+            "discarded by the raw route. Every other setting on the route is "
+            "whatever the engine is constructed with, which is a delivered "
+            "runtime default and has to be read from a running engine."
+        ),
+        source_class=SourceClass.OFFICIAL_SAMPLE_IN_ARCHIVE,
+        locator=AUTHORITATIVE_ROUTE_SAMPLE_PATH,
     ),
     Observation(
         observation_id="manual_warns_fast_extraction_changes_accuracy",
@@ -1279,11 +1333,15 @@ PROVENANCE_OBSERVATIONS: tuple[Observation, ...] = (
 #: Every externally selectable extraction setting the pinned manual publishes for
 #: fingerprints, with what is and is not known about each value.
 PUBLISHED_EXTRACTOR_SETTINGS: tuple[PublishedSetting, ...] = (
+    # ``NTemplateSize.LARGE`` appears in the *enrolment* tutorial, which is a
+    # different program from the one being qualified. The verification tutorial
+    # never touches this setting, so its value on the qualified route is whatever
+    # the engine is constructed with — a delivered runtime default to be read,
+    # not a value borrowed from a neighbour (docs/adr/0105).
     PublishedSetting(
         name="FingersTemplateSize",
         published_meaning="defines the size of the biometric template",
         is_score_affecting=True,
-        official_sample_value="NTemplateSize.LARGE",
     ),
     PublishedSetting(
         name="FingersExtractionScenario",
@@ -1369,6 +1427,7 @@ PUBLISHED_MATCHER_SETTINGS: tuple[PublishedSetting, ...] = (
         ),
         is_score_affecting=True,
         official_sample_value="NMatchingSpeed.LOW",
+        official_sample_locator=AUTHORITATIVE_ROUTE_SAMPLE_PATH,
     ),
     PublishedSetting(
         name="FingersMaximalRotation",

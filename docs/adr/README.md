@@ -110,6 +110,8 @@ can be held to.
 | [0101](0101-every-score-affecting-setting-carries-an-upstream-provenance.md) | Every score-affecting setting carries an upstream provenance, never an fpbench choice | Accepted, implemented |
 | [0102](0102-a-native-transformed-score-is-a-raw-score.md) | A native transformed score is a raw score; fpbench converts nothing | Accepted, implemented |
 | [0103](0103-network-for-licensing-is-not-network-in-the-computation.md) | Network for licensing is not network in the computation | Accepted, implemented |
+| [0104](0104-a-preflight-that-was-not-run-is-not-a-preflight-that-failed.md) | A preflight that was not run is not a preflight that failed | Accepted, implemented |
+| [0105](0105-one-upstream-sample-is-the-route-not-several.md) | One upstream sample is the route, not several | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

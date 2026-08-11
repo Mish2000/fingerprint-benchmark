@@ -226,17 +226,80 @@ def test_the_marker_says_the_artifact_was_obtained() -> None:
     assert marker["artifact_identity_pinned"] is True
 
 
-def test_a_blocked_marker_opens_nothing_and_keeps_the_search_open() -> None:
+def test_each_outcome_opens_exactly_what_it_should() -> None:
     marker = _marker()
     if marker["outcome"] == frozen.STAGE_11A_SELECTED_OUTCOME:
         assert marker["opens_stage_11b"] is True
         assert marker["selected_candidate"] == frozen.CANDIDATE_ID
+        assert marker["opens_candidate_search"] is False
         return
     assert marker["opens_stage_11b"] is False
-    assert marker["opens_candidate_search"] is True
     assert marker["selected_candidate"] is None
+    if marker["outcome"] == frozen.STAGE_11A_INCOMPLETE_OUTCOME:
+        # The correction: no adverse finding, so no reason to move on.
+        assert marker["opens_candidate_search"] is False
+        assert marker["blockers"] == []
+        assert marker["failure_class"] is None
+        assert marker["pending_actions"]
+        return
+    assert marker["opens_candidate_search"] is True
     assert marker["blockers"]
     assert marker["failure_class"]
+
+
+def test_an_incomplete_marker_asked_every_gate() -> None:
+    """Nothing stopped the run, so nothing is NOT_REACHED."""
+    marker = _marker()
+    if marker["outcome"] != frozen.STAGE_11A_INCOMPLETE_OUTCOME:
+        pytest.skip("this marker is not incomplete")
+    assert (
+        marker["gates_passed"] + marker["gates_awaiting_action"]
+        == marker["gate_count_defined"]
+    )
+    report = _document(frozen.PREFLIGHT_REPORT_NAME)
+    assert not [
+        item for item in report["gates"] if item["status"] == "NOT_REACHED"
+    ]
+
+
+def test_the_score_classes_are_kept_apart() -> None:
+    marker = _marker()
+    assert marker["benchmark_scores_produced"] == 0
+    assert marker["sd300_scores_produced"] == 0
+    assert marker["qualification_scores_produced"] >= 0
+    if marker["qualification_scores_produced"]:
+        assert marker["qualification_run_performed"] is True
+        assert marker["licenses_activated"] >= 1
+
+
+def test_the_settings_counts_are_scoped_to_their_own_gates() -> None:
+    """The 7-versus-9 correction, as an assertion."""
+    marker = _marker()
+    report = _document(frozen.PREFLIGHT_REPORT_NAME)
+    counts = report["score_affecting_settings_without_provenance"]
+    assert counts["extraction_gate"] == marker["extraction_settings_without_provenance"]
+    assert counts["matching_gate"] == marker["matching_settings_without_provenance"]
+    assert (
+        counts["total_across_both_gates"]
+        == counts["extraction_gate"] + counts["matching_gate"]
+    )
+    extraction = _document(frozen.EXTRACTION_PROFILE_NAME)
+    matcher = _document(frozen.MATCHER_PROFILE_NAME)
+    assert (
+        extraction["score_affecting_still_without_provenance_count"]
+        == counts["extraction_gate"]
+    )
+    assert (
+        matcher["score_affecting_still_without_provenance_count"]
+        == counts["matching_gate"]
+    )
+
+
+def test_only_the_authoritative_sample_supplied_a_setting() -> None:
+    for name in (frozen.EXTRACTION_PROFILE_NAME, frozen.MATCHER_PROFILE_NAME):
+        document = _document(name)
+        assert document["settings_taken_from_any_other_sample"] == 0
+        assert "verify-finger" in document["authoritative_sample"]
 
 
 def test_the_gate_counts_agree_with_the_report() -> None:

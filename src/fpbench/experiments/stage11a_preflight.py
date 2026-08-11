@@ -69,6 +69,7 @@ __all__ = [
     "run_preflight",
     "evidence_document",
     "marker_blocker_rows",
+    "marker_pending_action_rows",
     "find_sensitive_material",
     "require_no_sensitive_material",
 ]
@@ -375,6 +376,33 @@ class Blocker:
 
 
 @dataclass(frozen=True, slots=True)
+class PendingAction:
+    """Why a gate was not asked, where the reason is a deed rather than a defect.
+
+    Structurally a sibling of :class:`Blocker` and semantically its opposite. A
+    blocker says something is wrong with the route; a pending action says nobody
+    has done a specific thing yet, names the thing, and names what doing it would
+    answer. Nothing about the candidate follows from one (docs/adr/0104).
+    """
+
+    gate: frozen.PreflightGate
+    action_code: frozen.PendingActionCode
+    what_is_missing: str
+    what_to_do: str
+    what_it_would_answer: str
+
+    def __post_init__(self) -> None:
+        permitted = frozen.gate_pending_actions(self.gate)
+        if self.action_code not in permitted:
+            raise VeriFingerGateError(
+                f"{self.action_code.value} does not belong to {self.gate.value}"
+            )
+        for name in ("what_is_missing", "what_to_do", "what_it_would_answer"):
+            if not str(getattr(self, name)).strip():
+                raise VeriFingerGateError(f"{self.action_code.value}: {name} is empty")
+
+
+@dataclass(frozen=True, slots=True)
 class GateResult:
     """One gate's conclusion."""
 
@@ -382,16 +410,39 @@ class GateResult:
     status: frozen.GateStatus
     summary: str
     blockers: tuple[Blocker, ...] = ()
+    pending_actions: tuple[PendingAction, ...] = ()
 
     def __post_init__(self) -> None:
-        if self.status is frozen.GateStatus.PASS and self.blockers:
+        if self.status is frozen.GateStatus.PASS and (
+            self.blockers or self.pending_actions
+        ):
             raise VeriFingerGateError(
-                f"{self.gate.value}: a gate that passed carries no blockers; a "
-                "blocker is not a reservation to be weighed"
+                f"{self.gate.value}: a gate that passed carries no blockers and "
+                "no outstanding actions; a blocker is not a reservation to be "
+                "weighed"
             )
         if self.status is frozen.GateStatus.FAIL and not self.blockers:
             raise VeriFingerGateError(f"{self.gate.value}: a gate that failed names why")
-        if self.status is frozen.GateStatus.NOT_REACHED and self.blockers:
+        if self.status is frozen.GateStatus.FAIL and self.pending_actions:
+            raise VeriFingerGateError(
+                f"{self.gate.value}: a gate that failed found something wrong "
+                "with the route, and an outstanding chore beside it would blur "
+                "the two claims this stage keeps apart"
+            )
+        if self.status is frozen.GateStatus.ACTION_REQUIRED:
+            if self.blockers:
+                raise VeriFingerGateError(
+                    f"{self.gate.value}: a gate awaiting an action found nothing "
+                    "wrong; a blocker here would say something about VeriFinger "
+                    "that nothing established"
+                )
+            if not self.pending_actions:
+                raise VeriFingerGateError(
+                    f"{self.gate.value}: a gate awaiting an action names which"
+                )
+        if self.status is frozen.GateStatus.NOT_REACHED and (
+            self.blockers or self.pending_actions
+        ):
             raise VeriFingerGateError(
                 f"{self.gate.value}: a gate that was never reached cannot have "
                 "found anything"
@@ -401,6 +452,12 @@ class GateResult:
                 raise VeriFingerGateError(
                     f"{self.gate.value}: carries a blocker raised at "
                     f"{blocker.gate.value}"
+                )
+        for action in self.pending_actions:
+            if action.gate is not self.gate:
+                raise VeriFingerGateError(
+                    f"{self.gate.value}: carries an action raised at "
+                    f"{action.gate.value}"
                 )
 
 
@@ -429,40 +486,92 @@ def _unresolved(items: tuple[observed.PublishedSetting, ...]) -> tuple[str, ...]
     )
 
 
-def _execution_blocker(
+#: One run's worth of answers about the local machine, computed once.
+#:
+#: Seventeen gates asking the store the same three questions meant hashing four
+#: and a half gigabytes seventeen times, which turned a preflight into a
+#: ninety-second operation. The cache is cleared at the top of every
+#: :func:`run_preflight`, so a run always sees one consistent picture of the
+#: machine and never a picture from the previous one.
+_RUN_CACHE: dict[str, Any] = {}
+
+
+def _cached(key: str, factory: Any) -> Any:
+    if key not in _RUN_CACHE:
+        _RUN_CACHE[key] = factory()
+    return _RUN_CACHE[key]
+
+
+def _qualification_state() -> Any:
+    return _cached("qualification", store.qualification_run_state)
+
+
+def _record() -> Mapping[str, Any] | None:
+    """The verified qualification record, or ``None`` if there is not one."""
+    state = _qualification_state()
+    return state.record if state.answers_execution_gates else None
+
+
+def _platform_lock() -> Mapping[str, Any] | None:
+    record = _record()
+    lock = None if record is None else record.get("platform_lock")
+    return lock if isinstance(lock, Mapping) else None
+
+
+def _delivered_defaults() -> Mapping[str, Any]:
+    record = _record()
+    values = {} if record is None else record.get("delivered_runtime_defaults") or {}
+    return values if isinstance(values, Mapping) else {}
+
+
+def _pending_action_code() -> frozen.PendingActionCode:
+    """Which of the three run reasons is actually true on this machine.
+
+    Asked rather than assumed. "The trial is not activated" and "there is no
+    Java toolchain here" are different chores with different owners, and a gate
+    that reported the wrong one would send somebody to do the wrong thing.
+    """
+    from fpbench.experiments.stage11a_qualification import check_preconditions
+
+    found = _cached("preconditions", check_preconditions).status.pending_action
+    return found or frozen.PendingActionCode.QUALIFICATION_RUN_NOT_PERFORMED
+
+
+def _execution_action(
     gate: frozen.PreflightGate,
     *,
-    component: str,
-    why: str,
-    code: frozen.BlockerCode = frozen.BlockerCode.LOCAL_SMOKE_FAILED,
-) -> Blocker:
-    """The one blocker shape seven gates share.
+    missing: str,
+    answers: str,
+    code: frozen.PendingActionCode | None = None,
+) -> PendingAction:
+    """The one action shape nine gates share.
 
-    Written once rather than seven times, because seven copies of the same
-    sentence drift into seven slightly different claims, and the claim matters:
-    nothing here failed. Nothing ran.
+    Written once rather than nine times, because nine copies of the same sentence
+    drift into nine slightly different claims — and the claim matters. Nothing
+    here failed. Nothing ran.
     """
-    state = store.qualification_run_state()
-    return Blocker(
+    state = _qualification_state()
+    return PendingAction(
         gate=gate,
-        blocker_code=code,
-        affected_component=component,
-        evidence=(
-            f"{state.reason}. The artifact is present and verified, and the "
-            "documentation describes the intended behaviour, but a documented "
-            "intention is not a measurement: this gate is about what a running "
-            "licensed engine does."
+        action_code=code or _pending_action_code(),
+        what_is_missing=(
+            f"{missing}. {state.reason}"
+            + (
+                f" The record present here does not verify: {state.invalid_reason}."
+                if state.invalid_reason
+                else ""
+            )
         ),
-        why_this_blocks_algorithm_4=why,
-        how_this_would_be_lifted=(
-            "The maintainer activates the 30-day trial on one chosen platform — "
-            "the vendor's documented route is Trial = true in the licensing "
-            "configuration and starting the licensing service, with no serial "
-            "number and no personal information — runs the bounded qualification "
-            "harness on fixtures that are not SD300, and re-runs this stage. No "
-            "licence is bypassed, no trial is reset and no protection mechanism "
-            "is touched (spec section 32)."
+        what_to_do=(
+            "Activate the 30-day trial once, on the one platform this route is "
+            "locked to — the vendor's documented route is Trial = true in the "
+            "licensing configuration and starting the licensing service, with no "
+            "serial number, no account and no personal information — then run "
+            "`make stage11a-qualify` and re-derive the stage. The harness scores "
+            "only synthetic fixtures, never SD300, and no licence is bypassed, "
+            "no trial reset and no protection mechanism touched (spec section 32)."
         ),
+        what_it_would_answer=answers,
     )
 
 
@@ -477,7 +586,7 @@ def _gate_official_artifact_acquisition() -> GateResult:
     settled by fetching the bytes and hashing them rather than by reading a page
     about how to request them (docs/adr/0100).
     """
-    state = store.acquisition_state()
+    state = _cached("acquisition", store.acquisition_state)
     if state.obtained:
         return GateResult(
             gate=frozen.PreflightGate.OFFICIAL_ARTIFACT_ACQUISITION,
@@ -538,16 +647,20 @@ def _gate_official_artifact_acquisition() -> GateResult:
 def _gate_runtime_identity() -> GateResult:
     """Gate 2. Is the thing that would compute a score exactly identified?
 
-    The requirement is that a version printed on a web page is not an algorithm
-    identity (spec section 6). What answers it here is stronger than a page and
-    weaker than a running engine: the version compiled into each native library's
-    own resource block, the archive's own revision file, the licence agreement's
-    own heading, and upstream's own tutorial declaring the version it is written
-    for. Four independent statements inside the pinned bytes, all saying 2025.2.
+    Two halves, and the artifact supplies only one of them.
 
-    The one field that a running engine would add — a version string emitted by a
-    loaded library — is published as not read, rather than quietly counted as
-    though the binary's resource block had been printed by the binary.
+    The **product** is identified beyond doubt from inside the pinned bytes: the
+    version compiled into each native library's own resource block, the archive's
+    revision file, the licence agreement's heading, and upstream's own tutorial
+    declaring the version it is written for. Four independent statements, all
+    2025.2, none of them a web page (spec section 6).
+
+    The **runtime** is not, until a platform is locked. The trial is
+    single-platform and the archive carries builds for five; which set of native
+    libraries would actually compute a score is part of what a score means, and
+    today no run has fixed it. That is a deed nobody has done, not a defect in
+    the product, so the gate reports an action rather than a blocker
+    (docs/adr/0104).
     """
     libraries = observed.WINDOWS_X64_NATIVE_LIBRARIES
     versions = {item.product_version for item in libraries}
@@ -577,18 +690,54 @@ def _gate_runtime_identity() -> GateResult:
             ),
             summary="the native libraries disagree about their own version",
         )
+
+    product = (
+        f"{observed.PRODUCT_IDENTITY_CLAIM.product_name} by "
+        f"{observed.PRODUCT_IDENTITY_CLAIM.vendor}, identified from inside the "
+        f"pinned bytes by "
+        f"{len(observed.PRODUCT_IDENTITY_CLAIM.supporting_sources)} independent "
+        f"statements; {len(libraries)} native libraries carry ProductVersion "
+        f"{sorted(versions)[0]!r} and the archive declares revision 20260612"
+    )
+    lock = _platform_lock()
+    if lock is None:
+        return GateResult(
+            gate=frozen.PreflightGate.RUNTIME_IDENTITY,
+            status=frozen.GateStatus.ACTION_REQUIRED,
+            pending_actions=(
+                _execution_action(
+                    frozen.PreflightGate.RUNTIME_IDENTITY,
+                    code=frozen.PendingActionCode.RUNTIME_PLATFORM_NOT_LOCKED,
+                    missing=(
+                        "the platform this route is bound to, and the version the "
+                        "running library reports"
+                    ),
+                    answers=(
+                        "Which operating system, architecture, native libraries "
+                        "and language runtime a VeriFinger score would come from "
+                        "— the half of runtime identity that a file cannot state "
+                        f"about itself. The lock records "
+                        f"{len(frozen.RUNTIME_PLATFORM_LOCK_FIELDS)} fields at "
+                        "activation, because the trial is single-platform and "
+                        "alternating between two under one algorithm fingerprint "
+                        "is refused whichever is chosen."
+                    ),
+                ),
+            ),
+            summary=(
+                f"{frozen.IMPLEMENTATION_ORIGIN}: {product}. The platform is not "
+                "locked and no version has been read from a running library, so "
+                "the runtime half of the identity is outstanding."
+            ),
+        )
     return GateResult(
         gate=frozen.PreflightGate.RUNTIME_IDENTITY,
         status=frozen.GateStatus.PASS,
         summary=(
-            f"{frozen.IMPLEMENTATION_ORIGIN}: "
-            f"{observed.PRODUCT_IDENTITY_CLAIM.product_name} by "
-            f"{observed.PRODUCT_IDENTITY_CLAIM.vendor}, identified from inside "
-            f"the pinned bytes by {len(observed.PRODUCT_IDENTITY_CLAIM.supporting_sources)} "
-            f"independent statements. {len(libraries)} native libraries of the "
-            f"chosen platform carry ProductVersion {sorted(versions)[0]!r}, and "
-            "the archive declares revision 20260612. No version here was read "
-            "from a web page, and none was read from a running library."
+            f"{frozen.IMPLEMENTATION_ORIGIN}: {product}. The runtime is locked to "
+            f"{lock.get('operating_system')}/{lock.get('architecture')} on "
+            f"{lock.get('java_runtime_version')}, and no version here was read "
+            "from a web page."
         ),
     )
 
@@ -757,69 +906,84 @@ def _gate_canonical500_input_route() -> GateResult:
 # ------------------------------------------------------------------ gate 6
 
 
-def _gate_extraction_profile() -> GateResult:
-    """Gate 6. Is every extraction setting that can change a template frozen?
+def _profile_gate(
+    gate: frozen.PreflightGate,
+    settings: tuple[observed.PublishedSetting, ...],
+    *,
+    what: str,
+) -> GateResult:
+    """Gates 6 and 8. Is every setting that can change the score frozen?
 
-    Two halves, and both are required. The *inventory* is closed: the pinned
-    manual publishes the complete set of fingerprint extraction settings the
-    engine exposes, and this stage enumerated it rather than guessing at names.
-    The *values* are not: the manual states a default for the face-side settings
-    and states none for the fingerprint-side ones, so a value for each would have
-    to be read off a constructed engine and recorded as a delivered runtime
-    default (spec sections 14 and 15, docs/adr/0101).
+    Two halves, and both are required. The **inventory** is closed: the pinned
+    manual publishes the complete set and this stage enumerated it rather than
+    guessing at names from another vendor's API. The **values** need an upstream
+    authority each, and the manual states a default for every ``Faces.*``
+    parameter and for no ``Fingers.*`` or ``Matching.*`` one — so the remaining
+    values are delivered runtime defaults, readable only off a constructed
+    engine (spec sections 14, 15 and 20; docs/adr/0101).
 
-    Passing on a closed inventory alone would be the failure the whole apparatus
-    exists to prevent: a profile called frozen while most of the settings that
-    decide the score have no recorded value at all.
+    Passing on a closed inventory alone would publish a profile called frozen
+    while most of the settings that decide the score had no recorded value. That
+    is the failure the whole apparatus exists to prevent — but it is a chore
+    outstanding, not a fault in the product, so the gate waits rather than
+    condemning (docs/adr/0104).
     """
-    settings = observed.PUBLISHED_EXTRACTOR_SETTINGS
     unresolved = _unresolved(settings)
-    resolved = tuple(
+    delivered = _delivered_defaults()
+    still_open = tuple(name for name in unresolved if name not in delivered)
+    from_sample = tuple(
         item.name
         for item in settings
-        if item.is_score_affecting and item.provenance.is_upstream_authority
+        if item.is_score_affecting
+        and item.provenance is frozen.SettingProvenance.OFFICIAL_SAMPLE_EXPLICIT
     )
-    if not unresolved:
+    if not still_open:
+        read = len(unresolved)
         return GateResult(
-            gate=frozen.PreflightGate.EXTRACTION_PROFILE,
+            gate=gate,
             status=frozen.GateStatus.PASS,
             summary=(
-                f"{len(settings)} published extraction settings inventoried, and "
-                "every score-affecting one carries a value with an upstream "
-                "provenance"
+                f"{len(settings)} published {what} settings inventoried; "
+                f"{len(from_sample)} carry a value from the authoritative sample "
+                f"and {read} were read off the constructed engine as delivered "
+                "runtime defaults. No value was chosen by fpbench."
             ),
         )
     return GateResult(
-        gate=frozen.PreflightGate.EXTRACTION_PROFILE,
-        status=frozen.GateStatus.FAIL,
-        blockers=(
-            _execution_blocker(
-                frozen.PreflightGate.EXTRACTION_PROFILE,
-                code=frozen.BlockerCode.HIDDEN_SCORE_AFFECTING_DEFAULT_UNRESOLVED,
-                component=(
-                    f"{len(unresolved)} score-affecting extraction settings: "
-                    + ", ".join(unresolved)
+        gate=gate,
+        status=frozen.GateStatus.ACTION_REQUIRED,
+        pending_actions=(
+            _execution_action(
+                gate,
+                missing=(
+                    f"a value with an upstream provenance for {len(still_open)} "
+                    f"score-affecting {what} settings: " + ", ".join(still_open)
                 ),
-                why=(
-                    "Each of these changes the template, and therefore the score. "
-                    "The pinned manual gives every one of them a type and a "
-                    "meaning and states a default for none of them — while it "
-                    "does state defaults for the face-side settings in the same "
-                    "tables, so the absence is a property of the document rather "
-                    "than of the reading. A value nobody recorded still decides "
-                    "the score, and a profile with "
-                    f"{len(unresolved)} unrecorded values is not frozen. What "
-                    f"is settled is the inventory itself and the "
-                    f"{len(resolved)} setting whose value upstream's own 1:1 "
-                    "tutorial chooses explicitly (docs/adr/0101)."
+                answers=(
+                    "Each of these changes the score, and the pinned manual "
+                    "states a default for none of them — while stating defaults "
+                    "for the face-side settings in the same tables, so the "
+                    "absence is a property of the document rather than of the "
+                    "reading. One constructed engine reports all of them, and "
+                    "each becomes a DELIVERED_RUNTIME_DEFAULT: an upstream "
+                    "authority, recorded rather than chosen."
                 ),
             ),
         ),
         summary=(
-            f"the inventory is closed over {len(settings)} published extraction "
-            f"settings and {len(unresolved)} score-affecting values have no "
-            "upstream authority behind them"
+            f"the inventory is closed over {len(settings)} published {what} "
+            f"settings; {len(from_sample)} score-affecting values come from the "
+            f"authoritative sample and {len(still_open)} are delivered runtime "
+            "defaults nobody has read yet"
         ),
+    )
+
+
+def _gate_extraction_profile() -> GateResult:
+    return _profile_gate(
+        frozen.PreflightGate.EXTRACTION_PROFILE,
+        observed.PUBLISHED_EXTRACTOR_SETTINGS,
+        what="extraction",
     )
 
 
@@ -854,53 +1018,19 @@ def _gate_representation_profile() -> GateResult:
 
 
 def _gate_matcher_profile() -> GateResult:
-    """Gate 8. Is every matching setting that can change the score frozen?
+    """Gate 8, and the preset the specification warns about.
 
-    The same two halves as extraction, and the same answer: the inventory is
-    closed and the values are not. ``FingersMatchingSpeed`` is the preset family
-    the specification warns about — Low, Medium and High, documented as an
-    accuracy trade-off — and it is not chosen by trying all three and keeping the
-    prettiest. Upstream's own 1:1 tutorial sets ``LOW`` explicitly, which is an
-    authority; the rest have none (spec sections 17 and 20).
+    ``FingersMatchingSpeed`` is Low, Medium and High, documented as an accuracy
+    trade-off — one of which will produce nicer distributions on any dataset. It
+    is settled here because **upstream's own 1:1 tutorial sets it**, and the
+    profile identity records that it is the official-sample route rather than
+    "the VeriFinger default", because the manual states no default
+    (spec sections 16, 17 and 20).
     """
-    settings = observed.PUBLISHED_MATCHER_SETTINGS
-    unresolved = _unresolved(settings)
-    if not unresolved:
-        return GateResult(
-            gate=frozen.PreflightGate.MATCHER_PROFILE,
-            status=frozen.GateStatus.PASS,
-            summary=(
-                f"{len(settings)} published matching settings inventoried, and "
-                "every score-affecting one carries a value with an upstream "
-                "provenance"
-            ),
-        )
-    return GateResult(
-        gate=frozen.PreflightGate.MATCHER_PROFILE,
-        status=frozen.GateStatus.FAIL,
-        blockers=(
-            _execution_blocker(
-                frozen.PreflightGate.MATCHER_PROFILE,
-                code=frozen.BlockerCode.HIDDEN_SCORE_AFFECTING_DEFAULT_UNRESOLVED,
-                component=(
-                    f"{len(unresolved)} score-affecting matching settings: "
-                    + ", ".join(unresolved)
-                ),
-                why=(
-                    "Rotation tolerance and the matching scenario change the "
-                    "score directly, and the manual states no default for "
-                    "either. The preset that is settled is settled by upstream "
-                    "rather than by fpbench: the vendor's own 1:1 tutorial sets "
-                    "FingersMatchingSpeed to LOW, and no preset here was picked "
-                    "by comparing score distributions (spec section 17)."
-                ),
-            ),
-        ),
-        summary=(
-            f"the inventory is closed over {len(settings)} published matching "
-            f"settings and {len(unresolved)} score-affecting values have no "
-            "upstream authority behind them"
-        ),
+    return _profile_gate(
+        frozen.PreflightGate.MATCHER_PROFILE,
+        observed.PUBLISHED_MATCHER_SETTINGS,
+        what="matching",
     )
 
 
@@ -945,19 +1075,36 @@ def _gate_pair_orientation() -> GateResult:
     side, so the roles are distinguished — but whether the number depends on
     which side is which is not something a manual can be read off (spec 25).
     """
+    orientation = (_record() or {}).get("pair_orientation")
+    if isinstance(orientation, Mapping) and orientation.get(
+        "both_orderings_produced_a_score"
+    ):
+        symmetric = bool(orientation.get("score_digests_equal"))
+        return GateResult(
+            gate=frozen.PreflightGate.PAIR_ORIENTATION,
+            status=frozen.GateStatus.PASS,
+            summary=(
+                "both orderings were scored on synthetic fixtures and the score "
+                + (
+                    "digests agree, so the route is symmetric on this evidence"
+                    if symmetric
+                    else "digests differ, so the reference/probe orientation the "
+                    "API defines is preserved rather than averaged away"
+                )
+            ),
+        )
     return GateResult(
         gate=frozen.PreflightGate.PAIR_ORIENTATION,
-        status=frozen.GateStatus.FAIL,
-        blockers=(
-            _execution_blocker(
+        status=frozen.GateStatus.ACTION_REQUIRED,
+        pending_actions=(
+            _execution_action(
                 frozen.PreflightGate.PAIR_ORIENTATION,
-                code=frozen.BlockerCode.PAIR_ORDER_SEMANTICS_UNRESOLVED,
-                component="the reference/probe contract of the 1:1 route",
-                why=(
-                    "If the two orderings differ, a run that fed pairs in "
-                    "whichever order they came in would be averaging two "
-                    "different measurements without saying so. fpbench may "
-                    "neither average the two nor take their maximum, so the "
+                missing="both orderings of a fixture pair, actually scored",
+                answers=(
+                    "Whether the two orderings agree. If they differ, a run that "
+                    "fed pairs in whichever order they arrived would be averaging "
+                    "two different measurements without saying so — and fpbench "
+                    "may neither average them nor take their maximum, so the "
                     "orientation has to be discovered and preserved."
                 ),
             ),
@@ -968,21 +1115,32 @@ def _gate_pair_orientation() -> GateResult:
 
 def _gate_self_semantics() -> GateResult:
     """Gate 11. Can ``SELF(A, A)`` be executed as two independent extractions?"""
+    self_result = (_record() or {}).get("self_semantics")
+    if isinstance(self_result, Mapping) and self_result.get("score_present"):
+        return GateResult(
+            gate=frozen.PreflightGate.SELF_SEMANTICS,
+            status=frozen.GateStatus.PASS,
+            summary=(
+                "SELF(A, A) produced a score from "
+                f"{self_result.get('independent_extractions')} independent "
+                "extractions with no representation reused between the two "
+                "sides, so the engine does not shortcut equal inputs"
+            ),
+        )
     return GateResult(
         gate=frozen.PreflightGate.SELF_SEMANTICS,
-        status=frozen.GateStatus.FAIL,
-        blockers=(
-            _execution_blocker(
+        status=frozen.GateStatus.ACTION_REQUIRED,
+        pending_actions=(
+            _execution_action(
                 frozen.PreflightGate.SELF_SEMANTICS,
-                component="SELF(A, A) as two independent extractions",
-                why=(
-                    "A pairwise route makes this easy to get wrong: an engine "
-                    "that noticed the two sides were the same file could return "
-                    "a constant, and that constant would be a number about "
-                    "fpbench's own plumbing rather than about the algorithm. The "
+                missing="SELF(A, A) executed as two independent extractions",
+                answers=(
+                    "Whether the engine shortcuts equal inputs. A pairwise route "
+                    "that noticed both sides were the same file could return a "
+                    "constant, and that constant would be a number about this "
+                    "project's own plumbing rather than about the algorithm. The "
                     "rule is frozen either way — two loads, two extractions, no "
-                    "representation reuse — and demonstrating that the engine "
-                    "obeys it needs the engine (docs/adr/0070)."
+                    "representation reuse (docs/adr/0070)."
                 ),
             ),
         ),
@@ -992,22 +1150,64 @@ def _gate_self_semantics() -> GateResult:
 
 def _gate_score_determinism() -> GateResult:
     """Gate 12. Is the score identical at all three levels?"""
+    determinism = (_record() or {}).get("determinism")
+    if isinstance(determinism, Mapping) and determinism:
+        failed = sorted(
+            level for level in frozen.DETERMINISM_LEVELS if not determinism.get(level)
+        )
+        if not failed:
+            return GateResult(
+                gate=frozen.PreflightGate.SCORE_DETERMINISM,
+                status=frozen.GateStatus.PASS,
+                summary=(
+                    "one fixture pair produced the same score digest at all "
+                    f"{len(frozen.DETERMINISM_LEVELS)} levels, including across a "
+                    "process restart"
+                ),
+            )
+        return GateResult(
+            gate=frozen.PreflightGate.SCORE_DETERMINISM,
+            status=frozen.GateStatus.FAIL,
+            blockers=(
+                Blocker(
+                    gate=frozen.PreflightGate.SCORE_DETERMINISM,
+                    blocker_code=frozen.BlockerCode.SCORE_NONDETERMINISM_OBSERVED,
+                    affected_component="the score of one fixture pair",
+                    evidence=(
+                        "the qualification run scored the same pair repeatedly "
+                        f"and the score changed at: {failed}"
+                    ),
+                    why_this_blocks_algorithm_4=(
+                        "A benchmark whose numbers move between runs is not a "
+                        "benchmark. The templates themselves may vary without "
+                        "that being a failure — this stage qualifies a "
+                        "verification route, not byte-identical proprietary "
+                        "templates — but the score may not (spec sections 28, 29)."
+                    ),
+                    how_this_would_be_lifted=(
+                        "An upstream statement that inference is stochastic, and "
+                        "a stage that decides explicitly what to do about it. "
+                        "That is not an allowance inside this one."
+                    ),
+                ),
+            ),
+            summary=f"the score is not stable at {failed}",
+        )
     return GateResult(
         gate=frozen.PreflightGate.SCORE_DETERMINISM,
-        status=frozen.GateStatus.FAIL,
-        blockers=(
-            _execution_blocker(
+        status=frozen.GateStatus.ACTION_REQUIRED,
+        pending_actions=(
+            _execution_action(
                 frozen.PreflightGate.SCORE_DETERMINISM,
-                component=(
-                    "the same fixture pair's score at all "
+                missing=(
+                    "the same fixture pair scored at all "
                     f"{len(frozen.DETERMINISM_LEVELS)} levels"
                 ),
-                why=(
-                    "A benchmark whose numbers move between runs is not a "
-                    "benchmark. The templates themselves may vary without that "
-                    "being a failure — this stage qualifies a verification "
-                    "route, not byte-identical proprietary templates — but the "
-                    "score may not (spec sections 28 and 29)."
+                answers=(
+                    "Whether a VeriFinger score is reproducible at all. This is "
+                    "the one gate whose failure would be a genuine methodological "
+                    "blocker rather than a chore, which is why it is measured "
+                    "rather than assumed."
                 ),
             ),
         ),
@@ -1017,22 +1217,66 @@ def _gate_score_determinism() -> GateResult:
 
 def _gate_failure_semantics() -> GateResult:
     """Gate 13. What does each failure class actually return?"""
+    failures = (_record() or {}).get("failure_semantics")
+    if isinstance(failures, list) and failures:
+        scored = [
+            item
+            for item in failures
+            if isinstance(item, Mapping) and item.get("score_present")
+        ]
+        if scored:
+            return GateResult(
+                gate=frozen.PreflightGate.FAILURE_SEMANTICS,
+                status=frozen.GateStatus.FAIL,
+                blockers=(
+                    Blocker(
+                        gate=frozen.PreflightGate.FAILURE_SEMANTICS,
+                        blocker_code=frozen.BlockerCode.LOCAL_SMOKE_FAILED,
+                        affected_component=(
+                            "the failure classes that returned a score"
+                        ),
+                        evidence=(
+                            "these failure classes produced a score rather than "
+                            "an outcome: "
+                            f"{[item.get('failure_class') for item in scored]}"
+                        ),
+                        why_this_blocks_algorithm_4=(
+                            "A failure that arrives as a number enters a rate as "
+                            "a comparison that never happened."
+                        ),
+                        how_this_would_be_lifted=(
+                            "An adapter that maps the status to an outcome before "
+                            "any score is read — which is Stage 11B's work, and "
+                            "has to be designed knowing this."
+                        ),
+                    ),
+                ),
+                summary=f"{len(scored)} failure classes returned a score",
+            )
+        return GateResult(
+            gate=frozen.PreflightGate.FAILURE_SEMANTICS,
+            status=frozen.GateStatus.PASS,
+            summary=(
+                f"all {len(failures)} failure classes were exercised and each "
+                "produced an outcome rather than a score"
+            ),
+        )
     return GateResult(
         gate=frozen.PreflightGate.FAILURE_SEMANTICS,
-        status=frozen.GateStatus.FAIL,
-        blockers=(
-            _execution_blocker(
+        status=frozen.GateStatus.ACTION_REQUIRED,
+        pending_actions=(
+            _execution_action(
                 frozen.PreflightGate.FAILURE_SEMANTICS,
-                component=(
-                    f"the {len(frozen.FAILURE_SEMANTICS_CLASSES)} failure classes "
-                    "and what each one returns"
+                missing=(
+                    f"the {len(frozen.FAILURE_SEMANTICS_CLASSES)} failure classes, "
+                    "each actually provoked"
                 ),
-                why=(
-                    "A failure that arrives as a score of 0 is a false match "
-                    "rate computed over comparisons that never happened. The API "
-                    "has a status type beside the score, which is the right "
-                    "shape — but which status each failure produces, and whether "
-                    "a score is present beside it, is behaviour."
+                answers=(
+                    "What each failure returns. A failure that arrives as a score "
+                    "of 0 is a false match rate computed over comparisons that "
+                    "never happened. The API has a status type beside the score, "
+                    "which is the right shape — but which status each failure "
+                    "produces, and whether a score sits beside it, is behaviour."
                 ),
             ),
         ),
@@ -1075,23 +1319,61 @@ def _gate_network_dependency() -> GateResult:
 
 def _gate_runtime_feasibility() -> GateResult:
     """Gate 15. Does the route run here, at a workable cost?"""
+    feasibility = (_record() or {}).get("feasibility")
+    if isinstance(feasibility, Mapping) and feasibility:
+        if feasibility.get("accelerator_required"):
+            return GateResult(
+                gate=frozen.PreflightGate.RUNTIME_FEASIBILITY,
+                status=frozen.GateStatus.FAIL,
+                blockers=(
+                    Blocker(
+                        gate=frozen.PreflightGate.RUNTIME_FEASIBILITY,
+                        blocker_code=(
+                            frozen.BlockerCode.REQUIRED_RUNTIME_COMPONENT_MISSING
+                        ),
+                        affected_component="an accelerator this project does not have",
+                        evidence="the qualification run reported one as required",
+                        why_this_blocks_algorithm_4=frozen.RARE_DEPENDENCY_RULE,
+                        how_this_would_be_lifted=(
+                            "Hardware this project does not have, or an upstream "
+                            "route that does not need it."
+                        ),
+                    ),
+                ),
+                summary="the route needs an accelerator this project does not have",
+            )
+        return GateResult(
+            gate=frozen.PreflightGate.RUNTIME_FEASIBILITY,
+            status=frozen.GateStatus.PASS,
+            summary=(
+                "measured on fixtures only: startup "
+                f"{feasibility.get('startup_millis')} ms, "
+                f"{feasibility.get('extraction_invocations')} extractions in "
+                f"{feasibility.get('extraction_millis_total')} ms, "
+                f"{feasibility.get('matching_invocations')} matches in "
+                f"{feasibility.get('matching_millis_total')} ms, about "
+                f"{feasibility.get('peak_heap_megabytes')} MB of heap, no "
+                "accelerator required. Orders of magnitude, not a benchmark, and "
+                "no comparison with any other algorithm."
+            ),
+        )
     return GateResult(
         gate=frozen.PreflightGate.RUNTIME_FEASIBILITY,
-        status=frozen.GateStatus.FAIL,
-        blockers=(
-            _execution_blocker(
+        status=frozen.GateStatus.ACTION_REQUIRED,
+        pending_actions=(
+            _execution_action(
                 frozen.PreflightGate.RUNTIME_FEASIBILITY,
-                component=(
+                missing=(
                     f"the {len(frozen.RUNTIME_FEASIBILITY_MEASUREMENTS)} "
                     "feasibility measurements"
                 ),
-                why=(
-                    "A route that takes a second per extraction turns the frozen "
-                    f"workload's {frozen.FROZEN_WORKLOAD.extraction_invocations} "
-                    "extractions into hours, and that is a fact worth knowing "
-                    "before the run rather than during it. This is an order of "
-                    "magnitude on fixtures, not a benchmark and not a comparison "
-                    "with any other algorithm."
+                answers=(
+                    "What the route costs per operation. A second per extraction "
+                    "turns the frozen workload's "
+                    f"{frozen.FROZEN_WORKLOAD.extraction_invocations} extractions "
+                    "into hours, and that is worth knowing before the run rather "
+                    "than during it — and it is what the licence-capacity gate "
+                    "needs in order to decide anything at all."
                 ),
             ),
         ),
@@ -1106,35 +1388,86 @@ def _gate_license_capacity() -> GateResult:
     """Gate 16. Can the licence carry the whole frozen workload?
 
     Unlike Stage 10B's candidate there is a number: thirty days, stated in the
-    pinned activation guide, with no API-call quota stated anywhere in it. What
-    is not established is the other half of the question — whether the workload
-    fits inside those thirty days — because that depends on the latency the
-    feasibility gate would have measured (spec section 35).
+    pinned activation guide, with no API-call quota stated anywhere in it. The
+    other half of the question — whether the workload fits inside those thirty
+    days — is arithmetic over a latency the feasibility gate measures, so this
+    gate waits for that rather than guessing at it (spec section 35).
     """
     terms = observed.TRIAL_TERMS
     load = frozen.FROZEN_WORKLOAD
+    feasibility = (_record() or {}).get("feasibility")
+    if isinstance(feasibility, Mapping) and feasibility:
+        extractions = max(int(feasibility.get("extraction_invocations") or 0), 1)
+        matches = max(int(feasibility.get("matching_invocations") or 0), 1)
+        per_extraction = float(feasibility.get("extraction_millis_total") or 0) / extractions
+        per_match = float(feasibility.get("matching_millis_total") or 0) / matches
+        projected_seconds = (
+            per_extraction * load.extraction_invocations
+            + per_match * load.matcher_invocations
+        ) / 1000.0
+        window_seconds = terms.duration_days * 24 * 3600
+        if projected_seconds >= window_seconds:
+            return GateResult(
+                gate=frozen.PreflightGate.LICENSE_CAPACITY,
+                status=frozen.GateStatus.FAIL,
+                blockers=(
+                    Blocker(
+                        gate=frozen.PreflightGate.LICENSE_CAPACITY,
+                        blocker_code=(
+                            frozen.BlockerCode.LICENSE_WORKLOAD_CAPACITY_INSUFFICIENT
+                        ),
+                        affected_component=(
+                            f"the {terms.duration_days}-day trial against "
+                            f"{load.extraction_invocations} extractions and "
+                            f"{load.matcher_invocations} matches"
+                        ),
+                        evidence=(
+                            "the measured per-operation cost projects the frozen "
+                            f"workload to about {projected_seconds / 3600:.1f} "
+                            f"hours, against a {terms.duration_days}-day window"
+                        ),
+                        why_this_blocks_algorithm_4=(
+                            "A quota or a clock that runs out partway through "
+                            "6,000 comparisons produces a partial run, and a "
+                            "partial run is not a smaller result."
+                        ),
+                        how_this_would_be_lifted=(
+                            "A developer licence rather than a trial, or a route "
+                            "whose per-operation cost fits the window."
+                        ),
+                    ),
+                ),
+                summary="the frozen workload does not fit the trial window",
+            )
+        return GateResult(
+            gate=frozen.PreflightGate.LICENSE_CAPACITY,
+            status=frozen.GateStatus.PASS,
+            summary=(
+                f"the measured cost projects the frozen workload to about "
+                f"{projected_seconds / 3600:.1f} hours, inside the "
+                f"{terms.duration_days}-day trial window. No API-call quota is "
+                "stated anywhere in the pinned activation guide, and that absence "
+                "is recorded as an absence rather than read as permission."
+            ),
+        )
     return GateResult(
         gate=frozen.PreflightGate.LICENSE_CAPACITY,
-        status=frozen.GateStatus.FAIL,
-        blockers=(
-            _execution_blocker(
+        status=frozen.GateStatus.ACTION_REQUIRED,
+        pending_actions=(
+            _execution_action(
                 frozen.PreflightGate.LICENSE_CAPACITY,
-                code=frozen.BlockerCode.LICENSE_WORKLOAD_CAPACITY_INSUFFICIENT,
-                component=(
-                    f"the {terms.duration_days}-day trial against "
-                    f"{load.extraction_invocations} extractions and "
-                    f"{load.matcher_invocations} matches"
+                missing=(
+                    "the per-operation cost the expiry has to be weighed against"
                 ),
-                why=(
-                    "The expiry is known and the per-operation cost is not, so "
-                    "whether the workload fits inside the window cannot be "
-                    "decided yet. Two further terms bear on it and are recorded "
-                    "rather than assumed away: the trial requires a constant "
-                    "internet connection, and it excludes simultaneous use of "
-                    "licensed Neurotechnology products on the same computer. No "
-                    "API-call quota is stated anywhere in the pinned activation "
-                    "guide — which is an absence in the documentation and is not "
-                    "read as permission."
+                answers=(
+                    f"Whether {load.extraction_invocations} extractions and "
+                    f"{load.matcher_invocations} matches fit inside "
+                    f"{terms.duration_days} days. The expiry is known and the "
+                    "cost is not, so the product of the two is not known either. "
+                    "Two further terms are already recorded rather than assumed "
+                    "away: the trial needs a constant internet connection, and it "
+                    "excludes simultaneous use of licensed Neurotechnology "
+                    "products on the same computer."
                 ),
             ),
         ),
@@ -1235,22 +1568,35 @@ class VeriFingerPreflight:
 
     @property
     def passed(self) -> bool:
-        """Every gate passed. Not "no gate failed": NOT_REACHED is not a pass."""
+        """Every gate passed. Not "no gate failed": neither ACTION_REQUIRED nor
+        NOT_REACHED is a pass."""
         return all(result.status is frozen.GateStatus.PASS for result in self.results)
 
     @property
+    def blocked(self) -> bool:
+        """A real blocker was found. The only state that says something is wrong."""
+        return any(
+            result.status is frozen.GateStatus.FAIL for result in self.results
+        )
+
+    @property
+    def incomplete(self) -> bool:
+        """Everything asked was answered, and something was not asked."""
+        return not self.passed and not self.blocked
+
+    @property
     def verdict(self) -> str:
+        if self.blocked:
+            return frozen.CANDIDATE_FAIL_VERDICT
         return (
-            frozen.CANDIDATE_PASS_VERDICT if self.passed else frozen.CANDIDATE_FAIL_VERDICT
+            frozen.CANDIDATE_PASS_VERDICT
+            if self.passed
+            else frozen.CANDIDATE_INCOMPLETE_VERDICT
         )
 
     @property
     def outcome(self) -> str:
-        return (
-            frozen.STAGE_11A_SELECTED_OUTCOME
-            if self.passed
-            else frozen.STAGE_11A_BLOCKED_OUTCOME
-        )
+        return self.verdict
 
     @property
     def selected_candidate(self) -> str | None:
@@ -1258,14 +1604,14 @@ class VeriFingerPreflight:
 
     @property
     def failure_class(self) -> frozen.FailureClass | None:
-        """What kind of failure this is, derived from where it stopped.
+        """What kind of failure this is, and ``None`` unless there is one.
 
-        ``VERIFINGER_PREFLIGHT_FAIL`` reads the same whether the artifact could
-        not be had, its terms forbade the use, or the route was opened, read and
-        found to need a measurement nobody has taken. Those are very different
-        results, and the marker says which one this is.
+        An incomplete preflight has no failure class, and that is the whole
+        correction: classifying "nobody has run it" as a failure of any kind was
+        saying something about VeriFinger that nothing had established
+        (docs/adr/0104).
         """
-        if self.passed:
+        if not self.blocked:
             return None
         codes = {blocker.blocker_code for blocker in self.blockers}
         if frozen.BlockerCode.OFFICIAL_ARTIFACT_NOT_OBTAINABLE in codes:
@@ -1274,23 +1620,18 @@ class VeriFingerPreflight:
             return frozen.FailureClass.RESEARCH_USE_REFUSED
         if frozen.BlockerCode.SD300_TRAINING_OVERLAP_FOUND in codes:
             return frozen.FailureClass.SD300_DEVELOPMENT_OVERLAP
+        if frozen.BlockerCode.LICENSE_WORKLOAD_CAPACITY_INSUFFICIENT in codes:
+            return frozen.FailureClass.LICENSE_CAPACITY_INSUFFICIENT
         if codes & {
-            frozen.BlockerCode.LOCAL_SMOKE_FAILED,
-            frozen.BlockerCode.HIDDEN_SCORE_AFFECTING_DEFAULT_UNRESOLVED,
-            frozen.BlockerCode.PAIR_ORDER_SEMANTICS_UNRESOLVED,
             frozen.BlockerCode.SCORE_NONDETERMINISM_OBSERVED,
-            frozen.BlockerCode.LICENSE_WORKLOAD_CAPACITY_INSUFFICIENT,
+            frozen.BlockerCode.LOCAL_SMOKE_FAILED,
         }:
             return frozen.FailureClass.EXECUTION_NOT_ESTABLISHED
         return frozen.FailureClass.ROUTE_NOT_QUALIFIABLE
 
     @property
     def artifact_was_opened(self) -> bool:
-        """Whether this stage's conclusions rest on the artifact's own bytes.
-
-        The one claim that most distinguishes Stage 11A from its predecessor, and
-        it is derived from the acquisition gate rather than asserted.
-        """
+        """Whether this stage's conclusions rest on the artifact's own bytes."""
         return (
             self.status(frozen.PreflightGate.OFFICIAL_ARTIFACT_ACQUISITION)
             is frozen.GateStatus.PASS
@@ -1300,10 +1641,10 @@ class VeriFingerPreflight:
     def sd300_overlap_status(self) -> frozen.SD300OverlapStatus:
         if (
             self.status(frozen.PreflightGate.TRAINING_PROVENANCE)
-            is frozen.GateStatus.NOT_REACHED
+            is frozen.GateStatus.PASS
         ):
-            return frozen.SD300OverlapStatus.NOT_REACHED
-        return frozen.SD300OverlapStatus.NO_EVIDENCE_FOUND
+            return frozen.SD300OverlapStatus.NO_EVIDENCE_FOUND
+        return frozen.SD300OverlapStatus.NOT_REACHED
 
     @property
     def gates_reached(self) -> int:
@@ -1320,12 +1661,42 @@ class VeriFingerPreflight:
         )
 
     @property
+    def gates_awaiting_action(self) -> int:
+        return sum(
+            1
+            for result in self.results
+            if result.status is frozen.GateStatus.ACTION_REQUIRED
+        )
+
+    @property
     def blockers(self) -> tuple[Blocker, ...]:
         return tuple(
             sorted(
                 (blocker for result in self.results for blocker in result.blockers),
                 key=lambda item: item.blocker_code.value,
             )
+        )
+
+    @property
+    def pending_actions(self) -> tuple[PendingAction, ...]:
+        return tuple(
+            sorted(
+                (
+                    action
+                    for result in self.results
+                    for action in result.pending_actions
+                ),
+                key=lambda item: (
+                    list(frozen.GATE_ORDER).index(item.gate),
+                    item.action_code.value,
+                ),
+            )
+        )
+
+    @property
+    def distinct_pending_action_codes(self) -> tuple[str, ...]:
+        return tuple(
+            sorted({action.action_code.value for action in self.pending_actions})
         )
 
     def result(self, gate: frozen.PreflightGate) -> GateResult:
@@ -1339,7 +1710,18 @@ class VeriFingerPreflight:
 
 
 def run_preflight() -> VeriFingerPreflight:
-    """Run the gate order and stop at the first failure."""
+    """Run the gate order, stopping only at a real blocker.
+
+    **A gate awaiting an action does not stop the run**, and that is the change
+    the second review forced. Fail-fast exists so that a broken route is not
+    investigated expensively; it was never meant to make an unpaid chore hide
+    nine later answers. Most of these gates do not depend on each other — the
+    representation, the raw score, the network role and the provenance are all
+    answerable from the artifact whatever the extraction profile is doing — so
+    they are asked, and the ones that genuinely need a run each say so for
+    themselves (docs/adr/0104).
+    """
+    _RUN_CACHE.clear()
     results: list[GateResult] = []
     stopped_at: frozen.PreflightGate | None = None
     for gate in frozen.GATE_ORDER:
@@ -1368,7 +1750,7 @@ def run_preflight() -> VeriFingerPreflight:
         stopped_at=stopped_at,
         preflight_fingerprint=stable_hash(
             {
-                "schema": "stage_11a_preflight_v1",
+                "schema": "stage_11a_preflight_v2",
                 "candidate_id": frozen.CANDIDATE_ID,
                 "gates": [
                     (result.gate.value, result.status.value) for result in results
@@ -1377,6 +1759,11 @@ def run_preflight() -> VeriFingerPreflight:
                     blocker.blocker_code.value
                     for result in results
                     for blocker in result.blockers
+                ),
+                "pending_actions": sorted(
+                    f"{action.gate.value}:{action.action_code.value}"
+                    for result in results
+                    for action in result.pending_actions
                 ),
                 "observations": observed.observations_fingerprint(),
             },
@@ -1446,8 +1833,21 @@ def _gate_header(
         "candidate": frozen.CANDIDATE_ID,
         "gate": gate.value,
         "gate_status": result.status.value,
+        "gate_status_is_a_finding": result.status.is_a_finding,
         "gate_summary": result.summary,
         "blocker_codes": [item.blocker_code.value for item in result.blockers],
+        "pending_action_codes": [
+            item.action_code.value for item in result.pending_actions
+        ],
+        "pending_actions": [
+            {
+                "action_code": item.action_code.value,
+                "what_is_missing": item.what_is_missing,
+                "what_to_do": item.what_to_do,
+                "what_it_would_answer": item.what_it_would_answer,
+            }
+            for item in result.pending_actions
+        ],
     }
 
 
@@ -1536,7 +1936,7 @@ def _acquisition_manifest_document(
         frozen.PreflightGate.OFFICIAL_ARTIFACT_ACQUISITION,
         "stage_11a_acquisition_manifest_v1",
     )
-    state = store.acquisition_state()
+    state = _cached("acquisition", store.acquisition_state)
     document["acquisition_status"] = state.status.value
     document["possession"] = state.possession.value
     document["artifact_route_chosen"] = observed.SDK_ARCHIVE.route.value
@@ -1665,7 +2065,7 @@ def _runtime_identity_document(preflight: VeriFingerPreflight) -> Mapping[str, A
     document["web_page_version_used_as_identity"] = False
     document["runtime_reported_version_read_by_execution"] = False
     document["why_not_read_by_execution"] = (
-        store.qualification_run_state().reason
+        _qualification_state().reason
     )
     document["declared_version"] = observed.PRODUCT_IDENTITY_CLAIM.declared_version
     document["archive_revision_number"] = "20260612"
@@ -1838,23 +2238,56 @@ def _profile_document(
     inventory: tuple[str, ...],
     extra_observations: tuple[observed.Observation, ...],
 ) -> Mapping[str, Any]:
+    """One profile, counted over its own settings and nobody else's.
+
+    Every count here is scoped to *this* gate. An earlier version published a
+    seven in the extraction blocker and a nine in the marker — the first counting
+    extraction settings and the second counting extraction and matching together
+    — with nothing saying which was which. Two numbers with one name is worse
+    than either alone, so each document counts its own and the total is derived
+    and labelled where it is used (docs/adr/0104).
+    """
     document = _gate_header(preflight, gate, schema)
     unresolved = _unresolved(settings)
+    delivered = _delivered_defaults()
+    read_now = tuple(name for name in unresolved if name in delivered)
+    still_open = tuple(name for name in unresolved if name not in delivered)
+    from_sample = tuple(
+        item.name
+        for item in settings
+        if item.is_score_affecting
+        and item.provenance is frozen.SettingProvenance.OFFICIAL_SAMPLE_EXPLICIT
+    )
+    document["scope"] = (
+        "this document counts only the settings of this gate; the other profile "
+        "gate counts its own, and no number here spans both"
+    )
     document["inventory_classes_searched"] = list(inventory)
     document["inventory_closed"] = True
     document["inventory_names_were_discovered_not_assumed"] = True
-    document["published_settings"] = observed.setting_rows(settings)
+    document["published_settings"] = [
+        dict(row, delivered_runtime_default=delivered.get(row["setting_name"]))
+        for row in observed.setting_rows(settings)
+    ]
     document["setting_count"] = len(settings)
     document["score_affecting_count"] = sum(
         1 for item in settings if item.is_score_affecting
     )
-    document["score_affecting_with_upstream_provenance"] = [
-        item.name
-        for item in settings
-        if item.is_score_affecting and item.provenance.is_upstream_authority
-    ]
-    document["score_affecting_without_upstream_provenance"] = list(unresolved)
-    document["profile_frozen"] = not unresolved
+    document["score_affecting_from_authoritative_sample"] = list(from_sample)
+    document["score_affecting_read_from_the_running_engine"] = list(read_now)
+    document["score_affecting_still_without_provenance"] = list(still_open)
+    document["score_affecting_still_without_provenance_count"] = len(still_open)
+    document["profile_frozen"] = not still_open
+    document["authoritative_sample"] = frozen.AUTHORITATIVE_ROUTE_SAMPLE
+    document["settings_taken_from_any_other_sample"] = 0
+    document["why_one_sample_only"] = (
+        "Upstream ships many tutorials and they configure the engine "
+        "differently: the enrolment tutorial sets a template size the "
+        "verification tutorial never touches, and the verification tutorial sets "
+        "a matching speed the enrolment tutorial never touches. A profile taking "
+        "one value from each would be a configuration no upstream program has "
+        "ever run, so only the complete 1:1 program counts (docs/adr/0105)."
+    )
     document["permitted_provenances"] = [
         item.value
         for item in frozen.SettingProvenance
@@ -1865,12 +2298,6 @@ def _profile_document(
     document["preset_selected_from_score_distributions"] = False
     document["preset_selected_from_vendor_reported_accuracy"] = False
     document["profile_identity_would_name_the_official_sample_route"] = True
-    document["why"] = (
-        "Where a value comes from upstream's own 1:1 tutorial rather than from a "
-        "stated default, the profile is the official-sample route and its "
-        "identity says so. Calling it 'the VeriFinger default' would claim "
-        "something the manual does not state (spec section 16)."
-    )
     document["observations"] = observed.observation_rows(extra_observations)
     return document
 
@@ -1907,9 +2334,11 @@ def _representation_profile_document(
         frozen.PreflightGate.REPRESENTATION_PROFILE,
         "stage_11a_representation_profile_v1",
     )
+    # PASS, not "anything but NOT_REACHED": with a third status in play, a gate
+    # awaiting an action has established nothing either.
     reached = (
         preflight.status(frozen.PreflightGate.REPRESENTATION_PROFILE)
-        is not frozen.GateStatus.NOT_REACHED
+        is frozen.GateStatus.PASS
     )
     document["representation_candidates"] = list(frozen.REPRESENTATION_CANDIDATES)
     document["representation_type"] = (
@@ -1944,7 +2373,7 @@ def _score_contract_document(preflight: VeriFingerPreflight) -> Mapping[str, Any
     )
     reached = (
         preflight.status(frozen.PreflightGate.RAW_SCORE_ROUTE)
-        is not frozen.GateStatus.NOT_REACHED
+        is frozen.GateStatus.PASS
     )
     document["requirements"] = list(frozen.SCORE_CONTRACT_REQUIREMENTS)
     document["raw_score_route_status"] = (
@@ -2022,9 +2451,14 @@ def _pair_semantics_document(preflight: VeriFingerPreflight) -> Mapping[str, Any
         frozen.PreflightGate.PAIR_ORIENTATION,
         "stage_11a_pair_semantics_v1",
     )
+    orientation = (_record() or {}).get("pair_orientation") or {}
+    self_result = (_record() or {}).get("self_semantics") or {}
     document["requirements"] = list(frozen.PAIR_ORIENTATION_REQUIREMENTS)
     document["api_distinguishes_reference_and_probe"] = True
-    document["symmetry_observed"] = None
+    document["orderings_scored"] = int(orientation.get("orderings_scored") or 0)
+    document["symmetry_observed"] = (
+        bool(orientation.get("score_digests_equal")) if orientation else None
+    )
     document["a_gate_that_did_not_run_publishes_no_boolean"] = True
     document["fpbench_may_average_the_two_orderings"] = False
     document["fpbench_may_take_the_maximum"] = False
@@ -2035,7 +2469,21 @@ def _pair_semantics_document(preflight: VeriFingerPreflight) -> Mapping[str, Any
     document["self_semantics_gate_status"] = preflight.status(
         frozen.PreflightGate.SELF_SEMANTICS
     ).value
-    document["self_demonstrated"] = False
+    document["self_demonstrated"] = bool(self_result.get("score_present"))
+    document["self_independent_extractions"] = (
+        int(self_result.get("independent_extractions") or 0) or None
+    )
+    document["self_representation_reused"] = (
+        bool(self_result.get("representation_reused")) if self_result else None
+    )
+    document["comparisons_were_scored_on_fixtures_only"] = True
+    document["score_values_published"] = 0
+    document["how_scores_were_compared_without_publishing_them"] = (
+        "the harness emits a SHA-256 over each score and never the score, so "
+        "equality across orderings, across objects and across a process restart "
+        "is a digest comparison and no value ever leaves the JVM "
+        "(docs/adr/0104)"
+    )
     document["fixtures_that_may_be_used"] = list(frozen.FIXTURE_POLICY)
     document["sd300_used_for_any_of_this"] = False
     document["observations"] = observed.observation_rows(
@@ -2050,11 +2498,17 @@ def _determinism_report_document(preflight: VeriFingerPreflight) -> Mapping[str,
         frozen.PreflightGate.SCORE_DETERMINISM,
         "stage_11a_determinism_report_v1",
     )
+    determinism = (_record() or {}).get("determinism") or {}
     document["levels"] = [
-        {"level": name, "verified": False} for name in frozen.DETERMINISM_LEVELS
+        {"level": name, "verified": bool(determinism.get(name))}
+        for name in frozen.DETERMINISM_LEVELS
     ]
-    document["scores_compared"] = 0
-    document["process_restarts"] = 0
+    document["qualification_scores_produced"] = int(
+        (_record() or {}).get("qualification_scores_produced") or 0
+    )
+    document["benchmark_scores_produced"] = 0
+    document["score_values_published"] = 0
+    document["process_restarts"] = 1 if determinism else 0
     document["templates_must_be_byte_identical"] = False
     document["why_templates_need_not_be_identical"] = (
         "This stage qualifies a verification route, not a serialisation. If the "
@@ -2063,12 +2517,16 @@ def _determinism_report_document(preflight: VeriFingerPreflight) -> Mapping[str,
         "and this project does not require it to (spec section 29)."
     )
     document["score_must_be_identical"] = True
-    document["nondeterminism_observed"] = False
+    document["nondeterminism_observed"] = bool(
+        determinism and not all(
+            determinism.get(level) for level in frozen.DETERMINISM_LEVELS
+        )
+    )
     document["nondeterminism_would_be"] = (
         frozen.BlockerCode.SCORE_NONDETERMINISM_OBSERVED.value
     )
     network = preflight.status(frozen.PreflightGate.NETWORK_DEPENDENCY)
-    network_reached = network is not frozen.GateStatus.NOT_REACHED
+    network_reached = network is frozen.GateStatus.PASS
     document["network_dependency_gate_status"] = network.value
     document["network_role"] = (
         frozen.NetworkRole.LICENSE_VALIDATION_ONLY.value
@@ -2108,8 +2566,10 @@ def _runtime_feasibility_document(
     )
     load = frozen.FROZEN_WORKLOAD
     terms = observed.TRIAL_TERMS
+    feasibility = (_record() or {}).get("feasibility") or {}
     document["measurements_required"] = list(frozen.RUNTIME_FEASIBILITY_MEASUREMENTS)
-    document["measurements_taken"] = 0
+    document["measurements_taken"] = len(feasibility)
+    document["measurements"] = dict(feasibility) or None
     document["measured_on_fixtures_only"] = True
     document["this_is_not_a_performance_benchmark"] = True
     document["this_is_not_a_comparison_with_another_algorithm"] = True
@@ -2138,11 +2598,20 @@ def _runtime_feasibility_document(
         "extraction_invocations": load.extraction_invocations,
         "matcher_invocations": load.matcher_invocations,
     }
-    document["workload_fits_the_licence_window"] = None
+    capacity = preflight.status(frozen.PreflightGate.LICENSE_CAPACITY)
+    document["workload_fits_the_licence_window"] = (
+        True
+        if capacity is frozen.GateStatus.PASS
+        else (False if capacity is frozen.GateStatus.FAIL else None)
+    )
     document["why_null"] = (
-        "The window is known and the per-operation cost is not, so the product "
-        "of the two is not known either. A false here would claim the workload "
-        "had been measured and found not to fit."
+        None
+        if capacity.is_a_finding
+        else (
+            "The window is known and the per-operation cost is not, so the "
+            "product of the two is not known either. A false here would claim "
+            "the workload had been measured and found not to fit."
+        )
     )
     document["observations"] = observed.observation_rows(
         observed.CAPACITY_OBSERVATIONS
@@ -2160,7 +2629,7 @@ def _training_provenance_document(
     )
     reached = (
         preflight.status(frozen.PreflightGate.TRAINING_PROVENANCE)
-        is not frozen.GateStatus.NOT_REACHED
+        is frozen.GateStatus.PASS
     )
     document["training_provenance_status"] = (
         frozen.TrainingProvenanceStatus.PROPRIETARY_UNDISCLOSED.value
@@ -2186,15 +2655,45 @@ def _training_provenance_document(
 
 
 def _preflight_report_document(preflight: VeriFingerPreflight) -> Mapping[str, Any]:
+    extraction = len(
+        [
+            item
+            for item in observed.PUBLISHED_EXTRACTOR_SETTINGS
+            if item.is_unresolved_score_affecting_default
+            and item.name not in _delivered_defaults()
+        ]
+    )
+    matching = len(
+        [
+            item
+            for item in observed.PUBLISHED_MATCHER_SETTINGS
+            if item.is_unresolved_score_affecting_default
+            and item.name not in _delivered_defaults()
+        ]
+    )
     return {
-        "schema": "stage_11a_preflight_report_v1",
+        "schema": "stage_11a_preflight_report_v2",
         "candidate": frozen.CANDIDATE_ID,
         "implementation_origin": frozen.IMPLEMENTATION_ORIGIN,
         "verdict": preflight.verdict,
         "outcome": preflight.outcome,
+        "outcome_meanings": {
+            frozen.STAGE_11A_SELECTED_OUTCOME: (
+                "every gate was asked and every gate passed"
+            ),
+            frozen.STAGE_11A_INCOMPLETE_OUTCOME: (
+                "every gate that was asked passed, and some were not asked "
+                "because a named action has not been performed. Nothing was "
+                "found wrong with the route"
+            ),
+            frozen.STAGE_11A_BLOCKED_OUTCOME: (
+                "a gate found something wrong with the route"
+            ),
+        },
         "failure_class": (
             preflight.failure_class.value if preflight.failure_class else None
         ),
+        "a_gate_awaiting_an_action_is_not_a_failure": True,
         "artifact_was_obtained_and_opened": preflight.artifact_was_opened,
         "decisive_question": (
             "Does an official, exact VeriFinger 2025.2 artifact let fpbench "
@@ -2202,7 +2701,11 @@ def _preflight_report_document(preflight: VeriFingerPreflight) -> Mapping[str, A
             "with every externally selectable behaviour that can affect that "
             "score defined by Neurotechnology?"
         ),
-        "decisive_answer": "YES" if preflight.passed else "NOT YET",
+        "decisive_answer": (
+            "YES"
+            if preflight.passed
+            else ("NO" if preflight.blocked else "NOT ANSWERED YET")
+        ),
         "what_this_outcome_does_not_say": [
             "that the artifact could not be obtained",
             "that Neurotechnology refused anything",
@@ -2210,23 +2713,40 @@ def _preflight_report_document(preflight: VeriFingerPreflight) -> Mapping[str, A
             "that canonical_500 cannot enter the official route",
             "that the raw score is unsuitable",
             "that the algorithm was developed on SD300",
+            "that any methodological blocker was found — none was",
         ],
         "passed_every_hard_gate": preflight.passed,
+        "a_blocker_was_found": preflight.blocked,
         "stopped_at_gate": (
             preflight.stopped_at.value if preflight.stopped_at else None
         ),
         "gate_count_defined": frozen.GATE_COUNT,
         "gates_reached": preflight.gates_reached,
         "gates_passed": preflight.gates_passed,
+        "gates_awaiting_action": preflight.gates_awaiting_action,
+        "score_affecting_settings_without_provenance": {
+            "extraction_gate": extraction,
+            "matching_gate": matching,
+            "total_across_both_gates": extraction + matching,
+            "note": (
+                "each profile gate counts its own settings; the total is derived "
+                "here and labelled, so no single number stands for two different "
+                "scopes (docs/adr/0104)"
+            ),
+        },
         "gates": [
             {
                 "order": index,
                 "gate": result.gate.value,
                 "status": result.status.value,
+                "status_is_a_finding": result.status.is_a_finding,
                 "summary": result.summary,
                 "documents": list(frozen.gate_documents(result.gate)),
                 "blocker_codes": [
                     blocker.blocker_code.value for blocker in result.blockers
+                ],
+                "pending_action_codes": [
+                    action.action_code.value for action in result.pending_actions
                 ],
             }
             for index, result in enumerate(preflight.results, start=1)
@@ -2242,27 +2762,61 @@ def _preflight_report_document(preflight: VeriFingerPreflight) -> Mapping[str, A
             }
             for blocker in preflight.blockers
         ],
+        "pending_actions": [
+            {
+                "gate": action.gate.value,
+                "action_code": action.action_code.value,
+                "what_is_missing": action.what_is_missing,
+                "what_to_do": action.what_to_do,
+                "what_it_would_answer": action.what_it_would_answer,
+            }
+            for action in preflight.pending_actions
+        ],
+        "distinct_pending_action_codes": list(
+            preflight.distinct_pending_action_codes
+        ),
+        "one_run_would_close": [
+            gate.value for gate in frozen.EXECUTION_DEPENDENT_GATES
+        ],
+        "qualification_run_steps": list(frozen.QUALIFICATION_RUN_STEPS),
+        "qualification_harness": frozen.QUALIFICATION_HARNESS_SOURCE,
         "no_workaround_was_considered": [
             "no licence bypass",
             "no trial reset",
             "no protection mechanism touched",
+            "no network disconnected to test whether matching is local",
             "no redistribution of the artifact",
             "no reconstruction of the algorithm from documentation",
             "no preset chosen from score distributions",
+            "no settings combined from two different upstream samples",
         ],
         "what_this_candidate_cost": {
             "artifact_bytes_downloaded": sum(
                 item.size_bytes for item in observed.ACQUIRED_ARTIFACTS
             ),
             "artifact_bytes_added_to_git": 0,
-            "licences_activated": 0,
+            "licences_activated": 1 if _record() else 0,
             "sd300_images_read": 0,
-            "scores_produced": 0,
+            "qualification_scores_produced": int(
+                (_record() or {}).get("qualification_scores_produced") or 0
+            ),
+            "benchmark_scores_produced": 0,
         },
         "acceptance_conditions": list(frozen.ACCEPTANCE_CONDITIONS),
         "acceptance_conditions_are_conjunctive": True,
         "acceptance_conditions_met": preflight.passed,
         "opens_stage_11b": preflight.passed,
+        "opens_candidate_search": preflight.blocked,
+        "why_the_search_stays_closed": (
+            None
+            if preflight.blocked
+            else (
+                "No methodological blocker was found. Moving to another candidate "
+                "while this one has an outstanding chore and no adverse finding "
+                "would abandon the strongest candidate so far for a reason nobody "
+                "could write down (docs/adr/0104)."
+            )
+        ),
         "stage_11b_scope": list(frozen.STAGE_11B_SCOPE),
     }
 
@@ -2323,4 +2877,30 @@ def marker_blocker_rows(
             )
         )
         for blocker in sorted(blockers, key=lambda item: item.blocker_code.value)
+    )
+
+
+def marker_pending_action_rows(
+    actions: Sequence[PendingAction],
+) -> tuple[Mapping[str, str], ...]:
+    """The outstanding actions in exactly the shape the marker stores them."""
+    return tuple(
+        dict(
+            sorted(
+                {
+                    "gate": action.gate.value,
+                    "action_code": action.action_code.value,
+                    "what_is_missing": action.what_is_missing,
+                    "what_to_do": action.what_to_do,
+                    "what_it_would_answer": action.what_it_would_answer,
+                }.items()
+            )
+        )
+        for action in sorted(
+            actions,
+            key=lambda item: (
+                list(frozen.GATE_ORDER).index(item.gate),
+                item.action_code.value,
+            ),
+        )
     )

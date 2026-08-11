@@ -74,8 +74,8 @@
   ],
   "gates_are_conjunctive_and_unweighted": true,
   "gate_count_defined": 17,
-  "gates_reached": 6,
-  "gates_passed": 5,
+  "gates_reached": 17,
+  "gates_passed": 8,
   "benchmark_input": {
     "profile": "canonical_500",
     "ppi": 500,
@@ -157,5 +157,5 @@
     "raw-score execution readiness",
     "and still no threshold and no calibration"
   ],
-  "observations_fingerprint": "60dd51090532ad58a5bc716016119b75651d100ee6364c616fcb41939ede12aa"
+  "observations_fingerprint": "cb81f913e01f711802cb8bb23cb500afcb6f67479915b2a3d99c2970f647d019"
 }

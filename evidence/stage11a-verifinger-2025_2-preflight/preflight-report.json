@@ -1,215 +1,368 @@
 {
-  "schema": "stage_11a_preflight_report_v1",
+  "schema": "stage_11a_preflight_report_v2",
   "candidate": "neurotechnology_verifinger_2025_2_1to1",
   "implementation_origin": "VENDOR_OFFICIAL_SDK",
-  "verdict": "VERIFINGER_PREFLIGHT_FAIL",
-  "outcome": "VERIFINGER_PREFLIGHT_FAIL",
-  "failure_class": "EXECUTION_NOT_ESTABLISHED",
+  "verdict": "VERIFINGER_PREFLIGHT_INCOMPLETE",
+  "outcome": "VERIFINGER_PREFLIGHT_INCOMPLETE",
+  "outcome_meanings": {
+    "VERIFINGER_PREFLIGHT_PASS": "every gate was asked and every gate passed",
+    "VERIFINGER_PREFLIGHT_INCOMPLETE": "every gate that was asked passed, and some were not asked because a named action has not been performed. Nothing was found wrong with the route",
+    "VERIFINGER_PREFLIGHT_FAIL": "a gate found something wrong with the route"
+  },
+  "failure_class": null,
+  "a_gate_awaiting_an_action_is_not_a_failure": true,
   "artifact_was_obtained_and_opened": true,
   "decisive_question": "Does an official, exact VeriFinger 2025.2 artifact let fpbench take canonical_500 in and get a reproducible raw 1:1 score out, with every externally selectable behaviour that can affect that score defined by Neurotechnology?",
-  "decisive_answer": "NOT YET",
+  "decisive_answer": "NOT ANSWERED YET",
   "what_this_outcome_does_not_say": [
     "that the artifact could not be obtained",
     "that Neurotechnology refused anything",
     "that the licence terms forbid research use",
     "that canonical_500 cannot enter the official route",
     "that the raw score is unsuitable",
-    "that the algorithm was developed on SD300"
+    "that the algorithm was developed on SD300",
+    "that any methodological blocker was found — none was"
   ],
   "passed_every_hard_gate": false,
-  "stopped_at_gate": "EXTRACTION_PROFILE",
+  "a_blocker_was_found": false,
+  "stopped_at_gate": null,
   "gate_count_defined": 17,
-  "gates_reached": 6,
-  "gates_passed": 5,
+  "gates_reached": 17,
+  "gates_passed": 8,
+  "gates_awaiting_action": 9,
+  "score_affecting_settings_without_provenance": {
+    "extraction_gate": 8,
+    "matching_gate": 2,
+    "total_across_both_gates": 10,
+    "note": "each profile gate counts its own settings; the total is derived here and labelled, so no single number stands for two different scopes (docs/adr/0104)"
+  },
   "gates": [
     {
       "order": 1,
       "gate": "OFFICIAL_ARTIFACT_ACQUISITION",
       "status": "PASS",
+      "status_is_a_finding": true,
       "summary": "2 official artifacts obtained from Neurotechnology's own download host and verified by size and SHA-256: the 4743229435-byte 2025.2 SDK archive and the 124277015-byte manual, which is byte-for-byte the manual inside the archive. One route was chosen — MAIN_SDK_PACKAGE — and 1 was not.",
       "documents": [
         "acquisition-manifest.json",
         "artifact-manifest.json"
       ],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": []
     },
     {
       "order": 2,
       "gate": "RUNTIME_IDENTITY",
-      "status": "PASS",
-      "summary": "VENDOR_OFFICIAL_SDK: VeriFinger 2025.2 SDK by Neurotechnology, identified from inside the pinned bytes by 5 independent statements. 5 native libraries of the chosen platform carry ProductVersion '2025, 2, 0, 0', and the archive declares revision 20260612. No version here was read from a web page, and none was read from a running library.",
+      "status": "ACTION_REQUIRED",
+      "status_is_a_finding": false,
+      "summary": "VENDOR_OFFICIAL_SDK: VeriFinger 2025.2 SDK by Neurotechnology, identified from inside the pinned bytes by 5 independent statements; 5 native libraries carry ProductVersion '2025, 2, 0, 0' and the archive declares revision 20260612. The platform is not locked and no version has been read from a running library, so the runtime half of the identity is outstanding.",
       "documents": [
         "runtime-identity.json"
       ],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": [
+        "RUNTIME_PLATFORM_NOT_LOCKED"
+      ]
     },
     {
       "order": 3,
       "gate": "RESEARCH_USE_PERMISSION",
       "status": "PASS",
+      "status_is_a_finding": true,
       "summary": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION with intended-use permission ESTABLISHED: every plausible reading of 2 notices inside the pinned archive permits one person executing this locally for non-commercial educational research. 5 restrictions are recorded and respected, and redistribution is NOT_ALLOWED — which changes nothing, because fpbench redistributes nothing.",
       "documents": [
         "third-party-usage-binding.json"
       ],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": []
     },
     {
       "order": 4,
       "gate": "ARTIFACT_CLOSURE",
       "status": "PASS",
+      "status_is_a_finding": true,
       "summary": "closed over 8702 archive members totalling 6796855547 bytes, every one hashed. The fingerprint algorithm's 2 data files — 127187766 bytes — are inside the pinned archive, so nothing is fetched at first use and the EMBEDDED_IN_PINNED_VENDOR_ARTIFACT case does not arise for them. No external model, service or accelerator is required.",
       "documents": [],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": []
     },
     {
       "order": 5,
       "gate": "CANONICAL500_INPUT_ROUTE",
       "status": "PASS",
+      "status_is_a_finding": true,
       "summary": "the pinned manual puts PNG in the official input domain, requires resolution attributes on a fingerprint image, and expresses minutia coordinates in 500 DPI units — which is what canonical_500 already is. Upstream's own 1:1 tutorial sets a file name and verifies: no crop, no resize, no rotation, no enhancement. All 7 refused preprocessing steps stay refused, and the segmentation and quality processing the SDK performs internally needs no external choice from fpbench.",
       "documents": [
         "input-domain-contract.json"
       ],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": []
     },
     {
       "order": 6,
       "gate": "EXTRACTION_PROFILE",
-      "status": "FAIL",
-      "summary": "the inventory is closed over 14 published extraction settings and 7 score-affecting values have no upstream authority behind them",
+      "status": "ACTION_REQUIRED",
+      "status_is_a_finding": false,
+      "summary": "the inventory is closed over 14 published extraction settings; 0 score-affecting values come from the authoritative sample and 8 are delivered runtime defaults nobody has read yet",
       "documents": [
         "extraction-profile.json"
       ],
-      "blocker_codes": [
-        "HIDDEN_SCORE_AFFECTING_DEFAULT_UNRESOLVED"
+      "blocker_codes": [],
+      "pending_action_codes": [
+        "JAVA_RUNTIME_NOT_AVAILABLE"
       ]
     },
     {
       "order": 7,
       "gate": "REPRESENTATION_PROFILE",
-      "status": "NOT_REACHED",
-      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "status": "PASS",
+      "status_is_a_finding": true,
+      "summary": "VENDOR_PROPRIETARY_TEMPLATE: the manual states that a packed proprietary template is what the matchers should receive, and upstream's 1:1 tutorial exports nothing. ISO and ANSI are export formats and MINEX is a separate matching scenario, so an interoperable route would be a different profile with its own identity. Only 4 facts about a template are publishable and the template itself is not among them.",
       "documents": [
         "representation-profile.json"
       ],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": []
     },
     {
       "order": 8,
       "gate": "MATCHER_PROFILE",
-      "status": "NOT_REACHED",
-      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "status": "ACTION_REQUIRED",
+      "status_is_a_finding": false,
+      "summary": "the inventory is closed over 6 published matching settings; 1 score-affecting values come from the authoritative sample and 2 are delivered runtime defaults nobody has read yet",
       "documents": [
         "matcher-profile.json"
       ],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": [
+        "JAVA_RUNTIME_NOT_AVAILABLE"
+      ]
     },
     {
       "order": 9,
       "gate": "RAW_SCORE_ROUTE",
-      "status": "NOT_REACHED",
-      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "status": "PASS",
+      "status_is_a_finding": true,
+      "summary": "NATIVE_TRANSFORMED_SCALAR: one integer per attempt, HIGHER_IS_MORE_SIMILAR, on the vendor's own claimed-FAR scale with 9 published anchor points. The threshold is a separate engine property and the sample reads the score under both outcomes, so no threshold is inside the number. fpbench converts nothing in either direction.",
       "documents": [
         "score-contract.json"
       ],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": []
     },
     {
       "order": 10,
       "gate": "PAIR_ORIENTATION",
-      "status": "NOT_REACHED",
-      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "status": "ACTION_REQUIRED",
+      "status_is_a_finding": false,
+      "summary": "both orderings must be run on fixtures, and nothing has been run",
       "documents": [
         "pair-semantics.json"
       ],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": [
+        "JAVA_RUNTIME_NOT_AVAILABLE"
+      ]
     },
     {
       "order": 11,
       "gate": "SELF_SEMANTICS",
-      "status": "NOT_REACHED",
-      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "status": "ACTION_REQUIRED",
+      "status_is_a_finding": false,
+      "summary": "the SELF rule is frozen and its demonstration needs a running engine",
       "documents": [],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": [
+        "JAVA_RUNTIME_NOT_AVAILABLE"
+      ]
     },
     {
       "order": 12,
       "gate": "SCORE_DETERMINISM",
-      "status": "NOT_REACHED",
-      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "status": "ACTION_REQUIRED",
+      "status_is_a_finding": false,
+      "summary": "determinism is measured, and nothing has been measured",
       "documents": [
         "determinism-report.json"
       ],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": [
+        "JAVA_RUNTIME_NOT_AVAILABLE"
+      ]
     },
     {
       "order": 13,
       "gate": "FAILURE_SEMANTICS",
-      "status": "NOT_REACHED",
-      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "status": "ACTION_REQUIRED",
+      "status_is_a_finding": false,
+      "summary": "failure behaviour is observed, and nothing has been observed",
       "documents": [],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": [
+        "JAVA_RUNTIME_NOT_AVAILABLE"
+      ]
     },
     {
       "order": 14,
       "gate": "NETWORK_DEPENDENCY",
-      "status": "NOT_REACHED",
-      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "status": "PASS",
+      "status_is_a_finding": true,
+      "summary": "LICENSE_VALIDATION_ONLY: a constant connection is required during evaluation and the pinned agreement defines what it is for — checking a licence that permits the component to run on this computer. The biometric computation is local native code over local data files, so no part of the score depends on a service that could change without the pinned package changing.",
       "documents": [],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": []
     },
     {
       "order": 15,
       "gate": "RUNTIME_FEASIBILITY",
-      "status": "NOT_REACHED",
-      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "status": "ACTION_REQUIRED",
+      "status_is_a_finding": false,
+      "summary": "latency and memory are measured, and nothing has been measured",
       "documents": [
         "runtime-feasibility.json"
       ],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": [
+        "JAVA_RUNTIME_NOT_AVAILABLE"
+      ]
     },
     {
       "order": 16,
       "gate": "LICENSE_CAPACITY",
-      "status": "NOT_REACHED",
-      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "status": "ACTION_REQUIRED",
+      "status_is_a_finding": false,
+      "summary": "a 30-day trial with no stated call quota, and a per-operation cost nobody has measured",
       "documents": [],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": [
+        "JAVA_RUNTIME_NOT_AVAILABLE"
+      ]
     },
     {
       "order": 17,
       "gate": "TRAINING_PROVENANCE",
-      "status": "NOT_REACHED",
-      "summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+      "status": "PASS",
+      "status_is_a_finding": true,
+      "summary": "PROPRIETARY_UNDISCLOSED with NO_EVIDENCE_FOUND: no pinned source mentions SD300 in any role, and none describes the corpus the algorithm was developed on. That is an absence of evidence, recorded as one and never converted into PROVEN_ABSENT. No score distribution was consulted to answer it.",
       "documents": [
         "training-provenance.json"
       ],
-      "blocker_codes": []
+      "blocker_codes": [],
+      "pending_action_codes": []
     }
   ],
-  "blockers": [
+  "blockers": [],
+  "pending_actions": [
+    {
+      "gate": "RUNTIME_IDENTITY",
+      "action_code": "RUNTIME_PLATFORM_NOT_LOCKED",
+      "what_is_missing": "the platform this route is bound to, and the version the running library reports. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_it_would_answer": "Which operating system, architecture, native libraries and language runtime a VeriFinger score would come from — the half of runtime identity that a file cannot state about itself. The lock records 7 fields at activation, because the trial is single-platform and alternating between two under one algorithm fingerprint is refused whichever is chosen."
+    },
     {
       "gate": "EXTRACTION_PROFILE",
-      "blocker_code": "HIDDEN_SCORE_AFFECTING_DEFAULT_UNRESOLVED",
-      "affected_component": "7 score-affecting extraction settings: FingersExtractionScenario, FingersFastExtraction, FingersQualityThreshold, FingersMinimalMinutiaCount, FingersDetectTips, FingersDetectLiveness, FingersLivenessConfidenceThreshold",
-      "evidence": "no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software, and the second step starts a 30-day trial bound to one machine — a decision that belongs to the maintainer rather than to a preflight (spec section 32). The artifact is present and verified, and the documentation describes the intended behaviour, but a documented intention is not a measurement: this gate is about what a running licensed engine does.",
-      "why_this_blocks_algorithm_4": "Each of these changes the template, and therefore the score. The pinned manual gives every one of them a type and a meaning and states a default for none of them — while it does state defaults for the face-side settings in the same tables, so the absence is a property of the document rather than of the reading. A value nobody recorded still decides the score, and a profile with 7 unrecorded values is not frozen. What is settled is the inventory itself and the 1 setting whose value upstream's own 1:1 tutorial chooses explicitly (docs/adr/0101).",
-      "how_this_would_be_lifted": "The maintainer activates the 30-day trial on one chosen platform — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number and no personal information — runs the bounded qualification harness on fixtures that are not SD300, and re-runs this stage. No licence is bypassed, no trial is reset and no protection mechanism is touched (spec section 32)."
+      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "what_is_missing": "a value with an upstream provenance for 8 score-affecting extraction settings: FingersTemplateSize, FingersExtractionScenario, FingersFastExtraction, FingersQualityThreshold, FingersMinimalMinutiaCount, FingersDetectTips, FingersDetectLiveness, FingersLivenessConfidenceThreshold. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_it_would_answer": "Each of these changes the score, and the pinned manual states a default for none of them — while stating defaults for the face-side settings in the same tables, so the absence is a property of the document rather than of the reading. One constructed engine reports all of them, and each becomes a DELIVERED_RUNTIME_DEFAULT: an upstream authority, recorded rather than chosen."
+    },
+    {
+      "gate": "MATCHER_PROFILE",
+      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "what_is_missing": "a value with an upstream provenance for 2 score-affecting matching settings: FingersMaximalRotation, MatchingScenario. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_it_would_answer": "Each of these changes the score, and the pinned manual states a default for none of them — while stating defaults for the face-side settings in the same tables, so the absence is a property of the document rather than of the reading. One constructed engine reports all of them, and each becomes a DELIVERED_RUNTIME_DEFAULT: an upstream authority, recorded rather than chosen."
+    },
+    {
+      "gate": "PAIR_ORIENTATION",
+      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "what_is_missing": "both orderings of a fixture pair, actually scored. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_it_would_answer": "Whether the two orderings agree. If they differ, a run that fed pairs in whichever order they arrived would be averaging two different measurements without saying so — and fpbench may neither average them nor take their maximum, so the orientation has to be discovered and preserved."
+    },
+    {
+      "gate": "SELF_SEMANTICS",
+      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "what_is_missing": "SELF(A, A) executed as two independent extractions. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_it_would_answer": "Whether the engine shortcuts equal inputs. A pairwise route that noticed both sides were the same file could return a constant, and that constant would be a number about this project's own plumbing rather than about the algorithm. The rule is frozen either way — two loads, two extractions, no representation reuse (docs/adr/0070)."
+    },
+    {
+      "gate": "SCORE_DETERMINISM",
+      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "what_is_missing": "the same fixture pair scored at all 3 levels. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_it_would_answer": "Whether a VeriFinger score is reproducible at all. This is the one gate whose failure would be a genuine methodological blocker rather than a chore, which is why it is measured rather than assumed."
+    },
+    {
+      "gate": "FAILURE_SEMANTICS",
+      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "what_is_missing": "the 6 failure classes, each actually provoked. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_it_would_answer": "What each failure returns. A failure that arrives as a score of 0 is a false match rate computed over comparisons that never happened. The API has a status type beside the score, which is the right shape — but which status each failure produces, and whether a score sits beside it, is behaviour."
+    },
+    {
+      "gate": "RUNTIME_FEASIBILITY",
+      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "what_is_missing": "the 5 feasibility measurements. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_it_would_answer": "What the route costs per operation. A second per extraction turns the frozen workload's 12000 extractions into hours, and that is worth knowing before the run rather than during it — and it is what the licence-capacity gate needs in order to decide anything at all."
+    },
+    {
+      "gate": "LICENSE_CAPACITY",
+      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "what_is_missing": "the per-operation cost the expiry has to be weighed against. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_it_would_answer": "Whether 12000 extractions and 6000 matches fit inside 30 days. The expiry is known and the cost is not, so the product of the two is not known either. Two further terms are already recorded rather than assumed away: the trial needs a constant internet connection, and it excludes simultaneous use of licensed Neurotechnology products on the same computer."
     }
   ],
+  "distinct_pending_action_codes": [
+    "JAVA_RUNTIME_NOT_AVAILABLE",
+    "RUNTIME_PLATFORM_NOT_LOCKED"
+  ],
+  "one_run_would_close": [
+    "RUNTIME_IDENTITY",
+    "EXTRACTION_PROFILE",
+    "MATCHER_PROFILE",
+    "PAIR_ORIENTATION",
+    "SELF_SEMANTICS",
+    "SCORE_DETERMINISM",
+    "FAILURE_SEMANTICS",
+    "RUNTIME_FEASIBILITY",
+    "LICENSE_CAPACITY"
+  ],
+  "qualification_run_steps": [
+    "lock the platform and record the native libraries actually loaded",
+    "obtain the FingerExtractor and FingerMatcher licences from the local licensing service",
+    "read the library version from the running library",
+    "construct the engine and read every published setting's delivered default",
+    "extract a template from a synthetic fixture",
+    "extract a second template from the same fixture, independently",
+    "score both orderings of a fixture pair",
+    "score SELF(A, A) as two independent extractions",
+    "repeat one pair with the same objects, with fresh objects, and after a process restart",
+    "exercise each failure class and record what it returns",
+    "measure startup, extraction and matching latency and peak memory"
+  ],
+  "qualification_harness": "integrations/verifinger-qualification/VeriFingerQualification.java",
   "no_workaround_was_considered": [
     "no licence bypass",
     "no trial reset",
     "no protection mechanism touched",
+    "no network disconnected to test whether matching is local",
     "no redistribution of the artifact",
     "no reconstruction of the algorithm from documentation",
-    "no preset chosen from score distributions"
+    "no preset chosen from score distributions",
+    "no settings combined from two different upstream samples"
   ],
   "what_this_candidate_cost": {
     "artifact_bytes_downloaded": 4867506450,
     "artifact_bytes_added_to_git": 0,
     "licences_activated": 0,
     "sd300_images_read": 0,
-    "scores_produced": 0
+    "qualification_scores_produced": 0,
+    "benchmark_scores_produced": 0
   },
   "acceptance_conditions": [
     "official artifact obtained",
@@ -231,6 +384,8 @@
   "acceptance_conditions_are_conjunctive": true,
   "acceptance_conditions_met": false,
   "opens_stage_11b": false,
+  "opens_candidate_search": false,
+  "why_the_search_stays_closed": "No methodological blocker was found. Moving to another candidate while this one has an outstanding chore and no adverse finding would abandon the strongest candidate so far for a reason nobody could write down (docs/adr/0104).",
   "stage_11b_scope": [
     "VeriFinger production integration",
     "the generic adapter",

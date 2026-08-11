@@ -409,8 +409,59 @@ def test_the_official_sample_outranks_a_documented_default() -> None:
         is_score_affecting=True,
         documented_default="a",
         official_sample_value="b",
+        official_sample_locator=observed.AUTHORITATIVE_ROUTE_SAMPLE_PATH,
     )
     assert setting.provenance is frozen.SettingProvenance.OFFICIAL_SAMPLE_EXPLICIT
+
+
+def test_a_setting_may_not_be_taken_from_a_second_upstream_sample() -> None:
+    """The correction: upstream's tutorials configure the engine differently."""
+    with pytest.raises(VeriFingerObservationError):
+        observed.PublishedSetting(
+            name="FingersTemplateSize",
+            published_meaning="y",
+            is_score_affecting=True,
+            official_sample_value="NTemplateSize.LARGE",
+            official_sample_locator=(
+                "Neurotec_Biometric_2025_2_SDK/Tutorials/Biometrics/Java/"
+                "enroll-finger-from-image/src/main/java/com/neurotec/tutorials/"
+                "biometrics/EnrollFingerFromImage.java"
+            ),
+        )
+
+
+def test_a_sample_value_names_the_sample_it_came_from() -> None:
+    with pytest.raises(VeriFingerObservationError):
+        observed.PublishedSetting(
+            name="x",
+            published_meaning="y",
+            is_score_affecting=True,
+            official_sample_value="b",
+        )
+
+
+def test_exactly_one_setting_comes_from_the_authoritative_sample() -> None:
+    """verify-finger sets a matching speed and a threshold; the raw route keeps
+    the first and discards the second, so exactly one setting is settled."""
+    from_sample = [
+        item.name
+        for item in (
+            *observed.PUBLISHED_EXTRACTOR_SETTINGS,
+            *observed.PUBLISHED_MATCHER_SETTINGS,
+        )
+        if item.provenance is frozen.SettingProvenance.OFFICIAL_SAMPLE_EXPLICIT
+    ]
+    assert from_sample == ["FingersMatchingSpeed"]
+
+
+def test_template_size_is_no_longer_borrowed_from_the_enrolment_tutorial() -> None:
+    setting = next(
+        item
+        for item in observed.PUBLISHED_EXTRACTOR_SETTINGS
+        if item.name == "FingersTemplateSize"
+    )
+    assert setting.official_sample_value is None
+    assert setting.provenance is frozen.SettingProvenance.UNRESOLVED
 
 
 def test_no_published_setting_row_carries_a_chosen_value() -> None:
@@ -650,11 +701,67 @@ def test_the_byte_guard_catches_vendor_material_by_shape(path: str) -> None:
 # ------------------------------------------------------------------ the marker
 
 
-def test_the_two_outcomes_are_the_only_ones() -> None:
+def test_the_three_outcomes_are_the_only_ones() -> None:
     assert frozen.STAGE_11A_OUTCOMES == (
         "VERIFINGER_PREFLIGHT_PASS",
+        "VERIFINGER_PREFLIGHT_INCOMPLETE",
         "VERIFINGER_PREFLIGHT_FAIL",
     )
+
+
+def test_an_unperformed_run_is_incomplete_and_never_a_failure() -> None:
+    """The correction this whole revision exists for."""
+    preflight = engine.run_preflight()
+    if preflight.gates_awaiting_action:
+        assert preflight.outcome == frozen.STAGE_11A_INCOMPLETE_OUTCOME
+        assert preflight.failure_class is None
+        assert preflight.blockers == ()
+        assert preflight.blocked is False
+
+
+def test_an_action_required_gate_carries_an_action_and_no_blocker() -> None:
+    preflight = engine.run_preflight()
+    for result in preflight.results:
+        if result.status is frozen.GateStatus.ACTION_REQUIRED:
+            assert result.pending_actions
+            assert result.blockers == ()
+
+
+def test_a_gate_awaiting_an_action_does_not_stop_the_run() -> None:
+    """Fail-fast is for real blockers; a chore must not hide nine answers."""
+    preflight = engine.run_preflight()
+    if not preflight.blocked:
+        assert all(
+            result.status is not frozen.GateStatus.NOT_REACHED
+            for result in preflight.results
+        )
+        assert preflight.gates_passed + preflight.gates_awaiting_action == (
+            frozen.GATE_COUNT
+        )
+
+
+def test_the_pending_vocabulary_is_disjoint_from_the_blocker_vocabulary() -> None:
+    assert not {item.value for item in frozen.PendingActionCode} & {
+        item.value for item in frozen.BlockerCode
+    }
+
+
+def test_one_run_would_close_the_execution_dependent_gates() -> None:
+    assert len(frozen.EXECUTION_DEPENDENT_GATES) == 9
+    assert frozen.PreflightGate.RAW_SCORE_ROUTE not in (
+        frozen.EXECUTION_DEPENDENT_GATES
+    )
+
+
+def test_a_pending_action_may_not_be_raised_at_a_gate_it_does_not_belong_to() -> None:
+    with pytest.raises(VeriFingerGateError):
+        engine.PendingAction(
+            gate=frozen.PreflightGate.RAW_SCORE_ROUTE,
+            action_code=frozen.PendingActionCode.QUALIFICATION_RUN_NOT_PERFORMED,
+            what_is_missing="x",
+            what_to_do="x",
+            what_it_would_answer="x",
+        )
 
 
 def test_the_acceptance_conditions_are_the_specified_conjunction() -> None:
@@ -676,34 +783,85 @@ def test_every_pass_claim_is_covered_by_the_established_list() -> None:
     assert set(Stage11AFinalization.DENIED_FLAGS) <= fields
 
 
-def test_the_marker_refuses_a_third_outcome() -> None:
+def test_the_marker_refuses_a_fourth_outcome() -> None:
     with pytest.raises(ValueError):
         _marker_claims(outcome="VERIFINGER_PREFLIGHT_PENDING")
 
 
-def test_the_marker_refuses_an_activated_licence() -> None:
+def test_the_marker_permits_a_legitimately_activated_licence() -> None:
+    """The invariant that had to go.
+
+    A qualification run obtains the finger licences, so a marker that asserted
+    ``licenses_activated == 0`` made the run this stage requires impossible to
+    describe (docs/adr/0104).
+    """
+    marker = _marker_claims(
+        licenses_activated=1,
+        qualification_run_performed=True,
+        qualification_scores_produced=12,
+    )
+    assert marker.licenses_activated == 1
+    assert marker.qualification_scores_produced == 12
+
+
+def test_a_qualification_run_without_a_licence_is_refused() -> None:
     with pytest.raises(ValueError):
-        _marker_claims(licenses_activated=1)
+        _marker_claims(qualification_run_performed=True, licenses_activated=0)
 
 
-def test_the_marker_refuses_a_produced_score() -> None:
+def test_a_score_with_no_run_behind_it_is_refused() -> None:
     with pytest.raises(ValueError):
-        _marker_claims(scores_produced=1)
+        _marker_claims(qualification_scores_produced=3)
 
 
-def test_a_blocked_marker_may_not_claim_a_measured_capacity() -> None:
+def test_the_marker_refuses_a_benchmark_score() -> None:
     with pytest.raises(ValueError):
-        _marker_claims(license_workload_capacity_sufficient=False)
+        _marker_claims(benchmark_scores_produced=1)
 
 
-def test_a_blocked_marker_names_a_failure_class() -> None:
+def test_the_marker_refuses_an_sd300_score() -> None:
     with pytest.raises(ValueError):
-        _marker_claims(failure_class=None)
+        _marker_claims(sd300_scores_produced=1)
 
 
-def test_a_blocked_marker_still_requires_the_self_rule() -> None:
+def test_qualification_and_benchmark_scores_are_different_things() -> None:
+    assert frozen.ScoreClass.QUALIFICATION_FIXTURE.may_be_produced_by_this_stage
+    assert not frozen.ScoreClass.BENCHMARK_COHORT.may_be_produced_by_this_stage
+    for item in frozen.ScoreClass:
+        assert not item.may_be_published_as_a_value
+
+
+def test_an_incomplete_marker_carries_no_failure_class() -> None:
+    with pytest.raises(ValueError):
+        _marker_claims(
+            failure_class=frozen.FailureClass.EXECUTION_NOT_ESTABLISHED.value
+        )
+
+
+def test_an_incomplete_marker_carries_at_least_one_action() -> None:
+    with pytest.raises(ValueError):
+        _marker_claims(pending_actions=())
+
+
+def test_an_incomplete_marker_does_not_open_a_candidate_search() -> None:
+    """No adverse finding means no reason to move on."""
+    with pytest.raises(ValueError):
+        _marker_claims(opens_candidate_search=True)
+
+
+def test_an_incomplete_marker_still_requires_the_self_rule() -> None:
     with pytest.raises(ValueError):
         _marker_claims(self_independent_extraction_required=False)
+
+
+def test_a_passing_marker_needs_the_platform_locked() -> None:
+    assert "runtime_platform_locked" in Stage11AFinalization.ESTABLISHED_UNDER_PASS
+
+
+def test_the_platform_lock_records_every_frozen_field() -> None:
+    assert len(frozen.RUNTIME_PLATFORM_LOCK_FIELDS) == 7
+    assert "architecture" in frozen.RUNTIME_PLATFORM_LOCK_FIELDS
+    assert "java_runtime_version" in frozen.RUNTIME_PLATFORM_LOCK_FIELDS
 
 
 def test_the_evidence_file_list_is_exactly_the_specified_structure() -> None:
@@ -733,6 +891,177 @@ def test_an_extra_published_file_is_a_finding() -> None:
         require_expected_evidence_files(
             frozen.REQUIRED_EVIDENCE_FILES + ("notes.txt",)
         )
+
+
+# ---------------------------------------------------- the qualification harness
+
+
+def test_the_harness_source_is_in_the_repository_and_reviewable() -> None:
+    """The bytes it drives never enter Git; the program that drives them does."""
+    source = REPOSITORY_ROOT / Path(frozen.QUALIFICATION_HARNESS_SOURCE)
+    assert source.is_file()
+    text = source.read_text(encoding="utf-8")
+    assert "NLicense.obtain" in text
+    assert "verify(" in text
+
+
+def test_the_harness_sets_only_what_the_authoritative_sample_sets() -> None:
+    """docs/adr/0105, checked against the harness rather than trusted."""
+    text = (
+        REPOSITORY_ROOT / Path(frozen.QUALIFICATION_HARNESS_SOURCE)
+    ).read_text(encoding="utf-8")
+    assert "setFingersMatchingSpeed(NMatchingSpeed.LOW)" in text
+    assert "setFingersTemplateSize" not in text
+    assert "setMatchingThreshold" not in text
+
+
+def test_the_harness_publishes_a_digest_and_never_a_score() -> None:
+    text = (
+        REPOSITORY_ROOT / Path(frozen.QUALIFICATION_HARNESS_SOURCE)
+    ).read_text(encoding="utf-8")
+    assert "sha256(Integer.toString(score))" in text
+    assert "SHA-256" in text
+
+
+def test_the_preconditions_name_a_pending_action_each() -> None:
+    from fpbench.experiments.stage11a_qualification import PreconditionStatus
+
+    for status in PreconditionStatus:
+        if status is PreconditionStatus.READY:
+            assert status.pending_action is None
+        else:
+            assert status.pending_action in frozen.PendingActionCode
+
+
+def test_the_preconditions_are_reported_and_never_raised() -> None:
+    from fpbench.experiments.stage11a_qualification import check_preconditions
+
+    found = check_preconditions(repository_root=REPOSITORY_ROOT)
+    assert found.detail
+    assert isinstance(found.ready, bool)
+
+
+def test_the_fixtures_are_synthetic_and_never_sd300(tmp_path: Path) -> None:
+    from fpbench.experiments.stage11a_qualification import write_fixtures
+
+    made = write_fixtures(tmp_path / "fixtures")
+    assert len(made) == 4
+    assert made[0].read_bytes()[:8] == bytes(
+        (0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+    )
+    assert made[0].stat().st_size > 1000
+    assert not any("sd300" in item.name.lower() for item in made)
+
+
+def test_the_fixture_writer_declares_five_hundred_ppi(tmp_path: Path) -> None:
+    """canonical_500 is 500 ppi and the fixture says so in its own pHYs chunk."""
+    import struct
+
+    from fpbench.experiments.stage11a_qualification import write_fixtures
+
+    made = write_fixtures(tmp_path / "fixtures")
+    raw = made[0].read_bytes()
+    index = raw.index(b"pHYs")
+    horizontal, vertical, unit = struct.unpack(">IIB", raw[index + 4 : index + 13])
+    assert horizontal == vertical == round(500 * 39.3701)
+    assert unit == 1
+
+
+def test_a_record_that_does_not_verify_answers_nothing(tmp_path: Path) -> None:
+    """A hand-written file must not be able to close nine gates."""
+    from fpbench.experiments.stage11a_artifacts import (
+        _validate_qualification_record,
+    )
+
+    record, why = _validate_qualification_record(
+        {"schema": "stage_11a_qualification_run_v1", "archive_sha256": "0" * 64}
+    )
+    assert record is None
+    assert "different archive" in why
+
+
+def test_a_record_claiming_a_benchmark_score_is_refused() -> None:
+    from fpbench.experiments.stage11a_artifacts import (
+        _validate_qualification_record,
+    )
+
+    record, why = _validate_qualification_record(
+        {
+            "schema": "stage_11a_qualification_run_v1",
+            "archive_sha256": observed.SDK_ARCHIVE.sha256,
+            "sd300_used": False,
+            "benchmark_scores_produced": 3,
+        }
+    )
+    assert record is None
+    assert "benchmark scores" in why
+
+
+def test_a_record_that_does_not_deny_sd300_is_refused() -> None:
+    from fpbench.experiments.stage11a_artifacts import (
+        _validate_qualification_record,
+    )
+
+    record, why = _validate_qualification_record(
+        {
+            "schema": "stage_11a_qualification_run_v1",
+            "archive_sha256": observed.SDK_ARCHIVE.sha256,
+        }
+    )
+    assert record is None
+    assert "SD300" in why
+
+
+def test_a_record_carrying_score_values_is_refused() -> None:
+    from fpbench.experiments.stage11a_artifacts import (
+        _validate_qualification_record,
+    )
+
+    record, why = _validate_qualification_record(
+        {
+            "schema": "stage_11a_qualification_run_v1",
+            "archive_sha256": observed.SDK_ARCHIVE.sha256,
+            "sd300_used": False,
+            "benchmark_scores_produced": 0,
+            "qualification_scores_produced": 4,
+            "platform_lock": {
+                name: "x" for name in frozen.RUNTIME_PLATFORM_LOCK_FIELDS
+            },
+            "delivered_runtime_defaults": {
+                item.name: "x"
+                for item in (
+                    *observed.PUBLISHED_EXTRACTOR_SETTINGS,
+                    *observed.PUBLISHED_MATCHER_SETTINGS,
+                )
+            },
+            "determinism": {level: True for level in frozen.DETERMINISM_LEVELS},
+            "failure_semantics": [
+                {"failure_class": name, "score_present": False}
+                for name in frozen.FAILURE_SEMANTICS_CLASSES
+            ],
+            "scores": [1, 2, 3],
+        }
+    )
+    assert record is None
+    assert "never score values" in why
+
+
+def test_an_unbounded_run_is_refused() -> None:
+    from fpbench.experiments.stage11a_artifacts import (
+        _validate_qualification_record,
+    )
+
+    record, why = _validate_qualification_record(
+        {
+            "schema": "stage_11a_qualification_run_v1",
+            "archive_sha256": observed.SDK_ARCHIVE.sha256,
+            "sd300_used": False,
+            "benchmark_scores_produced": 0,
+            "qualification_scores_produced": frozen.QUALIFICATION_RUN_MAX_SCORES + 1,
+        }
+    )
+    assert record is None
+    assert "bound" in why
 
 
 # ------------------------------------------------------------- non-goals & layering
@@ -785,11 +1114,16 @@ def test_the_engine_takes_no_verdict_parameter() -> None:
 
 
 def _marker_claims(**overrides: object) -> Stage11AFinalization:
-    """A minimal blocked marker, so a single field can be made wrong."""
+    """A minimal *incomplete* marker, so a single field can be made wrong.
+
+    Incomplete rather than blocked, because incomplete is what this stage
+    actually publishes today and a helper that modelled the rare case would test
+    the rare case.
+    """
     claims: dict = {
         "schema_version": frozen.STAGE_11A_SCHEMA_VERSION,
         "kind": frozen.STAGE_FINALIZATION_KIND,
-        "outcome": frozen.STAGE_11A_BLOCKED_OUTCOME,
+        "outcome": frozen.STAGE_11A_INCOMPLETE_OUTCOME,
         "algorithm_slot": frozen.ALGORITHM_SLOT,
         "predecessor_stage_10b_fingerprint": (
             frozen.STAGE_10B_FINALIZATION_FINGERPRINT
@@ -798,17 +1132,20 @@ def _marker_claims(**overrides: object) -> Stage11AFinalization:
         "stage11a_source_fingerprint": "1" * 64,
         "observations_fingerprint": "2" * 64,
         "preflight_fingerprint": "3" * 64,
-        "candidate_verdict": frozen.CANDIDATE_FAIL_VERDICT,
+        "candidate_verdict": frozen.CANDIDATE_INCOMPLETE_VERDICT,
         "selected_candidate": None,
         "gate_count_defined": frozen.GATE_COUNT,
-        "gates_reached": 6,
-        "gates_passed": 5,
+        "gates_reached": frozen.GATE_COUNT,
+        "gates_passed": 8,
+        "gates_awaiting_action": 9,
         "artifact_obtained": True,
         "artifact_route": frozen.ArtifactRoute.MAIN_SDK_PACKAGE.value,
         "artifact_identity_pinned": True,
         "documentation_pinned_separately": True,
         "runtime_identity_established": True,
         "runtime_reported_version_read_by_execution": False,
+        "runtime_platform_locked": False,
+        "runtime_platform": None,
         "research_use_opens_execution": True,
         "research_use_blocked": False,
         "runtime_dependency_closure_complete": True,
@@ -819,7 +1156,8 @@ def _marker_claims(**overrides: object) -> Stage11AFinalization:
         "representation_profile_resolved": False,
         "representation_type": frozen.RepresentationType.NOT_REACHED.value,
         "matcher_profile_resolved": False,
-        "hidden_score_affecting_defaults": 9,
+        "extraction_settings_without_provenance": 8,
+        "matching_settings_without_provenance": 2,
         "raw_score_route_resolved": False,
         "raw_score_route_status": frozen.ScoreRouteStatus.NOT_REACHED.value,
         "score_numeric_type": None,
@@ -839,12 +1177,13 @@ def _marker_claims(**overrides: object) -> Stage11AFinalization:
         ),
         "sd300_overlap_status": frozen.SD300OverlapStatus.NOT_REACHED.value,
         "sd300_training_overlap_found": None,
-        "failure_class": frozen.FailureClass.EXECUTION_NOT_ESTABLISHED.value,
+        "failure_class": None,
         "sd300_image_bytes_read": False,
         "sd300_scores_read": False,
         "sd300_pair_manifest_read": False,
         "prior_algorithm_scores_read": False,
         "licenses_activated": 0,
+        "qualification_run_performed": False,
         "license_bypass_attempted": False,
         "trial_reset_attempted": False,
         "production_adapter_created": False,
@@ -854,25 +1193,28 @@ def _marker_claims(**overrides: object) -> Stage11AFinalization:
         "decision_profile_produced": False,
         "calibration_performed": False,
         "metrics_produced": False,
-        "scores_produced": 0,
+        "qualification_scores_produced": 0,
+        "benchmark_scores_produced": 0,
+        "sd300_scores_produced": 0,
         "third_party_bytes_added_to_git": False,
         "secrets_added_to_git": False,
         "artifact_downloaded_in_ci": False,
+        "license_activated_in_ci": False,
         "credentials_stored_in_ci": False,
         "stage8e_evidence_changed": False,
         "stage10b_evidence_changed": False,
         "opens_stage_11b": False,
-        "opens_candidate_search": True,
-        "blockers": (
+        "opens_candidate_search": False,
+        "blockers": (),
+        "pending_actions": (
             {
                 "gate": frozen.PreflightGate.EXTRACTION_PROFILE.value,
-                "blocker_code": (
-                    frozen.BlockerCode.HIDDEN_SCORE_AFFECTING_DEFAULT_UNRESOLVED.value
+                "action_code": (
+                    frozen.PendingActionCode.QUALIFICATION_RUN_NOT_PERFORMED.value
                 ),
-                "affected_component": "x",
-                "evidence": "x",
-                "why_this_blocks_algorithm_4": "x",
-                "how_this_would_be_lifted": "x",
+                "what_is_missing": "x",
+                "what_to_do": "x",
+                "what_it_would_answer": "x",
             },
         ),
         "evidence_content_hashes": {},
@@ -889,8 +1231,10 @@ def _marker_claims(**overrides: object) -> Stage11AFinalization:
     )
 
 
-def test_the_helper_builds_a_valid_blocked_marker() -> None:
+def test_the_helper_builds_a_valid_incomplete_marker() -> None:
     """Otherwise every negative case above could be passing for the wrong reason."""
     marker = _marker_claims()
-    assert marker.outcome == frozen.STAGE_11A_BLOCKED_OUTCOME
+    assert marker.outcome == frozen.STAGE_11A_INCOMPLETE_OUTCOME
     assert marker.opens_stage_11b is False
+    assert marker.opens_candidate_search is False
+    assert marker.failure_class is None

@@ -5,9 +5,10 @@ candidate_id            neurotechnology_verifinger_2025_2_1to1   (provisional)
 implementation_origin   VENDOR_OFFICIAL_SDK
 vendor                  Neurotechnology
 declared version        VeriFinger 2025.2 SDK
-verdict                 VERIFINGER_PREFLIGHT_FAIL
-stopped at              gate 6, EXTRACTION_PROFILE
-gates passed            5 of 17
+verdict                 VERIFINGER_PREFLIGHT_INCOMPLETE
+gates passed            8 of 17
+gates awaiting action   9
+blockers                0
 ```
 
 ## What it is
@@ -27,21 +28,30 @@ well as under `OK`, so the number is not replaced by a decision.
 Nothing in this record is a judgement about the product. It is one of the most
 heavily evaluated fingerprint matchers in existence.
 
-## Why it is not admissible today
+## Why it is not admissible yet
 
-Not because of the artifact, the licence, the input domain, the representation,
-the score or the network. Because nine settings that change the score have no
-recorded value.
+**Not because anything is wrong with it.** No methodological blocker has been
+found: not the artifact, not the licence, not the input domain, not the
+representation, not the raw score, not the network role, not the provenance. This
+candidate is the only one of the five with no adverse finding against it at all.
 
-The pinned 2025.2 manual publishes the complete set of externally selectable
-fingerprint settings — the inventory is closed — and states a default for none of
-them, while stating defaults for the face-side settings in the same tables. Two
-values do have an upstream authority, because upstream's own tutorials set them
-explicitly. The rest would have to be read off a constructed engine and recorded
-as delivered runtime defaults, and that needs a licence nobody has activated.
+What is outstanding is one bounded qualification run. The pinned 2025.2 manual
+publishes the complete set of externally selectable fingerprint settings — the
+inventory is closed — and states a default for none of them, while stating
+defaults for the face-side settings in the same tables. Ten score-affecting
+values therefore have no upstream authority yet, and each becomes a
+`DELIVERED_RUNTIME_DEFAULT` the moment somebody constructs the engine and reads
+it.
+
+Exactly one setting is settled, and only `verify-finger` settles it. Upstream's
+tutorials configure the engine differently — the enrolment tutorial sets a
+template size the verification tutorial never touches — so a profile taking one
+value from each would be a configuration no upstream program has ever run
+(ADR 0105).
 
 ```text
-extraction, no upstream authority   FingersExtractionScenario
+extraction gate, 8 outstanding      FingersTemplateSize
+                                    FingersExtractionScenario
                                     FingersFastExtraction
                                     FingersQualityThreshold
                                     FingersMinimalMinutiaCount
@@ -49,12 +59,15 @@ extraction, no upstream authority   FingersExtractionScenario
                                     FingersDetectLiveness
                                     FingersLivenessConfidenceThreshold
 
-matching, no upstream authority     FingersMaximalRotation
+matching gate, 2 outstanding        FingersMaximalRotation
                                     MatchingScenario
 
-settled by upstream                 FingersTemplateSize   = LARGE
-                                    FingersMatchingSpeed  = LOW
+settled by the authoritative        FingersMatchingSpeed = LOW
+sample, verify-finger
 ```
+
+Each count is scoped to its own gate. A total is derived and labelled where it is
+used, rather than one number standing for two scopes (ADR 0104).
 
 ## What the artifact established
 
@@ -71,8 +84,10 @@ settled by upstream                 FingersTemplateSize   = LARGE
 | Network in the computation? | no — licence validation only |
 | SD300 development overlap? | `NO_EVIDENCE_FOUND`, never `PROVEN_ABSENT` |
 
-The last four were read but not used: their gates were never reached, so they are
-published as observations rather than as conclusions.
+All ten were asked and answered. Only a real blocker stops the run, so a gate
+awaiting an action does not hide the gates after it — which is why the decisive
+raw-score question is settled here rather than left unpublished behind an
+unrelated chore (ADR 0104).
 
 ## The score
 
@@ -96,13 +111,24 @@ recommended threshold of 48 belongs to a calibration stage or to nothing
 
 Activating the 30-day trial on one chosen platform — `Trial = true` in the
 licensing configuration, start the licensing service, no serial number and no
-personal information — then running a bounded qualification harness on fixtures
-that are not SD300 and re-running the stage. Eleven gates become answerable at
-that point.
+personal information — then `make stage11a-qualify` and re-deriving. Nine gates
+become answerable at that point, and the next publication is either
+`VERIFINGER_PREFLIGHT_PASS` or a technical blocker found by execution.
+
+The harness exists: `integrations/verifinger-qualification/`, driven from
+`fpbench.experiments.stage11a_qualification`. It sets only what `verify-finger`
+sets, reads everything else, scores synthetic ridge-like fixtures that are not
+SD300, and publishes no score value — it emits a SHA-256 per score and compares
+digests.
 
 Acquisition was this stage's to do. Activation is the maintainer's: it starts a
 clock bound to one machine and excludes other licensed Neurotechnology products
 on it (ADR 0099).
+
+## Why the candidate search stays closed
+
+There is nothing here to move on from. Every other candidate was refused for a
+reason that would still be true tomorrow; this one is waiting on an afternoon.
 
 ## What was not done
 

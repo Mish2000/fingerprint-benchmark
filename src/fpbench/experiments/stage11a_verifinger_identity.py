@@ -126,6 +126,17 @@ __all__ = [
     "FROZEN_WORKLOAD",
     "FIXTURE_POLICY",
     "SD300_DENIALS",
+    "ScoreClass",
+    "RUNTIME_PLATFORM_LOCK_FIELDS",
+    "QUALIFICATION_RUN_STEPS",
+    "QUALIFICATION_RUN_MAX_SCORES",
+    "PendingActionCode",
+    "GATE_PENDING_ACTIONS",
+    "gate_pending_actions",
+    "EXECUTION_DEPENDENT_GATES",
+    "STAGE_11A_INCOMPLETE_OUTCOME",
+    "CANDIDATE_INCOMPLETE_VERDICT",
+    "AUTHORITATIVE_ROUTE_SAMPLE",
     "ACCEPTANCE_CONDITIONS",
     "NON_GOALS",
     "PRODUCTION_INTEGRATION_NOT_CREATED",
@@ -143,6 +154,7 @@ __all__ = [
     "VERIFINGER_ARTIFACT_MARKER",
     "STAGE_11B_SCOPE",
     "STAGE_11A_SOURCE_FILES",
+    "QUALIFICATION_HARNESS_SOURCE",
     "STAGE_11A_ADRS",
     "STAGE_11A_DOCUMENTS",
     "all_frozen_identifiers",
@@ -155,16 +167,38 @@ STAGE_FINALIZATION_KIND = "stage_11a_finalization"
 #: fills it: a pass opens Stage 11B, and Stage 11B is the integration.
 ALGORITHM_SLOT = "algorithm_4"
 
-#: The two outcomes, and there are exactly two. Unlike Stage 10B there is no
-#: expected ``PENDING``: the vendor publishes a direct download, so acquisition
-#: either happened or it did not (spec section 45).
+#: Three outcomes, and the third one is the important correction.
+#:
+#: The specification expected two, on the reasoning that a direct download makes
+#: acquisition binary. That reasoning was right about *acquisition* and wrong
+#: about the stage: most of these gates are questions about a running licensed
+#: engine, and "nobody has run it yet" is not the same claim as "this route
+#: cannot work". Publishing the first as ``VERIFINGER_PREFLIGHT_FAIL`` said
+#: something about VeriFinger that nothing had established — the same
+#: overstatement Stage 10B was careful to avoid between ``NOT_OBTAINED`` and
+#: ``UNAVAILABLE``, one layer up.
+#:
+#: ``INCOMPLETE`` means every question that was asked was answered and some were
+#: not asked, with a named action that would ask them. ``FAIL`` is reserved for a
+#: real blocker: something the artifact, the notices or an execution actually
+#: showed to be wrong with the route (docs/adr/0104).
 STAGE_11A_SELECTED_OUTCOME = "VERIFINGER_PREFLIGHT_PASS"
 STAGE_11A_BLOCKED_OUTCOME = "VERIFINGER_PREFLIGHT_FAIL"
-STAGE_11A_OUTCOMES = (STAGE_11A_SELECTED_OUTCOME, STAGE_11A_BLOCKED_OUTCOME)
+STAGE_11A_INCOMPLETE_OUTCOME = "VERIFINGER_PREFLIGHT_INCOMPLETE"
+STAGE_11A_OUTCOMES = (
+    STAGE_11A_SELECTED_OUTCOME,
+    STAGE_11A_INCOMPLETE_OUTCOME,
+    STAGE_11A_BLOCKED_OUTCOME,
+)
 
 CANDIDATE_PASS_VERDICT = STAGE_11A_SELECTED_OUTCOME
 CANDIDATE_FAIL_VERDICT = STAGE_11A_BLOCKED_OUTCOME
-CANDIDATE_VERDICTS = (CANDIDATE_PASS_VERDICT, CANDIDATE_FAIL_VERDICT)
+CANDIDATE_INCOMPLETE_VERDICT = STAGE_11A_INCOMPLETE_OUTCOME
+CANDIDATE_VERDICTS = (
+    CANDIDATE_PASS_VERDICT,
+    CANDIDATE_INCOMPLETE_VERDICT,
+    CANDIDATE_FAIL_VERDICT,
+)
 
 
 # ------------------------------------------------------------ the one candidate
@@ -340,16 +374,36 @@ GATE_COUNT = len(GATE_ORDER)
 
 
 class GateStatus(str, Enum):
-    """What one gate concluded.
+    """What one gate concluded. Four states, and the differences all matter.
 
-    ``NOT_REACHED`` is not a soft failure and not a pass. It records that the
-    candidate had already stopped, so this question was never asked. Publishing
-    it as anything else would be inventing a conclusion.
+    ``PASS`` — asked and answered.
+
+    ``FAIL`` — asked and answered badly. A real blocker: something about the
+    route was shown to be wrong. This is the only status that stops the run.
+
+    ``ACTION_REQUIRED`` — not asked, because a named prerequisite has not been
+    done, and the prerequisite is one a person can do. It is not a failure and
+    must never be reported as one: "nobody has activated the trial" says nothing
+    about VeriFinger. Later gates still run, because most of them do not depend
+    on this one (docs/adr/0104).
+
+    ``NOT_REACHED`` — not asked, because the run had already stopped at a
+    ``FAIL``. Publishing it as anything else would be inventing a conclusion.
     """
 
     PASS = "PASS"
     FAIL = "FAIL"
+    ACTION_REQUIRED = "ACTION_REQUIRED"
     NOT_REACHED = "NOT_REACHED"
+
+    @property
+    def is_a_finding(self) -> bool:
+        """Whether the gate actually decided something about the candidate."""
+        return self in (GateStatus.PASS, GateStatus.FAIL)
+
+    @property
+    def was_asked(self) -> bool:
+        return self.is_a_finding
 
 
 #: The documents each gate reports through. Several gates share the preflight
@@ -513,6 +567,71 @@ GATE_BLOCKERS: tuple[tuple[PreflightGate, tuple[BlockerCode, ...]], ...] = (
 def gate_of_blocker(code: BlockerCode) -> tuple[PreflightGate, ...]:
     """Every gate a blocker code may be raised at."""
     return tuple(gate for gate, codes in GATE_BLOCKERS if code in codes)
+
+
+class PendingActionCode(str, Enum):
+    """Why a gate was not asked, where the reason is a deed rather than a defect.
+
+    A **separate, deliberately tiny vocabulary**, and not part of
+    :class:`BlockerCode`. The specification fixed the blocker list as a closed
+    set of things that would be wrong with the route; none of these is one of
+    those. Merging them would have made "the maintainer has not activated a
+    trial" indistinguishable from "the score is not reproducible", which is
+    exactly the confusion the third gate status exists to remove
+    (docs/adr/0104).
+
+    Each names something one person can do in an afternoon.
+    """
+
+    QUALIFICATION_RUN_NOT_PERFORMED = "QUALIFICATION_RUN_NOT_PERFORMED"
+    TRIAL_LICENCE_NOT_ACTIVATED = "TRIAL_LICENCE_NOT_ACTIVATED"
+    JAVA_RUNTIME_NOT_AVAILABLE = "JAVA_RUNTIME_NOT_AVAILABLE"
+    RUNTIME_PLATFORM_NOT_LOCKED = "RUNTIME_PLATFORM_NOT_LOCKED"
+
+
+#: The three reasons a qualification run has not happened. Any of them can be the
+#: reason for any execution-dependent gate, so they travel together: the gate
+#: reports the one that is actually true on this machine, and the harness decides
+#: which that is by checking rather than by assuming.
+_RUN_NOT_PERFORMED_REASONS: tuple[PendingActionCode, ...] = (
+    PendingActionCode.QUALIFICATION_RUN_NOT_PERFORMED,
+    PendingActionCode.TRIAL_LICENCE_NOT_ACTIVATED,
+    PendingActionCode.JAVA_RUNTIME_NOT_AVAILABLE,
+)
+
+#: Which pending actions each gate may report. Every execution-dependent gate
+#: shares the run reasons, because one run answers all of them; the platform lock
+#: additionally belongs to runtime identity, which is what a platform is part of.
+GATE_PENDING_ACTIONS: tuple[tuple[PreflightGate, tuple[PendingActionCode, ...]], ...] = (
+    (
+        PreflightGate.RUNTIME_IDENTITY,
+        (PendingActionCode.RUNTIME_PLATFORM_NOT_LOCKED, *_RUN_NOT_PERFORMED_REASONS),
+    ),
+    (PreflightGate.EXTRACTION_PROFILE, _RUN_NOT_PERFORMED_REASONS),
+    (PreflightGate.MATCHER_PROFILE, _RUN_NOT_PERFORMED_REASONS),
+    (PreflightGate.PAIR_ORIENTATION, _RUN_NOT_PERFORMED_REASONS),
+    (PreflightGate.SELF_SEMANTICS, _RUN_NOT_PERFORMED_REASONS),
+    (PreflightGate.SCORE_DETERMINISM, _RUN_NOT_PERFORMED_REASONS),
+    (PreflightGate.FAILURE_SEMANTICS, _RUN_NOT_PERFORMED_REASONS),
+    (PreflightGate.RUNTIME_FEASIBILITY, _RUN_NOT_PERFORMED_REASONS),
+    (PreflightGate.LICENSE_CAPACITY, _RUN_NOT_PERFORMED_REASONS),
+)
+
+
+def gate_pending_actions(gate: PreflightGate) -> tuple[PendingActionCode, ...]:
+    """The pending actions one gate may report, possibly none."""
+    for item, codes in GATE_PENDING_ACTIONS:
+        if item is gate:
+            return codes
+    return ()
+
+
+#: The gates that cannot be answered by reading files, in the order a single
+#: qualification run would answer them. Published so that "one run closes nine
+#: gates" is a checkable claim rather than an encouraging sentence.
+EXECUTION_DEPENDENT_GATES: tuple[PreflightGate, ...] = tuple(
+    gate for gate, _ in GATE_PENDING_ACTIONS
+)
 
 
 # --------------------------------------------------------------- vocabularies
@@ -781,6 +900,22 @@ REFUSED_PREPROCESSING: tuple[str, ...] = (
 #: not to know the vendor's mathematics (spec section 13).
 INTERNAL_BLACK_BOX_PREPROCESSING_IS_ACCEPTABLE = True
 
+#: The one upstream sample this stage takes settings from, named rather than
+#: implied.
+#:
+#: Upstream ships many tutorials and they do not agree with each other: the
+#: enrolment tutorial sets ``FingersTemplateSize`` and the verification tutorial
+#: does not, so a profile assembled from both would be a configuration no
+#: upstream program has ever run. ``OFFICIAL_SAMPLE_EXPLICIT`` therefore means
+#: *this* sample and no other, and a setting the authoritative sample leaves
+#: alone is a delivered runtime default to be read — not a value borrowed from a
+#: neighbour (docs/adr/0105).
+AUTHORITATIVE_ROUTE_SAMPLE = (
+    "Tutorials/Biometrics/Java/verify-finger — upstream's own complete 1:1 "
+    "verification program, the only sample in the archive that performs the "
+    "whole route this benchmark needs"
+)
+
 #: What the extractor-profile gate must find values and provenances for
 #: (spec section 14). These are the *classes* of setting to look for; the names
 #: the 2025.2 package actually publishes are discovered, never assumed.
@@ -972,6 +1107,76 @@ FROZEN_WORKLOAD = FrozenWorkload(
     extraction_invocations=12_000,
     matcher_invocations=6_000,
 )
+
+class ScoreClass(str, Enum):
+    """Which kind of number a score is, because the two are not the same object.
+
+    A **qualification score** is produced on a synthetic or vendor-sample fixture
+    while proving that the route works: it answers "is this deterministic", "is
+    ``score(A,B)`` equal to ``score(B,A)``", "does ``SELF(A,A)`` behave". It is a
+    property of the harness, it is never published as a value, and there must be
+    thousands of them before a benchmark exists.
+
+    A **benchmark score** is a measurement of the evaluation cohort. Stage 11A
+    produces none, ever, and neither does any stage before the algorithm is
+    admitted.
+
+    Collapsing the two into one "scores_produced: 0" claim, as an earlier version
+    of this marker did, made the qualification run this stage *requires*
+    impossible to describe (docs/adr/0104).
+    """
+
+    QUALIFICATION_FIXTURE = "QUALIFICATION_FIXTURE"
+    BENCHMARK_COHORT = "BENCHMARK_COHORT"
+
+    @property
+    def may_be_produced_by_this_stage(self) -> bool:
+        return self is ScoreClass.QUALIFICATION_FIXTURE
+
+    @property
+    def may_be_published_as_a_value(self) -> bool:
+        """Neither may. Counts, equalities and orders of magnitude only."""
+        return False
+
+
+#: What the qualification run must record about the platform it ran on, chosen
+#: and locked *at activation* rather than discovered afterwards. The trial is
+#: single-platform, so this is a decision taken once; alternating between two
+#: platforms under one algorithm fingerprint is refused whichever is chosen.
+RUNTIME_PLATFORM_LOCK_FIELDS: tuple[str, ...] = (
+    "operating_system",
+    "architecture",
+    "native_library_directory",
+    "native_library_digests",
+    "java_runtime_version",
+    "java_vendor",
+    "locked_utc",
+)
+
+#: What one bounded qualification run has to answer, in order. Every item maps to
+#: a gate that cannot be answered by reading files, and the run performs all of
+#: them or none: a partial record is not a smaller answer, it is an unfinished
+#: one.
+QUALIFICATION_RUN_STEPS: tuple[str, ...] = (
+    "lock the platform and record the native libraries actually loaded",
+    "obtain the FingerExtractor and FingerMatcher licences from the local "
+    "licensing service",
+    "read the library version from the running library",
+    "construct the engine and read every published setting's delivered default",
+    "extract a template from a synthetic fixture",
+    "extract a second template from the same fixture, independently",
+    "score both orderings of a fixture pair",
+    "score SELF(A, A) as two independent extractions",
+    "repeat one pair with the same objects, with fresh objects, and after a "
+    "process restart",
+    "exercise each failure class and record what it returns",
+    "measure startup, extraction and matching latency and peak memory",
+)
+
+#: The bound. A qualification run is small on purpose: it exists to establish a
+#: contract, not to measure accuracy, and a harness that drifted towards the
+#: benchmark's size would start to look like an unpublished experiment.
+QUALIFICATION_RUN_MAX_SCORES = 64
 
 #: What may be put through the route before the candidate passes
 #: (spec section 39).
@@ -1235,6 +1440,7 @@ STAGE_11A_SOURCE_FILES: tuple[str, ...] = (
     "src/fpbench/experiments/stage11a_verifinger_identity.py",
     "src/fpbench/experiments/stage11a_verifinger_observations.py",
     "src/fpbench/experiments/stage11a_artifacts.py",
+    "src/fpbench/experiments/stage11a_qualification.py",
     "src/fpbench/experiments/stage11a_preflight.py",
     "src/fpbench/experiments/stage11a_finalization.py",
 )
@@ -1245,6 +1451,17 @@ STAGE_11A_ADRS: tuple[str, ...] = (
     "docs/adr/0101-every-score-affecting-setting-carries-an-upstream-provenance.md",
     "docs/adr/0102-a-native-transformed-score-is-a-raw-score.md",
     "docs/adr/0103-network-for-licensing-is-not-network-in-the-computation.md",
+    (
+        "docs/adr/0104-a-preflight-that-was-not-run-is-not-a-preflight-that-"
+        "failed.md"
+    ),
+    "docs/adr/0105-one-upstream-sample-is-the-route-not-several.md",
+)
+
+#: The qualification harness lives in the repository and is reviewable; the
+#: bytes it drives never do.
+QUALIFICATION_HARNESS_SOURCE = (
+    "integrations/verifinger-qualification/VeriFingerQualification.java"
 )
 
 STAGE_11A_DOCUMENTS: tuple[str, ...] = (
@@ -1302,6 +1519,30 @@ def _require_no_duplicate_documents() -> None:
     if orphans:  # pragma: no cover - a constant-table mistake
         raise VeriFingerCandidateIdentityError(
             f"blocker codes belong to no gate: {orphans}"
+        )
+    pending_orphans = sorted(
+        code.value
+        for code in PendingActionCode
+        if not any(code in codes for _, codes in GATE_PENDING_ACTIONS)
+    )
+    if pending_orphans:  # pragma: no cover - a constant-table mistake
+        raise VeriFingerCandidateIdentityError(
+            f"pending-action codes belong to no gate: {pending_orphans}"
+        )
+    shared = {code.value for code in BlockerCode} & {
+        code.value for code in PendingActionCode
+    }
+    if shared:  # pragma: no cover - a constant-table mistake
+        raise VeriFingerCandidateIdentityError(
+            "a code is both a blocker and a pending action, which would make a "
+            f"deed indistinguishable from a defect: {sorted(shared)}"
+        )
+    unknown_gates = sorted(
+        gate.value for gate, _ in GATE_PENDING_ACTIONS if gate not in GATE_ORDER
+    )
+    if unknown_gates:  # pragma: no cover - a constant-table mistake
+        raise VeriFingerCandidateIdentityError(
+            f"pending actions are attached to gates nothing runs: {unknown_gates}"
         )
 
 

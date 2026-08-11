@@ -2,9 +2,21 @@
   "schema": "stage_11a_runtime_feasibility_v1",
   "candidate": "neurotechnology_verifinger_2025_2_1to1",
   "gate": "RUNTIME_FEASIBILITY",
-  "gate_status": "NOT_REACHED",
-  "gate_summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+  "gate_status": "ACTION_REQUIRED",
+  "gate_status_is_a_finding": false,
+  "gate_summary": "latency and memory are measured, and nothing has been measured",
   "blocker_codes": [],
+  "pending_action_codes": [
+    "JAVA_RUNTIME_NOT_AVAILABLE"
+  ],
+  "pending_actions": [
+    {
+      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "what_is_missing": "the 5 feasibility measurements. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_it_would_answer": "What the route costs per operation. A second per extraction turns the frozen workload's 12000 extractions into hours, and that is worth knowing before the run rather than during it — and it is what the licence-capacity gate needs in order to decide anything at all."
+    }
+  ],
   "measurements_required": [
     "import or startup cost",
     "extraction latency, to an order of magnitude",
@@ -13,12 +25,13 @@
     "CPU or GPU requirement"
   ],
   "measurements_taken": 0,
+  "measurements": null,
   "measured_on_fixtures_only": true,
   "this_is_not_a_performance_benchmark": true,
   "this_is_not_a_comparison_with_another_algorithm": true,
   "rare_dependency_rule": "a route that needs an accelerator this project does not have, or a further proprietary external service that cannot be pinned, is a failure or an explicit blocker — never something to be worked around",
   "accelerator_required": false,
-  "license_capacity_gate_status": "NOT_REACHED",
+  "license_capacity_gate_status": "ACTION_REQUIRED",
   "license_capacity_questions": [
     "when does it expire?",
     "is there an API-call quota, and what is it?",

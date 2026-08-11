@@ -3,8 +3,11 @@
   "candidate": "neurotechnology_verifinger_2025_2_1to1",
   "gate": "CANONICAL500_INPUT_ROUTE",
   "gate_status": "PASS",
+  "gate_status_is_a_finding": true,
   "gate_summary": "the pinned manual puts PNG in the official input domain, requires resolution attributes on a fingerprint image, and expresses minutia coordinates in 500 DPI units — which is what canonical_500 already is. Upstream's own 1:1 tutorial sets a file name and verifies: no crop, no resize, no rotation, no enhancement. All 7 refused preprocessing steps stay refused, and the segmentation and quality processing the SDK performs internally needs no external choice from fpbench.",
   "blocker_codes": [],
+  "pending_action_codes": [],
+  "pending_actions": [],
   "benchmark_input": {
     "profile": "canonical_500",
     "ppi": 500,

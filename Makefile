@@ -76,7 +76,9 @@ help:
 	@echo "stage11a-acquire        fetch the official VeriFinger artifacts (~4.8 GB) into the local store"
 	@echo "stage11a-verify         report whether this machine holds the pinned artifacts"
 	@echo "stage11a-artifacts      run the checks that need the pinned artifacts locally"
-	@echo "stage11a-status         re-derive and print the gates, the verdict and the blockers"
+	@echo "stage11a-qualify-check  report the three preconditions for a local qualification run"
+	@echo "stage11a-qualify        run the bounded local qualification (needs an activated trial)"
+	@echo "stage11a-status         re-derive and print the gates, the verdict, blockers and actions"
 	@echo "stage11a-guard          refuse if any Neurotechnology archive, model or licence material is tracked here"
 	@echo "stage11a-documents      write the fifteen derivable evidence documents (commit them, then publish)"
 	@echo "stage11a-publish        write the marker too; refuses a dirty tree"
@@ -432,6 +434,17 @@ stage11a-verify:
 
 stage11a-guard:
 	python -c "from pathlib import Path; from fpbench.experiments.stage11a_artifacts import require_no_verifinger_bytes_in_git as g; a = g(Path('.')); print(a.tracked_file_count, 'tracked files scanned against', a.known_digest_count, 'exact VeriFinger digests and the vendor artifact name rules,', len(a.findings), 'findings')"
+
+# The bounded local qualification run. `qualify-check` reports the three
+# preconditions and writes nothing, which is what to run before deciding
+# whether to start a 30-day clock; `qualify` performs the pass and writes the
+# record beside the artifacts, outside the repository. Neither is ever run in
+# CI (docs/adr/0104).
+stage11a-qualify-check:
+	python -m fpbench.experiments.stage11a_qualification check
+
+stage11a-qualify:
+	python -m fpbench.experiments.stage11a_qualification run
 
 stage11a-documents:
 	python -m fpbench.experiments.stage11a_finalization documents

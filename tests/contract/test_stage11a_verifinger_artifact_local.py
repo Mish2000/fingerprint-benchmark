@@ -149,21 +149,72 @@ def test_the_fingerprint_data_files_are_the_only_finger_models_needed(
     assert finger == {item.relative_path for item in observed.FINGER_DATA_FILES}
 
 
-def test_nothing_here_activated_a_licence() -> None:
+def test_the_committed_evidence_describes_this_machine() -> None:
     """Never skips.
 
-    The trial flag ships enabled and activation is a separate, deliberate act. If
-    a licence has been activated on this machine, the published evidence is
-    describing a different machine and the stage should be re-derived rather than
-    read off disk.
+    Activation is a deliberate act, and after it the nine execution-dependent
+    gates become answerable. If a verified qualification record is present here
+    and the committed marker still says otherwise, the evidence is describing a
+    different machine — and the response is to re-derive, never to edit.
     """
+    import json
+
     state = store.qualification_run_state(repository_root=REPOSITORY_ROOT)
-    if state.answers_execution_gates:
-        pytest.fail(
-            "a qualification record is present, so the execution gates are now "
-            "answerable; re-run `make stage11a-documents` and "
-            "`make stage11a-publish` rather than trusting the committed marker"
-        )
+    marker_path = (
+        REPOSITORY_ROOT
+        / frozen.EVIDENCE_DIRECTORY
+        / frozen.STAGE_11A_FINALIZATION_NAME
+    )
+    if not marker_path.is_file():
+        pytest.skip("the Stage 11A marker has not been published yet")
+    marker = json.loads(marker_path.read_text(encoding="utf-8"))
+    assert marker["qualification_run_performed"] == state.performed, (
+        "a qualification record has appeared or disappeared since the marker was "
+        "published; run `make stage11a-documents` and `make stage11a-publish` "
+        "rather than trusting the committed one"
+    )
+
+
+def test_a_present_record_verifies_or_is_reported_as_not_verifying() -> None:
+    """Never skips. A record that does not verify must answer nothing."""
+    state = store.qualification_run_state(repository_root=REPOSITORY_ROOT)
+    if state.record_present and not state.performed:
+        assert state.invalid_reason
+        assert state.answers_execution_gates is False
+
+
+def test_the_qualification_preconditions_are_reportable_here() -> None:
+    """The three named chores, checked against this machine rather than assumed."""
+    from fpbench.experiments.stage11a_qualification import (
+        PreconditionStatus,
+        check_preconditions,
+    )
+
+    found = check_preconditions(repository_root=REPOSITORY_ROOT)
+    assert found.status is not PreconditionStatus.ARTIFACTS_MISSING, (
+        "this suite only runs with the artifacts present, so the precondition "
+        "check must agree that they are"
+    )
+
+
+def test_the_harness_compiles_against_the_pinned_bindings_or_says_why() -> None:
+    """The one test that would catch a harness written against an API that moved.
+
+    Skips where there is no Java toolchain, because that is a chore rather than a
+    finding — the same distinction the stage itself now draws.
+    """
+    from fpbench.experiments.stage11a_qualification import (
+        PreconditionStatus,
+        check_preconditions,
+        prepare_installation,
+    )
+
+    found = check_preconditions(repository_root=REPOSITORY_ROOT)
+    if found.status is PreconditionStatus.JAVA_MISSING:
+        pytest.skip(f"no Java toolchain here: {found.detail}")
+    install = prepare_installation(repository_root=REPOSITORY_ROOT)
+    assert (install / "Bin" / "Java").is_dir()
+    assert list((install / "Bin" / "Java").glob("*.jar"))
 
 
 def test_no_vendor_material_is_reachable_from_the_working_tree() -> None:

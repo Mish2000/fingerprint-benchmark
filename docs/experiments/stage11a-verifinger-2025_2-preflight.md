@@ -7,8 +7,17 @@
 > externally selectable behaviour that can affect that score defined by
 > Neurotechnology rather than invented here?
 
-The answer today is **not yet**, and the stage says exactly which part is
-missing.
+The answer today is **not yet, and nothing is wrong**. Eight of seventeen gates
+passed on the artifact's own bytes, nine are waiting on one bounded qualification
+run, and there are zero blockers.
+
+That is a corrected verdict. This stage first published
+`VERIFINGER_PREFLIGHT_FAIL` — the same verdict string it would have used if the
+score had turned out to be non-deterministic — when what had actually happened
+was that nobody had activated a 30-day trial. There is now a third gate status
+and a third outcome, and the difference is enforced: a gate awaiting an action
+carries no blocker, an incomplete marker carries no failure class, and only a
+real `FAIL` stops the run (ADR 0104).
 
 ## Why this stage looks different from Stage 10B
 
@@ -108,11 +117,13 @@ stay refused. Segmentation and quality processing happen inside the pinned
 binaries, where fpbench has no external choice about them and therefore needs no
 account of the mathematics.
 
-## Where it stops, and why that is the right place
+## What nine gates are waiting for
 
-Gate 6 requires two things: a **closed inventory** of everything that can change
-the template, and a **value with an upstream provenance** for each score-affecting
-member of it. The inventory is closed. The values are not.
+Gates 6 and 8 require two things each: a **closed inventory** of everything that
+can change the score, and a **value with an upstream provenance** for each
+score-affecting member of it. The inventories are closed. Ten values are not —
+eight at the extraction gate, two at the matching gate, each count scoped to its
+own gate rather than pooled into one ambiguous number.
 
 ```text
 UPSTREAM_DOCUMENTED_DEFAULT        the manual states it
@@ -124,20 +135,55 @@ FPBENCH_CHOICE                     not a member, and cannot become one
 ```
 
 The manual states a default for every `Faces.*` parameter and for no `Fingers.*`
-or `Matching.*` one. Two values do have an authority — upstream's tutorials set
-`FingersTemplateSize` to `LARGE` and `FingersMatchingSpeed` to `LOW` — and nine
-score-affecting settings across extraction and matching have none.
+or `Matching.*` one.
+
+**Exactly one value has an authority, and only one sample supplies it.** An
+earlier version of this stage took `FingersMatchingSpeed = LOW` from
+`verify-finger` and `FingersTemplateSize = LARGE` from
+`enroll-finger-from-image`. Those are different programs, configured differently:
+the first never touches the template size and the second never touches the
+matching speed. A profile holding both would be a configuration no upstream
+program has ever run — carrying a label saying upstream chose it. Only
+`verify-finger` counts now, and the observation type refuses a value from
+anywhere else (ADR 0105).
+
+`FingersMatchingSpeed` is exactly the trap the specification warns about: `Low`,
+`Medium` and `High`, documented as an accuracy trade-off, one of which will
+produce nicer distributions on any dataset. It is settled because **upstream's
+own 1:1 tutorial sets it**, and the profile identity records that it is the
+official-sample route rather than "the VeriFinger default" — the manual states no
+default, and the two are not the same claim.
 
 Passing on the inventory alone would publish a profile called frozen while most
 of the settings that decide the score had no recorded value. That is the failure
-the whole apparatus exists to prevent, so the gate fails (ADR 0101).
+the whole apparatus exists to prevent — but it is an unpaid chore rather than a
+fault in the product, so the gates wait rather than condemning (ADR 0101,
+ADR 0104).
 
-`FingersMatchingSpeed` deserves its own sentence, because it is exactly the trap:
-`Low`, `Medium` and `High`, documented as an accuracy trade-off, one of which
-will produce nicer distributions on any dataset. It is settled here because
-**upstream's own 1:1 tutorial sets it**, and the profile identity records that it
-is the official-sample route rather than "the VeriFinger default" — the manual
-states no default, and the two are not the same claim.
+## The qualification harness
+
+`integrations/verifinger-qualification/VeriFingerQualification.java`, driven by
+`fpbench.experiments.stage11a_qualification` and `make stage11a-qualify`.
+
+It checks three preconditions by name — the artifacts, a JDK 17 toolchain, an
+activated trial — and each maps to a pending action rather than to a guess. It
+then prepares a small installation from the pinned archive, writes synthetic
+ridge-like fixtures at 500 ppi that are not SD300, compiles against the pinned
+bindings, and runs twice in separate processes because the third determinism
+level is a fresh process and no program can perform that on itself.
+
+It **sets only what `verify-finger` sets** and reads everything else, because a
+harness that configured the engine the way this stage wished it were configured
+would produce a record about a route nobody uses.
+
+It **publishes no score value**. The Java pass emits a SHA-256 over each score;
+the driver compares digests. Determinism across a restart is a string comparison,
+and no number leaves the JVM.
+
+Its record is validated before it answers anything: the archive digest it ran
+against, the SD300 denial, a bound on how many fixtures it may score, a delivered
+default for every published setting, all three determinism levels, and every
+failure class. A hand-written file cannot close nine gates.
 
 ## What was read but not used
 

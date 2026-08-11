@@ -45,6 +45,7 @@ from fpbench.experiments.stage11a_verifinger_identity import (
     ACCEPTANCE_CONDITIONS,
     ALGORITHM_SLOT,
     CANDIDATE_FAIL_VERDICT,
+    CANDIDATE_INCOMPLETE_VERDICT,
     CANDIDATE_ID,
     CANDIDATE_PASS_VERDICT,
     CANDIDATE_VERDICTS,
@@ -57,6 +58,7 @@ from fpbench.experiments.stage11a_verifinger_identity import (
     STAGE_10B_FINALIZATION_FINGERPRINT,
     STAGE_11A_BLOCKED_OUTCOME,
     STAGE_11A_FINALIZATION_NAME,
+    STAGE_11A_INCOMPLETE_OUTCOME,
     STAGE_11A_OUTCOMES,
     STAGE_11A_SCHEMA_VERSION,
     STAGE_11A_SELECTED_OUTCOME,
@@ -118,12 +120,21 @@ _ALLOWED_EXACT_CHANGES = frozenset(
             "docs/adr/0103-network-for-licensing-is-not-network-in-the-"
             "computation.md"
         ),
+        "docs/adr/0104-a-preflight-that-was-not-run-is-not-a-preflight-that-failed.md",
+        "docs/adr/0105-one-upstream-sample-is-the-route-not-several.md",
         "docs/experiments/stage11a-verifinger-2025_2-preflight.md",
         "docs/algorithms/algorithm4-candidates/verifinger-2025-2.md",
+        "environment.yml",
         *STAGE_11A_SOURCE_FILES,
     }
 )
-_ALLOWED_CHANGE_PREFIXES = ("evidence/stage11a-verifinger-2025_2-preflight/",)
+_ALLOWED_CHANGE_PREFIXES = (
+    "evidence/stage11a-verifinger-2025_2-preflight/",
+    # The qualification harness. A new integration of its own rather than an
+    # edit to an existing one: the SourceAFIS bridge stays byte-for-byte where
+    # Stage 4A left it, and the protected list below still says so.
+    "integrations/verifinger-qualification/",
+)
 
 _OWNED_EXACT = frozenset(
     path
@@ -170,7 +181,13 @@ _PROTECTED_PREFIXES = tuple(
         ("docs", "algorithms", "algorithm4-candidates", "jipnet.md"),
         ("docs", "algorithms", "algorithm4-candidates", "id3-finger-sdk.md"),
         ("configs", ""),
-        ("integrations", ""),
+        # Not ``integrations/`` entire: this stage adds one of its own, and a
+        # prefix that covered the whole directory would refuse the file the
+        # audit is being asked to permit. The three that exist are named.
+        ("integrations", "source" + "afis-java"),
+        ("integrations", "nb" + "is"),
+        ("integrations", "f" + "lx"),
+        ("integrations", "modern-matchers"),
         ("data", ""),
         ("src", "fpbench", "f" + "lx", ""),
         ("src", "fpbench", "modern_matchers", ""),
@@ -329,6 +346,7 @@ class Stage11AFinalization:
     gate_count_defined: int
     gates_reached: int
     gates_passed: int
+    gates_awaiting_action: int
 
     # What the qualification established, or did not.
     artifact_obtained: bool
@@ -337,6 +355,8 @@ class Stage11AFinalization:
     documentation_pinned_separately: bool
     runtime_identity_established: bool
     runtime_reported_version_read_by_execution: bool
+    runtime_platform_locked: bool
+    runtime_platform: str | None
     research_use_opens_execution: bool | None
     research_use_blocked: bool
     runtime_dependency_closure_complete: bool
@@ -347,7 +367,8 @@ class Stage11AFinalization:
     representation_profile_resolved: bool
     representation_type: str
     matcher_profile_resolved: bool
-    hidden_score_affecting_defaults: int
+    extraction_settings_without_provenance: int
+    matching_settings_without_provenance: int
     raw_score_route_resolved: bool
     raw_score_route_status: str
     score_numeric_type: str | None
@@ -373,6 +394,7 @@ class Stage11AFinalization:
     sd300_pair_manifest_read: bool
     prior_algorithm_scores_read: bool
     licenses_activated: int
+    qualification_run_performed: bool
     license_bypass_attempted: bool
     trial_reset_attempted: bool
     production_adapter_created: bool
@@ -382,10 +404,13 @@ class Stage11AFinalization:
     decision_profile_produced: bool
     calibration_performed: bool
     metrics_produced: bool
-    scores_produced: int
+    qualification_scores_produced: int
+    benchmark_scores_produced: int
+    sd300_scores_produced: int
     third_party_bytes_added_to_git: bool
     secrets_added_to_git: bool
     artifact_downloaded_in_ci: bool
+    license_activated_in_ci: bool
     credentials_stored_in_ci: bool
     stage8e_evidence_changed: bool
     stage10b_evidence_changed: bool
@@ -395,6 +420,7 @@ class Stage11AFinalization:
     opens_candidate_search: bool
 
     blockers: tuple[Mapping[str, str], ...]
+    pending_actions: tuple[Mapping[str, str], ...]
 
     evidence_content_hashes: Mapping[str, str]
     source_commit: str
@@ -424,6 +450,7 @@ class Stage11AFinalization:
         "third_party_bytes_added_to_git",
         "secrets_added_to_git",
         "artifact_downloaded_in_ci",
+        "license_activated_in_ci",
         "credentials_stored_in_ci",
         "stage8e_evidence_changed",
         "stage10b_evidence_changed",
@@ -439,6 +466,7 @@ class Stage11AFinalization:
         "artifact_obtained",
         "artifact_identity_pinned",
         "runtime_identity_established",
+        "runtime_platform_locked",
         "runtime_dependency_closure_complete",
         "canonical500_input_route_resolved",
         "extraction_profile_resolved",
@@ -521,10 +549,13 @@ class Stage11AFinalization:
             )
 
         for name in (
-            "hidden_score_affecting_defaults",
+            "extraction_settings_without_provenance",
+            "matching_settings_without_provenance",
             "external_model_downloads_required",
             "licenses_activated",
-            "scores_produced",
+            "qualification_scores_produced",
+            "benchmark_scores_produced",
+            "sd300_scores_produced",
         ):
             value = int(getattr(self, name))
             if value < 0:
@@ -537,16 +568,33 @@ class Stage11AFinalization:
                     f"Stage 11A asserts {name} is false; a marker that said "
                     "otherwise would be describing a different stage"
                 )
-        if self.scores_produced != 0:
+        # A qualification run scores fixtures — that is what qualifying a
+        # verification route means — so this stage counts two kinds of score and
+        # forbids only one of them. An earlier marker asserted a single
+        # ``scores_produced == 0``, which made the run this stage requires
+        # impossible to describe (docs/adr/0104).
+        if self.benchmark_scores_produced != 0:
             raise ValueError(
-                "Stage 11A produces no score. A preflight that produced one "
-                "would have to say where it published it"
+                "Stage 11A measures no evaluation cohort. A benchmark score here "
+                "would be a result published by a stage that has not admitted an "
+                "algorithm"
             )
-        if self.licenses_activated != 0:
+        if self.sd300_scores_produced != 0:
             raise ValueError(
-                "no licence was activated by this stage. Activation is a "
-                "person's decision about their own machine and a 30-day clock, "
-                "and a marker claiming one would be claiming an act nobody took"
+                "not one SD300 score, at any point, under any outcome"
+            )
+        if self.qualification_scores_produced and not self.qualification_run_performed:
+            raise ValueError(
+                "qualification scores exist and no qualification run is "
+                "recorded; a score with no run behind it came from somewhere "
+                "nobody can inspect"
+            )
+        if self.qualification_run_performed and self.licenses_activated < 1:
+            raise ValueError(
+                "a qualification run obtained the finger licences, so at least "
+                "one licence was activated. Asserting zero here was the "
+                "invariant that made a legitimate trial impossible to report "
+                "(docs/adr/0104)"
             )
 
         blockers = tuple(dict(item) for item in self.blockers)
@@ -576,8 +624,35 @@ class Stage11AFinalization:
             ),
         )
 
+        for action in tuple(dict(item) for item in self.pending_actions):
+            missing = sorted(
+                {
+                    "gate",
+                    "action_code",
+                    "what_is_missing",
+                    "what_to_do",
+                    "what_it_would_answer",
+                }
+                - set(action)
+            )
+            if missing:
+                raise ValueError(f"a pending action is missing {missing}")
+        object.__setattr__(
+            self,
+            "pending_actions",
+            tuple(
+                MappingProxyType(dict(sorted(item.items())))
+                for item in sorted(
+                    (dict(item) for item in self.pending_actions),
+                    key=lambda item: (item["gate"], item["action_code"]),
+                )
+            ),
+        )
+
         if self.outcome == STAGE_11A_SELECTED_OUTCOME:
             self._validate_passed()
+        elif self.outcome == STAGE_11A_INCOMPLETE_OUTCOME:
+            self._validate_incomplete()
         else:
             self._validate_blocked()
 
@@ -638,10 +713,26 @@ class Stage11AFinalization:
             raise ValueError(
                 "a passing Stage 11A has a licence that covers the frozen workload"
             )
-        if self.hidden_score_affecting_defaults != 0:
+        if (
+            self.extraction_settings_without_provenance
+            or self.matching_settings_without_provenance
+        ):
             raise ValueError(
-                "a passing Stage 11A leaves no score-affecting default "
-                "unresolved; a value nobody recorded still decides the score"
+                "a passing Stage 11A leaves no score-affecting setting without "
+                "an upstream provenance; a value nobody recorded still decides "
+                "the score"
+            )
+        if self.gates_awaiting_action != 0:
+            raise ValueError(
+                "a passing Stage 11A has no outstanding action; a gate awaiting "
+                "one was not asked"
+            )
+        if self.pending_actions:
+            raise ValueError("a passing marker carries no outstanding actions")
+        if not self.qualification_run_performed:
+            raise ValueError(
+                "a passing Stage 11A ran the bounded qualification; nine of its "
+                "gates cannot be answered any other way"
             )
         if self.remote_computation_participates_in_the_score is not False:
             raise ValueError(
@@ -666,6 +757,73 @@ class Stage11AFinalization:
                 "candidate"
             )
 
+
+    def _validate_incomplete(self) -> None:
+        """The third outcome: everything asked was answered, and some was not asked.
+
+        The rules are the ones that keep it from drifting into either neighbour.
+        It names no candidate, because nothing was selected. It carries **no
+        failure class and no blocker**, because nothing was found wrong — that is
+        the entire distinction from ``FAIL``. And it does **not** open a candidate
+        search: moving on to another algorithm while this one has an unfinished
+        chore and no adverse finding would be abandoning the strongest candidate
+        so far for a reason nobody could write down (docs/adr/0104).
+        """
+        if self.candidate_verdict != CANDIDATE_INCOMPLETE_VERDICT:
+            raise ValueError(
+                "an incomplete marker carries the candidate's incomplete verdict"
+            )
+        if self.selected_candidate is not None:
+            raise ValueError("an incomplete marker selects nothing")
+        if self.blockers:
+            raise ValueError(
+                "an incomplete marker carries no blocker. A blocker is a finding "
+                "against the route, and this outcome exists precisely for the "
+                "case where there is none"
+            )
+        if self.failure_class is not None:
+            raise ValueError(
+                "an incomplete marker classifies no failure, because none "
+                "occurred. Classifying an unpaid chore as a failure of any kind "
+                "says something about the candidate that nothing established"
+            )
+        if not self.pending_actions:
+            raise ValueError(
+                "an incomplete marker names the actions that would complete it. "
+                "An incompleteness nobody can act on is indistinguishable from a "
+                "refusal"
+            )
+        if self.gates_awaiting_action < 1:
+            raise ValueError(
+                "an incomplete marker has at least one gate awaiting an action"
+            )
+        if self.gates_passed >= self.gate_count_defined:
+            raise ValueError(
+                "every gate passed, which is a pass rather than an incompleteness"
+            )
+        if self.gates_passed + self.gates_awaiting_action != self.gate_count_defined:
+            raise ValueError(
+                "an incomplete run asks every gate: none is NOT_REACHED, because "
+                "nothing stopped it"
+            )
+        if self.opens_stage_11b is not False:
+            raise ValueError(
+                "an incomplete Stage 11A opens no integration; the route is not "
+                "qualified yet"
+            )
+        if self.opens_candidate_search is not False:
+            raise ValueError(
+                "an incomplete Stage 11A does not open a search for another "
+                "candidate. No methodological blocker was found here, and moving "
+                "on would abandon the strongest candidate so far over an "
+                "outstanding chore (docs/adr/0104)"
+            )
+        if self.self_independent_extraction_required is not True:
+            raise ValueError(
+                "the SELF rule is a frozen requirement rather than a finding, "
+                "and it holds under every outcome (docs/adr/0070)"
+            )
+
     def _validate_blocked(self) -> None:
         if self.candidate_verdict != CANDIDATE_FAIL_VERDICT:
             raise ValueError("a blocked marker carries the candidate's fail verdict")
@@ -683,6 +841,8 @@ class Stage11AFinalization:
             raise ValueError(
                 "a blocked marker did not pass every gate; one of them stopped it"
             )
+        if not self.blockers:
+            raise ValueError("a blocked marker names at least one blocker")
         if self.failure_class is None:
             raise ValueError(
                 "a blocked marker says what kind of failure it is. "
@@ -1154,6 +1314,27 @@ def write_stage11a_evidence(
     def reached(gate: frozen.PreflightGate) -> bool:
         return preflight.status(gate) is frozen.GateStatus.PASS
 
+    qualification = store.qualification_run_state(repository_root=repository_root)
+    record = qualification.record or {}
+    lock = record.get("platform_lock") or {}
+    extraction_open = sum(
+        1
+        for item in observed.PUBLISHED_EXTRACTOR_SETTINGS
+        if item.is_unresolved_score_affecting_default
+        and item.name not in (record.get("delivered_runtime_defaults") or {})
+    )
+    matching_open = sum(
+        1
+        for item in observed.PUBLISHED_MATCHER_SETTINGS
+        if item.is_unresolved_score_affecting_default
+        and item.name not in (record.get("delivered_runtime_defaults") or {})
+    )
+    platform = (
+        f"{lock.get('operating_system')}/{lock.get('architecture')}"
+        if lock
+        else None
+    )
+
     claims: dict[str, Any] = {
         "schema_version": STAGE_11A_SCHEMA_VERSION,
         "kind": STAGE_FINALIZATION_KIND,
@@ -1169,6 +1350,7 @@ def write_stage11a_evidence(
         "gate_count_defined": GATE_COUNT,
         "gates_reached": preflight.gates_reached,
         "gates_passed": preflight.gates_passed,
+        "gates_awaiting_action": preflight.gates_awaiting_action,
         "artifact_obtained": acquisition.obtained,
         "artifact_route": observed.SDK_ARCHIVE.route.value,
         "artifact_identity_pinned": acquisition.obtained,
@@ -1176,7 +1358,9 @@ def write_stage11a_evidence(
         "runtime_identity_established": reached(
             frozen.PreflightGate.RUNTIME_IDENTITY
         ),
-        "runtime_reported_version_read_by_execution": False,
+        "runtime_reported_version_read_by_execution": bool(record),
+        "runtime_platform_locked": bool(lock),
+        "runtime_platform": platform,
         "research_use_opens_execution": (
             True if reached(frozen.PreflightGate.RESEARCH_USE_PERMISSION) else None
         ),
@@ -1201,7 +1385,8 @@ def write_stage11a_evidence(
             else frozen.RepresentationType.NOT_REACHED.value
         ),
         "matcher_profile_resolved": reached(frozen.PreflightGate.MATCHER_PROFILE),
-        "hidden_score_affecting_defaults": 0 if passed else hidden,
+        "extraction_settings_without_provenance": extraction_open,
+        "matching_settings_without_provenance": matching_open,
         "raw_score_route_resolved": reached(frozen.PreflightGate.RAW_SCORE_ROUTE),
         "raw_score_route_status": (
             frozen.ScoreRouteStatus.NATIVE_TRANSFORMED_SCALAR.value
@@ -1258,7 +1443,8 @@ def write_stage11a_evidence(
         "sd300_scores_read": False,
         "sd300_pair_manifest_read": False,
         "prior_algorithm_scores_read": False,
-        "licenses_activated": 0,
+        "licenses_activated": 1 if qualification.performed else 0,
+        "qualification_run_performed": qualification.performed,
         "license_bypass_attempted": False,
         "trial_reset_attempted": False,
         "production_adapter_created": False,
@@ -1268,16 +1454,24 @@ def write_stage11a_evidence(
         "decision_profile_produced": False,
         "calibration_performed": False,
         "metrics_produced": False,
-        "scores_produced": 0,
+        "qualification_scores_produced": int(
+            record.get("qualification_scores_produced") or 0
+        ),
+        "benchmark_scores_produced": 0,
+        "sd300_scores_produced": 0,
         "third_party_bytes_added_to_git": bool(byte_audit.findings),
         "secrets_added_to_git": False,
         "artifact_downloaded_in_ci": False,
+        "license_activated_in_ci": False,
         "credentials_stored_in_ci": False,
         "stage8e_evidence_changed": False,
         "stage10b_evidence_changed": False,
         "opens_stage_11b": passed,
-        "opens_candidate_search": not passed,
+        "opens_candidate_search": preflight.blocked,
         "blockers": engine.marker_blocker_rows(preflight.blockers),
+        "pending_actions": engine.marker_pending_action_rows(
+            preflight.pending_actions
+        ),
         "evidence_content_hashes": {
             name: file_sha256(directory / PurePosixPath(name)) for name in hashed
         },
@@ -1340,10 +1534,22 @@ def main(argv: list[str] | None = None) -> int:
         for index, result in enumerate(preflight.results, start=1):
             print(f"{index:>2}  {result.gate.value:<{width}}  {result.status.value}")
         print(f"gates passed             {preflight.gates_passed}/{ids.GATE_COUNT}")
+        print(f"gates awaiting action    {preflight.gates_awaiting_action}")
         if preflight.blockers:
             print(f"blockers                 {len(preflight.blockers)}")
             for blocker in preflight.blockers:
                 print(f"  {blocker.gate.value:<32s} {blocker.blocker_code.value}")
+        else:
+            print("blockers                 0 — nothing was found wrong")
+        if preflight.pending_actions:
+            print(f"pending actions          {len(preflight.pending_actions)}")
+            for action in preflight.pending_actions:
+                print(f"  {action.gate.value:<32s} {action.action_code.value}")
+            print(
+                "one qualification run would close "
+                f"{len(ids.EXECUTION_DEPENDENT_GATES)} gates: "
+                "`make stage11a-qualify`"
+            )
         return 0
 
     written = write_stage11a_evidence(root, include_marker=arguments.action == "publish")

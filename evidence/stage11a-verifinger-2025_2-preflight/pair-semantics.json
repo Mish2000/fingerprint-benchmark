@@ -2,9 +2,21 @@
   "schema": "stage_11a_pair_semantics_v1",
   "candidate": "neurotechnology_verifinger_2025_2_1to1",
   "gate": "PAIR_ORIENTATION",
-  "gate_status": "NOT_REACHED",
-  "gate_summary": "the candidate stopped at EXTRACTION_PROFILE, so this question was never asked",
+  "gate_status": "ACTION_REQUIRED",
+  "gate_status_is_a_finding": false,
+  "gate_summary": "both orderings must be run on fixtures, and nothing has been run",
   "blocker_codes": [],
+  "pending_action_codes": [
+    "JAVA_RUNTIME_NOT_AVAILABLE"
+  ],
+  "pending_actions": [
+    {
+      "action_code": "JAVA_RUNTIME_NOT_AVAILABLE",
+      "what_is_missing": "both orderings of a fixture pair, actually scored. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+      "what_to_do": "Activate the 30-day trial once, on the one platform this route is locked to — the vendor's documented route is Trial = true in the licensing configuration and starting the licensing service, with no serial number, no account and no personal information — then run `make stage11a-qualify` and re-derive the stage. The harness scores only synthetic fixtures, never SD300, and no licence is bypassed, no trial reset and no protection mechanism touched (spec section 32).",
+      "what_it_would_answer": "Whether the two orderings agree. If they differ, a run that fed pairs in whichever order they arrived would be averaging two different measurements without saying so — and fpbench may neither average them nor take their maximum, so the orientation has to be discovered and preserved."
+    }
+  ],
   "requirements": [
     "score(A, B) and score(B, A) are both run, on fixtures that are not SD300",
     "if they agree, symmetry is recorded as observed rather than assumed",
@@ -12,6 +24,7 @@
     "fpbench never averages the two and never takes the maximum"
   ],
   "api_distinguishes_reference_and_probe": true,
+  "orderings_scored": 0,
   "symmetry_observed": null,
   "a_gate_that_did_not_run_publishes_no_boolean": true,
   "fpbench_may_average_the_two_orderings": false,
@@ -23,8 +36,13 @@
     "an equal-input shortcut returning a constant is refused"
   ],
   "self_independent_extraction_required": true,
-  "self_semantics_gate_status": "NOT_REACHED",
+  "self_semantics_gate_status": "ACTION_REQUIRED",
   "self_demonstrated": false,
+  "self_independent_extractions": null,
+  "self_representation_reused": null,
+  "comparisons_were_scored_on_fixtures_only": true,
+  "score_values_published": 0,
+  "how_scores_were_compared_without_publishing_them": "the harness emits a SHA-256 over each score and never the score, so equality across orderings, across objects and across a process restart is a digest comparison and no value ever leaves the JVM (docs/adr/0104)",
   "fixtures_that_may_be_used": [
     "synthetic ridge-like fixtures generated into a temporary directory",
     "an official vendor sample fingerprint shipped inside the pinned artifact, if a synthetic fixture will not extract",

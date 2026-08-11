@@ -2007,70 +2007,83 @@ make stage10b-evidence
 The candidate search's next candidate is **VeriFinger 2025.2**, and this is the
 first preflight in the project that begins by downloading something.
 
-That is the whole difference. Stage 10B could not get id3's package — the vendor
-issues it on request, after acceptance — so eight of its ten gates were questions
-about an archive that did not exist. Neurotechnology publishes a direct link with
-no form, no account and no approval step, so publishing "unresolved" here would
-have meant staying ignorant of facts one transfer away (ADR 0100).
+Stage 10B could not get id3's package — the vendor issues it on request, after
+acceptance — so eight of its ten gates were questions about an archive that did
+not exist. Neurotechnology publishes a direct link with no form, no account and
+no approval step, so publishing "unresolved" here would have meant staying
+ignorant of facts one transfer away (ADR 0100).
 
 ```text
-VERIFINGER_PREFLIGHT_FAIL          5 of 17 gates passed, stopped at gate 6
+VERIFINGER_PREFLIGHT_INCOMPLETE     8 of 17 gates passed, 9 awaiting one run
+                                    0 blockers, no failure class
 ```
 
 | # | Gate | |
 | ---: | :--- | :--- |
 | 1 | `OFFICIAL_ARTIFACT_ACQUISITION` | PASS |
-| 2 | `RUNTIME_IDENTITY` | PASS |
+| 2 | `RUNTIME_IDENTITY` | action required |
 | 3 | `RESEARCH_USE_PERMISSION` | PASS |
 | 4 | `ARTIFACT_CLOSURE` | PASS |
 | 5 | `CANONICAL500_INPUT_ROUTE` | PASS |
-| 6 | `EXTRACTION_PROFILE` | **FAIL** |
-| 7–17 | representation, matcher, score, pair order, SELF, determinism, failures, network, feasibility, capacity, provenance | not reached |
+| 6 | `EXTRACTION_PROFILE` | action required |
+| 7 | `REPRESENTATION_PROFILE` | PASS |
+| 8 | `MATCHER_PROFILE` | action required |
+| 9 | `RAW_SCORE_ROUTE` | **PASS** |
+| 10–13 | pair order, SELF, determinism, failure semantics | action required |
+| 14 | `NETWORK_DEPENDENCY` | PASS |
+| 15–16 | feasibility, licence capacity | action required |
+| 17 | `TRAINING_PROVENANCE` | PASS |
+
+**An unperformed run is not a failure.** The first publication of this stage said
+`VERIFINGER_PREFLIGHT_FAIL` — the same verdict string it would have used if the
+score had turned out to be non-deterministic — when what had actually happened
+was that nobody had activated a 30-day trial. There is now a third gate status
+and a third outcome, and the difference is enforced rather than described: a gate
+awaiting an action carries **no blocker**, an incomplete marker carries **no
+failure class**, and only a real `FAIL` stops the run. That last part is why gate
+9, the decisive one, is published at all (ADR 0104).
 
 **What was acquired.** 4,743,229,435 bytes of SDK archive (`e30a0b60…`) and
 124,277,015 bytes of manual (`ae8acd23…`), both verified against the length the
-server declared. The manual is *provably* the right one: it is byte-for-byte the
-copy inside the archive, so a citation cannot drift away from the runtime. All
-8,702 archive members were hashed. Zero bytes are in Git, and a guard refuses the
-repository if that ever changes.
+server declared. The manual is *provably* the right one: byte-for-byte the copy
+inside the archive. All 8,702 archive members hashed. Zero bytes in Git, and a
+guard that refuses the repository if that changes.
 
-**The route was chosen by a version number, not a preference.** The research
-before this stage expected the vendor's Python packages to be the better route —
-they bundle their own native libraries and are meant for research. They are
-published at **2025.1**. Opening the 2025.2 archive also settled that it ships C,
-C++, .NET and Java bindings and no Python binding at all, so an integration would
-go through a Java bridge, as SourceAFIS already does.
+**The route was chosen by a version number.** The vendor's Python packages — the
+route the preceding research favoured — are published at **2025.1**. Opening the
+2025.2 archive also settled that it ships C, C++, .NET and Java bindings and no
+Python binding, so an integration goes through a Java bridge, as SourceAFIS does.
 
-**Why it stops at gate 6.** The manual's parameter tables state a default for
-every `Faces.*` entry and for no `Fingers.*` or `Matching.*` entry. The inventory
-of settings is closed — the complete published set was enumerated from the pinned
-manual — but nine score-affecting values across extraction and matching have no
-upstream authority behind them. Two do, because upstream's own tutorials set them
-(`FingersTemplateSize = LARGE`, `FingersMatchingSpeed = LOW`), and the profile
-identity records that as the official-sample route rather than as "the VeriFinger
-default". Passing on a closed inventory alone would publish a profile called
-frozen while most of what decides the score went unrecorded (ADR 0101).
+**What the artifact settled.** One scalar raw score, higher is more similar, on
+the vendor's own claimed-FAR scale (`score = -12·log₁₀(FAR)`), with the threshold
+a separate engine property that upstream's tutorial applies *after* reading the
+score — a native transformed quantity is still a raw score, and fpbench converts
+nothing (ADR 0102). The representation compared is the proprietary template. The
+required internet connection is a licence check, not part of the computation
+(ADR 0103). Stage 8E permits local research execution.
 
-**What was read but not used.** Gates 7–17 were never reached, so these are
-published as observations: the raw score is one integer, higher is more similar,
-on the vendor's own claimed-FAR scale (`score = -12·log₁₀(FAR)`), with the
-threshold a separate engine property that the tutorial applies *after* reading
-the score — a native transformed quantity is still a raw score, and fpbench
-converts nothing (ADR 0102). The representation compared is the vendor's
-proprietary template. The required internet connection is a licence check, not
-part of the computation (ADR 0103). The trial is 30 days with no stated call
-quota — an absence in the documentation, not permission.
+**What nine gates are waiting for.** One bounded qualification run. The manual
+states a default for every `Faces.*` parameter and for no `Fingers.*` or
+`Matching.*` one, so ten score-affecting values — eight at the extraction gate,
+two at the matching gate — are delivered runtime defaults nobody has read yet.
+Exactly one setting is settled, and only one upstream sample settles anything:
+the tutorials configure the engine differently, so taking one value from each
+would be a configuration no upstream program has ever run (ADR 0105).
 
-**One act would move it, and it is not a program's to take.** Activating the
-30-day trial starts a clock bound to one machine and excludes other licensed
-Neurotechnology products on it. Acquisition was this stage's job; activation is
-the maintainer's (ADR 0099).
+The harness that would close them is in the repository —
+`integrations/verifinger-qualification/` — and it publishes no score value: it
+emits a SHA-256 per score and compares digests, so determinism across a restart
+is provable without a number leaving the JVM.
+
+**The candidate search stays closed.** No methodological blocker was found. The
+one act that moves this stage belongs to a person: activate the 30-day trial
+once, on the one platform the route locks to, and re-derive.
 
 Details: [the Stage 11A evidence
 report](evidence/stage11a-verifinger-2025_2-preflight/README.md), [the candidate
 record](docs/algorithms/algorithm4-candidates/verifinger-2025-2.md), [the stage
 write-up](docs/experiments/stage11a-verifinger-2025_2-preflight.md) and
-[ADRs 0099–0103](docs/adr/README.md). Verify it — no dataset, no SDK, no licence,
+[ADRs 0099–0105](docs/adr/README.md). Verify it — no dataset, no SDK, no licence,
 no network — with:
 
 ```bash
@@ -2079,25 +2092,27 @@ make stage11a-evidence
 
 ## Next stage
 
-**Still a candidate for algorithm 4.** Stage 10A recorded
-`opens_candidate_search: true`; Stage 10B recorded `opens_stage_10c: false`; and
-Stage 11A recorded `opens_stage_11b: false`. The slot is empty.
+**Still a candidate for algorithm 4, and the search is paused rather than
+open.** Stage 10A and Stage 10B each recorded `opens_candidate_search: true`.
+Stage 11A records `opens_candidate_search: false`: it found no methodological
+blocker, so there is nothing to move on from yet.
 
 ```
 Stage 9A    algorithm 4 = FLARE  — artifact and method qualification   BLOCKED
 Stage 10A   algorithm 4 candidates — AFR-Net vs JIPNet preflight       NO SURVIVOR
 Stage 10B   algorithm 4 candidate — id3 Finger SDK preflight           BLOCKED (access)
 Stage 10C   id3 artifact and runtime integration                       reserved, unopened
-Stage 11A   algorithm 4 candidate — VeriFinger 2025.2 preflight        BLOCKED (execution)
+Stage 11A   algorithm 4 candidate — VeriFinger 2025.2 preflight        INCOMPLETE (8/17)
 Stage 11B   VeriFinger production integration                          not opened
 ```
 
-**VeriFinger's blocker is the weakest any candidate has had.** It is not access,
-not licensing, not the input domain, not the score, and not provenance. It is
-that a licensed engine has never been constructed on this machine, so nine
-settings have no recorded value and eleven gates were never asked. Everything
-needed to lift it is written down in one place, and lifting it is a re-run rather
-than an edit.
+**VeriFinger has no blocker at all.** Unlike FLARE, JIPNet, AFR-Net and id3,
+nothing methodological has been found wrong with it: not access, not licensing,
+not the input domain, not the representation, not the raw score, not the network
+role, not the provenance. What is outstanding is one bounded qualification run on
+a machine with an activated trial and a JDK — and the harness for it is written,
+tested and in the repository. Completing Stage 11A is the next step; another
+candidate is not.
 
 **Stage 10C stays reserved for id3.** It was defined as the id3 artifact and
 runtime integration that a passing 10B would open, and recycling the number for

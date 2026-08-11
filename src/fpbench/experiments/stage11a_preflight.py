@@ -2896,11 +2896,10 @@ def marker_pending_action_rows(
                 }.items()
             )
         )
+        # Sorted by the same key the marker normalises with — the gate's own
+        # string — so building the rows through this function is a no-op there
+        # rather than a silent rewrite that would move the fingerprint.
         for action in sorted(
-            actions,
-            key=lambda item: (
-                list(frozen.GATE_ORDER).index(item.gate),
-                item.action_code.value,
-            ),
+            actions, key=lambda item: (item.gate.value, item.action_code.value)
         )
     )

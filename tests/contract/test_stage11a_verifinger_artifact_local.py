@@ -183,7 +183,9 @@ def test_a_present_record_verifies_or_is_reported_as_not_verifying() -> None:
         assert state.answers_execution_gates is False
 
 
-def test_the_qualification_preconditions_are_reportable_here() -> None:
+def test_the_qualification_preconditions_are_reportable_here(
+    acquisition: store.AcquisitionState,
+) -> None:
     """The three named chores, checked against this machine rather than assumed."""
     from fpbench.experiments.stage11a_qualification import (
         PreconditionStatus,
@@ -197,7 +199,9 @@ def test_the_qualification_preconditions_are_reportable_here() -> None:
     )
 
 
-def test_the_harness_compiles_against_the_pinned_bindings_or_says_why() -> None:
+def test_the_harness_compiles_against_the_pinned_bindings_or_says_why(
+    acquisition: store.AcquisitionState,
+) -> None:
     """The one test that would catch a harness written against an API that moved.
 
     Skips where there is no Java toolchain, because that is a chore rather than a

@@ -166,11 +166,26 @@ ADR 0104).
 `fpbench.experiments.stage11a_qualification` and `make stage11a-qualify`.
 
 It checks three preconditions by name — the artifacts, a JDK 17 toolchain, an
-activated trial — and each maps to a pending action rather than to a guess. It
-then prepares a small installation from the pinned archive, writes synthetic
-ridge-like fixtures at 500 ppi that are not SD300, compiles against the pinned
-bindings, and runs twice in separate processes because the third determinism
-level is a fresh process and no program can perform that on itself.
+activated trial — and each maps to a pending action rather than to a guess, in
+the order the chores have to be done: a machine with no Java is told to install
+Java and run the check that starts no clock, never to activate a trial.
+
+It prepares a small installation from the pinned archive and **re-hashes every
+pinned component out of it before anything loads it**, because extraction is not
+verification: a truncated write or a stale tree from an earlier archive produces
+files that exist. It writes synthetic ridge-like fixtures at 500 ppi that are not
+SD300, compiles against the pinned bindings, and runs **four passes**: `full`,
+`restart` for the third determinism level, `no-models` against an installation
+with `Fingers.ndf` withheld, and `no-licence` against a complete one. The last
+two exist because three of the six failure classes are about a runtime that is
+missing something, and a process cannot un-load a data file it has already
+loaded (ADR 0106).
+
+**The harness compiles.** `javac` exits 0 against the pinned 2025.2 bindings with
+no diagnostics, so every API name in it — `NModule.getLoadedModules`,
+`getProperty`, `verify`, `NMatchingSpeed.LOW`,
+`NBiometricStatus.MATCH_NOT_FOUND` — exists and type-checks rather than being
+plausible. A local test does that compilation rather than trusting it.
 
 It **sets only what `verify-finger` sets** and reads everything else, because a
 harness that configured the engine the way this stage wished it were configured
@@ -180,10 +195,26 @@ It **publishes no score value**. The Java pass emits a SHA-256 over each score;
 the driver compares digests. Determinism across a restart is a string comparison,
 and no number leaves the JVM.
 
+It reads the runtime's identity from the native modules the process loaded, and
+keeps the JVM's version under its own name — calling one the other would be
+claiming to have read something nobody read. It measures **one** latency, end to
+end, because the route has one entry point; capacity is that latency times 6,000
+verification attempts, and the 12,000 extractions remain the protocol's logical
+semantics.
+
 Its record is validated before it answers anything: the archive digest it ran
-against, the SD300 denial, a bound on how many fixtures it may score, a delivered
-default for every published setting, all three determinism levels, and every
-failure class. A hand-written file cannot close nine gates.
+against, an `inputs_fingerprint` over the archive, every loaded component, the
+harness, the driver and the fixture version, the SD300 denial, a bound on how
+many fixtures it may score, a *readable* delivered default for every published
+setting, all three determinism levels, and all six failure classes. An
+`UNREADABLE` reading counts as unresolved rather than as a value. A hand-written
+file cannot close nine gates.
+
+**And it can fail.** A run that starts and dies writes a `FAILED` record, which
+the engine turns into a real blocker at the first execution-dependent gate. That
+is what makes `VERIFINGER_PREFLIGHT_FAIL` reachable by observation rather than
+only by assumption — without it, ADR 0104's third outcome would have been a place
+this stage could never leave (ADR 0106).
 
 ## What was read but not used
 

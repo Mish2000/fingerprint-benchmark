@@ -94,14 +94,19 @@ published rather than hidden behind gate 6.
 
 ## What nine gates are waiting for
 
-One bounded qualification run, and three named preconditions:
+One bounded qualification run. Of its three preconditions, two are now met on the
+machine that published this:
 
 ```text
-QUALIFICATION_RUN_NOT_PERFORMED     the run itself
-TRIAL_LICENCE_NOT_ACTIVATED         the 30-day trial, activated once
-JAVA_RUNTIME_NOT_AVAILABLE          a JDK 17 toolchain on this machine
-RUNTIME_PLATFORM_NOT_LOCKED         the platform, fixed at activation
+artifacts verified            done — both, by size and SHA-256
+Java 17 toolchain             done — the harness compiles against the pinned
+                              2025.2 bindings, javac exit 0, no diagnostics
+30-day trial activated        outstanding
 ```
+
+The licence is the one precondition that cannot be checked without loading the
+SDK, so the harness asks for it rather than predicting it: `make stage11a-qualify`
+stops with `TRIAL_LICENCE_NOT_ACTIVATED` if it is not there.
 
 The largest single item is configuration. The manual's parameter tables state a
 default for every `Faces.*` entry and for **no** `Fingers.*` or `Matching.*` one,
@@ -138,15 +143,30 @@ choice.
 archive, generates synthetic ridge-like fixtures at 500 ppi that are not SD300,
 compiles against the pinned bindings, and runs twice in separate processes.
 
-It sets only what `verify-finger` sets and *reads* everything else. **No score
-value is written anywhere**: the pass emits a SHA-256 over each score and the
-driver compares digests, so determinism across a restart is provable without a
-number leaving the JVM.
+It runs **four passes**, because three of the failure classes are about a runtime
+that is missing something and a process cannot un-load a data file it has already
+loaded: `full`, `restart` (for the third determinism level), `no-models` against
+an installation with `Fingers.ndf` withheld, and `no-licence` against a complete
+one. Every one of the six failure classes has a named, controlled cause.
+
+It sets only what `verify-finger` sets and *reads* everything else. It reads the
+runtime's identity from `NModule.getLoadedModules()` — the native modules the
+process actually loaded — rather than calling the JVM's version a VeriFinger
+version. It measures **one** latency, end to end, because `verify` loads both
+images, extracts both templates and matches them behind a single call; capacity
+is that latency times 6,000 verification attempts, and the protocol's 12,000
+extractions remain its logical semantics rather than a second thing to bill for.
+
+**No score value is written anywhere**: the pass emits a SHA-256 over each score
+and the driver compares digests.
 
 Its record is validated before it answers anything — the archive digest it ran
-against, the SD300 denial, the bound on how many fixtures it may score, a
-delivered default for every published setting, all three determinism levels, and
-every failure class. A hand-written file cannot close nine gates.
+against, an `inputs_fingerprint` over the archive, every loaded component, the
+harness, the driver and the fixture version, the SD300 denial, the bound on how
+many fixtures it may score, a *readable* delivered default for every published
+setting, all three determinism levels and all six failure classes. An
+`UNREADABLE` setting counts as unresolved, never as a value. A hand-written file
+cannot close nine gates.
 
 ## The files
 
@@ -197,11 +217,23 @@ Moving to another candidate while this one has an outstanding chore and no
 adverse finding would abandon the strongest candidate so far for a reason nobody
 could write down (docs/adr/0104).
 
-One act moves this stage, and it belongs to a person rather than to a program:
-activate the 30-day trial once, on the one platform this route locks to —
-`Trial = true` in the licensing configuration and start the licensing service, no
-serial number and no personal information — run `make stage11a-qualify`, and
-re-derive.
+One act moves this stage, and it belongs to a person rather than to a program.
+Neurotechnology's licensing tool states its own constraint plainly:
+
+```text
+> pg.exe -h
+This program runs as service.
+To register service run: pg.exe -install [args]
+```
+
+Registering a Windows service is a change to the machine, not to this project,
+and the alternative route is a GUI wizard. The configuration it would read is
+already correct in the prepared installation — `mode = single`, `trial = true` —
+so what is left is one elevated command by the maintainer, followed by
+`make stage11a-qualify` and a re-derivation.
 
 Nine gates become answerable at that point, and the next publication is either
-`VERIFINGER_PREFLIGHT_PASS` or a technical blocker discovered by execution.
+`VERIFINGER_PREFLIGHT_PASS` or a technical blocker discovered by execution. The
+harness can now produce either: a run that starts and dies writes a `FAILED`
+record, which the engine turns into a real blocker rather than back into an
+outstanding chore.

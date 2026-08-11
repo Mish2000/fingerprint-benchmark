@@ -146,7 +146,7 @@
     }
   ],
   "evidence_content_hashes": {
-    "README.md": "fa2f140ac31bae1d75ff8834c0ea77ff056795b8f30781ec9c8d319cf65e8816",
+    "README.md": "6d54b1cf3a68f57083e05490bb183200f89351ad9920b858b5f783e8c088298a",
     "acquisition-manifest.json": "41b18de67e6dcbf9e7fe99dad67c35d03f68921847544afdd38541e27c655574",
     "artifact-manifest.json": "6ac6faff20f3e66484a5d779671bb65209a872700f9591725e61ce5f35470816",
     "candidate-identity.json": "cc1e75849087ddd24b1bad2c5f39792c8e3f99ec6518aaa3329099fa7f667537",
@@ -163,10 +163,10 @@
     "third-party-usage-binding.json": "62d714bd273350c29f0b6f05a9c49be66e0d505333a9b376e60669caec81381a",
     "training-provenance.json": "415937cf21450fe89411594da44289586b1dbcf3ad22efd647a372386f4991d1"
   },
-  "source_commit": "cbea89ec0daafc5aef15853653d806d10217c834",
+  "source_commit": "ed7ba59f84645279614210e6132b84c650e8f6ed",
   "source_tree_clean": true,
-  "verifier_source_commit": "cbea89ec0daafc5aef15853653d806d10217c834",
+  "verifier_source_commit": "ed7ba59f84645279614210e6132b84c650e8f6ed",
   "verifier_source_tree_clean": true,
-  "stage_11a_finalization_fingerprint": "23ed14d9e6f9d8d8be63ed31b0dd106d5662bb7f7d3f5430dacfa6f9991e8d5e",
-  "created_utc": "2026-08-11T18:47:32Z"
+  "stage_11a_finalization_fingerprint": "07f4381bdc23c23a42fc3d7002b3b2cfae47edbf226d1c222703f00239ed03f9",
+  "created_utc": "2026-08-11T18:50:36Z"
 }

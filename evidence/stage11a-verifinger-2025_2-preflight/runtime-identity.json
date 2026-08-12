@@ -2,21 +2,12 @@
   "schema": "stage_11a_runtime_identity_v1",
   "candidate": "neurotechnology_verifinger_2025_2_1to1",
   "gate": "RUNTIME_IDENTITY",
-  "gate_status": "ACTION_REQUIRED",
-  "gate_status_is_a_finding": false,
-  "gate_summary": "VENDOR_OFFICIAL_SDK: VeriFinger 2025.2 SDK by Neurotechnology, identified from inside the pinned bytes by 5 independent statements; 5 native libraries carry ProductVersion '2025, 2, 0, 0' and the archive declares revision 20260612. The platform is not locked and no version has been read from a running library, so the runtime half of the identity is outstanding.",
+  "gate_status": "PASS",
+  "gate_status_is_a_finding": true,
+  "gate_summary": "VENDOR_OFFICIAL_SDK: VeriFinger 2025.2 SDK by Neurotechnology, identified from inside the pinned bytes by 5 independent statements; 5 native libraries carry ProductVersion '2025, 2, 0, 0' and the archive declares revision 20260612. The runtime is locked to windows/x86_64 on 17.0.18, and no version here was read from a web page.",
   "blocker_codes": [],
-  "pending_action_codes": [
-    "RUNTIME_PLATFORM_NOT_LOCKED"
-  ],
-  "pending_actions": [
-    {
-      "action_code": "RUNTIME_PLATFORM_NOT_LOCKED",
-      "what_is_missing": "the platform this route is bound to, and the version the running library reports. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_to_do": "The platform is locked by the qualification run itself, which records the operating system, the architecture, the native libraries it loaded and the language runtime. Run `make stage11a-qualify-check` first: it reports which chore is actually outstanding on this machine.",
-      "what_it_would_answer": "Which operating system, architecture, native libraries and language runtime a VeriFinger score would come from — the half of runtime identity that a file cannot state about itself. The lock records 7 fields at activation, because the trial is single-platform and alternating between two under one algorithm fingerprint is refused whichever is chosen."
-    }
-  ],
+  "pending_action_codes": [],
+  "pending_actions": [],
   "identity_fields_required": [
     "product version, as the artifact itself declares it",
     "build or revision identifier",
@@ -30,7 +21,7 @@
   "a_web_page_version_is_not_an_algorithm_identity": true,
   "web_page_version_used_as_identity": false,
   "runtime_reported_version_read_by_execution": false,
-  "why_not_read_by_execution": "no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
+  "why_not_read_by_execution": "a verified qualification record is present; the gates that need a running engine read their facts from it",
   "declared_version": "2025.2",
   "archive_revision_number": "20260612",
   "archive_revision_hash": "0738caf6a69459241bff6e800789cd61c160bbce",

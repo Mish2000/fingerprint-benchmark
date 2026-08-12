@@ -148,7 +148,7 @@
     "licence or runtime failure"
   ],
   "a_failure_may_never_become_a_score_of_zero": true,
-  "failure_semantics_gate_status": "ACTION_REQUIRED",
+  "failure_semantics_gate_status": "PASS",
   "observations": [
     {
       "observation_id": "manual_defines_the_score_as_a_similarity",

@@ -2,35 +2,35 @@
   "schema": "stage_11a_runtime_feasibility_v1",
   "candidate": "neurotechnology_verifinger_2025_2_1to1",
   "gate": "RUNTIME_FEASIBILITY",
-  "gate_status": "ACTION_REQUIRED",
-  "gate_status_is_a_finding": false,
-  "gate_summary": "latency and memory are measured, and nothing has been measured",
+  "gate_status": "PASS",
+  "gate_status_is_a_finding": true,
+  "gate_summary": "measured on fixtures only: startup 551 ms, None extractions in None ms, None matches in None ms, about 9 MB of heap, no accelerator required. Orders of magnitude, not a benchmark, and no comparison with any other algorithm.",
   "blocker_codes": [],
-  "pending_action_codes": [
-    "QUALIFICATION_RUN_NOT_PERFORMED"
-  ],
-  "pending_actions": [
-    {
-      "action_code": "QUALIFICATION_RUN_NOT_PERFORMED",
-      "what_is_missing": "the 4 feasibility measurements. no licence has been activated from this project and nothing has been executed, so no qualification record exists. The SDK's own ReadMe defines installation as extracting the archive and then activating the licensing software; the second step starts a 30-day trial bound to one machine, and that is the maintainer's decision rather than a preflight's (spec section 32)",
-      "what_to_do": "Everything checkable is in place: the artifacts verify and a Java toolchain is available. Run `make stage11a-qualify`. It will ask the SDK for the FingerExtractor and FingerMatcher licences and stop with TRIAL_LICENCE_NOT_ACTIVATED if the 30-day trial has not been activated — the licence is the one precondition that cannot be checked without loading the SDK, so the harness asks it rather than predicting it. The run scores only synthetic fixtures and never SD300.",
-      "what_it_would_answer": "What the route costs per operation. A second per extraction turns the frozen workload's 12000 extractions into hours, and that is worth knowing before the run rather than during it — and it is what the licence-capacity gate needs in order to decide anything at all."
-    }
-  ],
+  "pending_action_codes": [],
+  "pending_actions": [],
   "measurements_required": [
     "import or startup cost",
     "end-to-end verification latency, to an order of magnitude",
     "approximate peak memory",
     "CPU or GPU requirement"
   ],
-  "measurements_taken": 0,
-  "measurements": null,
+  "measurements_taken": 8,
+  "measurements": {
+    "startup_millis": 551,
+    "verify_invocations": 7,
+    "end_to_end_verify_millis_total": 16019,
+    "end_to_end_verify_millis_mean": 2288,
+    "end_to_end_verify_micros_mean": 2288463,
+    "peak_heap_megabytes": 9,
+    "accelerator_required": false,
+    "what_was_measured": "one end-to-end verify call: both images loaded, both templates extracted and the pair matched, behind the single API call the 1:1 route uses"
+  },
   "measured_on_fixtures_only": true,
   "this_is_not_a_performance_benchmark": true,
   "this_is_not_a_comparison_with_another_algorithm": true,
   "rare_dependency_rule": "a route that needs an accelerator this project does not have, or a further proprietary external service that cannot be pinned, is a failure or an explicit blocker — never something to be worked around",
   "accelerator_required": false,
-  "license_capacity_gate_status": "ACTION_REQUIRED",
+  "license_capacity_gate_status": "PASS",
   "license_capacity_questions": [
     "when does it expire?",
     "is there an API-call quota, and what is it?",
@@ -53,8 +53,8 @@
     "extraction_invocations": 12000,
     "matcher_invocations": 6000
   },
-  "workload_fits_the_licence_window": null,
-  "why_null": "The window is known and the per-operation cost is not, so the product of the two is not known either. A false here would claim the workload had been measured and found not to fit.",
+  "workload_fits_the_licence_window": true,
+  "why_null": null,
   "observations": [
     {
       "observation_id": "trial_is_thirty_days_with_no_stated_call_quota",

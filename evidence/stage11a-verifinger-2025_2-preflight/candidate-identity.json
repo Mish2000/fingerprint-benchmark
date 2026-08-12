@@ -75,7 +75,7 @@
   "gates_are_conjunctive_and_unweighted": true,
   "gate_count_defined": 17,
   "gates_reached": 17,
-  "gates_passed": 8,
+  "gates_passed": 17,
   "benchmark_input": {
     "profile": "canonical_500",
     "ppi": 500,

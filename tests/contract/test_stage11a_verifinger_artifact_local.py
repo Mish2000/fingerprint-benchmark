@@ -149,8 +149,10 @@ def test_the_fingerprint_data_files_are_the_only_finger_models_needed(
     assert finger == {item.relative_path for item in observed.FINGER_DATA_FILES}
 
 
-def test_the_committed_evidence_describes_this_machine() -> None:
-    """Never skips.
+def test_the_committed_evidence_describes_this_machine(
+    acquisition: store.AcquisitionState,
+) -> None:
+    """Compare the marker with the local qualification store when it exists.
 
     Activation is a deliberate act, and after it the nine execution-dependent
     gates become answerable. If a verified qualification record is present here

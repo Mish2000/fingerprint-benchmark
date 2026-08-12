@@ -304,11 +304,30 @@ def prepare_installation(*, repository_root: Path | None = None) -> Path:
 
 
 def _digest_of(path: Path) -> str:
+    """A digest over the bytes on disk, for binaries."""
     digest = hashlib.sha256()
     with path.open("rb") as stream:
         for block in iter(lambda: stream.read(1 << 20), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def _source_digest_of(path: Path) -> str:
+    """A digest over one *source* file, with newlines normalised.
+
+    ``core.autocrlf`` is on for this repository, so the same committed blob is
+    LF in one checkout and CRLF in another. A raw digest over the harness and
+    the driver would therefore move on a fresh checkout with no code change at
+    all, and the record's identity check would demand a re-run every time —
+    which is how a check that should be trusted becomes one that gets switched
+    off. This is the same normalisation the stage finalization already applies
+    to its own source set.
+
+    Binaries stay raw under :func:`_digest_of`: normalising bytes inside a jar
+    or a ``.ndf`` would corrupt the thing being identified.
+    """
+    content = Path(path).read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(content).hexdigest()
 
 
 def verify_installation_digests(install: Path) -> dict[str, str]:
@@ -378,8 +397,8 @@ def inputs_fingerprint(install: Path, *, repository_root: Path | None = None) ->
         {
             "sdk_archive": SDK_ARCHIVE.sha256,
             "loaded_components": loaded_component_fingerprint(install),
-            "java_harness": _digest_of(root / HARNESS_SOURCE),
-            "python_driver": _digest_of(root / DRIVER_SOURCE),
+            "java_harness": _source_digest_of(root / HARNESS_SOURCE),
+            "python_driver": _source_digest_of(root / DRIVER_SOURCE),
             "fixture_version": FIXTURE_VERSION,
         }
     )

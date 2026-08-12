@@ -1160,13 +1160,14 @@ def test_a_failed_record_is_a_finding_and_not_an_absence() -> None:
             "schema": "stage_11a_qualification_run_v1",
             "outcome": "FAILED",
             "archive_sha256": observed.SDK_ARCHIVE.sha256,
-            "inputs_fingerprint": "a" * 64,
+            "inputs_fingerprint": _current_fingerprint_or_skip(),
             "fixture_version": frozen.FIXTURE_VERSION,
             "sd300_used": False,
             "benchmark_scores_produced": 0,
             "runtime_started": True,
             "failed_at_stage": "determinism",
-        }
+        },
+        repository_root=REPOSITORY_ROOT,
     )
     assert record is not None, why
     assert frozen.QualificationOutcome.FAILED.is_a_finding
@@ -1271,8 +1272,29 @@ def test_the_blank_fixture_decodes_and_carries_no_ridges(tmp_path: Path) -> None
     )
 
 
+def _current_fingerprint_or_skip() -> str:
+    """The fingerprint a run started now would carry, or skip.
+
+    A machine with no prepared installation — every CI runner — cannot recompute
+    it, and a test that pretended otherwise would be asserting against a constant
+    rather than against the check.
+    """
+    from fpbench.experiments.stage11a_artifacts import _current_inputs_fingerprint
+
+    found, why = _current_inputs_fingerprint(REPOSITORY_ROOT)
+    if found is None:
+        pytest.skip(f"the inputs fingerprint cannot be recomputed here: {why}")
+    return found
+
+
 def _complete_record(**overrides: object) -> dict:
-    """A record that verifies, so one field at a time can be made wrong."""
+    """A record that verifies *structurally*, so one field can be made wrong.
+
+    Its ``inputs_fingerprint`` is a placeholder: every negative case below is
+    rejected by a structural check, which the validator runs before the
+    fingerprint comparison precisely so the reason it reports is the specific
+    one. The two tests that need a matching fingerprint ask for the real one.
+    """
     payload: dict = {
         "schema": "stage_11a_qualification_run_v1",
         "outcome": "COMPLETED",
@@ -1308,7 +1330,10 @@ def test_the_complete_record_helper_actually_verifies() -> None:
         _validate_qualification_record,
     )
 
-    record, why = _validate_qualification_record(_complete_record())
+    record, why = _validate_qualification_record(
+        _complete_record(inputs_fingerprint=_current_fingerprint_or_skip()),
+        repository_root=REPOSITORY_ROOT,
+    )
     assert record is not None, why
 
 
@@ -1486,3 +1511,110 @@ def test_the_helper_builds_a_valid_incomplete_marker() -> None:
     assert marker.opens_stage_11b is False
     assert marker.opens_candidate_search is False
     assert marker.failure_class is None
+
+
+# ------------------------------------------- the five evidence corrections
+
+
+def test_runtime_identity_is_derived_from_the_run_not_hardcoded() -> None:
+    """Correction 1: the document and the marker must agree."""
+    preflight = engine.run_preflight()
+    document = engine.evidence_document(preflight, frozen.RUNTIME_IDENTITY_NAME)
+    record = engine._record()
+    if record is None:
+        assert document["runtime_reported_version_read_by_execution"] is False
+        assert document["platform_locked"] is False
+        assert document["why_platform_not_locked"]
+        return
+    assert document["runtime_reported_version_read_by_execution"] is True
+    assert document["platform_locked"] is True
+    assert document["why_platform_not_locked"] is None
+    assert document["loaded_runtime_modules"], "the modules the process loaded"
+    assert set(document["platform_lock"]) | {"native_library_digests"} == set(
+        frozen.RUNTIME_PLATFORM_LOCK_FIELDS
+    )
+
+
+def test_a_value_read_from_the_engine_carries_an_upstream_provenance() -> None:
+    """Correction 2: no real value may sit beside UNRESOLVED."""
+    preflight = engine.run_preflight()
+    for name in (frozen.EXTRACTION_PROFILE_NAME, frozen.MATCHER_PROFILE_NAME):
+        document = engine.evidence_document(preflight, name)
+        for row in document["published_settings"]:
+            if row["chosen_value"] is not None:
+                assert row["provenance_is_upstream_authority"] is True, row
+                assert row["provenance"] != frozen.SettingProvenance.UNRESOLVED.value
+            if row["value_read_from_a_running_engine"] and not row["declared_provenance_is_upstream_authority"]:
+                assert row["provenance"] == (
+                    frozen.SettingProvenance.DELIVERED_RUNTIME_DEFAULT.value
+                )
+
+
+def test_a_frozen_profile_has_no_unresolved_setting() -> None:
+    preflight = engine.run_preflight()
+    for name in (frozen.EXTRACTION_PROFILE_NAME, frozen.MATCHER_PROFILE_NAME):
+        document = engine.evidence_document(preflight, name)
+        unresolved = document["effective_provenance_counts"][
+            frozen.SettingProvenance.UNRESOLVED.value
+        ]
+        assert document["profile_frozen"] is (unresolved == 0)
+
+
+def test_the_pair_summary_names_the_fixtures_the_run_actually_used() -> None:
+    """Correction 3: the synthetic pair was rejected; the summary must say so."""
+    preflight = engine.run_preflight()
+    record = engine._record()
+    summary = preflight.result(frozen.PreflightGate.PAIR_ORIENTATION).summary
+    if record and record.get("fixture_kind") == "VENDOR_OFFICIAL_SAMPLE":
+        assert "sample fingerprints" in summary
+        assert "synthetic ridge-like fixtures" not in summary
+    elif record:
+        assert "synthetic" in summary
+
+
+def test_the_feasibility_summary_reports_end_to_end_verify() -> None:
+    """Correction 4: one entry point, one number, and no None in the prose."""
+    preflight = engine.run_preflight()
+    summary = preflight.result(frozen.PreflightGate.RUNTIME_FEASIBILITY).summary
+    assert "None" not in summary
+    if engine._record():
+        assert "end-to-end verify" in summary
+        assert "extractions in" not in summary
+
+
+def test_the_qualification_steps_do_not_promise_two_latencies() -> None:
+    joined = " ".join(frozen.QUALIFICATION_RUN_STEPS).lower()
+    assert "end-to-end verification latency" in joined
+    assert "extraction and matching latency" not in joined
+
+
+def test_the_inputs_fingerprint_is_recomputed_and_compared() -> None:
+    """Correction 5: the trust boundary.
+
+    A digest nobody recalculates is a label. This asserts the validator rejects a
+    record whose fingerprint does not match the current inputs, which is the
+    property that stops a record from an earlier harness closing this stage.
+    """
+    from fpbench.experiments.stage11a_artifacts import (
+        _validate_qualification_record,
+    )
+
+    record, why = _validate_qualification_record(
+        _complete_record(inputs_fingerprint="f" * 64),
+        repository_root=REPOSITORY_ROOT,
+    )
+    if record is not None:
+        pytest.fail("a mismatched inputs_fingerprint was accepted")
+    assert "different inputs" in why or "cannot be recomputed" in why
+
+
+def test_source_digests_survive_a_line_ending_change() -> None:
+    """Otherwise every Windows checkout would demand a fresh qualification run."""
+    import hashlib
+
+    from fpbench.experiments.stage11a_qualification import _source_digest_of
+
+    lf = REPOSITORY_ROOT / Path(frozen.QUALIFICATION_HARNESS_SOURCE)
+    raw = lf.read_bytes()
+    normalised = raw.replace(b"\r\n", b"\n")
+    assert _source_digest_of(lf) == hashlib.sha256(normalised).hexdigest()

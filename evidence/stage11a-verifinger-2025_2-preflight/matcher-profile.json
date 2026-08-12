@@ -28,9 +28,12 @@
       "documented_default": null,
       "official_sample_value": "NMatchingSpeed.LOW",
       "delivered_runtime_default": "LOW",
-      "chosen_value": null,
+      "chosen_value": "NMatchingSpeed.LOW",
+      "declared_provenance": "OFFICIAL_SAMPLE_EXPLICIT",
+      "declared_provenance_is_upstream_authority": true,
       "provenance": "OFFICIAL_SAMPLE_EXPLICIT",
-      "provenance_is_upstream_authority": true
+      "provenance_is_upstream_authority": true,
+      "value_read_from_a_running_engine": true
     },
     {
       "setting_name": "FingersMaximalRotation",
@@ -39,9 +42,12 @@
       "documented_default": null,
       "official_sample_value": null,
       "delivered_runtime_default": "180.0",
-      "chosen_value": null,
-      "provenance": "UNRESOLVED",
-      "provenance_is_upstream_authority": false
+      "chosen_value": "180.0",
+      "declared_provenance": "UNRESOLVED",
+      "declared_provenance_is_upstream_authority": false,
+      "provenance": "DELIVERED_RUNTIME_DEFAULT",
+      "provenance_is_upstream_authority": true,
+      "value_read_from_a_running_engine": true
     },
     {
       "setting_name": "MatchingScenario",
@@ -50,9 +56,12 @@
       "documented_default": null,
       "official_sample_value": null,
       "delivered_runtime_default": "0",
-      "chosen_value": null,
-      "provenance": "UNRESOLVED",
-      "provenance_is_upstream_authority": false
+      "chosen_value": "0",
+      "declared_provenance": "UNRESOLVED",
+      "declared_provenance_is_upstream_authority": false,
+      "provenance": "DELIVERED_RUNTIME_DEFAULT",
+      "provenance_is_upstream_authority": true,
+      "value_read_from_a_running_engine": true
     },
     {
       "setting_name": "MatchingWithDetails",
@@ -61,9 +70,12 @@
       "documented_default": null,
       "official_sample_value": null,
       "delivered_runtime_default": "false",
-      "chosen_value": null,
-      "provenance": "UNRESOLVED",
-      "provenance_is_upstream_authority": false
+      "chosen_value": "false",
+      "declared_provenance": "UNRESOLVED",
+      "declared_provenance_is_upstream_authority": false,
+      "provenance": "DELIVERED_RUNTIME_DEFAULT",
+      "provenance_is_upstream_authority": true,
+      "value_read_from_a_running_engine": true
     },
     {
       "setting_name": "MatchingMaximalResultCount",
@@ -72,9 +84,12 @@
       "documented_default": null,
       "official_sample_value": null,
       "delivered_runtime_default": "1000",
-      "chosen_value": null,
-      "provenance": "UNRESOLVED",
-      "provenance_is_upstream_authority": false
+      "chosen_value": "1000",
+      "declared_provenance": "UNRESOLVED",
+      "declared_provenance_is_upstream_authority": false,
+      "provenance": "DELIVERED_RUNTIME_DEFAULT",
+      "provenance_is_upstream_authority": true,
+      "value_read_from_a_running_engine": true
     },
     {
       "setting_name": "MatchingFirstResultOnly",
@@ -83,9 +98,12 @@
       "documented_default": null,
       "official_sample_value": null,
       "delivered_runtime_default": "false",
-      "chosen_value": null,
-      "provenance": "UNRESOLVED",
-      "provenance_is_upstream_authority": false
+      "chosen_value": "false",
+      "declared_provenance": "UNRESOLVED",
+      "declared_provenance_is_upstream_authority": false,
+      "provenance": "DELIVERED_RUNTIME_DEFAULT",
+      "provenance_is_upstream_authority": true,
+      "value_read_from_a_running_engine": true
     }
   ],
   "setting_count": 6,
@@ -97,6 +115,13 @@
     "FingersMaximalRotation",
     "MatchingScenario"
   ],
+  "effective_provenance_counts": {
+    "OFFICIAL_SAMPLE_EXPLICIT": 1,
+    "DELIVERED_RUNTIME_DEFAULT": 2,
+    "UNRESOLVED": 0
+  },
+  "a_value_read_from_the_engine_is_an_upstream_authority": true,
+  "why": "A setting the manual leaves undocumented is UNRESOLVED until somebody constructs the engine and reads it; after that it is a DELIVERED_RUNTIME_DEFAULT, which is one of the four upstream authorities. The declared provenance is kept beside the effective one so a reader can see which values the artifact alone settled (docs/adr/0101).",
   "score_affecting_still_without_provenance": [],
   "score_affecting_still_without_provenance_count": 0,
   "profile_frozen": true,

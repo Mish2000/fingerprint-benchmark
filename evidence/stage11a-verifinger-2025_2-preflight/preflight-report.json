@@ -149,7 +149,7 @@
       "gate": "PAIR_ORIENTATION",
       "status": "PASS",
       "status_is_a_finding": true,
-      "summary": "both orderings were scored on synthetic fixtures and the score digests agree, so the route is symmetric on this evidence",
+      "summary": "both orderings were scored on upstream's own sample fingerprints from the pinned archive, after the synthetic pair was rejected by the extractor and the score digests agree, so the route is symmetric on this evidence",
       "documents": [
         "pair-semantics.json"
       ],
@@ -203,7 +203,7 @@
       "gate": "RUNTIME_FEASIBILITY",
       "status": "PASS",
       "status_is_a_finding": true,
-      "summary": "measured on fixtures only: startup 551 ms, None extractions in None ms, None matches in None ms, about 9 MB of heap, no accelerator required. Orders of magnitude, not a benchmark, and no comparison with any other algorithm.",
+      "summary": "measured on upstream's own sample fingerprints from the pinned archive, after the synthetic pair was rejected by the extractor, and on nothing else: startup 1029 ms, 7 end-to-end verify calls in 16024 ms (about 2289 ms each — one call loads both images, extracts both templates and matches them), about 8 MB of heap, no accelerator required. Orders of magnitude, not a benchmark, and no comparison with any other algorithm.",
       "documents": [
         "runtime-feasibility.json"
       ],
@@ -258,7 +258,7 @@
     "score SELF(A, A) as two independent extractions",
     "repeat one pair with the same objects, with fresh objects, and after a process restart",
     "exercise each failure class and record what it returns",
-    "measure startup, extraction and matching latency and peak memory"
+    "measure startup, end-to-end verification latency and peak memory"
   ],
   "qualification_harness": "integrations/verifinger-qualification/VeriFingerQualification.java",
   "no_workaround_was_considered": [

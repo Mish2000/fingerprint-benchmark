@@ -1203,7 +1203,7 @@ QUALIFICATION_RUN_STEPS: tuple[str, ...] = (
     "repeat one pair with the same objects, with fresh objects, and after a "
     "process restart",
     "exercise each failure class and record what it returns",
-    "measure startup, extraction and matching latency and peak memory",
+    "measure startup, end-to-end verification latency and peak memory",
 )
 
 #: The bound. A qualification run is small on purpose: it exists to establish a

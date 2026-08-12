@@ -4,7 +4,7 @@
   "gate": "PAIR_ORIENTATION",
   "gate_status": "PASS",
   "gate_status_is_a_finding": true,
-  "gate_summary": "both orderings were scored on synthetic fixtures and the score digests agree, so the route is symmetric on this evidence",
+  "gate_summary": "both orderings were scored on upstream's own sample fingerprints from the pinned archive, after the synthetic pair was rejected by the extractor and the score digests agree, so the route is symmetric on this evidence",
   "blocker_codes": [],
   "pending_action_codes": [],
   "pending_actions": [],

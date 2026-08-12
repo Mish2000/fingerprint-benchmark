@@ -17,11 +17,63 @@
     "architecture",
     "language ABI"
   ],
-  "identity_source": "PINNED_ARTIFACT_BINARIES_AND_DOCUMENTS",
+  "identity_source": "PINNED_ARTIFACT_BINARIES_AND_A_RUNNING_ENGINE",
   "a_web_page_version_is_not_an_algorithm_identity": true,
   "web_page_version_used_as_identity": false,
-  "runtime_reported_version_read_by_execution": false,
-  "why_not_read_by_execution": "a verified qualification record is present; the gates that need a running engine read their facts from it",
+  "runtime_reported_version_read_by_execution": true,
+  "why_not_read_by_execution": null,
+  "loaded_runtime_modules": [
+    {
+      "name": "NCore",
+      "product": "Neurotechnology Core",
+      "company": "Neurotechnology",
+      "version": "2025.2.0.0",
+      "file_name": "C:\\Users\\sirak\\.cache\\fpbench\\third_party\\verifinger-2025-2\\installation\\Bin\\Win64_x64\\NCore.dll"
+    },
+    {
+      "name": "NLicensing",
+      "product": "Neurotechnology Licensing",
+      "company": "Neurotechnology",
+      "version": "2025.2.0.0",
+      "file_name": "C:\\Users\\sirak\\.cache\\fpbench\\third_party\\verifinger-2025-2\\installation\\Bin\\Win64_x64\\NLicensing.dll"
+    },
+    {
+      "name": "NMedia",
+      "product": "Neurotechnology Media",
+      "company": "Neurotechnology",
+      "version": "2025.2.0.0",
+      "file_name": "C:\\Users\\sirak\\.cache\\fpbench\\third_party\\verifinger-2025-2\\installation\\Bin\\Win64_x64\\NMedia.dll"
+    },
+    {
+      "name": "NMediaProc",
+      "product": "Neurotechnology Media Processing",
+      "company": "Neurotechnology",
+      "version": "2025.2.0.0",
+      "file_name": "C:\\Users\\sirak\\.cache\\fpbench\\third_party\\verifinger-2025-2\\installation\\Bin\\Win64_x64\\NMediaProc.dll"
+    },
+    {
+      "name": "NBiometrics",
+      "product": "Neurotechnology Biometrics",
+      "company": "Neurotechnology",
+      "version": "2025.2.0.0",
+      "file_name": "C:\\Users\\sirak\\.cache\\fpbench\\third_party\\verifinger-2025-2\\installation\\Bin\\Win64_x64\\NBiometrics.dll"
+    },
+    {
+      "name": "NDevices",
+      "product": "Neurotechnology Devices",
+      "company": "Neurotechnology",
+      "version": "2025.2.0.0",
+      "file_name": "C:\\Users\\sirak\\.cache\\fpbench\\third_party\\verifinger-2025-2\\installation\\Bin\\Win64_x64\\NDevices.dll"
+    },
+    {
+      "name": "NBiometricClient",
+      "product": "Neurotechnology Biometric Client",
+      "company": "Neurotechnology",
+      "version": "2025.2.0.0",
+      "file_name": "C:\\Users\\sirak\\.cache\\fpbench\\third_party\\verifinger-2025-2\\installation\\Bin\\Win64_x64\\NBiometricClient.dll"
+    }
+  ],
+  "loaded_runtime_module_count": 7,
   "declared_version": "2025.2",
   "archive_revision_number": "20260612",
   "archive_revision_hash": "0738caf6a69459241bff6e800789cd61c160bbce",
@@ -49,8 +101,33 @@
     "arm64",
     "armhf"
   ],
-  "platform_locked": false,
-  "why_platform_not_locked": "The trial is single-platform, so the target is a decision taken before activation. No activation has been attempted, so no platform has been locked, and alternating between two platforms under one algorithm fingerprint is refused whichever one is eventually chosen.",
+  "platform_locked": true,
+  "platform_lock_fields_required": [
+    "operating_system",
+    "architecture",
+    "native_library_directory",
+    "native_library_digests",
+    "java_runtime_version",
+    "java_vendor",
+    "locked_utc"
+  ],
+  "platform_lock": {
+    "operating_system": "windows",
+    "architecture": "x86_64",
+    "native_library_directory": "Bin/Win64_x64",
+    "java_runtime_version": "17.0.18",
+    "java_vendor": "Azul Systems, Inc.",
+    "locked_utc": "2026-08-12T10:29:44Z"
+  },
+  "platform_lock_native_library_digests": {
+    "NBiometrics.dll": "d66a702e2b4ffe4b98e737b195a72e5fc72e0e649533555793d77b60d8f20386",
+    "NBiometricClient.dll": "15988f0e20bf1f6290fcd81ece7d2581bfa64519973675effa19a6f30f0a0edf",
+    "NCore.dll": "ecef1f2921283a1e1414285c26872770fa8464545bf29c6f5967f4071e199c1c",
+    "NMedia.dll": "91d6897461df67ab1db3403e2c0a9fa43297a1ae91c726e0b1213b0515544171",
+    "NLicensing.dll": "5b129f0031c7333a9eca23f97cf04582f7044de9f1df1f419507d0e44ae628dc"
+  },
+  "why_platform_not_locked": null,
+  "alternating_platforms_under_one_fingerprint_is_refused": true,
   "native_libraries": [
     {
       "relative_path": "Neurotec_Biometric_2025_2_SDK/Bin/Win64_x64/NBiometrics.dll",

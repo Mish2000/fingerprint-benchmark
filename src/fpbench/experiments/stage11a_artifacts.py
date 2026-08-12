@@ -375,7 +375,64 @@ class QualificationRunState:
         return self.performed or self.failed
 
 
-def _validate_qualification_record(payload: object) -> tuple[Mapping[str, object] | None, str]:
+def _current_inputs_fingerprint(
+    repository_root: Path | None,
+) -> tuple[str | None, str]:
+    """What a qualification run started right now would be identified by.
+
+    Deferred import, because the qualification driver imports this module: the
+    driver owns the definition of the fingerprint and this module owns the
+    decision to trust it.
+
+    Returns ``(None, reason)`` where it cannot be computed at all — no prepared
+    installation, no archive — which is not the same as a mismatch and is
+    reported separately.
+    """
+    try:
+        from fpbench.experiments.stage11a_qualification import (
+            inputs_fingerprint,
+            prepare_installation,
+        )
+    except Exception as exc:  # pragma: no cover - an unimportable driver
+        return None, f"the qualification driver is not importable: {exc}"
+    try:
+        install = prepare_installation(repository_root=repository_root)
+        return inputs_fingerprint(install, repository_root=repository_root), ""
+    except Exception as exc:
+        return None, str(exc)
+
+
+def _matches_current_inputs(
+    fingerprint: str, repository_root: Path | None
+) -> tuple[bool, str]:
+    """Whether this record was produced by the inputs present now.
+
+    Deliberately the **last** check the validator runs, for two reasons. It is
+    the only expensive one — it prepares and re-hashes the installation — and a
+    record that is malformed should be rejected for being malformed rather than
+    for a digest that was never going to match. Reporting the most specific
+    problem first is what makes the reason actionable.
+    """
+    expected, why_not = _current_inputs_fingerprint(repository_root)
+    if expected is None:
+        return False, (
+            "the record's inputs_fingerprint cannot be recomputed here, so it "
+            f"cannot be trusted: {why_not}"
+        )
+    if fingerprint != expected:
+        return False, (
+            "the record was produced by different inputs from the ones present "
+            f"now: it carries {fingerprint[:12]}… and the current archive, "
+            "loaded components, harness, driver and fixture version give "
+            f"{expected[:12]}…. Re-run the qualification; a record from an "
+            "earlier harness does not answer for this one"
+        )
+    return True, ""
+
+
+def _validate_qualification_record(
+    payload: object, *, repository_root: Path | None = None
+) -> tuple[Mapping[str, object] | None, str]:
     """Check a record hard enough that a hand-written one cannot pass.
 
     The checks that matter are the ones tying the record to *this* artifact and
@@ -415,9 +472,10 @@ def _validate_qualification_record(payload: object) -> tuple[Mapping[str, object
     if payload.get("benchmark_scores_produced") != 0:
         return None, "the record claims benchmark scores, which this stage forbids"
 
-    # What produced this record. Without it the record could have come from any
-    # combination of archive, libraries, harness, driver and fixtures
-    # (spec correction 3).
+    # What produced this record — recomputed here and compared, not merely
+    # shape-checked. A digest nobody recalculates is a label, and a label cannot
+    # stop a record produced by an older harness from closing this stage after
+    # the harness changed (spec correction 5).
     fingerprint = payload.get("inputs_fingerprint")
     if not isinstance(fingerprint, str) or len(fingerprint) != 64:
         return None, (
@@ -443,7 +501,8 @@ def _validate_qualification_record(payload: object) -> tuple[Mapping[str, object
             )
         if not payload.get("failed_at_stage"):
             return None, "a FAILED record names the step it died at"
-        return payload, ""
+        matches, why = _matches_current_inputs(fingerprint, repository_root)
+        return (payload, "") if matches else (None, why)
 
     produced = payload.get("qualification_scores_produced")
     if not isinstance(produced, int) or produced < 1:
@@ -524,7 +583,9 @@ def _validate_qualification_record(payload: object) -> tuple[Mapping[str, object
                 f"the record carries {forbidden!r}: a qualification run publishes "
                 "counts and equalities, never score values"
             )
-    return payload, ""
+
+    matches, why = _matches_current_inputs(fingerprint, repository_root)
+    return (payload, "") if matches else (None, why)
 
 
 def qualification_run_state(
@@ -566,7 +627,9 @@ def qualification_run_state(
             reason="a qualification record is present and could not be read",
             invalid_reason=str(exc),
         )
-    record, why = _validate_qualification_record(payload)
+    record, why = _validate_qualification_record(
+        payload, repository_root=repository_root
+    )
     if record is None:
         return QualificationRunState(
             performed=False,

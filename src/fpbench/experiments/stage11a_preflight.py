@@ -518,6 +518,71 @@ def _platform_lock() -> Mapping[str, Any] | None:
     return lock if isinstance(lock, Mapping) else None
 
 
+def _effective_setting_row(
+    item: observed.PublishedSetting, delivered: Mapping[str, Any]
+) -> Mapping[str, Any]:
+    """One setting's row, with the provenance it *actually* has now.
+
+    :func:`observed.setting_rows` reports the provenance the frozen record can
+    justify on its own, which is ``UNRESOLVED`` for anything the manual leaves
+    undocumented. Once a licensed engine has been constructed and read, that is
+    no longer the whole story: the value exists and it has an upstream authority,
+    namely ``DELIVERED_RUNTIME_DEFAULT``.
+
+    Publishing the frozen provenance beside a real value — as an earlier version
+    of this document did — said ``UNRESOLVED`` and
+    ``provenance_is_upstream_authority: false`` next to ``LARGE``, in a document
+    that also called the profile frozen. Three statements, and one of them had to
+    be wrong.
+
+    The declared provenance is kept beside the effective one rather than
+    replaced, so a reader can still see which values the artifact alone settled
+    and which needed the engine.
+    """
+    row = dict(
+        observed.setting_rows((item,))[0]
+    )
+    value = delivered.get(item.name)
+    row["delivered_runtime_default"] = value
+    row["declared_provenance"] = row.pop("provenance")
+    row["declared_provenance_is_upstream_authority"] = row.pop(
+        "provenance_is_upstream_authority"
+    )
+    if item.provenance.is_upstream_authority:
+        row["provenance"] = item.provenance.value
+        row["chosen_value"] = item.official_sample_value or item.documented_default
+    elif frozen.setting_value_is_resolved(value):
+        row["provenance"] = frozen.SettingProvenance.DELIVERED_RUNTIME_DEFAULT.value
+        row["chosen_value"] = value
+    else:
+        row["provenance"] = frozen.SettingProvenance.UNRESOLVED.value
+        row["chosen_value"] = None
+    row["provenance_is_upstream_authority"] = (
+        row["provenance"] != frozen.SettingProvenance.UNRESOLVED.value
+    )
+    row["value_read_from_a_running_engine"] = frozen.setting_value_is_resolved(value)
+    return row
+
+
+def _fixture_kind_phrase() -> str:
+    """How the run describes the fixtures it actually used.
+
+    The synthetic pair is tried first and upstream's own sample is the named
+    fallback for a synthetic image the extractor rejects, so which one carried
+    the comparisons is a finding of the run rather than a property of the
+    harness (spec section 39).
+    """
+    kind = (_record() or {}).get("fixture_kind")
+    if kind == "VENDOR_OFFICIAL_SAMPLE":
+        return (
+            "upstream's own sample fingerprints from the pinned archive, after "
+            "the synthetic pair was rejected by the extractor"
+        )
+    if kind == "SYNTHETIC_RIDGE_LIKE":
+        return "synthetic ridge-like fixtures"
+    return "fixtures that are not SD300"
+
+
 def _delivered_defaults() -> Mapping[str, Any]:
     """The settings a running engine actually reported a value for.
 
@@ -1168,11 +1233,17 @@ def _gate_pair_orientation() -> GateResult:
         "both_orderings_produced_a_score"
     ):
         symmetric = bool(orientation.get("score_digests_equal"))
+        # Which fixtures actually carried the comparison is a fact of the run,
+        # not a constant. The synthetic pair is tried first and upstream's own
+        # sample is the named fallback, so a summary that said "synthetic"
+        # unconditionally would publish something the run had disproved
+        # (spec section 39).
         return GateResult(
             gate=frozen.PreflightGate.PAIR_ORIENTATION,
             status=frozen.GateStatus.PASS,
             summary=(
-                "both orderings were scored on synthetic fixtures and the score "
+                "both orderings were scored on "
+                f"{_fixture_kind_phrase()} and the score "
                 + (
                     "digests agree, so the route is symmetric on this evidence"
                     if symmetric
@@ -1434,15 +1505,16 @@ def _gate_runtime_feasibility() -> GateResult:
             gate=frozen.PreflightGate.RUNTIME_FEASIBILITY,
             status=frozen.GateStatus.PASS,
             summary=(
-                "measured on fixtures only: startup "
+                f"measured on {_fixture_kind_phrase()}, and on nothing "
+                "else: startup "
                 f"{feasibility.get('startup_millis')} ms, "
-                f"{feasibility.get('extraction_invocations')} extractions in "
-                f"{feasibility.get('extraction_millis_total')} ms, "
-                f"{feasibility.get('matching_invocations')} matches in "
-                f"{feasibility.get('matching_millis_total')} ms, about "
-                f"{feasibility.get('peak_heap_megabytes')} MB of heap, no "
-                "accelerator required. Orders of magnitude, not a benchmark, and "
-                "no comparison with any other algorithm."
+                f"{feasibility.get('verify_invocations')} end-to-end verify "
+                f"calls in {feasibility.get('end_to_end_verify_millis_total')} ms "
+                f"(about {feasibility.get('end_to_end_verify_millis_mean')} ms "
+                "each — one call loads both images, extracts both templates and "
+                f"matches them), about {feasibility.get('peak_heap_megabytes')} "
+                "MB of heap, no accelerator required. Orders of magnitude, not a "
+                "benchmark, and no comparison with any other algorithm."
             ),
         )
     return GateResult(
@@ -2173,14 +2245,26 @@ def _runtime_identity_document(preflight: VeriFingerPreflight) -> Mapping[str, A
         frozen.PreflightGate.RUNTIME_IDENTITY,
         "stage_11a_runtime_identity_v1",
     )
+    record = _record()
+    lock = _platform_lock()
+    modules = list((record or {}).get("loaded_modules") or ())
     document["identity_fields_required"] = list(frozen.RUNTIME_IDENTITY_FIELDS)
-    document["identity_source"] = "PINNED_ARTIFACT_BINARIES_AND_DOCUMENTS"
+    document["identity_source"] = (
+        "PINNED_ARTIFACT_BINARIES_AND_A_RUNNING_ENGINE"
+        if record
+        else "PINNED_ARTIFACT_BINARIES_AND_DOCUMENTS"
+    )
     document["a_web_page_version_is_not_an_algorithm_identity"] = True
     document["web_page_version_used_as_identity"] = False
-    document["runtime_reported_version_read_by_execution"] = False
+    document["runtime_reported_version_read_by_execution"] = bool(modules)
     document["why_not_read_by_execution"] = (
-        _qualification_state().reason
+        None if modules else _qualification_state().reason
     )
+    # The modules the process actually loaded, each with the version compiled
+    # into it. This is what "the version the running library reports" means, and
+    # it is a different claim from the JVM's version below it.
+    document["loaded_runtime_modules"] = modules
+    document["loaded_runtime_module_count"] = len(modules)
     document["declared_version"] = observed.PRODUCT_IDENTITY_CLAIM.declared_version
     document["archive_revision_number"] = "20260612"
     document["archive_revision_hash"] = (
@@ -2204,13 +2288,33 @@ def _runtime_identity_document(preflight: VeriFingerPreflight) -> Mapping[str, A
     document["architectures_available"] = list(
         observed.SDK_ARCHIVE.target_architectures
     )
-    document["platform_locked"] = False
-    document["why_platform_not_locked"] = (
-        "The trial is single-platform, so the target is a decision taken before "
-        "activation. No activation has been attempted, so no platform has been "
-        "locked, and alternating between two platforms under one algorithm "
-        "fingerprint is refused whichever one is eventually chosen."
+    document["platform_locked"] = bool(lock)
+    document["platform_lock_fields_required"] = list(
+        frozen.RUNTIME_PLATFORM_LOCK_FIELDS
     )
+    document["platform_lock"] = (
+        {
+            key: value
+            for key, value in lock.items()
+            if key != "native_library_digests"
+        }
+        if lock
+        else None
+    )
+    document["platform_lock_native_library_digests"] = (
+        dict(lock.get("native_library_digests") or {}) if lock else None
+    )
+    document["why_platform_not_locked"] = (
+        None
+        if lock
+        else (
+            "The trial is single-platform, so the target is a decision taken "
+            "before activation. No activation has been attempted, so no platform "
+            "has been locked, and alternating between two platforms under one "
+            "algorithm fingerprint is refused whichever one is eventually chosen."
+        )
+    )
+    document["alternating_platforms_under_one_fingerprint_is_refused"] = True
     document["native_libraries"] = [
         {
             "relative_path": item.relative_path,
@@ -2380,8 +2484,7 @@ def _profile_document(
     document["inventory_closed"] = True
     document["inventory_names_were_discovered_not_assumed"] = True
     document["published_settings"] = [
-        dict(row, delivered_runtime_default=delivered.get(row["setting_name"]))
-        for row in observed.setting_rows(settings)
+        _effective_setting_row(item, delivered) for item in settings
     ]
     document["setting_count"] = len(settings)
     document["score_affecting_count"] = sum(
@@ -2389,6 +2492,20 @@ def _profile_document(
     )
     document["score_affecting_from_authoritative_sample"] = list(from_sample)
     document["score_affecting_read_from_the_running_engine"] = list(read_now)
+    document["effective_provenance_counts"] = {
+        frozen.SettingProvenance.OFFICIAL_SAMPLE_EXPLICIT.value: len(from_sample),
+        frozen.SettingProvenance.DELIVERED_RUNTIME_DEFAULT.value: len(read_now),
+        frozen.SettingProvenance.UNRESOLVED.value: len(still_open),
+    }
+    document["a_value_read_from_the_engine_is_an_upstream_authority"] = True
+    document["why"] = (
+        "A setting the manual leaves undocumented is UNRESOLVED until somebody "
+        "constructs the engine and reads it; after that it is a "
+        "DELIVERED_RUNTIME_DEFAULT, which is one of the four upstream "
+        "authorities. The declared provenance is kept beside the effective one "
+        "so a reader can see which values the artifact alone settled "
+        "(docs/adr/0101)."
+    )
     document["score_affecting_still_without_provenance"] = list(still_open)
     document["score_affecting_still_without_provenance_count"] = len(still_open)
     document["profile_frozen"] = not still_open

@@ -1,0 +1,184 @@
+# VeriFinger 2025.2, as Stage 11B froze it into the benchmark's fourth algorithm.
+#
+# Everything in this file is either an identity that must not drift or a
+# statement about what is deliberately *not* done. The adapter derives all of it
+# itself from `fpbench.verifinger.identity`, so a mistake here cannot change what
+# runs — it can only disagree with it, and a contract test says so.
+#
+# There is no threshold in this file and there will not be one. VeriFinger's own
+# 1:1 sample sets `MatchingThreshold = 48`, the bridge keeps that so the official
+# route is reproduced exactly, and fpbench then reads the integer score under
+# both OK and MATCH_NOT_FOUND. A number that decides MATCH from NON_MATCH belongs
+# to a decision profile, in a later stage, over these stored scores
+# (docs/adr/0003, spec sections 10 and 21).
+#
+# There is no calibration profile, no FMR target and no SD300 score statistic in
+# it either, for the same reason and because Stage 11B is forbidden from
+# producing any of the three (spec sections 21 and 35).
+
+algorithm:
+  id: verifinger_1to1
+  display_name: VeriFinger 2025.2 1:1 Verification
+  adapter_id: verifinger_java_subprocess
+
+  # For reference only. The authority is fpbench.verifinger.identity.
+  adapter_version: "1"
+  implementation_version: "2025.2"
+  vendor: Neurotechnology
+  slot: algorithm_4
+  score_direction: higher_is_more_similar
+
+  # Read out of the loaded binaries, not off a download page: all seven native
+  # modules the engine loads carry ProductVersion "2025, 2, 0, 0"
+  # (Stage 11A, runtime-identity.json).
+  implementation_version_source: loaded_native_module_version_resources
+
+# ---------------------------------------------------------------------------
+# The qualification this algorithm is entitled to run under.
+#
+# Re-read from the published Stage 11A evidence at preparation time, and the run
+# stops on any mismatch — before a run exists, before an image is opened
+# (spec section 1).
+# ---------------------------------------------------------------------------
+stage11a:
+  finalization_fingerprint: f8228072e0dc6d016e191ab5356d1d65748ba62caa4768dfb21650f78a0b3a7b
+  outcome: VERIFINGER_PREFLIGHT_PASS
+  selected_candidate: neurotechnology_verifinger_2025_2_1to1
+  gates_defined: 17
+  gates_passed: 17
+  opens_stage_11b: true
+
+pipeline:
+  family_id: verifinger
+  # `verify(reference, candidate)` is one call that loads two images, extracts
+  # two templates and matches them. Declaring `extract_then_match` would be
+  # describing an API this route does not use (docs/adr/0002).
+  pipeline_kind: end_to_end_image_matcher
+
+  extractor_id: verifinger_finger_extractor
+  extractor_version: "2025.2"
+  matcher_id: verifinger_finger_matcher
+  matcher_version: "2025.2"
+
+  implementation_language: native_via_official_java_binding
+  integration_mode: subprocess_per_comparison
+
+  input_mode: canonical_gray8_500ppi
+  dpi_policy: require_declared_500_ppi_both_sides
+  probe_side: left            # the contract's spelling of "left is the reference"
+  probe_role: left_as_reference
+
+  template_cache: disabled
+  template_persistence: disabled
+  score_cache: disabled
+  seed_usage: ignored_route_is_deterministic
+
+# ---------------------------------------------------------------------------
+# The score contract, restated for a reader. The authority is
+# fpbench.verifinger.identity; a test asserts they agree.
+# ---------------------------------------------------------------------------
+score:
+  native_score_type: java_int
+  score_scale: vendor_native_claimed_far_scale
+  score_transformation_by_fpbench: none
+  serialization: exact_int_to_float64
+
+  # Both of them carry a score. Upstream's own sample reads the score under
+  # MATCH_NOT_FOUND too, which is what makes the number independent of the
+  # sample's threshold (spec section 10).
+  score_bearing_statuses: [OK, MATCH_NOT_FOUND]
+
+  # Everything a matcher's wrapper usually does to a number, and does not do
+  # here (spec section 11).
+  far_computed_by_fpbench: false
+  normalization: none
+  clamping: none
+  calibration: none
+  quality_adjustment: none
+  fallback_matcher: none
+
+  # A comparison that produced no score produces a structured failure, never a
+  # zero (spec section 12).
+  failure_scored_as_zero: false
+
+# ---------------------------------------------------------------------------
+# The runtime this algorithm is executed on.
+#
+# Seventeen components — seven native libraries, two model data files and the
+# eight jars that are actually on the classpath — each pinned by size and
+# SHA-256 in the manifest below, and each re-read out of the pinned SDK archive
+# to prove where it came from (spec section 16).
+# ---------------------------------------------------------------------------
+runtime:
+  platform: windows/x86_64
+  native_library_directory: Bin/Win64_x64
+  minimum_java_major: 17
+
+  bridge_protocol: fpbench.verifinger.bridge.v1
+  bridge_version: "1"
+
+  manifest: configs/verifinger/verifinger_runtime_manifest_v1.json
+  manifest_fingerprint: 0f2aed19753c71ffb9981f187790a5f861ddc949d32dc63d6258c4a1ef45404d
+  policy: configs/verifinger/stage11b_verifinger_runtime_policy_v1.yaml
+  policy_id: stage11b_verifinger_runtime_policy_v1
+
+  sdk_archive_sha256: e30a0b603e453fe0a08157ed2331de71f8a3d3cdc6dcf001df649a36a69bafdc
+
+  # The delivered defaults this route insists on, read out of a running engine
+  # by Stage 11A before anything was configured. Not one of them was chosen
+  # here. A runtime that disagrees is reported UNAVAILABLE, never corrected
+  # (spec section 8).
+  expected_delivered_defaults:
+    Fingers.TemplateSize: LARGE
+    Fingers.ExtractionScenario: "0"
+    Fingers.FastExtraction: "false"
+    Fingers.QualityThreshold: "40"
+    Fingers.MinimalMinutiaCount: "10"
+    Fingers.DetectTips: "false"
+    Fingers.DetectLiveness: "false"
+    Fingers.LivenessConfidenceThreshold: "0"
+    Fingers.MaximalRotation: "180.0"
+    Matching.Scenario: "0"
+
+  # The one value this route sets, because `verify-finger` sets it explicitly.
+  # Not because LOW was measured to be more accurate (spec section 9).
+  configured_settings:
+    Fingers.MatchingSpeed: LOW
+
+  # Kept so the official sample's route is reproduced, and then ignored. It is
+  # provenance, not an operating point (spec section 10).
+  official_sample_matching_threshold: 48
+  decision_threshold_produced_by_fpbench: false
+
+# ---------------------------------------------------------------------------
+# The three files a run pins. All three are this project's own bytes; the 4.7 GB
+# SDK stays in the local artifact store and is re-verified rather than copied
+# (spec sections 17 and 38).
+# ---------------------------------------------------------------------------
+adapter:
+  runtime_asset_roles:
+    - verifinger_bridge_jar
+    - verifinger_runtime_manifest
+    - verifinger_runtime_policy
+  primary_runtime_asset_role: verifinger_bridge_jar
+  supported_targets:
+    - windows/x86_64
+
+  # Fields the adapter and the bridge must never receive. Named so the exclusion
+  # is auditable rather than merely true today; the list is asserted against
+  # `fpbench.verifinger.identity.FORBIDDEN_INPUTS`.
+  forbidden_inputs:
+    - expected_decision
+    - finger_position
+    - flx_score
+    - ground_truth
+    - mated
+    - nbis_score
+    - pair_id
+    - pair_kind
+    - protocol_stage
+    - release
+    - sourceafis_score
+    - stage
+    - subject_id
+    - threshold

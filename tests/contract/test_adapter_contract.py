@@ -51,6 +51,14 @@ _EXTERNAL_TOOLING = {
         (pytest.mark.nbis_upstream, pytest.mark.upstream),
         "FPBENCH_REQUIRE_NBIS",
     ),
+    # 4.7 GB of licence-restricted vendor SDK, a 30-day trial bound to one
+    # machine and a Java 17 toolchain. CI has none of the three and must never
+    # acquire them, so this row is what lets the fourth algorithm take part in
+    # exactly this suite while the ordinary run skips it (spec section 37).
+    "verifinger_java_subprocess": (
+        (pytest.mark.verifinger_artifact,),
+        "FPBENCH_REQUIRE_VERIFINGER",
+    ),
 }
 
 ADAPTER_PARAMS = [

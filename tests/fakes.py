@@ -76,6 +76,14 @@ def registry_configuration(adapter_id: str) -> dict[str, object]:
     adapter then reports ``UNAVAILABLE`` rather than raising, which is exactly
     the behaviour the contract requires — and the suite skips.
     """
+    if adapter_id == "verifinger_java_subprocess":
+        # VeriFinger has no default installation either, and for the same
+        # reason: an adapter that went looking for a 4.7 GB vendor SDK could
+        # silently switch which engine a run's results are attributed to. The
+        # experiment layer knows where the store is, so the suite asks it.
+        from fpbench.experiments.verifinger_runtime_manifest import default_installation
+
+        return {"installation": str(default_installation())}
     if adapter_id != "nbis_mindtct_bozorth3_subprocess":
         return {}
     from nbisworld import certified_build_directory

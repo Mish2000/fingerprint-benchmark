@@ -1,0 +1,156 @@
+# Stage 11B: the qualified VeriFinger 2025.2 route over the canonical SD300
+# comparisons SourceAFIS, NBIS and flx already ran.
+#
+# This file selects nothing. Every identifier in it names something that already
+# exists and was produced by an earlier, finalised stage: the reference run, its
+# plan, its result set, the immutable 500 ppi input set all three earlier
+# algorithms were built from, and the Stage 11A qualification that decided this
+# route may be executed at benchmark scale at all. No cohort is chosen here, no
+# pair is generated here, and no new prepared image is materialised here —
+# Stage 11B reuses the pair manifest of run_4c59fa02a6ab, row for row, in its
+# order (docs/adr/0074, spec sections 25 and 26).
+#
+# There is no threshold in this file and there will not be one. VeriFinger's own
+# 1:1 sample sets MatchingThreshold = 48, the bridge keeps it so upstream's route
+# is reproduced exactly, and fpbench reads the integer score under both OK and
+# MATCH_NOT_FOUND. What Stage 11B publishes is 6,000 stored outcomes and the
+# operational facts beside them — no distribution, no summary statistic, no
+# decision, no ranking (spec sections 10, 33, 35 and 36).
+#
+# The execution controls are *not* the reference run's, and that is deliberate
+# and checked. Everything that decides which pixels are opened is identical; the
+# job deadline is new, because 60 seconds was a budget chosen for an in-process
+# Java matcher and this route starts a JVM, obtains two licences and constructs
+# an engine inside every job. See
+# configs/execution/verifinger_canonical500_sequential_no_retry_v1.yaml.
+
+experiment_id: verifinger_canonical500_full_v1
+kind: research
+replicate_index: 0
+
+dataset_config: configs/datasets/sd300.yaml
+protocol_config: configs/protocols/sd300_50_subjects.yaml
+algorithm_config: configs/algorithms/verifinger_2025_2_1to1_v1.yaml
+
+# Every participating image must carry VERIFIED checksum evidence, exactly as
+# the reference run required.
+require_verified_checksums: true
+
+# ---------------------------------------------------------------------------
+# The Stage 11A qualification this run is bound to.
+#
+# Re-read from the published evidence at preparation time, with every document's
+# content hash recomputed, and preparation stops on any mismatch — before a run
+# exists, before an image is opened. Restating them here is what makes the
+# binding reviewable in a diff rather than only in code (spec section 1).
+# ---------------------------------------------------------------------------
+stage11a:
+  finalization_fingerprint: f8228072e0dc6d016e191ab5356d1d65748ba62caa4768dfb21650f78a0b3a7b
+  outcome: VERIFINGER_PREFLIGHT_PASS
+  selected_candidate: neurotechnology_verifinger_2025_2_1to1
+  algorithm_slot: algorithm_4
+  gates_passed: 17
+  opens_stage_11b: true
+
+# ---------------------------------------------------------------------------
+# The production identity Stage 11B froze. The Stage 11A candidate id was
+# provisional; this is the algorithm the benchmark will cite (spec section 2).
+# ---------------------------------------------------------------------------
+algorithm:
+  id: verifinger_1to1
+  adapter_id: verifinger_java_subprocess
+  adapter_version: "1"
+  implementation_version: "2025.2"
+  vendor: Neurotechnology
+  profile_fingerprint: 9f1cd6c5746716d4c9dec4aab09b021ca0a68ee4c4831c2b12452cc480cdbaa4
+
+# ---------------------------------------------------------------------------
+# The runtime closure. Seventeen components: seven native libraries, two model
+# data files and the eight jars actually on the classpath. Every one is
+# re-hashed before the run and after it, re-read out of the pinned SDK archive
+# to prove where it came from, and cheaply re-checked before every comparison
+# (spec sections 16 and 19).
+#
+# The 4.7 GB it describes never enters the workspace or Git.
+# ---------------------------------------------------------------------------
+runtime_closure:
+  manifest: configs/verifinger/verifinger_runtime_manifest_v1.json
+  manifest_fingerprint: 0f2aed19753c71ffb9981f187790a5f861ddc949d32dc63d6258c4a1ef45404d
+  policy: configs/verifinger/stage11b_verifinger_runtime_policy_v1.yaml
+  policy_id: stage11b_verifinger_runtime_policy_v1
+  sdk_archive_sha256: e30a0b603e453fe0a08157ed2331de71f8a3d3cdc6dcf001df649a36a69bafdc
+  components: 17
+  native_libraries: 7
+  model_data_files: 2
+  classpath_jars: 8
+
+# ---------------------------------------------------------------------------
+# The canonical experiment this run is aligned against (spec section 25).
+# ---------------------------------------------------------------------------
+reference:
+  run_id: run_4c59fa02a6ab
+  plan_id: plan_b4ae66e91923
+  result_set_id: resultset_087b084fb8a8
+  cohort_id: sd300_50_subjects_test_22f8d52a7478
+  pair_manifest_hash: ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b
+
+preparation:
+  set_id: prepset_be560e047991
+  set_fingerprint: be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f
+  transform_profile_id: canonical_gray8_500ppi_lanczos3_v1
+  transform_profile_fingerprint: 28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373
+  transform_runtime_fingerprint: 31a0a4346a3dd07843513cc1de5b167d8f2795b230a82bac709913032b74579c
+  target_ppi: 500
+
+expected:
+  jobs: 6000
+  pairs_per_release_stage: 500
+  pairs_per_release: 2000
+  pairs_per_stage: 1500
+  releases: [SD300A, SD300B, SD300C]
+  subjects: 50
+  participating_images: 3000
+
+  # Which resolution each release's artefacts were scaled *from*. Checked
+  # through the preparation entries: by the time the adapter reads a file it is
+  # already 500 ppi and the source resolution is no longer inferable
+  # (docs/adr/0032).
+  source_ppi:
+    SD300A: 500
+    SD300B: 1000
+    SD300C: 2000
+
+# ---------------------------------------------------------------------------
+# The operations one job performs. SELF counts as two extractions exactly like
+# every other comparison (spec sections 14 and 27).
+# ---------------------------------------------------------------------------
+operations:
+  comparisons_per_job: 1
+  logical_extractions_per_comparison: 2
+  verify_invocations_per_comparison: 1
+  jvm_processes_per_comparison: 1
+  representation_cache: disabled
+
+execution:
+  profile_config: configs/execution/verifinger_canonical500_sequential_no_retry_v1.yaml
+  profile_id: verifinger_canonical500_sequential_no_retry_v1
+  sequential: true
+  max_workers: 1
+  retries: 0
+  job_deadline_seconds: 180
+
+runtime:
+  # The reference run's own policy, unchanged, so the two runs pin their
+  # runtimes the same way.
+  materialization_policy: content_addressed_copy_v1
+  research_mode: true
+
+  # Stage 11B materialises no image. Every pixel it reads belongs to
+  # prepset_be560e047991 and was written by Stage 6A (spec section 6).
+  image_materialization_policy: reference_existing_prepared_images
+
+reporting:
+  operational_summary: true   # timings, counts and failure codes only
+  biometric_metrics: false    # no FMR, no FNMR, no EER, no accuracy claim
+  score_statistics: false     # no mean, no median, no distribution of scores
+  score_export: false         # no score row leaves the workspace

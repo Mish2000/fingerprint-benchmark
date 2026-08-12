@@ -1,0 +1,52 @@
+# The execution profile for the Stage 11B VeriFinger run over canonical 500 ppi
+# inputs.
+#
+# A new profile, not a copy of an existing one, and the one thing that differs
+# from the reference run's is the budget. `canonical_500_lanczos3_60s_v1` gives
+# an adapter 60 seconds per comparison; this route pays a JVM startup, a licence
+# acquisition and an end-to-end verify inside a single job, and the deadline is
+# chosen from qualification and smoke timings alone:
+#
+#     JVM startup + licence + engine construction    ~ 1.0 s
+#     end-to-end verify (Stage 11A, measured)        ~ 2.3 s
+#                                                    -------
+#     observed per comparison                        ~ 2-4 s
+#     job deadline                                     180 s
+#
+# Roughly fifty times the observed cost. It is deliberately generous *and*
+# deliberately fixed before SD300 was opened: adjusting a deadline after seeing
+# which pairs are slow is how a timeout stops being a guard and becomes a
+# formality (spec section 28).
+#
+# Everything that decides *which pixels* are opened is identical to the reference
+# profile, character for character, because it names the same immutable input
+# set. Those parameters are what the alignment report checks and what
+# PreparedInputExpectations validates every stored result against.
+#
+# Every value under `parameters` is a string, because that is what
+# `ExecutionProfile` holds and the profile hash is taken over exactly those
+# strings.
+#
+# There is no threshold here, no decision profile and no retry count above zero.
+# A failed comparison is a recorded outcome; re-running only the failures would
+# produce a run whose results came from two attempts (docs/adr/0013).
+
+profile:
+  profile_id: verifinger_canonical500_sequential_no_retry_v1
+  preparer_id: canonical_500_png
+  timeout_seconds: 180
+  deterministic_seed: 0
+
+parameters:
+  resolution_mode: canonical_500
+  target_ppi: "500"
+
+  transform_profile_id: canonical_gray8_500ppi_lanczos3_v1
+  transform_profile_fingerprint: "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373"
+
+  preparation_set_id: "prepset_be560e047991"
+  preparation_set_fingerprint: "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f"
+
+  output_media_type: image/png
+  output_pixel_format: gray8
+  output_ppi_metadata_policy: fixed_500

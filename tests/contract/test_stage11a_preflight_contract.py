@@ -1341,10 +1341,39 @@ def test_the_complete_record_helper_actually_verifies() -> None:
 
 
 def test_the_stage_creates_no_production_surface() -> None:
+    """Stage 11A built no adapter, no config and no threshold — and said so.
+
+    The claim is about *this stage's own span*, so it is checked against what
+    Stage 11A froze and against what its published marker records. It is
+    deliberately no longer checked against the current filesystem: Stage 11B's
+    whole purpose is to create exactly that production surface, and a guard
+    written against HEAD rather than against its own stage turns a later stage's
+    success into an earlier stage's failure.
+    """
+    import json
+
     assert "generic_engine_adapter" in frozen.PRODUCTION_INTEGRATION_NOT_CREATED
     assert "threshold" in frozen.PRODUCTION_INTEGRATION_NOT_CREATED
-    assert not list((REPOSITORY_ROOT / "configs" / "algorithms").glob("verifinger*"))
-    assert not list((REPOSITORY_ROOT / "src" / "fpbench" / "adapters").glob("verifinger*"))
+
+    marker = json.loads(
+        (
+            REPOSITORY_ROOT
+            / "evidence"
+            / "stage11a-verifinger-2025_2-preflight"
+            / "stage-11a-finalization.json"
+        ).read_text(encoding="utf-8")
+    )
+    for field in (
+        "production_adapter_created",
+        "generic_engine_adapter_created",
+        "benchmark_run_performed",
+        "threshold_produced",
+        "decision_profile_produced",
+        "calibration_performed",
+        "metrics_produced",
+    ):
+        assert marker[field] is False, field
+    assert marker["benchmark_scores_produced"] == 0
 
 
 def test_every_error_descends_from_the_project_root_error() -> None:

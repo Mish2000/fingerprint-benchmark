@@ -1,0 +1,158 @@
+name: Stage 11B VeriFinger canonical500 raw
+
+# What this workflow proves, and what it deliberately does not.
+#
+# It runs the whole Stage 11B contract — the frozen production identity, the
+# bridge wire format and every refusal in it, the failure classification that
+# separates VeriFinger declining a print from this machine being broken, the
+# seventeen-component runtime closure and its three guards, the strict
+# experiment configuration, the result-set validator, and the byte, path and
+# credential guards.
+#
+# All of it runs against a **fake bridge**. The runner:
+#
+#   * downloads no VeriFinger SDK;
+#   * activates no trial and holds no credential;
+#   * loads no native library;
+#   * produces no biometric score.
+#
+# Every test that needs the real SDK carries the `verifinger_artifact` marker
+# and is not run here. Every test that needs the 6,000-comparison workspace
+# carries `stage11b_full_run` and is not run here either.
+#
+# A green tick here says the production integration is the one this repository
+# describes. It says nothing about which algorithm is more accurate: Stage 11B
+# produces raw outcomes and no metric, and there is no common operating point
+# across the four algorithms yet.
+
+on:
+  push:
+    paths:
+      - "src/fpbench/adapters/verifinger_java/**"
+      - "src/fpbench/adapters/registry.py"
+      - "src/fpbench/core/verifinger_errors.py"
+      - "src/fpbench/experiments/stage11a_binding.py"
+      - "src/fpbench/experiments/stage11b_identity.py"
+      - "src/fpbench/experiments/stage11b_finalization.py"
+      - "src/fpbench/experiments/verifinger_*.py"
+      - "integrations/verifinger-java/**"
+      - "configs/verifinger/**"
+      - "configs/algorithms/verifinger_*.yaml"
+      - "configs/execution/verifinger_*.yaml"
+      - "configs/experiments/verifinger_*.yaml"
+      - "evidence/stage11b-verifinger-canonical500-raw/**"
+      - "tests/**stage11b**"
+      - "tests/verifingerworld.py"
+      # Stage 11B rests on Stage 11A's qualification. A change to that evidence
+      # changes what this stage is entitled to run, so the stage is re-run
+      # rather than trusted.
+      - "evidence/stage11a-verifinger-2025_2-preflight/**"
+      - "docs/experiments/verifinger-canonical500-raw.md"
+      - ".github/workflows/**"
+      - ".gitignore"
+      - "pyproject.toml"
+      - "Makefile"
+  pull_request:
+    paths:
+      - "src/fpbench/adapters/verifinger_java/**"
+      - "src/fpbench/adapters/registry.py"
+      - "src/fpbench/core/verifinger_errors.py"
+      - "src/fpbench/experiments/stage11a_binding.py"
+      - "src/fpbench/experiments/stage11b_identity.py"
+      - "src/fpbench/experiments/stage11b_finalization.py"
+      - "src/fpbench/experiments/verifinger_*.py"
+      - "integrations/verifinger-java/**"
+      - "configs/verifinger/**"
+      - "configs/algorithms/verifinger_*.yaml"
+      - "configs/execution/verifinger_*.yaml"
+      - "configs/experiments/verifinger_*.yaml"
+      - "evidence/stage11b-verifinger-canonical500-raw/**"
+      - "tests/**stage11b**"
+      - "tests/verifingerworld.py"
+      - "evidence/stage11a-verifinger-2025_2-preflight/**"
+      - "docs/experiments/verifinger-canonical500-raw.md"
+      - ".github/workflows/**"
+      - ".gitignore"
+      - "pyproject.toml"
+      - "Makefile"
+
+permissions:
+  contents: read
+
+jobs:
+  verifinger-production-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[dev]"
+
+      - name: The frozen Stage 11B production contract
+        run: pytest -m "stage11b_contract" -q
+
+      - name: The registry-driven adapter contract
+        # VeriFinger joins this suite by being registered. Without the SDK it
+        # reports UNAVAILABLE and the suite skips it — which is itself part of
+        # the contract: a missing dependency is one fault of the run, never one
+        # failure per pair.
+        run: pytest -m "adapter_contract" -q
+
+      - name: Committed Stage 11B evidence gate
+        run: pytest -m "stage11b" -q
+
+      - name: This runner holds no VeriFinger runtime and no licence
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          from fpbench.adapters.registry import create_adapter
+          from fpbench.core.enums import EnvironmentStatus
+          from fpbench.experiments.stage11a_artifacts import acquisition_state
+
+          leaked = sorted(
+              name
+              for name in os.environ
+              if any(
+                  vendor in name.lower()
+                  for vendor in ("neurotec", "verifinger", "megamatcher")
+              )
+          )
+          assert not leaked, f"the runner carries vendor variables: {leaked}"
+
+          state = acquisition_state()
+          assert not state.obtained, (
+              "a CI runner is holding the VeriFinger artifacts, which this "
+              "workflow promises never to fetch"
+          )
+
+          adapter = create_adapter("verifinger_java_subprocess", {})
+          report = adapter.validate_environment()
+          assert report.status is EnvironmentStatus.UNAVAILABLE, report.status
+          print(f"registered, and unavailable here: {report.message}")
+          PY
+
+      - name: No vendor byte is tracked in this repository
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.experiments.stage11a_artifacts import (
+              require_no_verifinger_bytes_in_git,
+          )
+
+          audit = require_no_verifinger_bytes_in_git(Path("."))
+          print(
+              f"{audit.tracked_file_count} tracked files scanned against "
+              f"{audit.known_digest_count} exact VeriFinger digests; "
+              f"{len(audit.findings)} findings."
+          )
+          PY
+
+      - name: Re-derive the Stage 11B evidence and print the outcome
+        run: python -m fpbench.experiments.stage11b_finalization verify

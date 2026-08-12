@@ -82,6 +82,17 @@ help:
 	@echo "stage11a-guard          refuse if any Neurotechnology archive, model or licence material is tracked here"
 	@echo "stage11a-documents      write the fifteen derivable evidence documents (commit them, then publish)"
 	@echo "stage11a-publish        write the marker too; refuses a dirty tree"
+	@echo "verifinger-build        build the Stage 11B production bridge jar from the pinned bindings"
+	@echo "verifinger-runtime-verify  re-hash the seventeen pinned runtime components"
+	@echo "stage11b-contract       the Stage 11B protocol: identity, wire format, failures, closure, config"
+	@echo "stage11b-evidence       verify the committed Stage 11B canonical500 raw-run evidence"
+	@echo "stage11b-artifacts      run the checks that need the pinned SDK and an activated licence"
+	@echo "stage11b-smoke          the production adapter smoke on fixtures that are not SD300"
+	@echo "stage11b-preflight      check every input the 6,000 run will read, and write nothing"
+	@echo "stage11b-status         report where Stage 11B stands"
+	@echo "stage11b-verify         re-derive and print the Stage 11B evidence-only verification"
+	@echo "stage11b-documents      write the seven derivable evidence documents (commit them, then publish)"
+	@echo "stage11b-publish        write the marker too"
 	@echo "stage8c-workspace       Stage 8C alignment and preflight over the real inputs"
 	@echo "stage8c-verify          re-derive and print the Stage 8C evidence-only verification"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
@@ -451,6 +462,57 @@ stage11a-documents:
 
 stage11a-publish:
 	python -m fpbench.experiments.stage11a_finalization publish
+
+# ------------------------------------------------------------------ stage 11B
+
+# VeriFinger 2025.2 as the benchmark's fourth algorithm: the production adapter,
+# the exact runtime closure, and the canonical 6,000 raw comparisons.
+#
+# The 6,000-comparison run itself is deliberately absent from this file. It takes
+# hours, it may not be started under a different commit than it was prepared
+# under, and a convenient target is exactly how that happens by accident. The
+# documented invocation is docs/experiments/verifinger-canonical500-raw.md.
+#
+# Same two-write shape as every stage since 8D: `stage11b-documents`, commit,
+# `stage11b-publish`, commit.
+stage11b-contract:
+	pytest -m "stage11b_contract" -q
+
+# The committed evidence is mandatory and may never skip.
+stage11b-evidence:
+	pytest -m "stage11b" -q
+
+stage11b-artifacts:
+	pytest -m "verifinger_artifact" -q -rs
+
+# Builds the bridge jar from the pinned bindings. Never shades a vendor jar in:
+# the Neurotechnology jars stay on the classpath, where the runtime manifest
+# pins every one of them by digest.
+verifinger-build:
+	python integrations/verifinger-java/build.py
+
+verifinger-runtime-verify:
+	python -m fpbench.experiments.verifinger_runtime_manifest verify
+
+# The production adapter's own smoke, on fixtures that are not SD300. Never run
+# in CI: it needs the pinned SDK and an activated trial licence.
+stage11b-smoke:
+	python -m fpbench.experiments.verifinger_smoke
+
+stage11b-preflight:
+	python -c "import json; from pathlib import Path; from fpbench.experiments.verifinger_canonical500_full import preflight_verifinger_canonical500_run as p; print(json.dumps({k: v for k, v in p(repository_root=Path('.')).items() if k != 'production_smoke'}, indent=2, default=str))"
+
+stage11b-status:
+	python -c "from pathlib import Path; from fpbench.experiments.verifinger_canonical500_full import inspect_verifinger_canonical500_experiment as i; s = i(repository_root=Path('.')); print(s.status, s.run_id)"
+
+stage11b-verify:
+	python -m fpbench.experiments.stage11b_finalization verify
+
+stage11b-documents:
+	python -m fpbench.experiments.stage11b_finalization publish
+
+stage11b-publish:
+	python -m fpbench.experiments.stage11b_finalization finalize
 
 # ------------------------------------------------------------------- SourceAFIS
 

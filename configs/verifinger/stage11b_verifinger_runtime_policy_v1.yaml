@@ -1,0 +1,193 @@
+# How the VeriFinger route is executed, and what it is not allowed to do.
+#
+# One of the three files pinned into every Stage 11B runtime bundle, alongside
+# the bridge jar and the runtime manifest. All three are this project's own
+# bytes; the 4.7 GB SDK they describe stays in the local artifact store and
+# never enters Git (docs/adr/0083, spec sections 17 and 38).
+#
+# This file is policy a reviewer can read in a diff. It is not the enforcement:
+# every value below is also a constant in `fpbench.verifinger.identity` or
+# `fpbench.verifinger.runtime`, and a contract test asserts the two agree. A
+# file that could change what runs would be a second source of truth; this one
+# can only ever disagree with the code, and disagreeing is a test failure.
+
+policy_id: stage11b_verifinger_runtime_policy_v1
+schema: verifinger_runtime_policy_v1
+
+algorithm:
+  id: verifinger_1to1
+  adapter_id: verifinger_java_subprocess
+  implementation_version: "2025.2"
+  vendor: Neurotechnology
+  slot: algorithm_4
+
+stage11a:
+  finalization_fingerprint: f8228072e0dc6d016e191ab5356d1d65748ba62caa4768dfb21650f78a0b3a7b
+  outcome: VERIFINGER_PREFLIGHT_PASS
+  selected_candidate: neurotechnology_verifinger_2025_2_1to1
+
+# ---------------------------------------------------------------------------
+# Execution shape.
+#
+# One JVM per comparison. Slower than a persistent worker and chosen anyway: it
+# makes cross-comparison state, a representation cache and a score cache
+# impossible rather than merely absent, and it makes restart determinism the
+# ordinary behaviour of every job. A persistent worker would be an optimisation
+# with a different identity and its own qualification — not this stage
+# (spec section 3).
+# ---------------------------------------------------------------------------
+execution:
+  integration_mode: subprocess_per_comparison
+  jvm_per_comparison: 1
+  sequential: true
+  max_workers: 1
+  retries: 0
+  logical_extractions_per_comparison: 2
+  verify_invocations_per_comparison: 1
+
+  template_cache: disabled
+  template_persistence: disabled
+  score_cache: disabled
+  representation_cache: disabled
+
+# ---------------------------------------------------------------------------
+# The route, exactly as upstream's own `verify-finger` sample performs it.
+# ---------------------------------------------------------------------------
+route:
+  official_sample: Tutorials/Biometrics/Java/verify-finger
+  api_call: verify(reference, candidate)
+  licences: FingerMatcher,FingerExtractor
+  trial_mode: true
+
+  # The one value we set, and why. Not because LOW is more accurate — nobody
+  # here has measured that, and Stage 11B is forbidden from finding out
+  # (spec section 9).
+  configured:
+    Fingers.MatchingSpeed: LOW
+
+  # The official sample's own threshold, kept so its route is reproduced byte
+  # for byte, and then ignored: the score is read under MATCH_NOT_FOUND as well
+  # as OK, which is what makes the number independent of it (spec section 10).
+  official_sample_matching_threshold: 48
+  decision_threshold_produced_by_fpbench: false
+  decision_returned_to_fpbench: false
+
+  # Read before anything is configured, and refused rather than corrected if any
+  # of them differs. These were read out of a running engine by Stage 11A; not
+  # one of them was chosen here (spec section 8).
+  expected_delivered_defaults:
+    Fingers.TemplateSize: LARGE
+    Fingers.ExtractionScenario: "0"
+    Fingers.FastExtraction: "false"
+    Fingers.QualityThreshold: "40"
+    Fingers.MinimalMinutiaCount: "10"
+    Fingers.DetectTips: "false"
+    Fingers.DetectLiveness: "false"
+    Fingers.LivenessConfidenceThreshold: "0"
+    Fingers.MaximalRotation: "180.0"
+    Matching.Scenario: "0"
+
+# ---------------------------------------------------------------------------
+# Inputs. The canonical set enters as it stands.
+# ---------------------------------------------------------------------------
+inputs:
+  required_effective_ppi: 500
+  preparation_set_id: prepset_be560e047991
+  transform_profile_id: canonical_gray8_500ppi_lanczos3_v1
+
+  # What this route may never do to a pixel. The SDK's own internal processing
+  # is the SDK's business; none of the below happens in fpbench (spec section 6).
+  forbidden_preprocessing:
+    - crop
+    - resize
+    - rotate
+    - enhance
+    - roi_selection
+    - histogram_transform
+    - external_minutiae_extraction
+
+  # Setting DPI metadata is not resizing, and this route does neither: the
+  # canonical PNGs already declare 500 ppi in their own pHYs chunk, and the
+  # bridge records the resolution the engine actually saw (spec section 7).
+  dpi_policy: declared_by_the_image_and_required_by_the_request
+  pixels_modified: 0
+
+# ---------------------------------------------------------------------------
+# Pair orientation. Frozen, whatever Stage 11A observed about symmetry.
+# ---------------------------------------------------------------------------
+pairs:
+  left: reference
+  right: candidate
+  reversal_permitted: false
+  maximum_of_both_orderings_permitted: false
+  average_of_both_orderings_permitted: false
+  path_sorting_permitted: false
+
+  # Including when the two paths name the same file (spec section 14).
+  self_independent_sides: true
+
+# ---------------------------------------------------------------------------
+# The score contract.
+# ---------------------------------------------------------------------------
+score:
+  direction: higher_is_better
+  native_score_type: java_int
+  score_scale: vendor_native_claimed_far_scale
+  score_transformation_by_fpbench: none
+  serialization: exact_int_to_float64
+  score_bearing_statuses: [OK, MATCH_NOT_FOUND]
+
+  far_computed_by_fpbench: false
+  normalized: false
+  clamped: false
+  calibrated: false
+  failure_scored_as_zero: false
+
+# ---------------------------------------------------------------------------
+# The runtime closure, and the three checks over it (spec sections 16 and 19).
+# ---------------------------------------------------------------------------
+runtime_closure:
+  manifest: configs/verifinger/verifinger_runtime_manifest_v1.json
+  native_libraries: 7
+  model_data_files: 2
+  classpath_jars: 8
+  components: 17
+
+  before_the_run: full_sha256_of_every_component
+  during_the_run: cheap_identity_check_before_every_comparison
+  after_the_run: full_sha256_of_every_component
+  provenance: every_component_reread_from_the_pinned_sdk_archive
+
+  drift_response: stop_the_run
+  drift_is_never_a_stored_biometric_failure: true
+
+# ---------------------------------------------------------------------------
+# What may not cross into the bridge (spec section 5).
+# ---------------------------------------------------------------------------
+forbidden_inputs:
+  - expected_decision
+  - finger_position
+  - flx_score
+  - ground_truth
+  - mated
+  - nbis_score
+  - pair_id
+  - pair_kind
+  - protocol_stage
+  - release
+  - sourceafis_score
+  - stage
+  - subject_id
+  - threshold
+
+# ---------------------------------------------------------------------------
+# What may not leave this stage (spec sections 33, 35 and 36).
+# ---------------------------------------------------------------------------
+reporting:
+  operational_summary: true
+  biometric_metrics: false
+  score_statistics: false
+  score_export: false
+  threshold_produced: false
+  calibration_performed: false
+  algorithm_ranking: false

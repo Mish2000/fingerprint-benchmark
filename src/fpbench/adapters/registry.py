@@ -147,3 +147,13 @@ def _ensure_builtin_adapters() -> None:
         from fpbench.adapters.nbis.adapter import NbisAdapter
 
         register_adapter("nbis_mindtct_bozorth3_subprocess", NbisAdapter.from_config)
+
+    if "verifinger_java_subprocess" not in ADAPTERS:
+        # Registering it requires neither Java, nor a licence, nor 4.7 GB of
+        # vendor SDK. The adapter reports its own environment as UNAVAILABLE
+        # when the installation, the licence or the bridge jar is missing, so
+        # listing the registry stays cheap on a machine that has none of them —
+        # which is every CI runner, by design (spec section 37).
+        from fpbench.adapters.verifinger_java.adapter import VeriFingerJavaAdapter
+
+        register_adapter("verifinger_java_subprocess", VeriFingerJavaAdapter.from_config)

@@ -88,6 +88,7 @@ __all__ = [
     "loaded_component_fingerprint",
     "inputs_fingerprint",
     "write_fixtures",
+    "write_vendor_fallback_fixtures",
     "run_qualification",
     "main",
 ]
@@ -470,6 +471,51 @@ def write_fixtures(directory: Path) -> tuple[Path, ...]:
     return (a, b, blank, invalid, unsupported)
 
 
+#: Upstream's own tutorial inputs, inside the pinned archive. The named fallback
+#: for a synthetic fixture the extractor will not accept (spec section 39).
+#:
+#: They stay in the local artifact store like every other vendor byte, and the
+#: repository's byte guard refuses them by digest and by the archive-tree path
+#: they carry.
+_VENDOR_SAMPLE_MEMBERS = (
+    (
+        "vendor_a.png",
+        f"{_ARCHIVE_ROOT}Tutorials/Biometrics/Android/"
+        "biometrics-tutorials-android/src/main/assets/input/finger1.png",
+    ),
+    (
+        "vendor_b.png",
+        f"{_ARCHIVE_ROOT}Tutorials/Biometrics/Android/"
+        "biometrics-tutorials-android/src/main/assets/input/finger2.png",
+    ),
+)
+
+
+def write_vendor_fallback_fixtures(
+    directory: Path, *, repository_root: Path | None = None
+) -> dict[str, str]:
+    """Place upstream's own sample fingerprints beside the synthetic ones.
+
+    Extracted from the pinned archive rather than downloaded, so they are covered
+    by the archive digest the record already binds. The harness uses them only
+    when the synthetic pair will not extract, and records which kind it used.
+
+    Returns:
+        The digest of each sample, for the record to carry.
+    """
+    store = artifact_store_prefix_path(repository_root=repository_root)
+    archive = store / SDK_ARCHIVE.filename
+    digests: dict[str, str] = {}
+    directory.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(archive) as handle:
+        for name, member in _VENDOR_SAMPLE_MEMBERS:
+            target = directory / name
+            with handle.open(member) as source, target.open("wb") as sink:
+                shutil.copyfileobj(source, sink)
+            digests[name] = _digest_of(target)
+    return digests
+
+
 # ------------------------------------------------------------------ the run
 
 
@@ -613,6 +659,9 @@ def run_qualification(
     store_path = artifact_store_prefix_path(repository_root=repository_root)
     fixtures = store_path / "fixtures"
     write_fixtures(fixtures)
+    vendor_digests = write_vendor_fallback_fixtures(
+        fixtures, repository_root=repository_root
+    )
     classes = store_path / "harness-classes"
     classes.mkdir(parents=True, exist_ok=True)
 
@@ -710,6 +759,7 @@ def run_qualification(
         fourth,
         repository_root=repository_root,
     )
+    record["vendor_sample_digests"] = vendor_digests
     missing = sorted(
         {name for name, _ in FAILURE_SEMANTICS_CAUSES}
         - {
@@ -843,7 +893,9 @@ def _build_record(
         "qualification_scores_produced": min(produced, QUALIFICATION_RUN_MAX_SCORES),
         "benchmark_scores_produced": 0,
         "sd300_used": False,
-        "fixture_kind": "SYNTHETIC_RIDGE_LIKE",
+        "fixture_kind": first.get("fixture_kind") or "SYNTHETIC_RIDGE_LIKE",
+        "synthetic_pair_status": first.get("synthetic_pair_status"),
+        "vendor_pair_status": first.get("vendor_pair_status"),
     }
 
 

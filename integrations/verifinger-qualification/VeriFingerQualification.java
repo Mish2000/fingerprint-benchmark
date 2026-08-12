@@ -95,6 +95,11 @@ public final class VeriFingerQualification {
     private static long verifyCount = 0L;
     private static int scoresProduced = 0;
 
+    /** The status of the last comparison, so a pair that produced no score can
+     *  say *why* rather than only that it did not. Without this a fixture the
+     *  extractor rejects looks exactly like a route that cannot be qualified. */
+    private static String lastStatus = "none";
+
     private static final Map<String, Object> REPORT = new LinkedHashMap<>();
 
     public static void main(String[] args) {
@@ -181,6 +186,16 @@ public final class VeriFingerQualification {
                 return;
             }
 
+            // --- delivered runtime defaults, BEFORE anything is configured ----
+            // Order matters and this order is the correct one. A "delivered
+            // runtime default" is what the engine holds before anybody touches
+            // it; reading after configuring would report our own setting back to
+            // us under the name of the vendor's default, for whichever settings
+            // the authoritative sample happens to set.
+            REPORT.put("stage", "reading-defaults");
+            REPORT.put("delivered_extraction_defaults", readParameters(client, EXTRACTION_PARAMETERS));
+            REPORT.put("delivered_matching_defaults", readParameters(client, MATCHING_PARAMETERS));
+
             // --- what the authoritative sample sets, and only that ------------
             REPORT.put("stage", "configuration");
             client.setFingersMatchingSpeed(NMatchingSpeed.LOW);
@@ -189,18 +204,46 @@ public final class VeriFingerQualification {
             });
             REPORT.put("threshold_set_by_this_pass", false);
 
-            // --- delivered runtime defaults ----------------------------------
-            REPORT.put("stage", "reading-defaults");
-            REPORT.put("delivered_extraction_defaults", readParameters(client, EXTRACTION_PARAMETERS));
-            REPORT.put("delivered_matching_defaults", readParameters(client, MATCHING_PARAMETERS));
-
             long startupNanos = System.nanoTime() - startedAt;
 
-            File a = new File(fixtures, "fixture_a.png");
-            File b = new File(fixtures, "fixture_b.png");
             File blank = new File(fixtures, "fixture_blank.png");
             File invalid = new File(fixtures, "fixture_invalid.png");
             File unsupported = new File(fixtures, "fixture_unsupported.dat");
+
+            // --- choose the fixture pair -------------------------------------
+            // Synthetic first, and upstream's own sample only if the synthetic
+            // pair will not extract. That order is the specification's: a
+            // fixture this project generated is preferable because it is
+            // certainly not anybody's finger, and a vendor sample is the named
+            // fallback for exactly this case (spec section 39).
+            REPORT.put("stage", "fixture-selection");
+            File a = new File(fixtures, "fixture_a.png");
+            File b = new File(fixtures, "fixture_b.png");
+            String probe = scoreDigest(client, a, b);
+            String syntheticStatus = lastStatus;
+            REPORT.put("synthetic_pair_status", syntheticStatus);
+            String fixtureKind = "SYNTHETIC_RIDGE_LIKE";
+            if (probe == null) {
+                File vendorA = new File(fixtures, "vendor_a.png");
+                File vendorB = new File(fixtures, "vendor_b.png");
+                if (!vendorA.isFile() || !vendorB.isFile()) {
+                    throw new IllegalStateException(
+                        "the synthetic pair produced no score (" + syntheticStatus
+                            + ") and no vendor sample fixture is present");
+                }
+                a = vendorA;
+                b = vendorB;
+                probe = scoreDigest(client, a, b);
+                REPORT.put("vendor_pair_status", lastStatus);
+                if (probe == null) {
+                    throw new IllegalStateException(
+                        "neither the synthetic pair (" + syntheticStatus
+                            + ") nor upstream's own sample pair (" + lastStatus
+                            + ") produced a score");
+                }
+                fixtureKind = "VENDOR_OFFICIAL_SAMPLE";
+            }
+            REPORT.put("fixture_kind", fixtureKind);
 
             // --- pair orientation: both orderings ----------------------------
             REPORT.put("stage", "pair-orientation");
@@ -208,7 +251,8 @@ public final class VeriFingerQualification {
             String reverse = scoreDigest(client, b, a);
             if (forward == null || reverse == null) {
                 throw new IllegalStateException(
-                    "a fixture pair produced no score, so the route cannot be qualified");
+                    "a fixture pair scored once and then did not, which is a "
+                        + "nondeterminism finding: " + lastStatus);
             }
             Map<String, Object> orientation = new LinkedHashMap<>();
             orientation.put("orderings_scored", 2);
@@ -345,7 +389,10 @@ public final class VeriFingerQualification {
         Map<String, String> values = new LinkedHashMap<>();
         for (String name : names) {
             try {
-                Object value = client.getProperty(name, Object.class);
+                // The one-argument overload. The two-argument form takes the
+                // type to cast to and throws ClassCastException for Object,
+                // so asking for Object asked for the one thing it cannot do.
+                Object value = client.getProperty(name);
                 values.put(name, value == null ? "null" : String.valueOf(value));
             } catch (Throwable unreadable) {
                 // A parameter the delivered package does not expose is recorded
@@ -373,6 +420,7 @@ public final class VeriFingerQualification {
             verifyNanos += System.nanoTime() - started;
             verifyCount += 1;
 
+            lastStatus = String.valueOf(status);
             if (status != NBiometricStatus.OK && status != NBiometricStatus.MATCH_NOT_FOUND) {
                 return null;
             }
@@ -380,6 +428,7 @@ public final class VeriFingerQualification {
             scoresProduced += 1;
             return sha256(Integer.toString(score));
         } catch (Throwable failed) {
+            lastStatus = failed.getClass().getSimpleName();
             return null;
         } finally {
             if (referenceSubject != null) referenceSubject.dispose();

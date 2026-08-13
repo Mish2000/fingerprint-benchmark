@@ -1,0 +1,48 @@
+{
+  "schema": "stage_11b_canonical_run_binding_v1",
+  "experiment_id": "verifinger_canonical500_full_v1",
+  "run_id": "run_52731bb3407e",
+  "run_fingerprint": "52731bb3407e7a08748b1080d6935b15936342f55a5b24007be2bd6b93da12ca",
+  "plan_id": "plan_0a66249b7412",
+  "plan_fingerprint": "0a66249b7412c47d660afa31322773a1b314bbe13b696276fbe0ae27633be8bd",
+  "algorithm_fingerprint": "efd1e696630e32ac9a5e72adae35fb8529cce1ad3fb04a7bd5da5d53930299a3",
+  "environment_fingerprint": "6b155dc9c92afe6fc823ecc9f585d1e981cbe09572f851a5e61a42536547d9ea",
+  "reference": {
+    "run_id": "run_4c59fa02a6ab",
+    "plan_id": "plan_b4ae66e91923",
+    "result_set_id": "resultset_087b084fb8a8",
+    "cohort_id": "sd300_50_subjects_test_22f8d52a7478",
+    "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b"
+  },
+  "preparation": {
+    "set_id": "prepset_be560e047991",
+    "set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+    "transform_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+    "transform_profile_fingerprint": "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373",
+    "transform_runtime_fingerprint": "31a0a4346a3dd07843513cc1de5b167d8f2795b230a82bac709913032b74579c",
+    "target_ppi": 500
+  },
+  "alignment_fingerprint": "b4555a6d2dc86e022c5fd1dddfadc79530d0069e49144e577aa95f09e54d39f0",
+  "alignment_is_clean": null,
+  "expected": {
+    "jobs": 6000,
+    "releases": [
+      "SD300A",
+      "SD300B",
+      "SD300C"
+    ],
+    "pairs_per_release": 2000,
+    "pairs_per_stage": 1500,
+    "pairs_per_release_stage": 500,
+    "subjects": 50,
+    "participating_images": 3000,
+    "source_ppi": {
+      "SD300A": 500,
+      "SD300B": 1000,
+      "SD300C": 2000
+    }
+  },
+  "pairs_regenerated": false,
+  "images_materialised": 0,
+  "prior_algorithm_scores_read": false
+}

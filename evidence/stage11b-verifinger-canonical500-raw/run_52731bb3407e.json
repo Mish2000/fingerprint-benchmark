@@ -1,0 +1,63 @@
+{
+  "schema_version": "3",
+  "source_commit": "b4ab0df6e15afdc9333094aa0193b7ba590c22e8",
+  "source_tree_clean": true,
+  "dataset_id": "sd300",
+  "cohort_id": "sd300_50_subjects_test_22f8d52a7478",
+  "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "run_id": "run_52731bb3407e",
+  "run_fingerprint": "52731bb3407e7a08748b1080d6935b15936342f55a5b24007be2bd6b93da12ca",
+  "plan_id": "plan_0a66249b7412",
+  "plan_fingerprint": "0a66249b7412c47d660afa31322773a1b314bbe13b696276fbe0ae27633be8bd",
+  "environment_fingerprint": "6b155dc9c92afe6fc823ecc9f585d1e981cbe09572f851a5e61a42536547d9ea",
+  "integration_id": "verifinger_2025_2_1to1_research_v1",
+  "integration_fingerprint": "d593deaf0c12b91a9db17943202e387ea9702f3fccc4958a769dc9cceed52d24",
+  "runtime_bundle_id": "runtime_02a0938cfe92",
+  "runtime_bundle_fingerprint": "02a0938cfe92f63faa4f68bd874b8f6975a63fb0bec2d2163819ab9519826d90",
+  "runtime_asset_sha256s": {
+    "verifinger_bridge_jar": "08a5e37bb5b2b6e32af0a2a3cba117096116aeee0585d98756669c0dde3bf6fc",
+    "verifinger_runtime_manifest": "e02c43c6e601c4b8e230b8ec06f2433f1bb71645ae89b1e8c740d922bf79ec91",
+    "verifinger_runtime_policy": "eaf1cc11130045e5bebe3377e6d9b719c97375644097929fb0cafb3f3bffd034"
+  },
+  "result_set_id": "resultset_960baecb83b8",
+  "result_set_fingerprint": "960baecb83b870b09358bf9dfdea2bb4ef6f1eaf4f12b6782bc45c0ad577b787",
+  "audit_fingerprint": "7fbefd9d7417204cfc61ada8e4fa40d3570717a2662f8bd63ad689b81acc1a6d",
+  "algorithm_validation_fingerprint": "9937d626d02c592381823d67835f0a044ab6a0b305af16a93286456274d7f9ac",
+  "completion_id": "completion_5d6f6c2d9891",
+  "completion_fingerprint": "5d6f6c2d989157951c1021a1c2840377a0130e54488d1022c3127fbd191d34a5",
+  "planned_jobs": 6000,
+  "stored_results": 6000,
+  "success_count": 5919,
+  "algorithmic_failure_count": 81,
+  "blocking_failure_count": 0,
+  "preparation_set_id": "prepset_be560e047991",
+  "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+  "transform_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+  "transform_profile_fingerprint": "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373",
+  "transform_runtime_fingerprint": "31a0a4346a3dd07843513cc1de5b167d8f2795b230a82bac709913032b74579c",
+  "failure_counts": {
+    "template_extraction_failed": 81
+  },
+  "release_counts": {
+    "SD300A": 2000,
+    "SD300B": 2000,
+    "SD300C": 2000
+  },
+  "stage_counts": {
+    "plain_roll_mated": 1500,
+    "plain_roll_non_mated": 1500,
+    "plain_self": 1500,
+    "roll_self": 1500
+  },
+  "timing_summary": {
+    "adapter_ms.count": "6000",
+    "adapter_ms.min": "1257.717",
+    "adapter_ms.median": "1774.825",
+    "adapter_ms.p95": "1960.944",
+    "adapter_ms.p99": "2050.601",
+    "adapter_ms.max": "3652.245",
+    "wall_clock_span_seconds": "10593.7"
+  },
+  "statement": "This receipt proves execution completeness and provenance. It contains no biometric performance conclusion.",
+  "created_utc": "2026-08-13T07:03:29.869515+00:00"
+}

@@ -1,0 +1,101 @@
+{
+  "schema": "verifinger_algorithm_profile_v1",
+  "algorithm_id": "verifinger_1to1",
+  "display_name": "VeriFinger 2025.2 1:1 Verification",
+  "adapter_id": "verifinger_java_subprocess",
+  "adapter_version": "1",
+  "implementation_version": "2025.2",
+  "vendor": "Neurotechnology",
+  "algorithm_slot": "algorithm_4",
+  "stage11a": {
+    "finalization_fingerprint": "f8228072e0dc6d016e191ab5356d1d65748ba62caa4768dfb21650f78a0b3a7b",
+    "outcome": "VERIFINGER_PREFLIGHT_PASS",
+    "selected_candidate": "neurotechnology_verifinger_2025_2_1to1"
+  },
+  "pipeline": {
+    "family_id": "verifinger",
+    "pipeline_kind": "end_to_end_image_matcher",
+    "extractor_id": "verifinger_finger_extractor",
+    "extractor_version": "2025.2",
+    "matcher_id": "verifinger_finger_matcher",
+    "matcher_version": "2025.2",
+    "implementation_language": "native_via_official_java_binding",
+    "integration_mode": "subprocess_per_comparison",
+    "input_mode": "canonical_gray8_500ppi",
+    "dpi_policy": "require_declared_500_ppi_both_sides",
+    "probe_side": "left",
+    "template_cache": "disabled",
+    "template_persistence": "disabled",
+    "seed_usage": "ignored_route_is_deterministic",
+    "vendor": "Neurotechnology",
+    "probe_role": "left_as_reference",
+    "score_cache": "disabled",
+    "bridge_protocol": "fpbench.verifinger.bridge.v1",
+    "bridge_version": "1",
+    "platform": "windows/x86_64",
+    "stage11a_fingerprint": "f8228072e0dc6d016e191ab5356d1d65748ba62caa4768dfb21650f78a0b3a7b"
+  },
+  "score": {
+    "direction": "higher_is_better",
+    "native_score_type": "java_int",
+    "score_scale": "vendor_native_claimed_far_scale",
+    "score_transformation_by_fpbench": "none",
+    "serialization": "exact_int_to_float64",
+    "score_bearing_statuses": [
+      "OK",
+      "MATCH_NOT_FOUND"
+    ],
+    "far_computed_by_fpbench": false,
+    "normalized": false,
+    "clamped": false,
+    "calibrated": false
+  },
+  "inputs": {
+    "required_effective_ppi": 500,
+    "required_extraction_count": 2,
+    "preprocessing_by_fpbench": "none",
+    "forbidden_inputs": [
+      "expected_decision",
+      "finger_position",
+      "flx_score",
+      "ground_truth",
+      "mated",
+      "nbis_score",
+      "pair_id",
+      "pair_kind",
+      "protocol_stage",
+      "release",
+      "sourceafis_score",
+      "stage",
+      "subject_id",
+      "threshold"
+    ]
+  },
+  "runtime": {
+    "expected_defaults": {
+      "Fingers.TemplateSize": "LARGE",
+      "Fingers.ExtractionScenario": "0",
+      "Fingers.FastExtraction": "false",
+      "Fingers.QualityThreshold": "40",
+      "Fingers.MinimalMinutiaCount": "10",
+      "Fingers.DetectTips": "false",
+      "Fingers.DetectLiveness": "false",
+      "Fingers.LivenessConfidenceThreshold": "0",
+      "Fingers.MaximalRotation": "180.0",
+      "Matching.Scenario": "0"
+    },
+    "configured_settings": {
+      "Fingers.MatchingSpeed": "LOW",
+      "Matching.Threshold": "48"
+    },
+    "official_sample_matching_threshold": 48,
+    "decision_threshold_produced_by_fpbench": false,
+    "operating_system": "windows",
+    "architecture": "x86_64",
+    "native_library_directory": "Bin/Win64_x64",
+    "minimum_java_major": 17,
+    "bridge_protocol": "fpbench.verifinger.bridge.v1",
+    "bridge_version": "1"
+  },
+  "algorithm_profile_fingerprint": "9f1cd6c5746716d4c9dec4aab09b021ca0a68ee4c4831c2b12452cc480cdbaa4"
+}

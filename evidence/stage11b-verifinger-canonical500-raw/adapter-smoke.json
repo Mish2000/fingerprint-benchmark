@@ -1,0 +1,89 @@
+{
+  "schema": "stage_11b_production_adapter_smoke_v1",
+  "outcome": "PASS",
+  "algorithm_id": "verifinger_1to1",
+  "adapter_id": "verifinger_java_subprocess",
+  "implementation_version": "2025.2",
+  "environment_status": "ready",
+  "fixture_kind": "VENDOR_OFFICIAL_SAMPLE",
+  "fixtures_are_sd300": false,
+  "sd300_used": false,
+  "benchmark_scores_produced": 0,
+  "scores_produced": 5,
+  "scores_permitted": 20,
+  "runtime_manifest_fingerprint": "0f2aed19753c71ffb9981f187790a5f861ddc949d32dc63d6258c4a1ef45404d",
+  "algorithm_profile_fingerprint": "9f1cd6c5746716d4c9dec4aab09b021ca0a68ee4c4831c2b12452cc480cdbaa4",
+  "claims": {
+    "bad_fixture_is_a_structured_failure_with_no_score": true,
+    "both_orderings_run": true,
+    "environment_ready": true,
+    "every_success_carries_two_extractions": true,
+    "restart_reproduces_the_same_score": true,
+    "same_pair_twice_same_score": true,
+    "self_produces_a_score_from_two_independent_sides": true,
+    "vendor_fixture_pair_scores": true
+  },
+  "cases": [
+    {
+      "case": "forward",
+      "left_fixture": "vendor_a.png",
+      "right_fixture": "vendor_b.png",
+      "status": "success",
+      "score": 2,
+      "engine_status": "MATCH_NOT_FOUND",
+      "extraction_count": 2,
+      "elapsed_seconds": 1.703
+    },
+    {
+      "case": "forward_repeated",
+      "left_fixture": "vendor_a.png",
+      "right_fixture": "vendor_b.png",
+      "status": "success",
+      "score": 2,
+      "engine_status": "MATCH_NOT_FOUND",
+      "extraction_count": 2,
+      "elapsed_seconds": 1.719
+    },
+    {
+      "case": "reversed",
+      "left_fixture": "vendor_b.png",
+      "right_fixture": "vendor_a.png",
+      "status": "success",
+      "score": 2,
+      "engine_status": "MATCH_NOT_FOUND",
+      "extraction_count": 2,
+      "elapsed_seconds": 1.781
+    },
+    {
+      "case": "self",
+      "left_fixture": "vendor_a.png",
+      "right_fixture": "vendor_a.png",
+      "status": "success",
+      "score": 2908,
+      "engine_status": "OK",
+      "extraction_count": 2,
+      "elapsed_seconds": 1.844
+    },
+    {
+      "case": "bad_fixture",
+      "left_fixture": "vendor_a.png",
+      "right_fixture": "fixture_blank.png",
+      "status": "failure",
+      "engine_status": "BAD_OBJECT",
+      "failure_code": "template_extraction_failed",
+      "failure_stage": "extraction",
+      "elapsed_seconds": 1.843
+    },
+    {
+      "case": "restart",
+      "left_fixture": "vendor_a.png",
+      "right_fixture": "vendor_b.png",
+      "status": "success",
+      "score": 2,
+      "engine_status": "MATCH_NOT_FOUND",
+      "extraction_count": 2,
+      "elapsed_seconds": 1.781
+    }
+  ],
+  "performed_utc": "2026-08-12T17:29:19Z"
+}

@@ -1,0 +1,91 @@
+{
+  "schema": "stage_11b_adapter_profile_v1",
+  "adapter_id": "verifinger_java_subprocess",
+  "adapter_version": "1",
+  "adapter_contract_version": "1",
+  "integration_id": "verifinger_2025_2_1to1_research_v1",
+  "integration_mode": "subprocess_per_comparison",
+  "runtime_asset_roles": [
+    "verifinger_bridge_jar",
+    "verifinger_runtime_manifest",
+    "verifinger_runtime_policy"
+  ],
+  "primary_runtime_asset_role": "verifinger_bridge_jar",
+  "runtime_assets_are_all_fpbench_owned": true,
+  "conformance": {
+    "contract": "FingerprintAlgorithmAdapter contract v1",
+    "same_contract_as_sourceafis_and_nbis": true,
+    "special_contract_for_a_commercial_sdk": false
+  },
+  "inputs": {
+    "required_effective_ppi": 500,
+    "preprocessing_by_fpbench": "none",
+    "pixels_modified": 0,
+    "forbidden_inputs": [
+      "expected_decision",
+      "finger_position",
+      "flx_score",
+      "ground_truth",
+      "mated",
+      "nbis_score",
+      "pair_id",
+      "pair_kind",
+      "protocol_stage",
+      "release",
+      "sourceafis_score",
+      "stage",
+      "subject_id",
+      "threshold"
+    ]
+  },
+  "pairs": {
+    "left": "reference",
+    "right": "candidate",
+    "reversal_permitted": false,
+    "maximum_of_both_orderings_permitted": false,
+    "average_of_both_orderings_permitted": false,
+    "path_sorting_permitted": false,
+    "self_independent_sides": true,
+    "extractions_per_comparison": 2
+  },
+  "failure_classification": {
+    "bridge_code_to_fpbench_code": {
+      "bridge_failure": "internal_error",
+      "engine_error": "internal_error",
+      "engine_timeout": "timeout",
+      "extraction_failed": "template_extraction_failed",
+      "image_decode_failed": "image_decode_failed",
+      "input_unreadable": "input_invalid",
+      "invalid_request": "internal_error",
+      "licence_not_obtained": "dependency_missing",
+      "runtime_defaults_mismatch": "internal_error",
+      "runtime_unavailable": "dependency_missing",
+      "unclassified_engine_status": "no_score",
+      "unsupported_resolution": "unsupported_resolution"
+    },
+    "algorithm_outcomes": [
+      "template_extraction_failed"
+    ],
+    "infrastructure_failures": [
+      "dependency_missing",
+      "image_decode_failed",
+      "input_invalid",
+      "internal_error",
+      "matching_failed",
+      "no_score",
+      "process_crashed",
+      "quality_rejected",
+      "timeout",
+      "unsupported_resolution"
+    ],
+    "failure_scored_as_zero": false,
+    "unknown_code_is_a_contract_violation_not_a_guess": true
+  },
+  "score": {
+    "direction": "higher_is_better",
+    "native_score_type": "java_int",
+    "serialization": "exact_int_to_float64",
+    "transformation_by_fpbench": "none",
+    "decision_returned_to_fpbench": false
+  }
+}

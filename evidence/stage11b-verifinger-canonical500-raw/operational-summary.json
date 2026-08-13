@@ -1,0 +1,66 @@
+{
+  "schema": "stage_11b_operational_summary_v1",
+  "experiment_id": "verifinger_canonical500_full_v1",
+  "run_id": "run_52731bb3407e",
+  "plan_id": "plan_0a66249b7412",
+  "attempts": {
+    "comparison_attempts": 6000,
+    "expected": 6000,
+    "missing": 0
+  },
+  "outcomes": {
+    "score_successes": 5919,
+    "algorithm_failures": 81,
+    "infrastructure_failures": 0,
+    "failure_codes": {
+      "template_extraction_failed": 81
+    },
+    "engine_statuses": {
+      "BAD_OBJECT": 81,
+      "MATCH_NOT_FOUND": 1477,
+      "OK": 4442
+    }
+  },
+  "operations": {
+    "logical_extractions": 12000,
+    "verify_invocations": 6000,
+    "jvm_processes": 6000,
+    "representation_cache": "disabled",
+    "score_cache": "disabled"
+  },
+  "counts": {
+    "by_release": {
+      "SD300A": 2000,
+      "SD300B": 2000,
+      "SD300C": 2000
+    },
+    "by_stage": {
+      "plain_roll_mated": 1500,
+      "plain_roll_non_mated": 1500,
+      "plain_self": 1500,
+      "roll_self": 1500
+    }
+  },
+  "timings": {
+    "adapter_ms": {
+      "count": 6000,
+      "min": 1257.717,
+      "median": 1774.825,
+      "p95": 1960.944,
+      "p99": 2050.601,
+      "max": 3652.245
+    },
+    "wall_clock_span_seconds": 10593.7
+  },
+  "execution": {
+    "sequential": true,
+    "max_workers": 1,
+    "retries": 0,
+    "job_deadline_seconds": 180
+  },
+  "validation_fingerprint": "9937d626d02c592381823d67835f0a044ab6a0b305af16a93286456274d7f9ac",
+  "score_statistics_published": false,
+  "biometric_metrics_published": false,
+  "threshold_produced": false,
+  "calibration_performed": false
+}

@@ -1,0 +1,140 @@
+{
+  "schema": "stage_11b_runtime_binding_v1",
+  "platform": "windows/x86_64",
+  "sdk_archive_sha256": "e30a0b603e453fe0a08157ed2331de71f8a3d3cdc6dcf001df649a36a69bafdc",
+  "runtime_manifest_fingerprint": "0f2aed19753c71ffb9981f187790a5f861ddc949d32dc63d6258c4a1ef45404d",
+  "runtime_policy_id": "stage11b_verifinger_runtime_policy_v1",
+  "runtime_policy_fingerprint": "b0ffc01533bfbb9928d68d97921ed6902aa0d7a084cf77b599fc9fc2b52f21fa",
+  "closure": {
+    "components": 17,
+    "native_libraries": 7,
+    "model_data_files": 2,
+    "classpath_jars": 8,
+    "classpath_order": [
+      "Bin/Java/neurotec-biometrics-client.jar",
+      "Bin/Java/neurotec-biometrics.jar",
+      "Bin/Java/neurotec-core.jar",
+      "Bin/Java/neurotec-devices.jar",
+      "Bin/Java/neurotec-licensing.jar",
+      "Bin/Java/neurotec-media.jar",
+      "Bin/Java/neurotec-media-processing.jar",
+      "Bin/Java/jna.jar"
+    ],
+    "native_library_directory": "Bin/Win64_x64"
+  },
+  "components": [
+    {
+      "role": "model_data_file",
+      "relative_path": "Bin/Data/Fingers.ndf",
+      "size_bytes": 122945738,
+      "sha256": "ecca8454d80820ceed7798d91db400bc84e92d1712adb82428c2c857b0cff2b1"
+    },
+    {
+      "role": "model_data_file",
+      "relative_path": "Bin/Data/FingersMatching.ndf",
+      "size_bytes": 4242028,
+      "sha256": "6c05234db491930118e993baf2c45655c6f8c63266979150336c11adae9ec585"
+    },
+    {
+      "role": "classpath_jar",
+      "relative_path": "Bin/Java/jna.jar",
+      "size_bytes": 1825174,
+      "sha256": "e2bce99e4aefd4dab097019a799d317cb3b5d56c3ddd7984c69a772dceed0dd3"
+    },
+    {
+      "role": "classpath_jar",
+      "relative_path": "Bin/Java/neurotec-biometrics-client.jar",
+      "size_bytes": 59540,
+      "sha256": "3810d714e59cbd7e61ef821fd79109e0a7b3a3eab43a8242ec94aaf6479b73f7"
+    },
+    {
+      "role": "classpath_jar",
+      "relative_path": "Bin/Java/neurotec-biometrics.jar",
+      "size_bytes": 1521353,
+      "sha256": "1ba85cb1512d033e3e9c9383a048112950324e1f77aef8deda84ea9761ab1f97"
+    },
+    {
+      "role": "classpath_jar",
+      "relative_path": "Bin/Java/neurotec-core.jar",
+      "size_bytes": 729966,
+      "sha256": "6457f9d040f2b9bee3bbad8e414f20cccd5c4d3671d62ca3ac2cf91f4ae44760"
+    },
+    {
+      "role": "classpath_jar",
+      "relative_path": "Bin/Java/neurotec-devices.jar",
+      "size_bytes": 224524,
+      "sha256": "d0d0ded5ae22db5527531ab4b18c6a25d1f7b1508524bcb5017176c5442fa741"
+    },
+    {
+      "role": "classpath_jar",
+      "relative_path": "Bin/Java/neurotec-licensing.jar",
+      "size_bytes": 58016,
+      "sha256": "bdb8bb0c6c4a87ad2a613f52dfcb91b8844aa446d7d57f602ca9fa6c78b94e91"
+    },
+    {
+      "role": "classpath_jar",
+      "relative_path": "Bin/Java/neurotec-media-processing.jar",
+      "size_bytes": 41491,
+      "sha256": "a6c6e929f09f2575e5d212549e7fbc54ffeec56eaed363da21b3819cd7fccaf0"
+    },
+    {
+      "role": "classpath_jar",
+      "relative_path": "Bin/Java/neurotec-media.jar",
+      "size_bytes": 286529,
+      "sha256": "b9222097837076ae97a354c5c0ab336017fa918a9d7a802daba9569f6c898dce"
+    },
+    {
+      "role": "native_library",
+      "relative_path": "Bin/Win64_x64/NBiometricClient.dll",
+      "size_bytes": 2886712,
+      "sha256": "15988f0e20bf1f6290fcd81ece7d2581bfa64519973675effa19a6f30f0a0edf"
+    },
+    {
+      "role": "native_library",
+      "relative_path": "Bin/Win64_x64/NBiometrics.dll",
+      "size_bytes": 10459192,
+      "sha256": "d66a702e2b4ffe4b98e737b195a72e5fc72e0e649533555793d77b60d8f20386"
+    },
+    {
+      "role": "native_library",
+      "relative_path": "Bin/Win64_x64/NCore.dll",
+      "size_bytes": 1867320,
+      "sha256": "ecef1f2921283a1e1414285c26872770fa8464545bf29c6f5967f4071e199c1c"
+    },
+    {
+      "role": "native_library",
+      "relative_path": "Bin/Win64_x64/NDevices.dll",
+      "size_bytes": 1148472,
+      "sha256": "850fa246871b5bb45201edf4daa13068bc177704a5842bad8f3a8f991fc3fb2d"
+    },
+    {
+      "role": "native_library",
+      "relative_path": "Bin/Win64_x64/NLicensing.dll",
+      "size_bytes": 4785720,
+      "sha256": "5b129f0031c7333a9eca23f97cf04582f7044de9f1df1f419507d0e44ae628dc"
+    },
+    {
+      "role": "native_library",
+      "relative_path": "Bin/Win64_x64/NMedia.dll",
+      "size_bytes": 5605432,
+      "sha256": "91d6897461df67ab1db3403e2c0a9fa43297a1ae91c726e0b1213b0515544171"
+    },
+    {
+      "role": "native_library",
+      "relative_path": "Bin/Win64_x64/NMediaProc.dll",
+      "size_bytes": 5108792,
+      "sha256": "74873bd1a7694e9c492417da70bc472b87996f7e1131b180d975e893a049e2ab"
+    }
+  ],
+  "guards": {
+    "before_the_run": "full_sha256_of_every_component",
+    "during_the_run": "cheap_identity_check_before_every_comparison",
+    "after_the_run": "full_sha256_of_every_component",
+    "provenance": "every_component_reread_from_the_pinned_sdk_archive",
+    "drift_response": "stop_the_run",
+    "drift_is_never_a_stored_biometric_failure": true
+  },
+  "vendor_bytes_in_git": false,
+  "absolute_paths_published": false,
+  "credentials_published": false
+}

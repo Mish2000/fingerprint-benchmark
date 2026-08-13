@@ -1,0 +1,89 @@
+{
+  "schema": "stage_11b_bridge_contract_v1",
+  "bridge_protocol": "fpbench.verifinger.bridge.v1",
+  "bridge_version": "1",
+  "wire_schema_version": "1",
+  "commands": [
+    "version",
+    "compare"
+  ],
+  "compare_request_fields": [
+    "schema_version",
+    "request_id",
+    "left_image_path",
+    "left_effective_ppi",
+    "right_image_path",
+    "right_effective_ppi"
+  ],
+  "compare_request_forbidden_fields": [
+    "expected_decision",
+    "finger_position",
+    "flx_score",
+    "ground_truth",
+    "mated",
+    "nbis_score",
+    "pair_id",
+    "pair_kind",
+    "protocol_stage",
+    "release",
+    "sourceafis_score",
+    "stage",
+    "subject_id",
+    "threshold"
+  ],
+  "compare_response_forbidden_fields": [
+    "decision",
+    "far",
+    "is_match",
+    "match",
+    "matched",
+    "probability",
+    "threshold"
+  ],
+  "score_bearing_engine_statuses": [
+    "OK",
+    "MATCH_NOT_FOUND"
+  ],
+  "score_is_a_json_integer": true,
+  "extraction_count_is_always": 2,
+  "version_reports": [
+    "bridge_protocol",
+    "bridge_version",
+    "loaded native modules and their versions",
+    "java version, vendor and vm",
+    "operating system and architecture",
+    "delivered runtime defaults",
+    "configured settings",
+    "licence availability"
+  ],
+  "version_never_reports": [
+    "licence key",
+    "machine identifier",
+    "absolute paths",
+    "personal information"
+  ],
+  "route": {
+    "official_sample": "Tutorials/Biometrics/Java/verify-finger",
+    "api_call": "verify(reference, candidate)",
+    "configured_settings": {
+      "Fingers.MatchingSpeed": "LOW",
+      "Matching.Threshold": "48"
+    },
+    "expected_delivered_defaults": {
+      "Fingers.TemplateSize": "LARGE",
+      "Fingers.ExtractionScenario": "0",
+      "Fingers.FastExtraction": "false",
+      "Fingers.QualityThreshold": "40",
+      "Fingers.MinimalMinutiaCount": "10",
+      "Fingers.DetectTips": "false",
+      "Fingers.DetectLiveness": "false",
+      "Fingers.LivenessConfidenceThreshold": "0",
+      "Fingers.MaximalRotation": "180.0",
+      "Matching.Scenario": "0"
+    },
+    "defaults_read_before_anything_is_configured": true,
+    "defaults_mismatch_response": "refuse, never silently correct",
+    "official_sample_matching_threshold": 48,
+    "threshold_used_as_a_decision_by_fpbench": false
+  }
+}

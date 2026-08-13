@@ -1,0 +1,129 @@
+{
+  "schema": "stage_12a_package_manifest_v1",
+  "gate": "PACKAGE_RUNTIME_IDENTITY",
+  "gate_status": "NOT_REACHED",
+  "identity_fields_required": [
+    "exact_product_name",
+    "product_family",
+    "implementation_version",
+    "package_build",
+    "package_filename",
+    "package_size_bytes",
+    "package_sha256",
+    "delivery_channel",
+    "operating_system",
+    "architecture"
+  ],
+  "identity": null,
+  "documentation_obtained": false,
+  "advertised_product_family": "IDKIT_SDK",
+  "advertised_version_indication": "7.6",
+  "advertised_version_is_authoritative": false,
+  "refused_product_families": [
+    "ANSI_ISO_SDK",
+    "IDKIT_MULTI",
+    "ENROLLMENT_SDK",
+    "MOBILE_FINGERS_SDK"
+  ],
+  "binding_selection_criteria": [
+    "version-matched to the delivered package",
+    "supplied by the vendor inside that package",
+    "ships a complete fingerprint 1:1 sample",
+    "exposes every setting that can affect the template or the score",
+    "returns the raw scalar score"
+  ],
+  "selected_binding": null,
+  "vendor_bytes_in_repository": false,
+  "public_observations": [
+    {
+      "observation_id": "product_family_is_distinct_from_ansi_iso",
+      "subject": "which product this candidate is",
+      "locator": "https://support.innovatrics.com/support/solutions/articles/5000662509-what-s-the-difference-between-idkit-sdk-and-ansi-iso-sdk-",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-13",
+      "statement": "IDKit is described as generating the vendor's proprietary fingerprint templates and supporting 1:1 verification as well as 1:N identification, while the ANSI&ISO SDK is described as a separate product for standardised templates supporting only 1:1. IDKit is described as able to export to the standard formats, with import of ANSI&ISO templates into IDKit not supported",
+      "what_it_tells_this_stage_to_check": "that the delivered package resolves to the IDKit family and not to the ANSI&ISO SDK, IDKit Multi, an enrolment SDK or a mobile SDK — and that the compared representation is the proprietary template rather than a standard export chosen because it is easier to handle",
+      "freezes_a_value": false
+    },
+    {
+      "observation_id": "image_input_is_bmp_or_raw",
+      "subject": "the container the SDK accepts",
+      "locator": "https://support.innovatrics.com/support/solutions/articles/5000662525-how-do-i-acquire-images-from-fingerprint-scanners-readers-for-use-in-idkit-",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-13",
+      "statement": "the SDKs are described as fingerprint-scanner independent, and IDKit is described as accepting fingerprint images as BMP or raw images, in memory or in files. PNG is not named",
+      "what_it_tells_this_stage_to_check": "whether the delivered package reads the benchmark's PNG directly. If it does not, the permitted route is a deterministic lossless decode into the identical gray8 matrix and then the official raw buffer API — and the identity of every pixel has to be proved, not assumed",
+      "freezes_a_value": false
+    },
+    {
+      "observation_id": "dpi_is_set_before_extraction",
+      "subject": "when the resolution has to be declared",
+      "locator": "https://support.innovatrics.com/support/solutions/articles/5000662526-why-is-dpi-a-global-setting-how-can-we-use-fingerprints-from-different-sources-",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-13",
+      "statement": "the DPI setting is described as affecting extraction and neither 1:1 verification nor 1:N identification, as needing to be set to the correct value before extraction, and as being remembered by the extracted template so that search is DPI-independent",
+      "what_it_tells_this_stage_to_check": "that the delivered API is told 500 DPI *before* each extraction and not after it. Setting it afterwards would set it for the next template and leave the one already built carrying whatever was in force at the time",
+      "freezes_a_value": false
+    },
+    {
+      "observation_id": "images_are_resampled_to_500_dpi_internally",
+      "subject": "what the SDK does to the pixels by itself",
+      "locator": "https://support.innovatrics.com/support/solutions/articles/5000662532-can-we-match-two-fingerprint-images-with-different-dpi-",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-13",
+      "statement": "input images are described as internally resampled to 500 dpi before template extraction, with the resulting templates using 500 dpi coordinates so they can be matched independently of the input resolution",
+      "what_it_tells_this_stage_to_check": "nothing that fpbench must do. It is the vendor's own internal processing, which is part of the algorithm under test, and at 500 PPI in it is a resample to the resolution the image already has. It is recorded so that a later reader does not mistake it for a resize this project performed",
+      "freezes_a_value": false
+    },
+    {
+      "observation_id": "consolidated_multi_finger_score_exists",
+      "subject": "what a score means when a record holds several fingerprints",
+      "locator": "https://support.innovatrics.com/support/solutions/articles/5000662178-how-is-it-that-the-consolidated-score-is-not-equal-to-maximum-score-and-it-is-entirely-unrelated-to-a",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-13",
+      "statement": "for records holding several fingerprints, the consolidated score is described as grouping the similarity scores by finger position, taking the maximum within each position and summing those maxima across positions, with older versions instead taking a maximum minus a correction that depends on how many fingerprints were compared",
+      "what_it_tells_this_stage_to_check": "the single most dangerous thing about this candidate. A sum of per-position maxima is not a single-finger similarity and cannot be recovered from one, so if the delivered API scores only whole user records, each record must hold exactly one fingerprint — and if that cannot be guaranteed, the extraction and matcher gates fail",
+      "freezes_a_value": false
+    },
+    {
+      "observation_id": "matching_is_not_commutative",
+      "subject": "whether score(A, B) equals score(B, A)",
+      "locator": "https://support.innovatrics.com/support/solutions/articles/5000662513-why-do-i-get-different-score-depending-on-which-way-i-compare-templates-",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-13",
+      "statement": "the matching algorithm is described as not symmetrical and the operation as not commutative, with the outcome depending on which side is the probe and which the gallery",
+      "what_it_tells_this_stage_to_check": "that there is no symmetry to discover and nothing to normalise. The protocol binding — pair.left to probe, pair.right to gallery — is fixed in advance, both orderings are run once in qualification to publish that they can differ, and neither a maximum nor an average of them ever enters a benchmark score",
+      "freezes_a_value": false
+    },
+    {
+      "observation_id": "score_and_threshold_are_separate",
+      "subject": "the shape of the number the matcher returns",
+      "locator": "https://support.innovatrics.com/support/solutions/articles/13000044306-idkit-sdk-verification-score-threshold",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-13",
+      "statement": "the verification score is described on a scale normalised roughly by -10*log10(FAR), with a published correspondence between score levels and false-accept rates, and with the matching decision described as resting on a threshold the integrator chooses rather than on a vendor default. The scale is described as logarithmic and not to be treated as a linear indicator of the match",
+      "what_it_tells_this_stage_to_check": "that the delivered API returns the scalar independently of the decision. A vendor scale that is already a transformation of a FAR is still a raw score and is passed through untouched; what is refused is fpbench applying a second transformation, and reading scores by pushing the threshold to zero",
+      "freezes_a_value": false
+    },
+    {
+      "observation_id": "a_template_size_control_exists",
+      "subject": "settings that can change the template",
+      "locator": "https://support.innovatrics.com/support/solutions/articles/5000662159-what-is-the-template-size-",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-13",
+      "statement": "an IDKit single-finger template is described as under 2 KB typically and 4 KB at most, and a configuration parameter for a maximum template size is described as available to cap it",
+      "what_it_tells_this_stage_to_check": "that a template-size control exists somewhere in the delivered package and has to be found and recorded with its delivered value. It does not tell this stage what to set it to, and no value here may be chosen because it produced fewer failures on this project's fingerprints",
+      "freezes_a_value": false
+    },
+    {
+      "observation_id": "a_valid_license_is_required",
+      "subject": "what the SDK needs before it will run",
+      "locator": "https://support.innovatrics.com/support/solutions/articles/5000662197-how-do-i-deploy-my-application-do-i-have-to-install-and-run-your-licensemanager-",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-13",
+      "statement": "deployment is described as installing the SDK together with a licence manager, with licence installation being a file copy or an in-memory buffer, with a hardware identifier obtainable either programmatically or from the licence manager, and with licences generated through the customer portal or through a documented REST interface",
+      "what_it_tells_this_stage_to_check": "that a licence is a real precondition and that it is bound to a machine. Nothing about it is bypassed, and the harness is built and compiled before any licence is generated, so that a clock is not started to discover a build error. No hardware identifier, licence byte or portal credential ever reaches this repository",
+      "freezes_a_value": false
+    }
+  ]
+}

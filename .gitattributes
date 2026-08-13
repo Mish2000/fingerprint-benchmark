@@ -8,3 +8,4 @@ evidence/stage9a-flare-artifact-qualification/* text eol=lf
 evidence/stage10a-algorithm4-candidate-preflight/** text eol=lf
 evidence/stage10b-id3-finger-sdk-preflight/** text eol=lf
 evidence/stage11a-verifinger-2025_2-preflight/** text eol=lf
+evidence/stage12a-idkit-preflight/** text eol=lf

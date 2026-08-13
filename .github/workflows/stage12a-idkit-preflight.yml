@@ -1,0 +1,304 @@
+name: Stage 12A Innovatrics IDKit preflight
+
+# What this workflow proves, and what it deliberately does not.
+#
+# It runs the whole Stage 12A contract — the provisional candidate identity, the
+# ten hard gates and the order they run in, fail-fast and the pending state that
+# is not a failure, the acquisition state machine and its two refusal states, the
+# single-finger rule against consolidated multi-finger scores, the raw-score
+# requirement and the refused threshold workaround, the settings closure, the
+# frozen pair binding, the qualification harness proved end to end against a fake
+# SDK, the secret guard, the vendor-byte guard, and a marker that can only be
+# IDKIT_PREFLIGHT_PASS or IDKIT_PREFLIGHT_FAIL.
+#
+# All of it is pure Python. There is no dataset here, no torch, no vendor SDK, no
+# licence, no network and no workspace.
+#
+# It activates **nothing** and holds **no credential**. There is no Innovatrics
+# licence, portal login or hardware ID in GitHub Secrets for this stage and there
+# will not be one: the evaluation environment is local, and a licensed credential
+# in a service this project does not control is exactly what this stage refuses.
+# Tests that need a delivered package carry the `idkit_artifact` marker and are
+# not run here.
+#
+# A green tick here does not say an Algorithm 5 exists. At the time of writing it
+# says something narrower and exact: the machinery is in place, the outcome is
+# IDKIT_PREFLIGHT_PENDING_ACCESS, no vendor has been asked and none has refused
+# (docs/adr/0107, docs/adr/0108).
+
+on:
+  push:
+    paths:
+      - "src/fpbench/core/idkit_preflight_errors.py"
+      - "src/fpbench/experiments/stage12a_*.py"
+      - "evidence/stage12a-idkit-preflight/**"
+      - "tests/**stage12a**"
+      # Stage 12A binds Stage 11B as its predecessor and reuses Stage 8E's
+      # policy. A change to either changes what this stage's decisions mean, so
+      # the stage is re-run rather than trusted.
+      - "evidence/stage11b-verifinger-canonical500-raw/**"
+      - "src/fpbench/third_party/**"
+      - "src/fpbench/core/third_party_models.py"
+      - "src/fpbench/core/third_party_errors.py"
+      - "evidence/stage8e-research-only-policy/**"
+      - "docs/adr/010[7-9]*.md"
+      - "docs/adr/011[01]*.md"
+      - "docs/algorithms/algorithm5-candidates/**"
+      - "docs/experiments/stage12a-idkit-preflight.md"
+      - ".github/workflows/**"
+      - ".gitignore"
+      - ".gitattributes"
+      - "pyproject.toml"
+      - "Makefile"
+  pull_request:
+    paths:
+      - "src/fpbench/core/idkit_preflight_errors.py"
+      - "src/fpbench/experiments/stage12a_*.py"
+      - "evidence/stage12a-idkit-preflight/**"
+      - "tests/**stage12a**"
+      - "evidence/stage11b-verifinger-canonical500-raw/**"
+      - "src/fpbench/third_party/**"
+      - "src/fpbench/core/third_party_models.py"
+      - "src/fpbench/core/third_party_errors.py"
+      - "evidence/stage8e-research-only-policy/**"
+      - "docs/adr/010[7-9]*.md"
+      - "docs/adr/011[01]*.md"
+      - "docs/algorithms/algorithm5-candidates/**"
+      - "docs/experiments/stage12a-idkit-preflight.md"
+      - ".github/workflows/**"
+      - ".gitignore"
+      - ".gitattributes"
+      - "pyproject.toml"
+      - "Makefile"
+
+permissions:
+  contents: read
+
+jobs:
+  idkit-preflight-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[dev]"
+
+      - name: The frozen Stage 12A preflight contract
+        run: pytest -m "stage12a_contract" -q
+
+      - name: Committed Stage 12A evidence gate
+        run: pytest -m "stage12a" -q
+
+      - name: The qualification harness, driven end to end against the fake SDK
+        # The one execution this stage can perform without a vendor: every pass,
+        # both orientations, SELF from two extractions, a real process restart,
+        # and three provoked failures. It proves the harness before any licence
+        # clock is ever started (docs/adr/0111).
+        run: |
+          python -m fpbench.experiments.stage12a_qualification fake
+          python - <<'PY'
+          import tempfile
+          from pathlib import Path
+
+          from fpbench.experiments import stage12a_idkit_identity as frozen
+          from fpbench.experiments import stage12a_preflight as engine
+          from fpbench.experiments import stage12a_qualification as harness
+
+          with tempfile.TemporaryDirectory() as scratch:
+              fixtures = harness.build_fixtures(Path(scratch), width=96, height=120)
+              record = harness.run_qualification(
+                  harness.fake_engine_factory,
+                  fixtures,
+                  engine_kind=harness.EngineKind.FAKE_SDK,
+              )
+          assert record.status is frozen.QualificationOutcome.SUCCESS, record.failure_detail
+          assert record.scoring_comparisons <= frozen.QUALIFICATION_MAX_SCORING_COMPARISONS
+          assert all(record.determinism[level] for level in frozen.DETERMINISM_LEVELS)
+          assert record.pair_orientation["score_digests_equal"] is False, (
+              "the fake matcher is asymmetric because the real one is documented to be"
+          )
+          assert engine.qualification_record() is None, (
+              "a fake record answered a gate, which is the one thing it may never do"
+          )
+          print("The harness satisfies its own contract, and its record answers no gate.")
+          PY
+
+      - name: No IDKit package, model or licence material is tracked here
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.experiments.stage12a_preflight import require_no_idkit_bytes_in_git
+          from fpbench.third_party import require_no_third_party_bytes_in_git
+
+          generic = require_no_third_party_bytes_in_git(Path("."))
+          exact = require_no_idkit_bytes_in_git(Path("."))
+          print(
+              f"{generic.tracked_file_count} tracked files scanned against "
+              f"{len(generic.rules)} generic rules and the vendor artifact and "
+              "licence name rules."
+          )
+          print(f"Findings: {len(generic.findings)} generic, {len(exact.findings)} exact.")
+          PY
+
+      - name: No credential is present, and none is published
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          from fpbench.experiments.stage12a_finalization import (
+              require_no_sensitive_published_data,
+          )
+          from fpbench.experiments.stage12a_preflight import find_sensitive_material
+
+          leaked = sorted(
+              name
+              for name in os.environ
+              if ("idkit" in name.lower() or "innovatrics" in name.lower())
+              and any(
+                  part in name.lower()
+                  for part in ("key", "secret", "token", "licen", "password", "hwid")
+              )
+          )
+          assert not leaked, f"the runner carries Innovatrics credentials: {leaked}"
+
+          require_no_sensitive_published_data(Path("."))
+
+          for probe in (
+              {"note": "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"},
+              {"hardware_id": "whatever"},
+              {"path": "/home/someone/packages"},
+          ):
+              assert find_sensitive_material(probe), f"the guard missed {probe}"
+          print("No credential in the environment, none in the evidence, and the guard bites.")
+          PY
+
+      - name: This job has no runtime, no SDK and fetched nothing
+        run: |
+          python - <<'PY'
+          import importlib.util
+
+          for name in ("torch", "torchvision", "numpy", "scipy", "cv2", "sklearn"):
+              assert importlib.util.find_spec(name) is None, f"{name} is installed"
+
+          from fpbench.experiments.stage12a_acquisition import acquisition_state
+
+          state = acquisition_state()
+          assert state.obtained is False, (
+              "a runner has a delivered IDKit package, which means something fetched it"
+          )
+          print(f"No IDKit package and no licence is present here: {state.status.value}. As intended.")
+          PY
+
+      - name: The Stage 12A workflow itself downloads and activates nothing
+        # The tokens are assembled from halves rather than written out, for the
+        # reason every stage since 8E assembles its own: a literal here would
+        # make the check refuse the step that performs it.
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          workflow = Path(
+              ".github/workflows/stage12a-idkit-preflight.yml"
+          ).read_text(encoding="utf-8")
+          body = workflow.split("jobs:", 1)[1]
+          tokens = [
+              "secrets." + "IDKIT",
+              "secrets." + "INNOVATRICS",
+              "licen" + "se_manager",
+              "hardware" + "id",
+              "customer" + "portal.",
+              "w" + "get",
+              "cu" + "rl",
+          ]
+          found = sorted(token for token in tokens if token in body)
+          assert not found, f"the Stage 12A job body names {found}"
+          print(f"None of {len(tokens)} acquisition or activation tokens appears in this job.")
+          PY
+
+      - name: No SD300 path and no prior algorithm's scores are reachable
+        run: |
+          python - <<'PY'
+          import os
+
+          assert not os.environ.get("FPBENCH_SD300_ROOT"), (
+              "the dataset root is set for a stage that must not read it"
+          )
+
+          from fpbench.experiments import stage12a_preflight as engine
+
+          preflight = engine.run_preflight()
+          print(f"{preflight.outcome}")
+          for result in preflight.results:
+              print(f"  {result.gate.value}: {result.status.value}")
+          PY
+
+      - name: The Stage 12A suites skip only what a pending run cannot publish
+        # A suite that quietly skipped would look identical to one that passed.
+        # This stage is the one case where some skips are correct: while the
+        # outcome is pending there is no marker, and the tests that verify one
+        # say so. Every other skip is a failure.
+        run: |
+          pytest -m "stage12a_contract or stage12a" -q -rs 2>&1 | tee /tmp/stage12a.txt
+          python - <<'PY'
+          from pathlib import Path
+
+          report = Path("/tmp/stage12a.txt").read_text(encoding="utf-8")
+          skipped = [
+              line for line in report.splitlines() if line.startswith("SKIPPED")
+          ]
+          for line in skipped:
+              assert "marker" in line or "pending" in line, (
+                  f"a Stage 12A test skipped for a reason that is not the missing "
+                  f"marker: {line}"
+              )
+          print(f"{len(skipped)} skips, every one of them the absent marker of a pending run.")
+          PY
+
+      - name: Stage 11B is immutable and Stage 8E is reused unchanged
+        run: |
+          pytest -m "stage11b_contract or stage11b" -q
+          pytest -m "stage11a_contract or stage11a" -q
+          pytest -m "stage8e_contract or stage8e" -q
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.experiments.stage12a_preflight import (
+              require_stage11b_is_the_closed_predecessor,
+              require_stage8e_is_the_policy_this_reuses,
+          )
+
+          require_stage8e_is_the_policy_this_reuses(Path("."))
+          fingerprint = require_stage11b_is_the_closed_predecessor(Path("."))
+          print(f"Stage 11B is unchanged at {fingerprint}, and it still opens the Algorithm 5 search.")
+          PY
+
+      - name: Regression suites for the prior stages
+        run: |
+          pytest -m "stage10a_contract or stage10a" -q
+          pytest -m "stage10b_contract or stage10b" -q
+          pytest -m "stage9a_contract or stage9a" -q
+          pytest -m "stage8a_contract or stage8a" -q
+          pytest -m "stage8b_contract or stage8b" -q
+          pytest -m "stage8c_contract or stage8c" -q
+          pytest -m "stage8d_contract or stage8d" -q
+          pytest -m "decisions or metrics or imaging or paired_evaluation" -q
+          pytest -m "(adapter_contract or nbis_contract) and not dataset" -q
+
+      - name: The outcome, and what it does and does not say
+        run: |
+          python -m fpbench.experiments.stage12a_finalization status
+          python - <<'PY'
+          print()
+          print("No score was produced here, no package was fetched and no licence was")
+          print("activated. IDKIT_PREFLIGHT_PENDING_ACCESS is not a verdict about IDKit:")
+          print("five official routes were walked, none of them delivers a package to a")
+          print("project without a customer account, and the sixth — a request to the")
+          print("vendor in the maintainer's own name — has not been made. Nobody was")
+          print("refused, because nobody was asked (docs/adr/0108).")
+          PY

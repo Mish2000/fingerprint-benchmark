@@ -1,0 +1,37 @@
+{
+  "schema": "stage_12a_score_contract_v1",
+  "gate": "SINGLE_FINGER_MATCHER_RAW_SCORE",
+  "gate_status": "NOT_REACHED",
+  "requirements": [
+    "exact_api_or_method",
+    "result_field",
+    "numeric_type",
+    "defined_or_observed_range",
+    "direction",
+    "failure_behaviour",
+    "score_bearing_statuses",
+    "threshold_relationship"
+  ],
+  "insufficient_score_shapes": [
+    "MATCH / NO_MATCH",
+    "true / false",
+    "a candidate list filtered by a threshold",
+    "a score returned only above a threshold"
+  ],
+  "refused_threshold_manipulation": "lowering or zeroing the matcher threshold in order to read scores that the API would otherwise withhold",
+  "fpbench_score_transformation": "none",
+  "refused_score_transformations": [
+    "convert to FAR",
+    "take -log FAR again",
+    "rescale to a percentage",
+    "rescale to 0..1",
+    "z-score",
+    "any other normalization",
+    "clamp"
+  ],
+  "observed_contract": null,
+  "raw_score_route_resolved": false,
+  "matcher_settings": [],
+  "unresolved_score_affecting_settings": [],
+  "threshold_belongs_to_a_later_stage": true
+}

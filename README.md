@@ -2153,6 +2153,83 @@ dataset, no SDK, no licence, no JVM and no workspace — with:
 make stage11b-evidence
 ```
 
+## Stage 12A: the Algorithm 5 candidate, and a stage that is allowed to wait
+
+`IDKIT_PREFLIGHT_PENDING_ACCESS`. Stage 11B opened the search for Algorithm 5 and
+Innovatrics IDKit is the first candidate: a commercial fingerprint SDK with 1:1
+verification over images, proprietary templates, 500 dpi internals and a
+similarity score documented separately from the match decision.
+
+**The stage did not fail, and it did not pass.** Innovatrics delivers through a
+customer portal. Five official routes were walked on 2026-08-13 — the developer
+portal, the vendor's public repositories, the legacy CRM (retired by the vendor),
+the current portal (a sign-in page), the learning portal (a course about IDKit
+SDK 7.6) — and none of them hands a package to a project without a customer
+account. The sixth route is a request to the vendor in the maintainer's own name,
+and it has not been made. **Nobody was refused, because nobody was asked.**
+
+That distinction has its own machinery. `PENDING` belongs to exactly one gate, no
+blocker code can be raised by waiting, the acquisition state machine is
+partitioned into four pending states and two refusal states at import time, and
+**no marker is written** — the marker model raises on the pending outcome
+outright (docs/adr/0108). Stage 10B published `FAIL` for a vendor nobody had
+written to, and then spent a paragraph in every document explaining what the word
+did not mean.
+
+```
+G1  ACQUISITION_ACCESS                 PENDING
+G2  PACKAGE_RUNTIME_IDENTITY           not reached
+G3  RESEARCH_USE_AND_LICENSE           not reached
+G4  CANONICAL500_INPUT_ROUTE           not reached
+G5  SINGLE_FINGER_EXTRACTION_PROFILE   not reached
+G6  SINGLE_FINGER_MATCHER_RAW_SCORE    not reached
+G7  SCORE_AFFECTING_SETTINGS_CLOSURE   not reached
+G8  PAIR_SELF_DETERMINISM_FAILURES     not reached
+G9  WORKLOAD_RUNTIME_FEASIBILITY       not reached
+G10 TRAINING_PROVENANCE                not reached
+```
+
+**Nine public statements were retrieved, and none of them freezes a value.** The
+support material is undated, names an `IEngine_*` API from an older generation
+than the advertised 7.6, and points at a portal the vendor has retired.
+`implementation_version` is `UNRESOLVED_UNTIL_PACKAGE`, and `PublicObservation`
+has a `freezes_a_value` field validated to be false — there is no way to record a
+web page as an authority (docs/adr/0110). What the nine statements are is a
+checklist:
+
+- **a consolidated multi-finger score** is the structural risk. IDKit scores a
+  multi-finger record by summing per-position maxima, which is not a single-finger
+  similarity and cannot be recovered from one. Each compared record must hold
+  exactly one fingerprint, or G5 and G6 fail;
+- **the matcher is not commutative**, so there is nothing to normalise:
+  `pair.left → probe` and `pair.right → gallery` are frozen in advance, both
+  orderings are run once in qualification to publish that they differ, and no
+  maximum or average of them enters a score (docs/adr/0109);
+- **the input is BMP or raw**, and this benchmark holds PNGs. A deterministic
+  lossless decode into the identical gray8 matrix is permitted exactly as far as
+  every pixel is proved identical — the decoder is written and the contract suite
+  round-trips it — and a crop, a resize or an enhancement is not.
+
+**The qualification harness exists already, and CI runs it.** Stage 11A spent
+days of a 30-day trial discovering its harness would not compile, so here the
+driver sits behind a four-method engine protocol, a fake SDK implements it, and
+every CI run drives all six passes — both orientations, SELF from two independent
+extractions, a real process restart, three provoked failures, five scoring
+comparisons against a ceiling of twenty. The fake is asymmetric because the real
+matcher is documented to be, and it **can never answer a gate**: every record
+carries an engine kind and the preflight reads only `DELIVERED_SDK`
+(docs/adr/0111).
+
+Details: [the Stage 12A evidence
+report](evidence/stage12a-idkit-preflight/README.md), [the stage
+write-up](docs/experiments/stage12a-idkit-preflight.md) and [the candidate
+record](docs/algorithms/algorithm5-candidates/innovatrics-idkit.md). Verify it —
+with no dataset, no package, no licence and no network — with:
+
+```bash
+make stage12a-evidence
+```
+
 ## Next stage
 
 **Algorithm 4 exists.** Stage 11B ran the canonical 6,000 under VeriFinger
@@ -2166,7 +2243,16 @@ Stage 10B   algorithm 4 candidate — id3 Finger SDK preflight           BLOCKED
 Stage 10C   id3 artifact and runtime integration                       reserved, unopened
 Stage 11A   algorithm 4 candidate — VeriFinger 2025.2 preflight        PASS (17/17)
 Stage 11B   VeriFinger production integration and canonical raw run    COMPLETE (6,000)
+Stage 12A   algorithm 5 candidate — Innovatrics IDKit preflight        PENDING (access)
+Stage 12B   IDKit production integration and canonical raw run         opens only on a PASS
 ```
+
+**Stage 12A is waiting on one act by one person.** Signing in to the Innovatrics
+customer portal and placing the delivered package in the local artifact store
+moves the state to `PACKAGE_OBTAINED`; sending an evaluation request to the
+vendor moves it to `REQUEST_SENT` and then to whatever they reply — including
+`ACCESS_REFUSED`, which would be a finding and would fail G1 honestly. Nothing
+else in the benchmark waits for it.
 
 **What is open, and what is not.** The Stage 11B marker records
 `opens_algorithm_5_search: true` and `opens_common_calibration: false`, and the

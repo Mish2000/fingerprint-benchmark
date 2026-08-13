@@ -70,4 +70,7 @@ markers = [
     "stage11b: the committed Stage 11B VeriFinger canonical500 raw-run evidence gate (no dataset, no runtime and no prior-result workspace)",
     "stage11b_full_run: the Stage 11B workspace — the canonical 6,000 comparisons under VeriFinger (needs the dataset, the pinned SDK, an activated trial licence and the finished SourceAFIS chain)",
     "verifinger_artifact: needs the pinned VeriFinger 2025.2 artifacts in the local third-party store, and for the execution checks an activated trial licence (set FPBENCH_THIRD_PARTY_ROOT); never runs in CI",
+    "stage12a_contract: the frozen Stage 12A Innovatrics IDKit preflight — the provisional candidate identity, the ten hard gates and their order, fail-fast and the pending state that is not a failure, the acquisition state machine and its two refusal states, the single-finger rule against consolidated multi-finger scores, the raw-score requirement and the refused threshold workaround, the setting-provenance vocabulary, the frozen pair binding, the qualification harness proved against a fake SDK, the secret and byte guards and the two-outcome marker (pure Python, synthetic fixtures, no vendor SDK, no licence, no network and no dataset)",
+    "stage12a: the committed Stage 12A IDKit preflight evidence gate (no dataset, no runtime and no prior-result workspace)",
+    "idkit_artifact: needs a delivered Innovatrics IDKit package and an activated licence on this machine (set FPBENCH_THIRD_PARTY_ROOT); never runs in CI",
 ]

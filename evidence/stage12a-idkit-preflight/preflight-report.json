@@ -1,0 +1,174 @@
+{
+  "schema": "stage_12a_preflight_report_v1",
+  "candidate_id": "innovatrics_idkit_fingerprint_1to1",
+  "algorithm_slot": "algorithm_5",
+  "implementation_origin": "VENDOR_OFFICIAL_SDK",
+  "implementation_version": "UNRESOLVED_UNTIL_PACKAGE",
+  "production_algorithm_id_frozen": false,
+  "outcome": "IDKIT_PREFLIGHT_PENDING_ACCESS",
+  "gate_count_defined": 10,
+  "gates_reached": 1,
+  "gates_passed": 0,
+  "stopped_at": null,
+  "paused_at": "ACQUISITION_ACCESS",
+  "failure_class": null,
+  "gates": [
+    {
+      "gate": "ACQUISITION_ACCESS",
+      "status": "PENDING",
+      "summary": "PORTAL_ACCESS_REQUIRED: 6 official routes were walked and none of them delivers a package to a project without a customer account. Nothing was refused",
+      "documents": [
+        "acquisition-status.json"
+      ],
+      "blockers": []
+    },
+    {
+      "gate": "PACKAGE_RUNTIME_IDENTITY",
+      "status": "NOT_REACHED",
+      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "documents": [
+        "package-manifest.json",
+        "runtime-inventory.json"
+      ],
+      "blockers": []
+    },
+    {
+      "gate": "RESEARCH_USE_AND_LICENSE",
+      "status": "NOT_REACHED",
+      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "documents": [
+        "research-use-license.json"
+      ],
+      "blockers": []
+    },
+    {
+      "gate": "CANONICAL500_INPUT_ROUTE",
+      "status": "NOT_REACHED",
+      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "documents": [
+        "input-route.json"
+      ],
+      "blockers": []
+    },
+    {
+      "gate": "SINGLE_FINGER_EXTRACTION_PROFILE",
+      "status": "NOT_REACHED",
+      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "documents": [
+        "fingerprint-route-profile.json"
+      ],
+      "blockers": []
+    },
+    {
+      "gate": "SINGLE_FINGER_MATCHER_RAW_SCORE",
+      "status": "NOT_REACHED",
+      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "documents": [
+        "score-contract.json"
+      ],
+      "blockers": []
+    },
+    {
+      "gate": "SCORE_AFFECTING_SETTINGS_CLOSURE",
+      "status": "NOT_REACHED",
+      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "documents": [],
+      "blockers": []
+    },
+    {
+      "gate": "PAIR_SELF_DETERMINISM_FAILURES",
+      "status": "NOT_REACHED",
+      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "documents": [
+        "qualification-run.json"
+      ],
+      "blockers": []
+    },
+    {
+      "gate": "WORKLOAD_RUNTIME_FEASIBILITY",
+      "status": "NOT_REACHED",
+      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "documents": [],
+      "blockers": []
+    },
+    {
+      "gate": "TRAINING_PROVENANCE",
+      "status": "NOT_REACHED",
+      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "documents": [
+        "training-provenance.json"
+      ],
+      "blockers": []
+    }
+  ],
+  "blockers": [],
+  "pending": {
+    "acquisition_status": "PORTAL_ACCESS_REQUIRED",
+    "what_was_walked": "Innovatrics distributes the IDKit SDK through its customer portal. Five official routes were retrieved: the developer portal and the public repositories offer no IDKit package, the legacy CRM has been retired by the vendor, the current portal ends at a sign-in this project has no account for, and the learning portal offers a course rather than a download. The sixth route — a request to the vendor in the maintainer's own name — has not been walked. Nothing was refused and no package was shown not to exist.",
+    "what_is_outstanding": [
+      "the maintainer signs in to the customer portal with an account of their own and places the delivered package in the local artifact store, which moves the state to PACKAGE_OBTAINED",
+      "the maintainer sends an evaluation request to the vendor in their own name, which moves the state to REQUEST_SENT and then to whatever the vendor replies — including ACCESS_REFUSED, which would be a finding and would fail the gate honestly"
+    ],
+    "what_it_would_answer": "Everything below this gate. The package's exact identity, its runtime closure, whether it reads the benchmark's PNG or needs a raw buffer, whether a single fingerprint can be compared against a single fingerprint without a consolidated record score, whether a raw scalar is readable independently of the decision, and whether every setting behind that scalar can be frozen",
+    "this_is_not_a_finding_about_the_candidate": true
+  },
+  "acceptance_conditions": [
+    "an official package was actually obtained",
+    "the exact package, build and version are pinned",
+    "one official binding was selected",
+    "the runtime dependency closure is known",
+    "Stage 8E permits local research use",
+    "the licence activates legitimately",
+    "the licence covers the frozen workload",
+    "the canonical_500 route is resolved",
+    "no pixel preprocessing was invented by fpbench",
+    "500 DPI semantics are frozen before extraction",
+    "the single-fingerprint extraction route is resolved",
+    "the proprietary IDKit representation is resolved",
+    "no multi-finger consolidation is involved",
+    "every extraction setting is frozen",
+    "the exact 1:1 matcher route is resolved",
+    "a raw scalar score is accessible independently of the decision",
+    "every matcher setting is frozen",
+    "fpbench applies no score transformation",
+    "pair.left to probe and pair.right to gallery are frozen",
+    "SELF was demonstrated from two independent extractions",
+    "repeat and restart determinism passed",
+    "failure semantics passed",
+    "a local non-SD300 smoke passed",
+    "training provenance is recorded",
+    "no positive SD300 overlap evidence was found",
+    "no SD300 byte, manifest or score was consulted",
+    "no prior algorithm's scores were consulted"
+  ],
+  "non_goals": [
+    "a generic FingerprintAlgorithmAdapter",
+    "a canonical experiment configuration",
+    "the 6,000-comparison runner",
+    "a ResultSet",
+    "a threshold",
+    "a calibration",
+    "a metric",
+    "a ranking against Algorithm 4"
+  ],
+  "permitted_constructions": [
+    "a small qualification harness",
+    "a vendor API probe",
+    "package inspection",
+    "a fake SDK for the harness's own contract",
+    "schemas",
+    "a local smoke on non-SD300 fixtures"
+  ],
+  "forbidden_reads": [
+    "sd300_image_bytes",
+    "sd300_pair_manifest",
+    "sd300_scores",
+    "sourceafis_scores",
+    "nbis_scores",
+    "flx_scores",
+    "verifinger_scores"
+  ],
+  "opens_stage_12b": false,
+  "observations_fingerprint": "a8dcdc810202fbfa2d6f6a2bc581ecbc4c4d215cf598ab906b85e24dbc8cbf3c",
+  "preflight_fingerprint": "9d68601a43c34bdb9f93a461b518e63112104918fbbe2c2dada90297a239ff30"
+}

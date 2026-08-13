@@ -1,0 +1,72 @@
+{
+  "schema": "stage_12a_fingerprint_route_profile_v1",
+  "gate": "SINGLE_FINGER_EXTRACTION_PROFILE",
+  "gate_status": "NOT_REACHED",
+  "settings_closure_gate_status": "NOT_REACHED",
+  "single_finger_record_rule": "probe record: exactly one fingerprint; gallery record: exactly one fingerprint",
+  "refused_multi_finger_constructions": [
+    "multiple fingers in one record",
+    "multiple impressions fused into one representation",
+    "a user-level enrolment strategy",
+    "an ANSI export used as the compared representation",
+    "an ISO export used as the compared representation",
+    "a consolidated multi-finger record score"
+  ],
+  "representation_facts_to_establish": [
+    "representation_type",
+    "template_version_if_exposed",
+    "single_finger_record_structure",
+    "whether_one_user_container_is_required_by_the_api",
+    "whether_image_retention_affects_matching"
+  ],
+  "publishable_representation_facts": [
+    "representation_type",
+    "template_version_if_exposed",
+    "size_in_bytes",
+    "whether_extraction_succeeded",
+    "the_status_the_api_returned"
+  ],
+  "observed_representation": null,
+  "setting_families_to_inventory": [
+    "resolution/DPI",
+    "quality/rejection policy",
+    "maximum template size",
+    "extraction mode/profile",
+    "fingerprint processing mode",
+    "rotation/alignment controls",
+    "image-format behaviour",
+    "template format/version",
+    "feature/minutiae limits",
+    "speed/accuracy profile"
+  ],
+  "setting_row_fields": [
+    "name",
+    "value",
+    "can_affect_template_or_score",
+    "provenance"
+  ],
+  "setting_provenance_vocabulary": [
+    "DELIVERED_RUNTIME_DEFAULT",
+    "VERSION_MATCHED_DOCUMENTED_DEFAULT",
+    "OFFICIAL_SAMPLE_EXPLICIT",
+    "UPSTREAM_EXPLICIT_RECOMMENDATION",
+    "FPBENCH_PROTOCOL_BINDING",
+    "UNRESOLVED"
+  ],
+  "refused_setting_provenance": "FPBENCH_CHOICE_TUNED_ON_OUR_DATA",
+  "extraction_settings": [],
+  "unresolved_score_affecting_settings": [],
+  "settings_closure_families": [
+    "extraction options",
+    "matching options",
+    "template options",
+    "quality/rejection options",
+    "rotation parameters",
+    "resolution parameters",
+    "speed/accuracy modes",
+    "score normalization modes",
+    "single-finger versus multi-finger modes"
+  ],
+  "settings_closure": null,
+  "template_bytes_published": false
+}

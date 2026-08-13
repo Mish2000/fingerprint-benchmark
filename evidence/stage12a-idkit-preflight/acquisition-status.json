@@ -1,0 +1,107 @@
+{
+  "schema": "stage_12a_acquisition_status_v1",
+  "gate": "ACQUISITION_ACCESS",
+  "gate_status": "PENDING",
+  "acquisition_status": "PORTAL_ACCESS_REQUIRED",
+  "package_presence": "ABSENT",
+  "is_pending": true,
+  "is_refusal": false,
+  "basis": "Innovatrics distributes the IDKit SDK through its customer portal. Five official routes were retrieved: the developer portal and the public repositories offer no IDKit package, the legacy CRM has been retired by the vendor, the current portal ends at a sign-in this project has no account for, and the learning portal offers a course rather than a download. The sixth route — a request to the vendor in the maintainer's own name — has not been walked. Nothing was refused and no package was shown not to exist.",
+  "walked_utc": "2026-08-13",
+  "official_routes": [
+    {
+      "route_id": "developer_portal",
+      "locator": "https://developers.innovatrics.com/",
+      "description": "the vendor's public developer portal, checked first because a self-service package would have settled the gate outright",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-13",
+      "outcome": "NO_PACKAGE_OFFERED",
+      "what_was_found": "the portal documents the vendor's platform and toolkit products and does not list the IDKit fingerprint SDK; it offers documentation and a contact route rather than a download, and no package registry, trial archive or evaluation bundle is published on it",
+      "blocked_by": "no IDKit package is offered here"
+    },
+    {
+      "route_id": "public_source_repositories",
+      "locator": "https://github.com/innovatrics",
+      "description": "the vendor's own public repositories, checked for an officially published package or a version-matched sample",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-13",
+      "outcome": "NO_PACKAGE_OFFERED",
+      "what_was_found": "the organisation publishes samples and integrations for its onboarding and face products; no repository holds the IDKit fingerprint SDK, its documentation or a fingerprint 1:1 sample",
+      "blocked_by": "no IDKit package is published here"
+    },
+    {
+      "route_id": "legacy_customer_crm",
+      "locator": "https://crm.innovatrics.com/",
+      "description": "the customer CRM the vendor's own support material names as the place SDK packages and licences are obtained",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-13",
+      "outcome": "RETIRED_BY_VENDOR",
+      "what_was_found": "the host now serves a notice that the portal has been retired and is no longer in production, and directs customers to the current portal or to a sales representative; the support articles that name it have not been updated, which is the first concrete sign that the public material is older than the product",
+      "blocked_by": "the vendor retired this route"
+    },
+    {
+      "route_id": "current_customer_portal",
+      "locator": "https://customerportal.innovatrics.com/",
+      "description": "the current customer and licensing portal, which is where the vendor's support material says licences are generated",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-13",
+      "outcome": "AUTHENTICATION_REQUIRED",
+      "what_was_found": "a sign-in page. No package, documentation or evaluation bundle is reachable without an account, and no self-registration was offered on the unauthenticated page. This project holds no account, and obtaining one is a commercial relationship rather than a download",
+      "blocked_by": "this project holds no customer-portal account"
+    },
+    {
+      "route_id": "learning_portal",
+      "locator": "https://learn.innovatrics.com/courses/innovatrics-sdks",
+      "description": "the vendor's learning portal, checked because it is the one public place that names a current IDKit version",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-13",
+      "outcome": "NO_PACKAGE_OFFERED",
+      "what_was_found": "course material for IDKit SDK 7.6 — an introduction, a details module, a documentation module and a quiz — and an email address for access. No package and no documentation download",
+      "blocked_by": "a course is not a package"
+    },
+    {
+      "route_id": "vendor_sales_or_support_request",
+      "locator": "the vendor's published sales and support contact addresses",
+      "description": "the route the vendor's own material names for anyone without portal access: a request to sales or support in the requester's own name",
+      "retrieval": "NOT_RETRIEVED",
+      "retrieved_utc": null,
+      "outcome": "PERSON_TO_VENDOR_REQUEST_NOT_MADE",
+      "what_was_found": "the route exists and is documented by the vendor. No request has been sent from this project. Correspondence with a vendor is a person-to-vendor exchange made in the maintainer's own name, and it is not something a preflight performs on their behalf; nothing here was refused, and nobody was asked",
+      "blocked_by": "no request has been sent by the maintainer"
+    }
+  ],
+  "refused_route_categories": [
+    {
+      "category": "software catalogue and freeware sites",
+      "why_it_is_refused": "several publish an IDKit PC SDK download, some naming versions from the 1.x and 2.x generations. Not the vendor, not current, and not a chain of custody anything can be pinned to"
+    },
+    {
+      "category": "reseller and distributor storefronts",
+      "why_it_is_refused": "at least one biometrics reseller lists IDKit PC and Mobile SDKs for purchase. A commercial route through a third party is still not the vendor handing over a package"
+    },
+    {
+      "category": "third-party mirrors of vendor documents",
+      "why_it_is_refused": "an IDKit datasheet is mirrored on an unrelated integrator's host. It may even be the vendor's own PDF, and it is still a document this project did not receive from the vendor"
+    }
+  ],
+  "refused_acquisition_sources": [
+    "a download mirror",
+    "a software-catalogue or freeware site",
+    "a third-party GitHub repository",
+    "a reseller or distributor store",
+    "an archive somebody uploaded",
+    "a copy received from another project"
+  ],
+  "official_delivery_channels": [
+    "CUSTOMER_PORTAL",
+    "VENDOR_SUPPORT",
+    "VENDOR_SALES",
+    "OTHER_VENDOR_OFFICIAL"
+  ],
+  "what_would_change_the_status": [
+    "the maintainer signs in to the customer portal with an account of their own and places the delivered package in the local artifact store, which moves the state to PACKAGE_OBTAINED",
+    "the maintainer sends an evaluation request to the vendor in their own name, which moves the state to REQUEST_SENT and then to whatever the vendor replies — including ACCESS_REFUSED, which would be a finding and would fail the gate honestly"
+  ],
+  "pending_is_not_a_failure": true,
+  "vendor_was_not_asked_and_did_not_refuse": true
+}

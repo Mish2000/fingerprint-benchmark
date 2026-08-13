@@ -113,6 +113,11 @@ can be held to.
 | [0104](0104-a-preflight-that-was-not-run-is-not-a-preflight-that-failed.md) | A preflight that was not run is not a preflight that failed | Accepted, implemented |
 | [0105](0105-one-upstream-sample-is-the-route-not-several.md) | One upstream sample is the route, not several | Accepted, implemented |
 | [0106](0106-the-qualification-harness-must-be-able-to-reach-pass.md) | The qualification harness must be able to reach PASS, and must not overstate what it read | Accepted, implemented |
+| [0107](0107-stage-12a-preflights-idkit-before-algorithm-5-selection.md) | Stage 12A preflights Innovatrics IDKit before Algorithm 5 selection | Accepted, implemented |
+| [0108](0108-a-pending-acquisition-is-not-a-failed-candidate.md) | A pending acquisition is not a failed candidate | Accepted, implemented |
+| [0109](0109-an-asymmetric-matcher-is-bound-by-protocol-not-normalised.md) | An asymmetric matcher is bound by protocol, not normalised | Accepted, implemented |
+| [0110](0110-a-published-version-is-not-a-delivered-package.md) | A published version is not a delivered package | Accepted, implemented |
+| [0111](0111-the-licence-clock-starts-after-the-harness-compiles.md) | The licence clock starts after the harness compiles | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

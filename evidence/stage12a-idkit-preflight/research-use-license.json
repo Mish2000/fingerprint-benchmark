@@ -1,0 +1,32 @@
+{
+  "schema": "stage_12a_research_use_license_v1",
+  "gate": "RESEARCH_USE_AND_LICENSE",
+  "gate_status": "NOT_REACHED",
+  "stage8e_policy_fingerprint": "de9cdbaa23522c4a15337d86b0ec2df8af8b79383a1f8014294e8c7855bf972a",
+  "stage8e_finalization_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
+  "four_separate_questions": [
+    "package_obtainable",
+    "research_use_permitted",
+    "license_activated",
+    "workload_permitted"
+  ],
+  "package_obtainable": false,
+  "research_use_decision": null,
+  "research_use_opens_execution": null,
+  "research_use_blocked": false,
+  "third_party_components_assessed": 0,
+  "license_activated": false,
+  "why_no_assessment_exists": "Innovatrics delivers its licence terms with the package, through the customer portal. No package has been delivered here, so no notice has been read, and Stage 8E has been asked nothing. The policy is bound by fingerprint and will be applied to the EULA that actually arrives.",
+  "redistribution_decision": "NOT_ALLOWED",
+  "redistributed_by_fpbench": false,
+  "never_published": [
+    "a licence file or its bytes",
+    "portal credentials",
+    "a hardware identifier",
+    "a serial",
+    "a customer identifier",
+    "a signed download URL",
+    "personal vendor correspondence"
+  ],
+  "license_bypass_attempted": false
+}

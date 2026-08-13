@@ -1,0 +1,18 @@
+{
+  "schema": "stage_12a_training_provenance_v1",
+  "gate": "TRAINING_PROVENANCE",
+  "gate_status": "NOT_REACHED",
+  "overlap_surfaces_searched": [
+    "training",
+    "validation",
+    "model selection",
+    "calibration",
+    "development testing that affected the released model"
+  ],
+  "training_provenance_status": "NOT_REACHED",
+  "sd300_overlap_status": "NOT_REACHED",
+  "sd300_training_overlap_found": null,
+  "standard_applied": "the standard Algorithm 4 was held to: no positive evidence of SD300 use, with the status left explicitly at NO_EVIDENCE_FOUND. An explicit vendor denial would be stronger evidence and is not a prerequisite",
+  "vendor_statement_obtained": false,
+  "observed": null
+}

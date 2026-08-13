@@ -1,0 +1,51 @@
+{
+  "schema": "stage_12a_input_route_v1",
+  "gate": "CANONICAL500_INPUT_ROUTE",
+  "gate_status": "NOT_REACHED",
+  "benchmark_input": {
+    "profile": "canonical_500",
+    "pixels_per_inch": 500,
+    "pixel_format": "gray8",
+    "container": "PNG"
+  },
+  "ideal_route": [
+    "canonical_500 PNG",
+    "official IDKit image loader",
+    "explicit 500 DPI before extraction",
+    "extraction"
+  ],
+  "permitted_decode_route": [
+    "canonical_500 PNG",
+    "deterministic lossless decode",
+    "identical width x height x gray8 pixel matrix",
+    "official IDKit raw image-buffer API",
+    "explicit 500 DPI before extraction",
+    "extraction"
+  ],
+  "decode_equivalence_requirements": [
+    "the decode is lossless and deterministic on this platform",
+    "width and height are unchanged",
+    "the pixel format stays 8-bit grayscale",
+    "every pixel value is identical to the PNG's decoded matrix"
+  ],
+  "refused_preprocessing": [
+    "crop",
+    "ROI selection",
+    "resize by fpbench",
+    "rotation",
+    "padding",
+    "enhancement",
+    "histogram normalization",
+    "contrast adjustment",
+    "binarization",
+    "sharpening",
+    "denoising",
+    "external minutiae extraction"
+  ],
+  "internal_vendor_preprocessing_is_the_algorithm": true,
+  "required_input_dpi": 500,
+  "dpi_must_be_set_before_extraction": true,
+  "observed_route": null,
+  "fpbench_preprocessing_required": false,
+  "canonical500_route_resolved": false
+}

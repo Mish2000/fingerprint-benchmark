@@ -1,0 +1,38 @@
+{
+  "schema": "stage_12a_predecessor_binding_v1",
+  "algorithm_slot": "algorithm_5",
+  "candidate_id": "innovatrics_idkit_fingerprint_1to1",
+  "predecessor": {
+    "stage": "11B",
+    "outcome": "VERIFINGER_CANONICAL500_RAW_COMPLETE",
+    "finalization_fingerprint": "3d271490edda9e3e9d066485c2d93e82e2eceb4556668df7d65a8207e591684c",
+    "what_it_established": "6,000 canonical raw 1:1 outcomes under VeriFinger 2025.2 as Algorithm 4, and a marker that opens a search for Algorithm 5"
+  },
+  "policy": {
+    "stage": "8E",
+    "outcome": "RESEARCH_ONLY_THIRD_PARTY_POLICY_READY",
+    "finalization_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
+    "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+    "policy_fingerprint": "de9cdbaa23522c4a15337d86b0ec2df8af8b79383a1f8014294e8c7855bf972a",
+    "reused_not_reopened": true
+  },
+  "stage_11a_evidence_changed": false,
+  "stage_11b_evidence_changed": false,
+  "stage_8e_evidence_changed": false,
+  "production_algorithm_id_frozen": false,
+  "implementation_version": "UNRESOLVED_UNTIL_PACKAGE",
+  "preferred_target_platform": "windows/x86_64",
+  "platform_is_final_only_with_a_package": true,
+  "final_identity_components": [
+    "exact_product_name",
+    "product_family",
+    "implementation_version",
+    "package_build",
+    "package_sha256",
+    "platform",
+    "selected_official_binding",
+    "extraction_settings_profile",
+    "matcher_settings_profile",
+    "representation_type"
+  ]
+}

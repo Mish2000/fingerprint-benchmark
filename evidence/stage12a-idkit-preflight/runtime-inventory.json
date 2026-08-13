@@ -1,0 +1,24 @@
+{
+  "schema": "stage_12a_runtime_inventory_v1",
+  "gate": "PACKAGE_RUNTIME_IDENTITY",
+  "gate_status": "NOT_REACHED",
+  "component_classes_to_close_over": [
+    "native_library",
+    "managed_wrapper_or_jar",
+    "algorithm_model_or_data_file",
+    "runtime_configuration",
+    "licensing_runtime_dependency"
+  ],
+  "recorded_fields": [
+    "relative_path",
+    "role",
+    "size_bytes",
+    "sha256",
+    "version_or_build"
+  ],
+  "component_count": 0,
+  "components": [],
+  "closure_complete": false,
+  "vendor_bytes_stay_outside_git": true,
+  "artifact_store_prefix": "innovatrics-idkit"
+}

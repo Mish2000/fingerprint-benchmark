@@ -9,7 +9,7 @@
   "vendor": "Neurotechnology",
   "stage11a_fingerprint": "f8228072e0dc6d016e191ab5356d1d65748ba62caa4768dfb21650f78a0b3a7b",
   "stage11a_outcome": "VERIFINGER_PREFLIGHT_PASS",
-  "stage11b_source_fingerprint": "7737d1fc8d23bc442434ac341e2a41bf722513ae2a364c95afd2e5f4514c79ec",
+  "stage11b_source_fingerprint": "620e55f2fee9f3bbe67428c6da5779ecb740435f8ea088cd04faacfada8c03c9",
   "algorithm_profile_fingerprint": "9f1cd6c5746716d4c9dec4aab09b021ca0a68ee4c4831c2b12452cc480cdbaa4",
   "runtime_manifest_fingerprint": "0f2aed19753c71ffb9981f187790a5f861ddc949d32dc63d6258c4a1ef45404d",
   "runtime_policy_id": "stage11b_verifinger_runtime_policy_v1",
@@ -68,12 +68,12 @@
     "adapter-smoke.json": "b8153905e2126a4c3c044b880d82512d068be8b6a68440a127d2036167e8bcaf",
     "algorithm-profile.json": "445d8f70ae18943dc03e2017553ba1278c7192c711880f3514af4ebd25298ee8",
     "bridge-contract.json": "86af30fdb20289e5f2bd844115b65452d93553fc0c25e05c3d762a48ef72f25e",
-    "canonical-run-binding.json": "dfe242354a59c348974cf062e93a8d8edd7a3d3beff29e0cb6414e7d1ac9001a",
+    "canonical-run-binding.json": "a833e7b29e8546fa1cf0dd40d9949002c47c08d8b7d435c548124725ddd75480",
     "operational-summary.json": "8477272235555301a43b23b16d960a7148386ef2ec60fdcd5e1f8ff3c34f504d",
     "runtime-binding.json": "02228b8d33f1ed59f9550463444b9fcd54e2fd3bea02a85fea30c41e6446543a"
   },
-  "source_commit": "272a24a1bdc77ec34d47e45174656d73a17dd12b",
+  "source_commit": "9db2788b6ccb15e64f125dd03bb009ac4bafc4d2",
   "source_tree_clean": true,
-  "created_utc": "2026-08-13T07:09:16Z",
-  "stage_11b_finalization_fingerprint": "af9ec2584731780018feabc9689eb6d4cbce046c4ee475c740deec1d432d7b17"
+  "created_utc": "2026-08-13T07:25:41Z",
+  "stage_11b_finalization_fingerprint": "3d271490edda9e3e9d066485c2d93e82e2eceb4556668df7d65a8207e591684c"
 }

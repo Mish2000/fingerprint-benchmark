@@ -43,7 +43,6 @@ from fpbench.adapters.verifinger_java.failure_mapping import (
 )
 from fpbench.core.enums import (
     ExecutionStatus,
-    FailureCode,
     IntegrityIssueCode,
     IntegritySeverity,
     ScoreDirection,

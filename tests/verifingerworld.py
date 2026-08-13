@@ -29,7 +29,6 @@ from __future__ import annotations
 import json
 import struct
 import zlib
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -165,7 +164,6 @@ def failure_document(
     return document
 
 
-@dataclass
 class FakeBridgeClient(BridgeClient):
     """A bridge that answers in the real wire format and starts no process."""
 

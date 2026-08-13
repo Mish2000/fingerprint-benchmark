@@ -89,10 +89,7 @@ from fpbench.experiments.verifinger_research import (
     inspect_verifinger_research_experiment,
     prepare_verifinger_research_run,
 )
-from fpbench.experiments.verifinger_validation import (
-    SD300_CANONICAL500_INPUT_SET,
-    validate_verifinger_result_set,
-)
+from fpbench.experiments.verifinger_validation import SD300_CANONICAL500_INPUT_SET
 from fpbench.imaging.canonical500 import Canonical500ImagePreparer
 from fpbench.storage.plan_store import PlanStore
 from fpbench.storage.prepared_image_set_store import PreparedImageSetStore

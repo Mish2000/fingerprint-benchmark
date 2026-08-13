@@ -37,6 +37,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 
+from fpbench.core.enums import IntegrityIssueCode
 from fpbench.core.serialization import read_json, stable_hash, to_plain, write_json
 from fpbench.core.verifinger_errors import Stage11BFinalizationError
 from fpbench.experiments import stage11b_identity as frozen
@@ -467,7 +468,14 @@ def build_stage11b_finalization(
         "infrastructure_failures": validation.blocking_failures,
         "benchmark_scores_produced": validation.successful_results,
         "missing_jobs": config.expected_jobs - validation.total_results,
-        "duplicate_jobs": 0,
+        # Counted, not asserted. The validator raises one issue per repeated job
+        # id, and a marker that hard-coded zero here would be claiming something
+        # nothing had checked (spec section 31).
+        "duplicate_jobs": sum(
+            1
+            for issue in validation.issues
+            if issue.code is IntegrityIssueCode.DUPLICATE_JOB_ID
+        ),
         "logical_extractions": validation.logical_extraction_calls,
         "verify_invocations": validation.verify_invocations,
         "result_set_validation_clean": bool(validation.is_clean),
@@ -635,11 +643,22 @@ def verify_stage11b_evidence(
             f"no published Stage 11B evidence at {EVIDENCE_DIRECTORY.as_posix()}"
         )
     present = tuple(sorted(item.name for item in directory.iterdir() if item.is_file()))
-    expected = tuple(sorted(frozen.EVIDENCE_DOCUMENTS))
-    if present != expected:
+    # The engine's last act of finalization is writing its own research receipt
+    # here as ``run_<id>.json``. That file belongs to the shared engine and is
+    # published by every research stage; this stage's own nine are the rest
+    # (spec section 40).
+    receipts = tuple(name for name in present if name.startswith("run_"))
+    if len(receipts) != 1:
         raise Stage11BFinalizationError(
-            f"the Stage 11B evidence tree holds {list(present)}, and this stage "
-            f"publishes {list(expected)}"
+            f"the evidence tree holds {list(receipts)} engine receipts; exactly "
+            "one run was finalised here"
+        )
+    expected = tuple(sorted(frozen.EVIDENCE_DOCUMENTS))
+    stage_documents = tuple(name for name in present if name not in receipts)
+    if stage_documents != expected:
+        raise Stage11BFinalizationError(
+            f"the Stage 11B evidence tree holds {list(stage_documents)}, and "
+            f"this stage publishes {list(expected)}"
         )
 
     marker = read_json(directory / frozen.STAGE_11B_FINALIZATION_NAME)

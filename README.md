@@ -2062,22 +2062,20 @@ nothing (ADR 0102). The representation compared is the proprietary template. The
 required internet connection is a licence check, not part of the computation
 (ADR 0103). Stage 8E permits local research execution.
 
-**What nine gates are waiting for.** One bounded qualification run. The manual
-states a default for every `Faces.*` parameter and for no `Fingers.*` or
-`Matching.*` one, so ten score-affecting values — eight at the extraction gate,
-two at the matching gate — are delivered runtime defaults nobody has read yet.
-Exactly one setting is settled, and only one upstream sample settles anything:
-the tutorials configure the engine differently, so taking one value from each
-would be a configuration no upstream program has ever run (ADR 0105).
+**What the nine remaining gates needed was one bounded qualification run, and
+it happened.** `VERIFINGER_PREFLIGHT_PASS`, seventeen of seventeen. The trial was
+activated once, by hand, on the one platform the route locks to, and
+`integrations/verifinger-qualification/` read the ten score-affecting values out
+of a *running* engine — the manual states a default for every `Faces.*`
+parameter and for no `Fingers.*` or `Matching.*` one, so reading them was the
+only way to know them (ADR 0105).
 
-The harness that would close them is in the repository —
-`integrations/verifinger-qualification/` — and it publishes no score value: it
-emits a SHA-256 per score and compares digests, so determinism across a restart
-is provable without a number leaving the JVM.
+That harness published no score value: it emitted a SHA-256 per score and
+compared digests, so determinism across a restart was provable without a number
+leaving the JVM.
 
-**The candidate search stays closed.** No methodological blocker was found. The
-one act that moves this stage belongs to a person: activate the 30-day trial
-once, on the one platform the route locks to, and re-derive.
+**The candidate search stays closed, and now because the candidate succeeded.**
+No methodological blocker was found at any of the seventeen gates.
 
 Details: [the Stage 11A evidence
 report](evidence/stage11a-verifinger-2025_2-preflight/README.md), [the candidate
@@ -2090,29 +2088,94 @@ no network — with:
 make stage11a-evidence
 ```
 
+## Stage 11B: the fourth algorithm, over the same 6,000 comparisons
+
+`VERIFINGER_CANONICAL500_RAW_COMPLETE`. The route Stage 11A qualified ran the
+canonical SD300 experiment SourceAFIS, NBIS and flx already ran — the same 6,000
+pairs, in the same order, over the same 3,000 immutable 500 ppi PNGs.
+
+```
+6,000 planned      6,000 stored      0 missing        0 duplicate
+5,919 scores       81 algorithm failures              0 infrastructure failures
+run_52731bb3407e / plan_0a66249b7412 / resultset_960baecb83b8
+```
+
+**Six thousand outcomes, not six thousand scores.** The 81 are VeriFinger
+declining a print — `BAD_OBJECT`, against a quality threshold it set itself. That
+is a property of real fingerprints; it is counted, and it was not "fixed" to
+reach full coverage. A failure is never recorded as a score of zero, and the
+separation is enforced rather than intended: an extraction the engine declines is
+data, while a licence that was refused, a model file that moved or a JVM that
+died would each have blocked the result set.
+
+**The vendor's 48 is provenance, not an operating point.** VeriFinger's own 1:1
+sample sets `MatchingThreshold = 48`; the bridge keeps it so upstream's route is
+reproduced exactly, and fpbench then reads the integer score under `OK` *and*
+under `MATCH_NOT_FOUND`. 1,477 of the 5,919 scores came back under
+`MATCH_NOT_FOUND` — successful comparisons that scored below the vendor's own
+threshold. Recording those as failures, or as zeros, would have been fpbench
+choosing an operating point by accident.
+
+**One JVM per comparison.** Slower than a persistent worker and chosen anyway: it
+makes a cross-comparison cache, a representation cache and a score cache
+impossible rather than merely absent, and it makes restart determinism the
+ordinary behaviour of every job rather than a property somebody has to test for.
+6,000 processes, 12,000 logical extractions, 6,000 `verify` calls, median
+1,775 ms each including JVM startup and licence acquisition.
+
+**Seventeen pinned runtime components.** Stage 11A pinned ten — five DLLs, two
+model data files and three jars. The engine reports *seven* loaded modules, and
+the qualification harness put every jar in `Bin/Java` on the classpath, so
+`NMediaProc.dll`, `NDevices.dll` and five jars could have changed underneath a
+result without anything noticing. The production closure names all seventeen by
+size and SHA-256, proves each one against the pinned SDK archive rather than
+merely hashing what is on disk — integrity is not provenance — re-verifies the
+lot before and after the run, and checks file identity before every single
+comparison. Drift stops the run and is never stored as a biometric failure.
+
+**What it does not publish**: no threshold, no decision, no calibration, no
+metric, no distribution, no summary statistic and no example score. The
+prohibition is enforced in four independent places: a config loader that refuses
+threshold-shaped keys at any depth, a bridge that cannot return a decision, a
+validator that refuses a stored score with a fractional part, and a finalization
+that refuses to publish a document carrying a forbidden key.
+
+The 4.7 GB of vendor SDK stayed in a local artifact store outside the repository
+throughout. What is committed is the bridge source, a manifest of digests, the
+runtime policy and derived evidence.
+
+Details: [the Stage 11B evidence
+report](evidence/stage11b-verifinger-canonical500-raw/README.md) and [the run
+write-up](docs/experiments/verifinger-canonical500-raw.md). Verify it — with no
+dataset, no SDK, no licence, no JVM and no workspace — with:
+
+```bash
+make stage11b-evidence
+```
+
 ## Next stage
 
-**Still a candidate for algorithm 4, and the search is paused rather than
-open.** Stage 10A and Stage 10B each recorded `opens_candidate_search: true`.
-Stage 11A records `opens_candidate_search: false`: it found no methodological
-blocker, so there is nothing to move on from yet.
+**Algorithm 4 exists.** Stage 11B ran the canonical 6,000 under VeriFinger
+2025.2 and stored 6,000 raw outcomes, so the benchmark now holds four raw result
+sets over identical inputs.
 
 ```
 Stage 9A    algorithm 4 = FLARE  — artifact and method qualification   BLOCKED
 Stage 10A   algorithm 4 candidates — AFR-Net vs JIPNet preflight       NO SURVIVOR
 Stage 10B   algorithm 4 candidate — id3 Finger SDK preflight           BLOCKED (access)
 Stage 10C   id3 artifact and runtime integration                       reserved, unopened
-Stage 11A   algorithm 4 candidate — VeriFinger 2025.2 preflight        INCOMPLETE (8/17)
-Stage 11B   VeriFinger production integration                          not opened
+Stage 11A   algorithm 4 candidate — VeriFinger 2025.2 preflight        PASS (17/17)
+Stage 11B   VeriFinger production integration and canonical raw run    COMPLETE (6,000)
 ```
 
-**VeriFinger has no blocker at all.** Unlike FLARE, JIPNet, AFR-Net and id3,
-nothing methodological has been found wrong with it: not access, not licensing,
-not the input domain, not the representation, not the raw score, not the network
-role, not the provenance. What is outstanding is one bounded qualification run on
-a machine with an activated trial and a JDK — and the harness for it is written,
-tested and in the repository. Completing Stage 11A is the next step; another
-candidate is not.
+**What is open, and what is not.** The Stage 11B marker records
+`opens_algorithm_5_search: true` and `opens_common_calibration: false`, and the
+second matters more than the first. Four raw result sets are not a ranking: each
+algorithm's scores live on its own scale, VeriFinger's vendor anchor of 48 is not
+comparable to SourceAFIS's documented 40 or to NBIS's, and an operating point may
+not be chosen from the SD300 scores SD300 will then be evaluated at. Until a
+common calibrated operating policy exists, nothing here says which algorithm is
+more accurate — and nothing here may.
 
 **Stage 10C stays reserved for id3.** It was defined as the id3 artifact and
 runtime integration that a passing 10B would open, and recycling the number for

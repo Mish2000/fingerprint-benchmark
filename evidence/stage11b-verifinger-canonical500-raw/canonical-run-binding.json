@@ -22,8 +22,15 @@
     "transform_runtime_fingerprint": "31a0a4346a3dd07843513cc1de5b167d8f2795b230a82bac709913032b74579c",
     "target_ppi": 500
   },
-  "alignment_fingerprint": "b4555a6d2dc86e022c5fd1dddfadc79530d0069e49144e577aa95f09e54d39f0",
-  "alignment_is_clean": null,
+  "alignment": {
+    "fingerprint": "b4555a6d2dc86e022c5fd1dddfadc79530d0069e49144e577aa95f09e54d39f0",
+    "is_clean": true,
+    "issues": 0,
+    "equal_pair_ids": 6000,
+    "equal_pair_semantics": 6000,
+    "equal_prepared_entries": 3000,
+    "compared": "pair ids positionally, pair semantics per id, and every field of every prepared entry — never count against count"
+  },
   "expected": {
     "jobs": 6000,
     "releases": [

@@ -278,7 +278,28 @@ def build_bridge_contract_document() -> dict[str, Any]:
 def build_canonical_run_binding_document(
     *, run: Any, plan: Any, alignment: Mapping[str, Any], config: Any
 ) -> dict[str, Any]:
-    """Which comparisons ran, and what proves they are the reference run's own."""
+    """Which comparisons ran, and what proves they are the reference run's own.
+
+    The alignment half publishes the three equality counts the stored report
+    carries — pair ids compared positionally, pair semantics per id, prepared
+    entries per image — and derives cleanliness from them. ``is_clean`` is a
+    property of the report object rather than a field of its JSON, and asking a
+    mapping for it yields ``null``: a published document that answers "was this
+    aligned?" with nothing is worse than one that does not ask.
+    """
+    equalities = {
+        "equal_pair_ids": int(alignment.get("equal_pair_ids") or 0),
+        "equal_pair_semantics": int(alignment.get("equal_pair_semantics") or 0),
+        "equal_prepared_entries": int(alignment.get("equal_prepared_entries") or 0),
+    }
+    issues = len(alignment.get("issues") or ())
+    clean = (
+        issues == 0
+        and equalities["equal_pair_ids"] == config.expected_jobs
+        and equalities["equal_pair_semantics"] == config.expected_jobs
+        and equalities["equal_prepared_entries"]
+        == config.expected_participating_images
+    )
     return {
         "schema": "stage_11b_canonical_run_binding_v1",
         "experiment_id": config.experiment_id,
@@ -303,8 +324,16 @@ def build_canonical_run_binding_document(
             "transform_runtime_fingerprint": config.transform_runtime_fingerprint,
             "target_ppi": config.target_ppi,
         },
-        "alignment_fingerprint": alignment.get("alignment_fingerprint"),
-        "alignment_is_clean": alignment.get("is_clean"),
+        "alignment": {
+            "fingerprint": alignment.get("alignment_fingerprint"),
+            "is_clean": clean,
+            "issues": issues,
+            **equalities,
+            "compared": (
+                "pair ids positionally, pair semantics per id, and every field "
+                "of every prepared entry — never count against count"
+            ),
+        },
         "expected": {
             "jobs": config.expected_jobs,
             "releases": list(config.expected_releases),

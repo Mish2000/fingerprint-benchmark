@@ -21,9 +21,10 @@ name: Stage 12A Innovatrics IDKit preflight
 # Tests that need a delivered package carry the `idkit_artifact` marker and are
 # not run here.
 #
-# A green tick here does not say an Algorithm 5 exists. At the time of writing it
-# says something narrower and exact: the machinery is in place, the outcome is
-# IDKIT_PREFLIGHT_PENDING_ACCESS, no vendor has been asked and none has refused
+# A green tick here does not say an Algorithm 5 exists. It says something narrower
+# and exact: an official vendor response refused an SDK licence for this project's
+# academic, research-only, non-commercial benchmark; G1 failed, G2-G10 were not
+# reached, Stage 12B stayed closed and the Algorithm 5 search reopened
 # (docs/adr/0107, docs/adr/0108).
 
 on:
@@ -238,11 +239,9 @@ jobs:
               print(f"  {result.gate.value}: {result.status.value}")
           PY
 
-      - name: The Stage 12A suites skip only what a pending run cannot publish
-        # A suite that quietly skipped would look identical to one that passed.
-        # This stage is the one case where some skips are correct: while the
-        # outcome is pending there is no marker, and the tests that verify one
-        # say so. Every other skip is a failure.
+      - name: The Stage 12A suites pass without skips
+        # The refusal is final and the marker is published, so no pending-only
+        # exception remains. A quiet skip would hide an incomplete publication.
         run: |
           pytest -m "stage12a_contract or stage12a" -q -rs 2>&1 | tee /tmp/stage12a.txt
           python - <<'PY'
@@ -252,12 +251,8 @@ jobs:
           skipped = [
               line for line in report.splitlines() if line.startswith("SKIPPED")
           ]
-          for line in skipped:
-              assert "marker" in line or "pending" in line, (
-                  f"a Stage 12A test skipped for a reason that is not the missing "
-                  f"marker: {line}"
-              )
-          print(f"{len(skipped)} skips, every one of them the absent marker of a pending run.")
+          assert not skipped, f"a final Stage 12A publication skipped tests: {skipped}"
+          print("Stage 12A is final and its contract/evidence suites skipped nothing.")
           PY
 
       - name: Stage 11B is immutable and Stage 8E is reused unchanged
@@ -296,9 +291,8 @@ jobs:
           python - <<'PY'
           print()
           print("No score was produced here, no package was fetched and no licence was")
-          print("activated. IDKIT_PREFLIGHT_PENDING_ACCESS is not a verdict about IDKit:")
-          print("five official routes were walked, none of them delivers a package to a")
-          print("project without a customer account, and the sixth — a request to the")
-          print("vendor in the maintainer's own name — has not been made. Nobody was")
-          print("refused, because nobody was asked (docs/adr/0108).")
+          print("activated. IDKIT_PREFLIGHT_FAIL is the G1 access finding: Innovatrics")
+          print("explicitly declined an SDK licence for academic, research-only,")
+          print("non-commercial benchmarking. G2-G10 were not reached, Stage 12B stays")
+          print("closed, and the Algorithm 5 candidate search reopens (docs/adr/0108).")
           PY

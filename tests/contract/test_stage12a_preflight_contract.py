@@ -272,23 +272,39 @@ def test_not_reached_is_not_a_pass() -> None:
 # ------------------------------------------------------- what this run found
 
 
-def test_the_run_today_is_pending_on_access_and_names_nothing_as_a_blocker() -> None:
-    """The stage's actual finding, and the one it must not overstate.
-
-    Five official routes were walked and none of them hands a package to a
-    project without a customer account. Nobody was asked and nobody refused, so
-    the outcome is pending and the blocker list is empty.
-    """
+def test_the_run_today_fails_at_g1_on_the_vendor_refusal() -> None:
+    """The official reply is a refusal finding, not an access inference."""
     preflight = engine.run_preflight()
-    assert preflight.outcome == frozen.STAGE_12A_PENDING_OUTCOME
-    assert preflight.paused_at is frozen.PreflightGate.ACQUISITION_ACCESS
-    assert preflight.stopped_at is None
-    assert preflight.blockers == ()
-    assert preflight.failure_class is None
+    assert preflight.outcome == frozen.STAGE_12A_FAIL_OUTCOME
+    assert preflight.paused_at is None
+    assert preflight.stopped_at is frozen.PreflightGate.ACQUISITION_ACCESS
+    assert preflight.status(frozen.PreflightGate.ACQUISITION_ACCESS) is (
+        frozen.GateStatus.FAIL
+    )
+    assert all(
+        preflight.status(gate) is frozen.GateStatus.NOT_REACHED
+        for gate in frozen.GATE_ORDER[1:]
+    )
+    assert preflight.failure_class is frozen.FailureClass.VENDOR_ACCESS_REFUSED
+    assert {blocker.blocker_code for blocker in preflight.blockers} == {
+        frozen.BlockerCode.ACCESS_REFUSED_BY_VENDOR
+    }
     assert preflight.opens_stage_12b is False
-    reason = preflight.pending_reason
-    assert reason is not None
-    assert reason.acquisition_status.is_pending
+    assert preflight.reopens_algorithm_5_search is True
+    assert preflight.pending_reason is None
+
+
+def test_the_vendor_response_is_categorical_and_contains_no_contact_identity() -> None:
+    document = engine.acquisition_status_document(engine.run_preflight())
+    assert document["vendor_response_received"] is True
+    assert document["vendor_response_date"] == "2026-08-14"
+    assert document["vendor_channel"] == frozen.DeliveryChannel.VENDOR_SALES.value
+    assert document["package_obtained"] is False
+    assert document["license_offered"] is False
+    assert document["is_pending"] is False
+    assert document["is_refusal"] is True
+    assert document["what_would_change_the_status"] == []
+    assert "@" not in document["vendor_response_summary"]
 
 
 def test_every_recorded_route_was_either_retrieved_or_says_it_was_not() -> None:
@@ -769,6 +785,7 @@ def _marker_claims(**overrides: object) -> dict:
         "stage11a_evidence_changed": False,
         "stage11b_evidence_changed": False,
         "opens_stage_12b": False,
+        "reopens_algorithm_5_search": True,
         "blockers": (
             {
                 "gate": frozen.PreflightGate.ACQUISITION_ACCESS.value,
@@ -802,6 +819,12 @@ def test_a_fail_marker_validates() -> None:
     marker = _marker()
     assert marker.outcome == frozen.STAGE_12A_FAIL_OUTCOME
     assert marker.opens_stage_12b is False
+    assert marker.reopens_algorithm_5_search is True
+
+
+def test_a_fail_marker_must_reopen_the_algorithm_5_search() -> None:
+    with pytest.raises(ValueError, match="next candidate"):
+        _marker(reopens_algorithm_5_search=False)
 
 
 def test_no_marker_may_carry_the_pending_outcome() -> None:
@@ -1146,6 +1169,7 @@ def test_a_delivered_inspected_qualified_package_passes_all_ten_gates(
     ]
     assert preflight.gates_passed == frozen.GATE_COUNT
     assert preflight.opens_stage_12b is True
+    assert preflight.reopens_algorithm_5_search is False
     assert preflight.blockers == ()
     assert preflight.sd300_overlap_status is frozen.SD300OverlapStatus.NO_EVIDENCE_FOUND
 
@@ -1172,6 +1196,7 @@ def test_the_pass_path_produces_a_marker_that_validates(
     )
     assert marker.outcome == frozen.STAGE_12A_PASS_OUTCOME
     assert marker.opens_stage_12b is True
+    assert marker.reopens_algorithm_5_search is False
     assert marker.hidden_score_affecting_defaults == 0
     assert marker.pair_orientation == "left_probe_right_gallery"
     assert marker.fpbench_score_transformation == "none"

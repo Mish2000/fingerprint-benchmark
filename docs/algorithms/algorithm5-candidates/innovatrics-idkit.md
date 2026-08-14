@@ -6,8 +6,10 @@ implementation_origin   VENDOR_OFFICIAL_SDK
 vendor                  Innovatrics
 publicly advertised     IDKit SDK 7.6 (a course listing, not a package)
 implementation_version  UNRESOLVED_UNTIL_PACKAGE
-outcome                 IDKIT_PREFLIGHT_PENDING_ACCESS
-paused at               G1, ACQUISITION_ACCESS
+outcome                 IDKIT_PREFLIGHT_FAIL
+stopped at              G1, ACQUISITION_ACCESS
+acquisition_status      ACCESS_REFUSED
+failure_class           VENDOR_ACCESS_REFUSED
 ```
 
 ## What it is
@@ -23,8 +25,8 @@ commercial matcher from a vendor with a long record in the field.
 
 ## Why it is not admissible today
 
-Not because of anything about the algorithm. Because this project does not have
-a package.
+Not because of a measured property of the algorithm. Because the vendor
+explicitly refused SDK access for this project's use case.
 
 Innovatrics distributes the IDKit SDK through its customer portal. Five official
 routes were walked on 2026-08-13:
@@ -37,22 +39,24 @@ routes were walked on 2026-08-13:
 | the current customer portal | a sign-in page; no unauthenticated download and no self-registration observed |
 | the learning portal | a course about IDKit SDK 7.6, and an email address |
 
-The sixth route is a request to the vendor in the maintainer's own name. It has
-not been made. **Nothing was refused, because nobody was asked** — which is why
-the outcome is pending rather than a failure, and why this record carries no
-blocker (docs/adr/0108).
+The sixth route was completed on 2026-08-14. An Innovatrics Business Development
+representative explicitly stated that the company does not participate in
+academic or research-only evaluations and does not provide SDK licences for
+non-commercial benchmarking. The record keeps this categorical summary and date,
+not the correspondence, the representative's identity or an address. G1 therefore
+fails with `ACCESS_REFUSED_BY_VENDOR` (docs/adr/0108).
 
 Three categories of non-vendor route exist and are refused on provenance:
 software-catalogue sites (some offering 1.x and 2.x-era builds), reseller
 storefronts, and third-party mirrors of vendor documents. A package whose chain
 of custody does not run to the vendor is a package nothing can pin.
 
-## What the public material tells us to check
+## What the public material would have required us to check
 
 Nine statements were retrieved from Innovatrics' own support material. None of
 them freezes a value: the support articles are undated, name an `IEngine_*` API
 from an older generation than 7.6, and point at a portal the vendor has since
-retired. They are the questions a delivered package will be asked
+retired. They remain untested questions because G2-G10 were not reached
 (docs/adr/0110).
 
 **The structural risk — the one that could disqualify this candidate.** IDKit
@@ -94,19 +98,14 @@ harness is compiled and proved against a fake engine before any licence is
 generated, so that a time-limited clock is not spent on build errors
 (docs/adr/0111).
 
-## What would change this record
+## Final disposition
 
-```text
-the maintainer signs in to the customer portal and places the delivered package
-in the local artifact store                        →  PACKAGE_OBTAINED
-the maintainer sends an evaluation request to the vendor in their own name
-                                                   →  REQUEST_SENT → the vendor's reply
-```
-
-Including `ACCESS_REFUSED`, which would be a finding, would fail G1 honestly, and
-would open the search for a different Algorithm 5.
+`ACCESS_REFUSED` is now the finding. Stage 12B stays closed and the Algorithm 5
+search reopens. This project will not seek another sales contact, a reseller or a
+commercial reframing to route around the stated policy. IDKit is removed from the
+active candidate list.
 
 ## Where the record lives
 
-`evidence/stage12a-idkit-preflight/` — eleven documents, no marker, because the
-run is pending and a marker is a finalization.
+`evidence/stage12a-idkit-preflight/` — eleven derived documents and the final
+`IDKIT_PREFLIGHT_FAIL` marker.

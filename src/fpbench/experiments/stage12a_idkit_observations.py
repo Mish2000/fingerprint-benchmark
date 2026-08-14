@@ -3,10 +3,10 @@
 Two records, and the difference between them is the whole point of this module.
 
 **The acquisition attempt.** Every official route this project could walk, what
-was found at the end of it, and what stopped it. Walked on 2026-08-13, before a
-line of adapter was written, because Stage 10B's lesson was that a preflight
-which starts by describing a product it never requested ends up publishing a
-verdict about a route nobody tried (docs/adr/0107).
+was found at the end of it, and what stopped it. The public routes were walked on
+2026-08-13; the vendor-sales route received an explicit response on 2026-08-14.
+That response is recorded categorically, without the correspondence, the
+representative's identity or an address (docs/adr/0107, docs/adr/0108).
 
 **The public observations.** What Innovatrics states publicly about IDKit today.
 Every one carries the locator it was read from and the date it was read, and
@@ -33,6 +33,7 @@ from fpbench.core.idkit_preflight_errors import IdkitObservationError
 from fpbench.core.serialization import stable_hash
 from fpbench.experiments.stage12a_idkit_identity import (
     AcquisitionStatus,
+    DeliveryChannel,
     ProductFamily,
 )
 
@@ -45,6 +46,12 @@ __all__ = [
     "OBSERVED_ACQUISITION_STATUS",
     "ACQUISITION_STATUS_BASIS",
     "WHAT_WOULD_CHANGE_THE_STATUS",
+    "PENDING_ACQUISITION_ACTIONS",
+    "VENDOR_RESPONSE_RECEIVED",
+    "VENDOR_RESPONSE_DATE",
+    "VENDOR_RESPONSE_CHANNEL",
+    "VENDOR_RESPONSE_SUMMARY",
+    "LICENSE_OFFERED",
     "PublicObservation",
     "PUBLIC_OBSERVATIONS",
     "ADVERTISED_PRODUCT_FAMILY",
@@ -232,22 +239,20 @@ ACQUISITION_ROUTES: tuple[AcquisitionRoute, ...] = (
     ),
     AcquisitionRoute(
         route_id="vendor_sales_or_support_request",
-        locator="the vendor's published sales and support contact addresses",
+        locator="VENDOR_SALES",
         description=(
             "the route the vendor's own material names for anyone without portal "
             "access: a request to sales or support in the requester's own name"
         ),
-        retrieval=RetrievalStatus.NOT_RETRIEVED,
-        retrieved_utc=None,
-        outcome=RouteOutcome.PERSON_TO_VENDOR_REQUEST_NOT_MADE,
+        retrieval=RetrievalStatus.RETRIEVED,
+        retrieved_utc="2026-08-14",
+        outcome=RouteOutcome.REFUSED_BY_VENDOR,
         what_was_found=(
-            "the route exists and is documented by the vendor. No request has "
-            "been sent from this project. Correspondence with a vendor is a "
-            "person-to-vendor exchange made in the maintainer's own name, and it "
-            "is not something a preflight performs on their behalf; nothing here "
-            "was refused, and nobody was asked"
+            "an Innovatrics Business Development representative explicitly "
+            "declined to provide an IDKit evaluation licence because the intended "
+            "use is academic, research-only, non-commercial benchmarking"
         ),
-        blocked_by="no request has been sent by the maintainer",
+        blocked_by="the vendor does not provide an SDK licence for this use case",
     ),
 )
 
@@ -277,34 +282,41 @@ REFUSED_ROUTES: tuple[tuple[str, str], ...] = (
     ),
 )
 
-#: Where the attempt actually stands. Not ``NOT_ATTEMPTED``: five official routes
-#: were walked and one was found to be retired by the vendor. Not
-#: ``REQUEST_SENT``: nobody has written to the vendor. Not ``ACCESS_REFUSED``:
-#: nothing has been refused, because nothing has been asked (docs/adr/0108).
-OBSERVED_ACQUISITION_STATUS = AcquisitionStatus.PORTAL_ACCESS_REQUIRED
+#: Where the attempt actually stands. This is not inferred from the absence of a
+#: download: a vendor representative answered the request and declined the SDK
+#: licence for this project's stated use case (docs/adr/0108).
+OBSERVED_ACQUISITION_STATUS = AcquisitionStatus.ACCESS_REFUSED
 
 ACQUISITION_STATUS_BASIS = (
-    "Innovatrics distributes the IDKit SDK through its customer portal. Five "
-    "official routes were retrieved: the developer portal and the public "
-    "repositories offer no IDKit package, the legacy CRM has been retired by the "
-    "vendor, the current portal ends at a sign-in this project has no account "
-    "for, and the learning portal offers a course rather than a download. The "
-    "sixth route — a request to the vendor in the maintainer's own name — has not "
-    "been walked. Nothing was refused and no package was shown not to exist."
+    "An Innovatrics Business Development representative explicitly stated that "
+    "Innovatrics does not participate in academic or research-only evaluations "
+    "and does not provide SDK licences for non-commercial benchmarking."
 )
 
-#: The two things that would move this state, and nothing else does. Neither is
-#: something the preflight can do for itself, which is exactly why the state is
-#: pending rather than failed.
-WHAT_WOULD_CHANGE_THE_STATUS: tuple[str, ...] = (
-    "the maintainer signs in to the customer portal with an account of their own "
-    "and places the delivered package in the local artifact store, which moves "
-    "the state to PACKAGE_OBTAINED",
-    "the maintainer sends an evaluation request to the vendor in their own name, "
-    "which moves the state to REQUEST_SENT and then to whatever the vendor "
-    "replies — including ACCESS_REFUSED, which would be a finding and would fail "
-    "the gate honestly",
+#: The vendor answered the outstanding request. The project does not pursue an
+#: alternative sales contact, reseller or reframing after an explicit policy
+#: refusal, so there is no remaining acquisition action for this candidate.
+WHAT_WOULD_CHANGE_THE_STATUS: tuple[str, ...] = ()
+
+#: State-machine support for a locally declared pending state. This is not a list
+#: of actions recommended after the observed refusal; it keeps the pending branch
+#: honest and testable if the acquisition model is reused with such a declaration.
+PENDING_ACQUISITION_ACTIONS: tuple[str, ...] = (
+    "the maintainer receives an official package and places it in the local "
+    "artifact store, which moves the state to PACKAGE_OBTAINED",
+    "the vendor answers the outstanding request, which moves the state to the "
+    "status established by that reply",
 )
+
+VENDOR_RESPONSE_RECEIVED = True
+VENDOR_RESPONSE_DATE = "2026-08-14"
+VENDOR_RESPONSE_CHANNEL = DeliveryChannel.VENDOR_SALES
+VENDOR_RESPONSE_SUMMARY = (
+    "Innovatrics explicitly declined to provide an IDKit evaluation licence "
+    "because the intended use is academic, research-only, non-commercial "
+    "benchmarking."
+)
+LICENSE_OFFERED = False
 
 
 @dataclass(frozen=True, slots=True)

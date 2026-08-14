@@ -95,14 +95,14 @@ help:
 	@echo "stage11b-publish        write the marker too"
 	@echo "stage12a-contract       the Innovatrics IDKit preflight: ten gates, acquisition, single-finger raw score"
 	@echo "stage12a-evidence       verify the committed Stage 12A IDKit-preflight evidence"
-	@echo "stage12a-acquire        report every official route walked, and what would move the state"
+	@echo "stage12a-acquire        report every official route and the final acquisition state"
 	@echo "stage12a-artifacts      run the checks that need a delivered IDKit package locally"
 	@echo "stage12a-qualify-fake   drive the whole qualification harness against the fake SDK"
 	@echo "stage12a-qualify        run the bounded local qualification (needs a delivered package)"
-	@echo "stage12a-status         re-derive and print the gates, the outcome and what is outstanding"
+	@echo "stage12a-status         re-derive and print the gates, outcome and routing decision"
 	@echo "stage12a-guard          refuse if any IDKit package or licence material is tracked here"
 	@echo "stage12a-documents      write the eleven derivable evidence documents (commit them, then publish)"
-	@echo "stage12a-publish        write the marker too; refuses while the run is pending"
+	@echo "stage12a-publish        write the final marker too; refuses a dirty tree"
 	@echo "stage8c-workspace       Stage 8C alignment and preflight over the real inputs"
 	@echo "stage8c-verify          re-derive and print the Stage 8C evidence-only verification"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
@@ -528,13 +528,12 @@ stage11b-publish:
 
 # The Innovatrics IDKit acquisition and API preflight (docs/adr/0107-0111). Same
 # two-write shape as every stage since 8D: `stage12a-documents`, commit,
-# `stage12a-publish`, commit — except that `publish` refuses while the run is
-# pending, which today it is.
+# `stage12a-publish`, commit. The vendor refusal makes the outcome final.
 #
 # There is no acquire target and there cannot be one. Innovatrics delivers
-# through a customer portal; obtaining a package is a person signing in with
-# their own account, or writing to the vendor in their own name. `stage12a-acquire`
-# below reports where that stands and what would move it — it fetches nothing.
+# through a customer portal. A request made in the maintainer's own name received
+# an explicit policy refusal. `stage12a-acquire` below reports that categorical
+# status; it fetches nothing and exposes no correspondence or contact identity.
 #
 # There is no activate target either. A licence is machine-bound and
 # time-limited, and generating one before the harness compiles would spend a
@@ -552,7 +551,7 @@ stage12a-status:
 	python -m fpbench.experiments.stage12a_finalization status
 
 stage12a-acquire:
-	python -c "from pathlib import Path; from fpbench.experiments.stage12a_acquisition import acquisition_state; from fpbench.experiments.stage12a_idkit_observations import route_rows, WHAT_WOULD_CHANGE_THE_STATUS; s = acquisition_state(repository_root=Path('.')); print('status  ', s.status.value); print('package ', s.presence.value); [print(' ', r['outcome'].ljust(34), r['route_id']) for r in route_rows()]; print('what would move it:'); [print(' -', w) for w in WHAT_WOULD_CHANGE_THE_STATUS]"
+	python -c "from pathlib import Path; from fpbench.experiments.stage12a_acquisition import acquisition_state; from fpbench.experiments.stage12a_idkit_observations import route_rows, WHAT_WOULD_CHANGE_THE_STATUS; s = acquisition_state(repository_root=Path('.')); print('status  ', s.status.value); print('package ', s.presence.value); [print(' ', r['outcome'].ljust(34), r['route_id']) for r in route_rows()]; print('remaining acquisition actions:', len(WHAT_WOULD_CHANGE_THE_STATUS))"
 
 stage12a-guard:
 	python -c "from pathlib import Path; from fpbench.experiments.stage12a_preflight import require_no_idkit_bytes_in_git as g; a = g(Path('.')); print(a.tracked_file_count, 'tracked files scanned against the vendor artifact and licence name rules,', len(a.findings), 'findings')"

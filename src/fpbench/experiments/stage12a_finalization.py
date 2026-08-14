@@ -313,7 +313,8 @@ class Stage12AFinalization:
     ``PASS`` the candidate is named, every gate passed, every route fact is
     established and Stage 12B opens. Under ``FAIL`` nothing is named, at least one
     blocker is carried, every unestablished fact is published as null rather than
-    as a plausible default, and nothing opens.
+    as a plausible default, Stage 12B stays closed and the Algorithm 5 candidate
+    search reopens.
 
     A marker under ``IDKIT_PREFLIGHT_PENDING_ACCESS`` is refused outright rather
     than validated leniently. It is the shape that would otherwise be used
@@ -406,6 +407,7 @@ class Stage12AFinalization:
     stage11b_evidence_changed: bool
 
     opens_stage_12b: bool
+    reopens_algorithm_5_search: bool
 
     blockers: tuple[Mapping[str, str], ...]
 
@@ -685,6 +687,8 @@ class Stage12AFinalization:
             )
         if self.opens_stage_12b is not True:
             raise ValueError("a PASS Stage 12A opens Stage 12B")
+        if self.reopens_algorithm_5_search is not False:
+            raise ValueError("a PASS Stage 12A does not reopen the candidate search")
 
     def _validate_fail(self) -> None:
         if not self.blockers:
@@ -741,6 +745,11 @@ class Stage12AFinalization:
             raise ValueError(
                 "a FAIL Stage 12A opens no production integration; there is no "
                 "qualified route to integrate"
+            )
+        if self.reopens_algorithm_5_search is not True:
+            raise ValueError(
+                "a FAIL Stage 12A returns Algorithm 5 selection to the next "
+                "candidate"
             )
 
 
@@ -1416,6 +1425,7 @@ def _marker_claims(
         "stage11a_evidence_changed": False,
         "stage11b_evidence_changed": False,
         "opens_stage_12b": preflight.opens_stage_12b,
+        "reopens_algorithm_5_search": preflight.reopens_algorithm_5_search,
         "blockers": engine.marker_blocker_rows(preflight.blockers),
         "evidence_content_hashes": dict(evidence_content_hashes),
         "source_commit": commit,
@@ -1460,6 +1470,10 @@ def main(argv: list[str] | None = None) -> int:
             + (preflight.failure_class.value if preflight.failure_class else "none")
         )
         print(f"opens stage 12b          {preflight.opens_stage_12b}")
+        print(
+            "reopens algorithm 5 search "
+            f"{preflight.reopens_algorithm_5_search}"
+        )
         print(f"observations             {observed.observations_fingerprint()}")
         print(f"preflight                {preflight.preflight_fingerprint}")
         width = max(len(gate.value) for gate in ids.GATE_ORDER)

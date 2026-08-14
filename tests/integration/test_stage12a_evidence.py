@@ -5,8 +5,8 @@ which for this stage is not much of a claim, because without a delivered package
 it never needed any of them. What is under test is the publication: that it holds
 exactly the expected files, that every document re-derives from source, that the
 claims it makes are the ones the engine produces, that no credential or machine
-path reached any published byte, and that the marker is absent for exactly as
-long as the outcome is pending.
+path reached any published byte, and that the final marker binds the refusal to
+the exact published bytes.
 
 Until the evidence has been published there is nothing here to verify, and these
 tests say so by skipping rather than by passing vacuously.
@@ -19,7 +19,6 @@ from pathlib import PurePosixPath
 
 import pytest
 
-from fpbench.core.idkit_preflight_errors import Stage12AFinalizationError
 from fpbench.experiments import stage12a_idkit_identity as frozen
 from fpbench.experiments import stage12a_idkit_observations as observed
 from fpbench.experiments import stage12a_preflight as engine
@@ -97,16 +96,21 @@ def test_the_readme_exists_and_names_the_outcome() -> None:
 # ------------------------------------------------------------- what it claims
 
 
-def test_the_acquisition_document_publishes_a_pending_state_as_pending() -> None:
+def test_the_acquisition_document_publishes_the_vendor_refusal() -> None:
     document = _document(frozen.ACQUISITION_STATUS_NAME)
     status = frozen.AcquisitionStatus(document["acquisition_status"])
     assert document["is_pending"] is status.is_pending
     assert document["is_refusal"] is status.is_refusal
     assert document["pending_is_not_a_failure"] is True
-    if status.is_pending:
-        assert document["gate_status"] == frozen.GateStatus.PENDING.value
-        assert document["vendor_was_not_asked_and_did_not_refuse"] is True
-        assert document["what_would_change_the_status"]
+    assert status is frozen.AcquisitionStatus.ACCESS_REFUSED
+    assert document["gate_status"] == frozen.GateStatus.FAIL.value
+    assert document["vendor_was_not_asked_and_did_not_refuse"] is False
+    assert document["vendor_response_received"] is True
+    assert document["vendor_response_date"] == "2026-08-14"
+    assert document["vendor_channel"] == frozen.DeliveryChannel.VENDOR_SALES.value
+    assert document["package_obtained"] is False
+    assert document["license_offered"] is False
+    assert document["what_would_change_the_status"] == []
 
 
 def test_every_published_route_carries_a_locator_and_an_outcome() -> None:
@@ -201,6 +205,7 @@ def test_the_report_agrees_with_the_engine() -> None:
     assert document["preflight_fingerprint"] == preflight.preflight_fingerprint
     assert len(document["gates"]) == frozen.GATE_COUNT
     assert document["opens_stage_12b"] == preflight.opens_stage_12b
+    assert document["reopens_algorithm_5_search"] is True
 
 
 def test_the_predecessor_binding_names_the_stage_it_follows() -> None:
@@ -235,14 +240,10 @@ def test_the_marker_is_absent_for_exactly_as_long_as_the_run_is_pending() -> Non
         )
 
 
-def test_the_publisher_refuses_to_finalise_a_pending_run() -> None:
-    from fpbench.experiments.stage12a_finalization import write_stage12a_evidence
-
+def test_the_publisher_has_a_final_outcome_to_publish() -> None:
     preflight = engine.run_preflight()
-    if preflight.outcome != frozen.STAGE_12A_PENDING_OUTCOME:
-        pytest.skip("the run is no longer pending")
-    with pytest.raises(Stage12AFinalizationError, match="no Stage 12A marker"):
-        write_stage12a_evidence(REPOSITORY_ROOT, include_marker=True)
+    assert preflight.outcome == frozen.STAGE_12A_FAIL_OUTCOME
+    assert MARKER.is_file()
 
 
 def test_the_marker_verifies_against_the_bytes_it_was_derived_from() -> None:
@@ -266,7 +267,9 @@ def test_the_marker_reconstructs_as_the_model_that_validates_it() -> None:
         pytest.skip("the Stage 12A marker has not been published yet")
     marker = json.loads(MARKER.read_text(encoding="utf-8"))
     marker["blockers"] = tuple(marker["blockers"])
-    Stage12AFinalization(**marker)
+    finalization = Stage12AFinalization(**marker)
+    assert finalization.opens_stage_12b is False
+    assert finalization.reopens_algorithm_5_search is True
 
 
 def test_the_source_fingerprint_matches_this_checkout() -> None:

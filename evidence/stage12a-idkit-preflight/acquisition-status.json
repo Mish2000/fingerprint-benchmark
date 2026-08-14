@@ -1,12 +1,18 @@
 {
   "schema": "stage_12a_acquisition_status_v1",
   "gate": "ACQUISITION_ACCESS",
-  "gate_status": "PENDING",
-  "acquisition_status": "PORTAL_ACCESS_REQUIRED",
+  "gate_status": "FAIL",
+  "acquisition_status": "ACCESS_REFUSED",
   "package_presence": "ABSENT",
-  "is_pending": true,
-  "is_refusal": false,
-  "basis": "Innovatrics distributes the IDKit SDK through its customer portal. Five official routes were retrieved: the developer portal and the public repositories offer no IDKit package, the legacy CRM has been retired by the vendor, the current portal ends at a sign-in this project has no account for, and the learning portal offers a course rather than a download. The sixth route — a request to the vendor in the maintainer's own name — has not been walked. Nothing was refused and no package was shown not to exist.",
+  "package_obtained": false,
+  "is_pending": false,
+  "is_refusal": true,
+  "vendor_response_received": true,
+  "vendor_response_date": "2026-08-14",
+  "vendor_channel": "VENDOR_SALES",
+  "vendor_response_summary": "Innovatrics explicitly declined to provide an IDKit evaluation licence because the intended use is academic, research-only, non-commercial benchmarking.",
+  "license_offered": false,
+  "basis": "An Innovatrics Business Development representative explicitly stated that Innovatrics does not participate in academic or research-only evaluations and does not provide SDK licences for non-commercial benchmarking.",
   "walked_utc": "2026-08-13",
   "official_routes": [
     {
@@ -61,13 +67,13 @@
     },
     {
       "route_id": "vendor_sales_or_support_request",
-      "locator": "the vendor's published sales and support contact addresses",
+      "locator": "VENDOR_SALES",
       "description": "the route the vendor's own material names for anyone without portal access: a request to sales or support in the requester's own name",
-      "retrieval": "NOT_RETRIEVED",
-      "retrieved_utc": null,
-      "outcome": "PERSON_TO_VENDOR_REQUEST_NOT_MADE",
-      "what_was_found": "the route exists and is documented by the vendor. No request has been sent from this project. Correspondence with a vendor is a person-to-vendor exchange made in the maintainer's own name, and it is not something a preflight performs on their behalf; nothing here was refused, and nobody was asked",
-      "blocked_by": "no request has been sent by the maintainer"
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-14",
+      "outcome": "REFUSED_BY_VENDOR",
+      "what_was_found": "an Innovatrics Business Development representative explicitly declined to provide an IDKit evaluation licence because the intended use is academic, research-only, non-commercial benchmarking",
+      "blocked_by": "the vendor does not provide an SDK licence for this use case"
     }
   ],
   "refused_route_categories": [
@@ -98,10 +104,7 @@
     "VENDOR_SALES",
     "OTHER_VENDOR_OFFICIAL"
   ],
-  "what_would_change_the_status": [
-    "the maintainer signs in to the customer portal with an account of their own and places the delivered package in the local artifact store, which moves the state to PACKAGE_OBTAINED",
-    "the maintainer sends an evaluation request to the vendor in their own name, which moves the state to REQUEST_SENT and then to whatever the vendor replies — including ACCESS_REFUSED, which would be a finding and would fail the gate honestly"
-  ],
+  "what_would_change_the_status": [],
   "pending_is_not_a_failure": true,
-  "vendor_was_not_asked_and_did_not_refuse": true
+  "vendor_was_not_asked_and_did_not_refuse": false
 }

@@ -81,10 +81,9 @@ stage's binding check has something to bind to.
 
 ## Consequences
 
-Today Stage 12A publishes eleven evidence documents, an outcome of
+The initial Stage 12A publication had eleven evidence documents, an outcome of
 `IDKIT_PREFLIGHT_PENDING_ACCESS`, zero blockers, no failure class and no marker.
-Nothing in it says anything adverse about IDKit, because nothing adverse was
-found.
+That was correct while no reply existed.
 
 The cost is that the evidence directory is legitimately incomplete, and every
 check that walks it has to know that — `require_expected_evidence_files` takes a
@@ -96,3 +95,20 @@ The risk is the mirror of ADR 0104's: that `PENDING` becomes a comfortable place
 to leave things. The guard is that it is the only outcome with no marker, so it
 cannot be bound by a later stage, and the acquisition document publishes the two
 concrete acts that would end it.
+
+## Subsequent event — 2026-08-14
+
+An Innovatrics Business Development representative explicitly declined to
+provide an IDKit SDK licence for academic or research-only evaluation and
+non-commercial benchmarking. The pending state therefore ended exactly through
+the transition this ADR reserved for a genuine refusal:
+
+```text
+ACCESS_REFUSED
+  -> G1 FAIL / ACCESS_REFUSED_BY_VENDOR
+  -> IDKIT_PREFLIGHT_FAIL / VENDOR_ACCESS_REFUSED
+```
+
+G2-G10 are `NOT_REACHED`, Stage 12B stays closed, and the Algorithm 5 candidate
+search reopens. The published evidence records the categorical response, date and
+channel without copying the correspondence or identifying the representative.

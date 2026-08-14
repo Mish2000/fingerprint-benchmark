@@ -27,16 +27,17 @@ fingerprint as a predecessor and edits nothing under either evidence directory
 ## The outcome
 
 ```text
-outcome:              IDKIT_PREFLIGHT_PENDING_ACCESS
-acquisition_status:   PORTAL_ACCESS_REQUIRED
-blockers:             none
-failure_class:        none
-marker:               not written, and correctly so
+outcome:                       IDKIT_PREFLIGHT_FAIL
+acquisition_status:            ACCESS_REFUSED
+blocker:                       ACCESS_REFUSED_BY_VENDOR
+failure_class:                 VENDOR_ACCESS_REFUSED
+opens_stage_12b:               false
+reopens_algorithm_5_search:    true
 ```
 
 | # | Gate | Status |
 | ---: | :--- | :--- |
-| G1 | `ACQUISITION_ACCESS` | **PENDING** |
+| G1 | `ACQUISITION_ACCESS` | **FAIL** |
 | G2 | `PACKAGE_RUNTIME_IDENTITY` | not reached |
 | G3 | `RESEARCH_USE_AND_LICENSE` | not reached |
 | G4 | `CANONICAL500_INPUT_ROUTE` | not reached |
@@ -48,18 +49,19 @@ marker:               not written, and correctly so
 | G10 | `TRAINING_PROVENANCE` | not reached |
 
 Cost: zero package bytes, zero licence activations, zero runtimes, zero SD300
-reads, zero scores.
+reads, zero scores. The final marker binds this result to the published evidence.
 
-## Why pending is not failure
+## Why this is now a failure rather than pending
 
-Stage 10B published `ID3_FINGER_SDK_PREFLIGHT_FAIL` for a vendor nobody had
-written to, and then had to explain in almost every document that the word *fail*
-did not mean anybody had refused anything. Stage 12A does not repeat that.
+On 2026-08-14 an Innovatrics Business Development representative explicitly
+stated that Innovatrics does not participate in academic or research-only
+evaluations and does not provide SDK licences for non-commercial benchmarking.
+The evidence records that category and date without copying the email, naming the
+representative or publishing an address.
 
-`PENDING` belongs to exactly one gate — a check at import time enforces it — and
-it is the only outcome that writes no marker. The marker model raises on the
-pending outcome outright, and the publisher refuses before it gets there. A
-marker is a finalization, and nothing about waiting for a vendor is final
+That reply resolves the state as `ACCESS_REFUSED`. It is the exact finding for
+which `ACCESS_REFUSED_BY_VENDOR` and `VENDOR_ACCESS_REFUSED` exist. `PENDING`
+remains valid for an unanswered request, but it no longer describes this one
 (docs/adr/0108).
 
 The acquisition state machine is partitioned so that the difference cannot be
@@ -71,24 +73,25 @@ refusal    ACCESS_REFUSED  PACKAGE_UNAVAILABLE_FOR_TARGET
 possession PACKAGE_OBTAINED
 ```
 
-Only the two refusal states can fail G1, and possession is never asserted: it is
-produced by a package in the store that verifies against a declaration of what it
-is and where it came from.
+Only the two refusal states can fail G1. This run now occupies one of them, and
+possession remains false.
 
 ## What was actually walked
 
-Five official routes on 2026-08-13 — the public developer portal, the vendor's
+Five public routes on 2026-08-13 — the public developer portal, the vendor's
 public repositories, the legacy customer CRM (retired by the vendor), the current
 customer portal (a sign-in page), and the learning portal (a course, not a
-download). The sixth, a request to the vendor in the maintainer's own name, has
-not been made: correspondence with a vendor is a person-to-vendor exchange, and
-it is not something a preflight performs on anybody's behalf.
+download). The sixth route, vendor sales, returned the explicit refusal on
+2026-08-14. No alternative sales contact, reseller or artificial commercial
+reframing will be used to route around it.
 
 Three categories of non-vendor route were found and refused on provenance.
 
-## The decisive risks
+## Questions deliberately left unreached
 
-Ordered by how likely each is to end this candidate.
+The earlier design identified the following technical risks. G1 ended the
+candidate before any of them could be tested, so they remain questions rather
+than IDKit findings and the qualification machinery is not being revised.
 
 **A consolidated multi-finger score (G5, G6).** IDKit organises fingerprints into
 user records, and a record holding several fingers is scored by summing
@@ -155,22 +158,9 @@ make stage12a-contract
 
 None of them fetches anything, activates anything, or needs a package.
 
-## What happens when a package arrives
+## Final routing
 
-1. Place it in the local artifact store under `innovatrics-idkit/`, with a
-   `package-declaration.json` naming the product, the family, the version, the
-   build, the filename, the size, the digest, the delivery channel and the
-   platform. G1 turns `PASS`.
-2. Inspect it and write `package-inspection.json`: the binding selected, the
-   runtime closure, the input route, the representation, every setting with its
-   provenance, the score contract, the licence entitlement and the provenance
-   search. G2 to G7 become answerable.
-3. Write the adapter that implements `QualificationEngine` against the selected
-   binding. Nothing about it is written in advance, because nothing may be
-   assumed about which binding the package ships.
-4. **Then** generate the licence, and run at most twenty comparisons. G8 and G9
-   become answerable.
-5. `make stage12a-documents`, commit, `make stage12a-publish`, commit.
-
-Only a `PASS` opens Stage 12B, which would be the production integration and the
-6,000 canonical raw outcomes — the same shape Stage 11B took for VeriFinger.
+Stage 12B stays closed. The failure reopens the Algorithm 5 search: the id3 Finger
+SDK request remains under vendor review in the background, while Neurodactyl is
+the next active candidate. That work is a separate preflight, not a continuation
+or reframing of the refused IDKit request.

@@ -669,7 +669,7 @@ def _gate_acquisition_access() -> GateResult:
             pending=PendingReason(
                 acquisition_status=state.status,
                 what_was_walked=state.basis,
-                what_is_outstanding=observed.WHAT_WOULD_CHANGE_THE_STATUS,
+                what_is_outstanding=observed.PENDING_ACQUISITION_ACTIONS,
                 what_it_would_answer=(
                     "Everything below this gate. The package's exact identity, "
                     "its runtime closure, whether it reads the benchmark's PNG or "
@@ -1874,6 +1874,11 @@ class IdkitPreflight:
         return self.passed
 
     @property
+    def reopens_algorithm_5_search(self) -> bool:
+        """A final failure returns selection to the next Algorithm 5 candidate."""
+        return not self.passed and not self.is_pending
+
+    @property
     def failure_class(self) -> frozen.FailureClass | None:
         """What kind of failure this is, derived from the blocker that stopped it.
 
@@ -2114,8 +2119,14 @@ def acquisition_status_document(preflight: IdkitPreflight) -> Mapping[str, Any]:
         ),
         "acquisition_status": state.status.value,
         "package_presence": state.presence.value,
+        "package_obtained": state.obtained,
         "is_pending": state.is_pending,
         "is_refusal": state.is_refusal,
+        "vendor_response_received": observed.VENDOR_RESPONSE_RECEIVED,
+        "vendor_response_date": observed.VENDOR_RESPONSE_DATE,
+        "vendor_channel": observed.VENDOR_RESPONSE_CHANNEL.value,
+        "vendor_response_summary": observed.VENDOR_RESPONSE_SUMMARY,
+        "license_offered": observed.LICENSE_OFFERED,
         "basis": state.basis,
         "walked_utc": observed.PUBLIC_OBSERVATIONS[0].retrieved_utc,
         "official_routes": [dict(row) for row in observed.route_rows()],
@@ -2508,6 +2519,7 @@ def preflight_report_document(preflight: IdkitPreflight) -> Mapping[str, Any]:
         "permitted_constructions": list(frozen.PERMITTED_CONSTRUCTIONS),
         "forbidden_reads": list(frozen.FORBIDDEN_READS),
         "opens_stage_12b": preflight.opens_stage_12b,
+        "reopens_algorithm_5_search": preflight.reopens_algorithm_5_search,
         "observations_fingerprint": observed.observations_fingerprint(),
         "preflight_fingerprint": preflight.preflight_fingerprint,
     }

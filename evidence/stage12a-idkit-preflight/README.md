@@ -1,28 +1,35 @@
-# Stage 12A — Innovatrics IDKit active acquisition and artifact/API preflight
+# Stage 12A — Innovatrics IDKit acquisition refusal and fail-fast preflight
 
 ## Outcome
 
 ```text
-IDKIT_PREFLIGHT_PENDING_ACCESS
+IDKIT_PREFLIGHT_FAIL
 ```
 
-**Not a verdict about IDKit, and not a failure.** Stage 12A asks whether an
-official, current Innovatrics IDKit package gives fpbench a complete,
-upstream-authoritative and reproducible route from `canonical_500` to a raw 1:1
-fingerprint score. Answering it needs a package. Five official routes were walked
-on 2026-08-13 and none of them hands a package to a project without a customer
-account, so the run paused at the first gate and every later question was left
-unasked.
+On 2026-08-14 an Innovatrics Business Development representative explicitly
+declined to provide an IDKit SDK licence because the intended use is academic,
+research-only, non-commercial benchmarking. This is an official access refusal,
+not an inference from a missing download. The run failed at G1 and left G2-G10
+`NOT_REACHED`.
 
-Nobody was refused, because nobody was asked. That distinction is the whole
-reason this stage has three outcomes instead of two: Stage 10B published
-`ID3_FINGER_SDK_PREFLIGHT_FAIL` for a vendor nobody had written to, and the word
-*fail* then had to be explained in every document that carried it
-(docs/adr/0108).
+```text
+acquisition_status             ACCESS_REFUSED
+vendor_response_received      true
+vendor_response_date          2026-08-14
+vendor_channel                VENDOR_SALES
+package_obtained              false
+license_offered               false
+is_pending                    false
+is_refusal                    true
+blocker                       ACCESS_REFUSED_BY_VENDOR
+failure_class                 VENDOR_ACCESS_REFUSED
+opens_stage_12b               false
+reopens_algorithm_5_search    true
+```
 
-**There is no `stage-12a-finalization.json` in this directory, and that is
-correct.** A marker is a finalization, and nothing about waiting for a vendor is
-final. The publisher refuses to write one while the run is pending.
+The evidence keeps only that categorical summary. It does not contain the email,
+the representative's identity or an address. The final
+`stage-12a-finalization.json` binds the finding to the exact published bytes.
 
 Nothing here is a score, a threshold, a template, a fingerprint image, a licence
 byte or a credential. What it holds is descriptions: locators and what they said,
@@ -62,7 +69,7 @@ frozen policy rather than re-opening it.
 
 | Gate | Status |
 | :--- | :--- |
-| G1 `ACQUISITION_ACCESS` | **PENDING** |
+| G1 `ACQUISITION_ACCESS` | **FAIL** |
 | G2 `PACKAGE_RUNTIME_IDENTITY` | not reached |
 | G3 `RESEARCH_USE_AND_LICENSE` | not reached |
 | G4 `CANONICAL500_INPUT_ROUTE` | not reached |
@@ -73,13 +80,11 @@ frozen policy rather than re-opening it.
 | G9 `WORKLOAD_RUNTIME_FEASIBILITY` | not reached |
 | G10 `TRAINING_PROVENANCE` | not reached |
 
-Ten gates, no sub-gates, and exactly one of them may report `PENDING`.
-`NOT_REACHED` is not a pass and not a soft failure: the run had stopped, so the
-question was never asked.
+Ten gates, no sub-gates. `NOT_REACHED` is not a pass and not a soft failure: the
+run stopped on the vendor refusal, so every later question was never asked.
 
-**Blockers: none.** A blocker is a finding, and nothing here found anything wrong
-with IDKit. The blocker vocabulary has eighteen members and not one of them can
-be raised by waiting.
+**Blocker: `ACCESS_REFUSED_BY_VENDOR`.** It classifies access for this stated use
+case and says nothing about IDKit's biometric quality.
 
 Cost of reaching this conclusion: **zero package bytes**, zero licence
 activations, zero runtimes, zero SD300 reads, zero scores.
@@ -93,28 +98,23 @@ activations, zero runtimes, zero SD300 reads, zero scores.
 | the legacy customer CRM | retired by the vendor |
 | the current customer portal | authentication required |
 | the learning portal | a course, not a download |
-| a request to vendor sales or support | not made |
+| a request to vendor sales or support | refused by vendor on 2026-08-14 |
 
-The sixth route is the live one. A request to a vendor is a person-to-vendor
-exchange made in the maintainer's own name, and it is not something a preflight
-performs on their behalf.
+The sixth route supplied the decisive finding. No alternative sales contact,
+reseller or artificial commercial reframing will be used to route around the
+vendor's stated policy.
 
 Three categories of non-vendor route were found and refused on provenance:
 software-catalogue sites, reseller storefronts and third-party mirrors of vendor
 documents. A package whose chain of custody does not run to the vendor is a
 package nothing can pin, whatever its digest turns out to be.
 
-## What would move this
+## Final routing
 
-```text
-the maintainer signs in to the customer portal and places the delivered
-package in the local artifact store       →  PACKAGE_OBTAINED
-the maintainer sends an evaluation request to the vendor in their own name
-                                          →  REQUEST_SENT → whatever the vendor replies
-```
-
-Including `ACCESS_REFUSED`, which would be a finding and would fail the gate
-honestly.
+IDKit is closed as a candidate. Stage 12B does not open; the failure returns the
+Algorithm 5 selection to the next candidate. The id3 Finger SDK request remains
+under vendor review in the background, and Neurodactyl is the next active
+candidate.
 
 ## What the public material already tells us to check
 
@@ -170,7 +170,7 @@ accepted the double would be a gate that passed on this project's own test code.
 | File | What it holds |
 | :--- | :--- |
 | `predecessor-binding.json` | what this stage rests on and may not touch |
-| `acquisition-status.json` | every route walked, what was found, what would move it |
+| `acquisition-status.json` | every route walked and the categorical vendor refusal |
 | `package-manifest.json` | the identity a delivery must carry, and the public observations |
 | `research-use-license.json` | why Stage 8E has been asked nothing yet |
 | `runtime-inventory.json` | the closure a delivered package would have to declare |
@@ -212,6 +212,5 @@ know how its predecessors did.
 make stage12a-status
 ```
 
-Everything above derives from committed source and the state of the local
-artifact store. On a machine with no IDKit package — which is every machine
-today, including every CI runner — it produces exactly this outcome.
+Everything above derives from committed source and requires no IDKit package.
+A clean checkout, including every CI runner, produces exactly this outcome.

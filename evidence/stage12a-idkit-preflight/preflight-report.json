@@ -5,27 +5,29 @@
   "implementation_origin": "VENDOR_OFFICIAL_SDK",
   "implementation_version": "UNRESOLVED_UNTIL_PACKAGE",
   "production_algorithm_id_frozen": false,
-  "outcome": "IDKIT_PREFLIGHT_PENDING_ACCESS",
+  "outcome": "IDKIT_PREFLIGHT_FAIL",
   "gate_count_defined": 10,
   "gates_reached": 1,
   "gates_passed": 0,
-  "stopped_at": null,
-  "paused_at": "ACQUISITION_ACCESS",
-  "failure_class": null,
+  "stopped_at": "ACQUISITION_ACCESS",
+  "paused_at": null,
+  "failure_class": "VENDOR_ACCESS_REFUSED",
   "gates": [
     {
       "gate": "ACQUISITION_ACCESS",
-      "status": "PENDING",
-      "summary": "PORTAL_ACCESS_REQUIRED: 6 official routes were walked and none of them delivers a package to a project without a customer account. Nothing was refused",
+      "status": "FAIL",
+      "summary": "the vendor route closed: ACCESS_REFUSED",
       "documents": [
         "acquisition-status.json"
       ],
-      "blockers": []
+      "blockers": [
+        "ACCESS_REFUSED_BY_VENDOR"
+      ]
     },
     {
       "gate": "PACKAGE_RUNTIME_IDENTITY",
       "status": "NOT_REACHED",
-      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "summary": "the run stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was inspected, activated, loaded or executed for it",
       "documents": [
         "package-manifest.json",
         "runtime-inventory.json"
@@ -35,7 +37,7 @@
     {
       "gate": "RESEARCH_USE_AND_LICENSE",
       "status": "NOT_REACHED",
-      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "summary": "the run stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was inspected, activated, loaded or executed for it",
       "documents": [
         "research-use-license.json"
       ],
@@ -44,7 +46,7 @@
     {
       "gate": "CANONICAL500_INPUT_ROUTE",
       "status": "NOT_REACHED",
-      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "summary": "the run stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was inspected, activated, loaded or executed for it",
       "documents": [
         "input-route.json"
       ],
@@ -53,7 +55,7 @@
     {
       "gate": "SINGLE_FINGER_EXTRACTION_PROFILE",
       "status": "NOT_REACHED",
-      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "summary": "the run stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was inspected, activated, loaded or executed for it",
       "documents": [
         "fingerprint-route-profile.json"
       ],
@@ -62,7 +64,7 @@
     {
       "gate": "SINGLE_FINGER_MATCHER_RAW_SCORE",
       "status": "NOT_REACHED",
-      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "summary": "the run stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was inspected, activated, loaded or executed for it",
       "documents": [
         "score-contract.json"
       ],
@@ -71,14 +73,14 @@
     {
       "gate": "SCORE_AFFECTING_SETTINGS_CLOSURE",
       "status": "NOT_REACHED",
-      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "summary": "the run stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was inspected, activated, loaded or executed for it",
       "documents": [],
       "blockers": []
     },
     {
       "gate": "PAIR_SELF_DETERMINISM_FAILURES",
       "status": "NOT_REACHED",
-      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "summary": "the run stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was inspected, activated, loaded or executed for it",
       "documents": [
         "qualification-run.json"
       ],
@@ -87,31 +89,31 @@
     {
       "gate": "WORKLOAD_RUNTIME_FEASIBILITY",
       "status": "NOT_REACHED",
-      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "summary": "the run stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was inspected, activated, loaded or executed for it",
       "documents": [],
       "blockers": []
     },
     {
       "gate": "TRAINING_PROVENANCE",
       "status": "NOT_REACHED",
-      "summary": "the run paused at ACQUISITION_ACCESS while an official acquisition route is outstanding, so this question was never asked: nothing was delivered, inspected, activated, loaded or executed for it",
+      "summary": "the run stopped at ACQUISITION_ACCESS, so this question was never asked: nothing was inspected, activated, loaded or executed for it",
       "documents": [
         "training-provenance.json"
       ],
       "blockers": []
     }
   ],
-  "blockers": [],
-  "pending": {
-    "acquisition_status": "PORTAL_ACCESS_REQUIRED",
-    "what_was_walked": "Innovatrics distributes the IDKit SDK through its customer portal. Five official routes were retrieved: the developer portal and the public repositories offer no IDKit package, the legacy CRM has been retired by the vendor, the current portal ends at a sign-in this project has no account for, and the learning portal offers a course rather than a download. The sixth route — a request to the vendor in the maintainer's own name — has not been walked. Nothing was refused and no package was shown not to exist.",
-    "what_is_outstanding": [
-      "the maintainer signs in to the customer portal with an account of their own and places the delivered package in the local artifact store, which moves the state to PACKAGE_OBTAINED",
-      "the maintainer sends an evaluation request to the vendor in their own name, which moves the state to REQUEST_SENT and then to whatever the vendor replies — including ACCESS_REFUSED, which would be a finding and would fail the gate honestly"
-    ],
-    "what_it_would_answer": "Everything below this gate. The package's exact identity, its runtime closure, whether it reads the benchmark's PNG or needs a raw buffer, whether a single fingerprint can be compared against a single fingerprint without a consolidated record score, whether a raw scalar is readable independently of the decision, and whether every setting behind that scalar can be frozen",
-    "this_is_not_a_finding_about_the_candidate": true
-  },
+  "blockers": [
+    {
+      "gate": "ACQUISITION_ACCESS",
+      "blocker_code": "ACCESS_REFUSED_BY_VENDOR",
+      "affected_component": "the official Innovatrics IDKit package",
+      "evidence": "acquisition-status.json: An Innovatrics Business Development representative explicitly stated that Innovatrics does not participate in academic or research-only evaluations and does not provide SDK licences for non-commercial benchmarking.",
+      "why_this_blocks_algorithm_5": "Every remaining gate is a question about a delivered package — its identity, its runtime closure, its input route, its profiles, its score API. None of them can be answered about a package nobody holds, and answering them from a support article would be publishing a benchmark route this project had never opened",
+      "how_this_would_be_lifted": "Only the vendor can lift it, by supplying a package for this target under terms this project can accept. It is not lifted by obtaining the package from a mirror, a catalogue site or a reseller: a package whose chain of custody does not run to the vendor is a package nothing can pin"
+    }
+  ],
+  "pending": null,
   "acceptance_conditions": [
     "an official package was actually obtained",
     "the exact package, build and version are pinned",
@@ -169,6 +171,7 @@
     "verifinger_scores"
   ],
   "opens_stage_12b": false,
-  "observations_fingerprint": "a8dcdc810202fbfa2d6f6a2bc581ecbc4c4d215cf598ab906b85e24dbc8cbf3c",
-  "preflight_fingerprint": "9d68601a43c34bdb9f93a461b518e63112104918fbbe2c2dada90297a239ff30"
+  "reopens_algorithm_5_search": true,
+  "observations_fingerprint": "a4ffd1c978f3b9242a0bc30c3bf26d54c2021944cf5a83b0e7f4a463e556419a",
+  "preflight_fingerprint": "38d2d7a275c01b6e553e5f535c67c929510b2053c737f33b63bb508618f6014c"
 }

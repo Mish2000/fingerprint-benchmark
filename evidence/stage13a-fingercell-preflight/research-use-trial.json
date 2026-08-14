@@ -1,0 +1,49 @@
+{
+  "gate": "RESEARCH_USE_AND_TRIAL_OPERATION",
+  "license_bypass_attempted": false,
+  "redistribution": {
+    "basis": "A vendor SDK trial is not redistributable, and fpbench redistributes nothing in any case. No archive byte, native module, licence or template enters this repository (docs/adr/0083).",
+    "decision": "NOT_ALLOWED",
+    "redistributed_by_fpbench": false
+  },
+  "refused_license_actions": [
+    "reactivating an expired trial",
+    "resetting a trial clock",
+    "bypassing licence validation",
+    "patching or replacing a licensing component",
+    "reusing another product's entitlement for FingerCell"
+  ],
+  "same_vendor_licensing_isolation": "a running Neurotechnology licensing service does not imply a valid FingerCell entitlement; the FingerCell component's own authorization must be observed",
+  "schema": "stage_13a_research_use_trial_v1",
+  "separated_questions": [
+    "package_obtainable",
+    "research_execution_permitted",
+    "trial_operational",
+    "trial_duration_sufficient",
+    "network_requirement_understood"
+  ],
+  "stage8e": {
+    "assessed": false,
+    "declined_to_decide": null,
+    "may_execute_locally": null,
+    "policy_fingerprint": "de9cdbaa23522c4a15337d86b0ec2df8af8b79383a1f8014294e8c7855bf972a",
+    "reused_not_reopened": true,
+    "why_null_and_not_false": "no component has been assessed, so Stage 8E made no decision. A false here would read as a research-use refusal nobody made (docs/adr/0095)"
+  },
+  "status": "ACTION_REQUIRED",
+  "trial": {
+    "activated": false,
+    "duration_days": 30,
+    "entitlement_component": null,
+    "network_requirement": "to use a trial product a constant internet connection is required",
+    "start_semantics": "UNRESOLVED"
+  },
+  "trial_questions": [
+    "trial_start_semantics",
+    "trial_duration",
+    "network_requirement",
+    "activation_method",
+    "product_entitlement"
+  ],
+  "trial_reset_attempted": false
+}

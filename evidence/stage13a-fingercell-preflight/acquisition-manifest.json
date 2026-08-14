@@ -1,0 +1,68 @@
+{
+  "artifact": {
+    "downloaded_utc": "2026-08-14T19:30:10Z",
+    "filename": "FingerCell_3_3_SDK_2021-10-13.zip",
+    "official_locator_category": "VENDOR_DIRECT_DOWNLOAD",
+    "product": "FingerCell",
+    "product_version": "3.3",
+    "sha256": "9ca7e275afa9e22cd6fa928b0273afbc447e49463f6f8259a3d5d39a555cde99",
+    "size_bytes": 509667736,
+    "vendor_product_revision": "20211013",
+    "vendor_revision_hash": "394e593011b1b1dca288371e0af499198f4a77d1"
+  },
+  "detail": "FingerCell_3_3_SDK_2021-10-13.zip verified by size and digest",
+  "documentation_obtained": true,
+  "gate": "OFFICIAL_ARTIFACT_ACQUISITION",
+  "obtained": true,
+  "official_locator": "https://download.neurotechnology.com/FingerCell_3_3_SDK_2021-10-13.zip",
+  "official_locator_is_untokenized": true,
+  "pass_conditions": [
+    "the archive was physically obtained",
+    "its official origin was verified",
+    "its exact bytes were hashed",
+    "matching delivered documentation was obtained"
+  ],
+  "presence": "VERIFIED",
+  "public_observations": [
+    {
+      "locator": "https://www.neurotechnology.com/download.html",
+      "observation_id": "trial_is_published",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-14",
+      "statement": "Neurotechnology publishes a direct FingerCell 3.3 SDK trial download of 509,667,736 bytes, described as a 30 day trial for Microsoft Windows and Linux on x86 and x86-64, requiring a constant internet connection during evaluation",
+      "weight": "INDICATION_ONLY",
+      "what_it_indicates": "that acquisition is a self-service action this project can perform itself, which is why Stage 13A has no vendor-pending state at all; the size and duration are what the delivered archive and its terms are then checked against"
+    },
+    {
+      "locator": "https://www.neurotechnology.com/release-notes-fingercell-30.html",
+      "observation_id": "current_release",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-14",
+      "statement": "the current FingerCell release is dated October 13 2021, with product revision 20211013 and revision hash 394e593011b1b1dca288371e0af499198f4a77d1",
+      "weight": "INDICATION_ONLY",
+      "what_it_indicates": "which revision the delivered Revision.txt is expected to report; the revision hash is the vendor's own source identifier and is never a digest of anything this project computed"
+    },
+    {
+      "locator": "https://www.neurotechnology.com/fingercell-technical-specifications.html",
+      "observation_id": "embedded_target",
+      "retrieval": "NOT_RETRIEVED",
+      "retrieved_utc": null,
+      "statement": "the FingerCell technical specifications state resource and speed figures for embedded targets, using 234x332 at 500 ppi and 180x256 at 385 ppi as the image sizes those figures are quoted for",
+      "weight": "INDICATION_ONLY",
+      "what_it_indicates": "that published speed and memory numbers describe a microcontroller at a particular image size, so neither the numbers nor the size may be carried into this benchmark: they are not a required input size and not an estimate for this host (docs/adr/0117)"
+    }
+  ],
+  "refused_sources": [
+    "a download mirror",
+    "a software-catalogue or freeware site",
+    "a third-party GitHub repository",
+    "a reseller or distributor store",
+    "an archive somebody uploaded",
+    "a copy received from another project"
+  ],
+  "revision_agrees_with_release_notes": true,
+  "schema": "stage_13a_acquisition_manifest_v1",
+  "status": "PASS",
+  "tokenized_locators_are_not_published": true,
+  "vendor_revision_hash_is_not_a_digest": true
+}

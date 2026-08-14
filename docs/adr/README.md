@@ -118,6 +118,15 @@ can be held to.
 | [0109](0109-an-asymmetric-matcher-is-bound-by-protocol-not-normalised.md) | An asymmetric matcher is bound by protocol, not normalised | Accepted, implemented |
 | [0110](0110-a-published-version-is-not-a-delivered-package.md) | A published version is not a delivered package | Accepted, implemented |
 | [0111](0111-the-licence-clock-starts-after-the-harness-compiles.md) | The licence clock starts after the harness compiles | Accepted, implemented |
+| [0112](0112-an-outstanding-action-is-not-a-failed-candidate.md) | An outstanding action is not a failed candidate | Accepted, implemented |
+| [0113](0113-a-vendor-revision-hash-is-not-an-artifact-digest.md) | A vendor revision hash is not an artifact digest | Accepted, implemented |
+| [0114](0114-a-sibling-product-runtime-never-answers-for-this-one.md) | A sibling product's runtime never answers for this one | Accepted, implemented |
+| [0115](0115-the-bridge-compiles-before-the-trial-clock-starts.md) | The bridge compiles before the trial clock starts | Accepted, implemented |
+| [0116](0116-the-binding-is-chosen-from-the-archive-not-in-advance.md) | The binding is chosen from the archive, not in advance | Accepted, implemented |
+| [0117](0117-an-embedded-example-size-is-not-a-preprocessing-rule.md) | An embedded example size is not a preprocessing rule | Accepted, implemented |
+| [0118](0118-settings-are-read-before-they-are-set.md) | Settings are read before they are set | Accepted, implemented |
+| [0119](0119-pair-labels-come-from-the-api-under-test.md) | Pair labels come from the API under test | Accepted, implemented |
+| [0120](0120-binary-metadata-asks-questions-the-runtime-answers.md) | Binary metadata asks questions the runtime answers | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

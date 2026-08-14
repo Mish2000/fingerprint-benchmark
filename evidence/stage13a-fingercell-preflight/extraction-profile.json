@@ -1,0 +1,26 @@
+{
+  "gate": "SINGLE_FINGER_EXTRACTION_PROFILE",
+  "observed": null,
+  "quality_rejection_is_part_of_the_algorithm": true,
+  "refused_constructions": [
+    "MergeTemplates",
+    "multiple impressions",
+    "a multi-record template",
+    "template stitching",
+    "gallery fusion",
+    "ISO conversion",
+    "MOC conversion"
+  ],
+  "refused_quality_threshold_tuning": "lowering or zeroing the image quality threshold in order to increase the number of images that produce a template",
+  "rejection_is_an_extraction_failure_not_a_zero_score": true,
+  "required_template_format": "PROPRIETARY",
+  "route": [
+    "one image",
+    "one fresh Extract()",
+    "one template buffer"
+  ],
+  "schema": "stage_13a_extraction_profile_v1",
+  "single_finger_rule": "one image -> one fresh Extract -> one template, on each side of every comparison",
+  "status": "ACTION_REQUIRED",
+  "template_cache_permitted": false
+}

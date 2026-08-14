@@ -1,0 +1,301 @@
+{
+  "acceptance_conditions": [
+    "Stage 12A closed correctly and its exact fingerprint is bound",
+    "the official FingerCell trial was obtained",
+    "the exact archive SHA-256 is pinned",
+    "the exact FingerCell 3.3 revision is identified",
+    "one official binding was selected",
+    "the complete runtime closure is pinned",
+    "no VeriFinger extractor or matcher is in the route",
+    "Stage 8E permits local research execution",
+    "the FingerCell-specific trial entitlement works",
+    "no licence bypass was attempted",
+    "the trial covers the frozen workload",
+    "canonical_500 enters without pixel modification",
+    "500 PPI semantics are effective at extraction",
+    "one image produces one fresh proprietary template",
+    "no template merging is involved",
+    "no template cache is involved",
+    "every extractor setting is frozen",
+    "a native raw integer score is accessible",
+    "a higher score means more similar",
+    "no decision is required to expose the score",
+    "fpbench applies no score transformation",
+    "MatchingAlgorithm is frozen",
+    "every score-affecting setting is closed",
+    "pair.left to reference and pair.right to candidate are frozen",
+    "SELF was demonstrated from two independent extractions",
+    "repeat and restart determinism passed",
+    "all four mandatory failure probes passed",
+    "a bounded local non-SD300 smoke passed",
+    "training provenance was searched",
+    "no positive SD300 overlap evidence was found",
+    "no SD300 byte, manifest or score was consulted",
+    "no prior algorithm's scores were consulted",
+    "no production integration was created"
+  ],
+  "action_required_is_not_a_failure": "ACTION_REQUIRED means a local step this project can perform has not been performed. It is not a finding about FingerCell, it produces no finalization marker, and it is never published as a blocker (docs/adr/0112)",
+  "algorithm_slot": "algorithm_5",
+  "blockers": [],
+  "candidate_id": "neurotechnology_fingercell_3_3_1to1",
+  "ci_may": [
+    "the gate state machine",
+    "the fake engine",
+    "the schemas",
+    "the artifact manifest parser",
+    "the runtime closure validator",
+    "the settings closure validator",
+    "the qualification record binding",
+    "the mandatory failure probes",
+    "the secret guard",
+    "the finalization invariants",
+    "the SD300 and prior-score firewall"
+  ],
+  "ci_must_not": [
+    "download FingerCell",
+    "contact a licensing server",
+    "activate a trial",
+    "load a vendor DLL, shared object or JAR",
+    "produce a biometric score"
+  ],
+  "failure_class": null,
+  "gate_count_defined": 10,
+  "gate_states": [
+    "PASS",
+    "FAIL",
+    "ACTION_REQUIRED",
+    "NOT_REACHED"
+  ],
+  "gates": [
+    {
+      "blockers": [],
+      "documents": [
+        "acquisition-manifest.json"
+      ],
+      "gate": "OFFICIAL_ARTIFACT_ACQUISITION",
+      "outstanding_action": null,
+      "status": "PASS",
+      "summary": "FingerCell_3_3_SDK_2021-10-13.zip was obtained from the vendor's own untokenized direct locator, is 509667736 bytes, hashes to the pinned digest, arrived with its delivered documentation and its revision agrees with the vendor's published release notes"
+    },
+    {
+      "blockers": [],
+      "documents": [
+        "package-runtime-identity.json"
+      ],
+      "gate": "PACKAGE_RUNTIME_IDENTITY",
+      "outstanding_action": "BRIDGE_NOT_COMPILED",
+      "status": "ACTION_REQUIRED",
+      "summary": "the CPP binding is selected and the qualification bridge has not been compiled against it"
+    },
+    {
+      "blockers": [],
+      "documents": [
+        "research-use-trial.json"
+      ],
+      "gate": "RESEARCH_USE_AND_TRIAL_OPERATION",
+      "outstanding_action": "TRIAL_NOT_ACTIVATED",
+      "status": "ACTION_REQUIRED",
+      "summary": "the delivered licence agreement has been read and no trial has been activated on this machine, so nothing has requested a FingerCell entitlement"
+    },
+    {
+      "blockers": [],
+      "documents": [
+        "input-route.json"
+      ],
+      "gate": "CANONICAL500_INPUT_ROUTE",
+      "outstanding_action": "RUNTIME_NOT_EXERCISED",
+      "status": "ACTION_REQUIRED",
+      "summary": "no runtime has been exercised, so nothing is known about how the delivered image loader treats a canonical_500 PNG"
+    },
+    {
+      "blockers": [],
+      "documents": [
+        "extraction-profile.json"
+      ],
+      "gate": "SINGLE_FINGER_EXTRACTION_PROFILE",
+      "outstanding_action": "SETTINGS_NOT_ENUMERATED",
+      "status": "ACTION_REQUIRED",
+      "summary": "no settings have been read off a constructed engine, so the extraction profile is not established"
+    },
+    {
+      "blockers": [],
+      "documents": [
+        "score-contract.json"
+      ],
+      "gate": "RAW_1TO1_SCORE_CONTRACT",
+      "outstanding_action": "SCORE_CONTRACT_NOT_OBSERVED",
+      "status": "ACTION_REQUIRED",
+      "summary": "the matcher has not been called, so its contract has not been observed on this machine"
+    },
+    {
+      "blockers": [],
+      "documents": [
+        "settings-closure.json"
+      ],
+      "gate": "SCORE_AFFECTING_SETTINGS_CLOSURE",
+      "outstanding_action": "SETTINGS_CLOSURE_NOT_ESTABLISHED",
+      "status": "ACTION_REQUIRED",
+      "summary": "no settings inventory exists, so there is nothing to close over. A count of zero here would read as a closed inventory rather than as an absent one"
+    },
+    {
+      "blockers": [],
+      "documents": [
+        "qualification-run.json"
+      ],
+      "gate": "PAIR_SELF_DETERMINISM_FAILURES",
+      "outstanding_action": "QUALIFICATION_NOT_RUN",
+      "status": "ACTION_REQUIRED",
+      "summary": "no qualification record produced by the delivered SDK exists on this machine"
+    },
+    {
+      "blockers": [],
+      "documents": [
+        "workload-feasibility.json"
+      ],
+      "gate": "FULL_WORKLOAD_FEASIBILITY",
+      "outstanding_action": "WORKLOAD_NOT_MEASURED",
+      "status": "ACTION_REQUIRED",
+      "summary": "trial capacity and runtime cost have not been measured on this machine"
+    },
+    {
+      "blockers": [],
+      "documents": [
+        "training-provenance.json"
+      ],
+      "gate": "TRAINING_PROVENANCE",
+      "outstanding_action": "PROVENANCE_NOT_SEARCHED",
+      "status": "ACTION_REQUIRED",
+      "summary": "nobody has searched the delivered material and the vendor's public statements for a training-set overlap"
+    }
+  ],
+  "gates_awaiting_action": 9,
+  "gates_passed": 1,
+  "gates_reached": 10,
+  "implementation_origin": "VENDOR_OFFICIAL_SDK",
+  "non_goals": [
+    "a FingerprintAlgorithmAdapter",
+    "registry integration",
+    "a canonical experiment configuration",
+    "the 6,000-comparison run",
+    "a ResultSet",
+    "a decision profile",
+    "a calibration",
+    "a metric"
+  ],
+  "observations_fingerprint": "5a58479a39ef590bb956f04f8f2a0ee88f934c312d738f2675d5b01e2eb467b5",
+  "only_a_failure_stops_the_run": "a gate awaiting an action is recorded and the run continues, so that one unpaid chore cannot hide nine later answers. NOT_REACHED appears only after a failure (docs/adr/0104)",
+  "opens_stage_13b": false,
+  "outcome": "FINGERCELL_PREFLIGHT_INCOMPLETE",
+  "outstanding_actions": [
+    {
+      "action": "BRIDGE_NOT_COMPILED",
+      "gate": "PACKAGE_RUNTIME_IDENTITY",
+      "what_has_been_done": "the archive is verified, inventoried, and one official binding (CPP) has been selected from what it ships",
+      "what_it_would_answer": "whether the route compiles at all \u2014 which is worth knowing before a 30-day clock starts, not after (docs/adr/0115)",
+      "what_remains": [
+        "write the small qualification bridge against that binding",
+        "compile and link it against the delivered headers and libraries"
+      ]
+    },
+    {
+      "action": "TRIAL_NOT_ACTIVATED",
+      "gate": "RESEARCH_USE_AND_TRIAL_OPERATION",
+      "what_has_been_done": "the delivered licence agreement and activation guide were read: the grant covers designing, developing and testing, the trial period is 30 days, activation is an explicit act, and no restriction on publishing measurements was found",
+      "what_it_would_answer": "whether the route can be executed at all, and for how long",
+      "what_remains": [
+        "activate the trial through the vendor's own activation route",
+        "obtain a licence for the FingerCell component specifically, and record that it was FingerCell's own entitlement",
+        "record the trial start semantics, duration and network requirement as the delivered material states them"
+      ]
+    },
+    {
+      "action": "RUNTIME_NOT_EXERCISED",
+      "gate": "CANONICAL500_INPUT_ROUTE",
+      "what_has_been_done": "the delivered extraction tutorial was read and shows the official route loading an image and passing it straight to the extractor, with no preprocessing outside the SDK",
+      "what_it_would_answer": "whether the benchmark's own images can enter the algorithm without fpbench choosing a preprocessing step",
+      "what_remains": [
+        "load a canonical_500 PNG through the delivered image loader",
+        "observe whether the resolution survives the load",
+        "if it does not, prove the decode route pixel-for-pixel",
+        "confirm the effective resolution at the point of extraction"
+      ]
+    },
+    {
+      "action": "SETTINGS_NOT_ENUMERATED",
+      "gate": "SINGLE_FINGER_EXTRACTION_PROFILE",
+      "what_has_been_done": "the delivered binding was read: it exposes typed accessors for the quality threshold, the matching algorithm and the template format, and the module carries further property names the typed surface does not reach",
+      "what_it_would_answer": "what the algorithm was actually configured with when it produced a template",
+      "what_remains": [
+        "construct the engine and enumerate its properties through the supported property mechanism before setting anything",
+        "record each setting's runtime value, documented default and provenance",
+        "confirm the delivered default template format"
+      ]
+    },
+    {
+      "action": "SCORE_CONTRACT_NOT_OBSERVED",
+      "gate": "RAW_1TO1_SCORE_CONTRACT",
+      "what_has_been_done": "the delivered header and binding were read: the matcher takes a reference record and a candidate record and writes a native signed integer through an out-parameter, a bigger score means more similar, and the official tutorial prints it with no threshold anywhere near it",
+      "what_it_would_answer": "whether the archive keeps the contract its own documentation states \u2014 which is the whole reason this candidate was chosen",
+      "what_remains": [
+        "call the matcher through the compiled bridge",
+        "record the observed native type and direction",
+        "record that the score is readable with no decision, and that upstream defines no range rather than inventing one"
+      ]
+    },
+    {
+      "action": "SETTINGS_CLOSURE_NOT_ESTABLISHED",
+      "gate": "SCORE_AFFECTING_SETTINGS_CLOSURE",
+      "what_has_been_done": "the delivered binding's typed property surface was read, and the algorithm module was found to carry further property names that surface never reaches - so the closure is already known to be wider than any list written in advance",
+      "what_it_would_answer": "what the algorithm was actually configured with when it produced a score, which is what makes a run reproducible",
+      "what_remains": [
+        "enumerate the constructed engine's properties through the supported property mechanism, before setting anything",
+        "give every score-affecting setting an upstream provenance",
+        "confirm the matching algorithm is at its delivered default rather than forcing it there"
+      ]
+    },
+    {
+      "action": "QUALIFICATION_NOT_RUN",
+      "gate": "PAIR_SELF_DETERMINISM_FAILURES",
+      "what_has_been_done": "the harness was written and driven end to end against a fake engine: six passes, both orientations, SELF from two extractions, a real process restart and all four mandatory failure probes",
+      "what_it_would_answer": "whether the delivered matcher is deterministic and how it actually fails",
+      "what_remains": [
+        "run the same harness against the delivered SDK, within the twenty-comparison ceiling"
+      ]
+    },
+    {
+      "action": "WORKLOAD_NOT_MEASURED",
+      "gate": "FULL_WORKLOAD_FEASIBILITY",
+      "what_has_been_done": "the delivered activation guide was read: 30 days, an explicit activation, and a constant network requirement for trial products",
+      "what_it_would_answer": "whether the full benchmark fits inside the trial at all",
+      "what_remains": [
+        "read the issued trial's expiration, entitlement and any transaction quota off the runtime",
+        "record the quota metering semantics",
+        "measure startup, two extractions and one match, and project 18060 logical operations against the remaining window"
+      ]
+    },
+    {
+      "action": "PROVENANCE_NOT_SEARCHED",
+      "gate": "TRAINING_PROVENANCE",
+      "what_has_been_done": "the standard is fixed: the same one Algorithm 4 was held to",
+      "what_it_would_answer": "whether this candidate was tuned on the answer sheet. Not searching is an outstanding action and never evidence of overlap",
+      "what_remains": [
+        "search the delivered documentation and the vendor's public material for ['NIST SD300', 'Special Database 300', 'SD 300']",
+        "cover every surface that leaks an evaluation set into a model: ['training', 'validation', 'model selection', 'algorithm tuning', 'calibration', 'development testing that affected the release']"
+      ]
+    }
+  ],
+  "permitted_constructions": [
+    "an artifact downloader and inspector",
+    "a runtime manifest",
+    "a small qualification bridge against the official binding",
+    "a fake bridge for CI",
+    "a qualification driver",
+    "an evidence publisher"
+  ],
+  "preflight_fingerprint": "dc706a009d0662f99e1b8e04390f17b7d38b535bd90ab01fc988a9a05bd9da52",
+  "product": "FingerCell",
+  "product_version": "3.3",
+  "reopens_algorithm_5_search": false,
+  "schema": "stage_13a_preflight_report_v1",
+  "stopped_at": null
+}

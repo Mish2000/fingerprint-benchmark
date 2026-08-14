@@ -1,0 +1,48 @@
+{
+  "discovery_surfaces": [
+    "the delivered API documentation",
+    "the delivered sample and tutorial sources",
+    "property metadata or reflection on a constructed engine",
+    "the runtime object's own property enumeration",
+    "the delivered headers and language bindings"
+  ],
+  "gate": "SCORE_AFFECTING_SETTINGS_CLOSURE",
+  "matching_algorithm_expected_value": 0,
+  "matching_algorithm_is_not_forced_silently": true,
+  "provenance_vocabulary": [
+    "DELIVERED_RUNTIME_DEFAULT",
+    "VERSION_MATCHED_DOCUMENTED_DEFAULT",
+    "OFFICIAL_SAMPLE_EXPLICIT",
+    "UPSTREAM_EXPLICIT_RECOMMENDATION",
+    "FPBENCH_PROTOCOL_BINDING",
+    "UNRESOLVED"
+  ],
+  "refused_provenance": "FPBENCH_CHOICE_TUNED_ON_OUR_DATA",
+  "row_fields": [
+    "name",
+    "runtime_value",
+    "documented_default",
+    "effective_value",
+    "provenance",
+    "can_affect_template_or_score"
+  ],
+  "schema": "stage_13a_settings_closure_v1",
+  "settings": [],
+  "settings_are_read_before_they_are_set": true,
+  "settings_list_is_not_exhaustive": true,
+  "settings_recorded": 0,
+  "settings_to_close": [
+    "MaximalMinutiaCount",
+    "MinimalMinutiaCount",
+    "LargeTemplate",
+    "TemplateFormat",
+    "ImageQualityThreshold",
+    "MatchingAlgorithm",
+    "resolution and image metadata behaviour",
+    "inherited object properties that reach FingerCell",
+    "any option an official sample sets explicitly"
+  ],
+  "status": "ACTION_REQUIRED",
+  "unresolved_score_affecting_settings": [],
+  "why_zero_is_not_the_default_answer": "an archive that has not been exercised has no settings rows, and a count of zero over an inventory nobody recorded would read as a closed inventory"
+}

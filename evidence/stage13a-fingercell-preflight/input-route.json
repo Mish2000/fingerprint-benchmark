@@ -1,0 +1,50 @@
+{
+  "decode_equivalence_requirements": [
+    "the decode is lossless and deterministic on this platform",
+    "width and height are unchanged",
+    "the pixel format stays 8-bit grayscale",
+    "every pixel value is identical to the PNG's decoded matrix"
+  ],
+  "embedded_benchmark_sample_dimensions": [
+    234,
+    332
+  ],
+  "fpbench_preprocessing_required": false,
+  "gate": "CANONICAL500_INPUT_ROUTE",
+  "ideal_route": [
+    "canonical_500 PNG",
+    "official NImage loader",
+    "correct 500 PPI metadata",
+    "FingerCell.Extract"
+  ],
+  "image_dimensions_unchanged": true,
+  "input_ppi": 500,
+  "input_profile": "canonical_500",
+  "internal_black_box_preprocessing_is_acceptable": true,
+  "observed": null,
+  "permitted_decode_route": [
+    "canonical_500 PNG",
+    "deterministic lossless decode",
+    "exact width x height x gray8 pixel matrix",
+    "NImage constructed from those exact pixels",
+    "explicit 500 PPI",
+    "FingerCell.Extract"
+  ],
+  "pixel_format": "gray8",
+  "ppi_must_be_effective_at_extraction": true,
+  "refused_preprocessing": [
+    "crop",
+    "resize",
+    "pad",
+    "rotate",
+    "ROI selection",
+    "enhancement",
+    "contrast normalization",
+    "histogram processing",
+    "binarization",
+    "external minutiae extraction"
+  ],
+  "sample_dimensions_are_not_a_preprocessing_rule": true,
+  "schema": "stage_13a_input_route_v1",
+  "status": "ACTION_REQUIRED"
+}

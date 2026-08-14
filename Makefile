@@ -103,6 +103,18 @@ help:
 	@echo "stage12a-guard          refuse if any IDKit package or licence material is tracked here"
 	@echo "stage12a-documents      write the eleven derivable evidence documents (commit them, then publish)"
 	@echo "stage12a-publish        write the final marker too; refuses a dirty tree"
+	@echo "stage13a-contract       the FingerCell 3.3 preflight: ten gates, ACTION_REQUIRED, raw 1:1 integer score"
+	@echo "stage13a-evidence       verify the committed Stage 13A FingerCell-preflight evidence"
+	@echo "stage13a-status         re-derive and print the gates, the outcome and what remains to be done"
+	@echo "stage13a-acquire        report where the official trial archive stands in the local store"
+	@echo "stage13a-declare        record an archive already in the store (ARCHIVE=<filename>)"
+	@echo "stage13a-artifacts      run the checks that read the delivered FingerCell archive locally"
+	@echo "stage13a-qualify-fake   drive the whole qualification harness against the fake SDK"
+	@echo "stage13a-qualify        report the bounded local qualification record (needs the trial)"
+	@echo "stage13a-guard          refuse if any FingerCell archive or licence material is tracked here"
+	@echo "stage13a-contamination  prove no Stage 13A module reaches the same vendor's other algorithm"
+	@echo "stage13a-documents      write the twelve derivable evidence documents (commit them, then publish)"
+	@echo "stage13a-publish        write the final marker too; refuses while an action is outstanding"
 	@echo "stage8c-workspace       Stage 8C alignment and preflight over the real inputs"
 	@echo "stage8c-verify          re-derive and print the Stage 8C evidence-only verification"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
@@ -571,6 +583,55 @@ stage12a-documents:
 
 stage12a-publish:
 	python -m fpbench.experiments.stage12a_finalization publish
+
+# ------------------------------------------------- Stage 13A: FingerCell preflight
+#
+# The first Algorithm 5 candidate whose acquisition needs nobody's permission:
+# Neurotechnology publishes a direct FingerCell trial download, so there is no
+# vendor-pending state here at all. What replaces it is `ACTION_REQUIRED`, which
+# means a local step this project can perform has not been performed yet — and
+# never that something is wrong with the candidate (docs/adr/0112).
+#
+# The order matters and is not an accident. `stage13a-acquire` fetches nothing by
+# itself: the archive is downloaded deliberately, then declared, then unpacked and
+# inventoried, and only then is the bridge compiled. Activation comes last, so the
+# 30-day clock does not run while the harness is debugged (docs/adr/0115).
+
+stage13a-contract:
+	pytest -m "stage13a_contract" -q
+
+stage13a-evidence:
+	pytest -m "stage13a" -q
+
+stage13a-artifacts:
+	pytest -m "fingercell_artifact" -q -rs
+
+stage13a-status:
+	python -m fpbench.experiments.stage13a_finalization status
+
+stage13a-acquire:
+	python -m fpbench.experiments.stage13a_acquisition state
+
+stage13a-declare:
+	python -m fpbench.experiments.stage13a_acquisition declare --filename "$(ARCHIVE)"
+
+stage13a-guard:
+	python -m fpbench.experiments.stage13a_acquisition guard
+
+stage13a-contamination:
+	python -c "from pathlib import Path; from fpbench.experiments.stage13a_preflight import require_no_verifinger_contamination as g; print(len(g(Path('.'))), 'Stage 13A modules audited; none reaches Algorithm 4')"
+
+stage13a-qualify-fake:
+	python -m fpbench.experiments.stage13a_qualification fake
+
+stage13a-qualify:
+	python -m fpbench.experiments.stage13a_qualification check
+
+stage13a-documents:
+	python -m fpbench.experiments.stage13a_finalization documents
+
+stage13a-publish:
+	python -m fpbench.experiments.stage13a_finalization publish
 
 # ------------------------------------------------------------------- SourceAFIS
 

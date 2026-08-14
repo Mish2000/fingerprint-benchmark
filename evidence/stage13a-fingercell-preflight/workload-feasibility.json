@@ -1,0 +1,42 @@
+{
+  "capacity_questions": [
+    "expiration",
+    "trial_start_semantics",
+    "network_dependency",
+    "product_entitlement",
+    "process_restrictions",
+    "transaction_quota",
+    "quota_metering_semantics"
+  ],
+  "frozen_workload": {
+    "comparison_attempts": 6000,
+    "independent_extractions": 12000,
+    "matcher_invocations": 6000,
+    "qualification_allowance": 20,
+    "template_cache_permitted": false,
+    "total_extractions": 12040,
+    "total_logical_operations": 18060,
+    "total_matcher_invocations": 6020
+  },
+  "gate": "FULL_WORKLOAD_FEASIBILITY",
+  "observed": null,
+  "quota_schema_vocabulary": [
+    "NONE",
+    "PER_EXTRACTION",
+    "PER_MATCH",
+    "PER_OPERATION",
+    "OTHER",
+    "UNRESOLVED"
+  ],
+  "schema": "stage_13a_workload_feasibility_v1",
+  "status": "ACTION_REQUIRED",
+  "timing_is_not_a_performance_comparison": true,
+  "timing_measurements": [
+    "process_startup",
+    "two_independent_extractions",
+    "one_match",
+    "peak_or_approximate_memory"
+  ],
+  "unresolved_quota_blocks_pass": true,
+  "vendor_embedded_figures_are_not_a_pc_estimate": true
+}

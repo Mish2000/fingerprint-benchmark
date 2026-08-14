@@ -1,0 +1,50 @@
+{
+  "calibration_performed": false,
+  "decision_produced": false,
+  "direction": "HIGHER_IS_MORE_SIMILAR",
+  "fpbench_score_transformation": "NONE",
+  "gate": "RAW_1TO1_SCORE_CONTRACT",
+  "insufficient_shapes": [
+    "MATCH / NO_MATCH",
+    "true / false",
+    "a candidate list filtered by a threshold",
+    "a score returned only above a threshold"
+  ],
+  "native_type": "signed_integer",
+  "observed": null,
+  "observed_range_is_not_a_defined_range": true,
+  "pair_labels_are_not_copied_from_another_candidate": true,
+  "pair_role_binding": [
+    {
+      "api_role": "reference",
+      "pair_side": "pair.left"
+    },
+    {
+      "api_role": "candidate",
+      "pair_side": "pair.right"
+    }
+  ],
+  "range_status": "NOT_DEFINED_BY_UPSTREAM",
+  "refused_transformations": [
+    "convert to FAR",
+    "take -log FAR",
+    "rescale to a percentage",
+    "rescale to 0..1",
+    "z-score",
+    "any other normalization",
+    "clamp"
+  ],
+  "requirements": [
+    "exact_api_or_method",
+    "native_numeric_type",
+    "direction",
+    "range_status",
+    "failure_behaviour",
+    "threshold_relationship",
+    "fpbench_transformation"
+  ],
+  "schema": "stage_13a_score_contract_v1",
+  "score_range_is_not_assumed": true,
+  "status": "ACTION_REQUIRED",
+  "threshold_produced": false
+}

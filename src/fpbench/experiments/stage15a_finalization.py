@@ -138,6 +138,9 @@ def build_artifact_runtime_identity_document(
 ) -> dict[str, Any]:
     closure = runtime.build_runtime_closure(repository_root=repository_root)
     document = closure.as_document()
+    # The adapter reports its closure; the stage says which gate that closure
+    # answers, because a gate is a fact about this stage and not about the route.
+    document["gate"] = frozen.GATES["G1"]
     document["runtime_manifest_fingerprint"] = runtime.runtime_manifest_fingerprint(
         closure
     )

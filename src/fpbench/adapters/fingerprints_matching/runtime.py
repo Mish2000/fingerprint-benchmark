@@ -441,9 +441,10 @@ class RuntimeClosure:
     def as_document(self) -> dict[str, Any]:
         return {
             "schema": RUNTIME_SCHEMA,
-            "gate": frozen.GATES["G1"],
+            # No gate name here. Which gate this closure answers is a fact about
+            # the stage that publishes it, and the stage adds it.
             "gate_state": self.gate_state,
-            "candidate_id": frozen.CANDIDATE_ID,
+            "candidate_id": frozen.ALGORITHM_ID,
             "package": frozen.PACKAGE_REQUIREMENT,
             "license": frozen.LICENSE,
             "implementation_origin": frozen.IMPLEMENTATION_ORIGIN,

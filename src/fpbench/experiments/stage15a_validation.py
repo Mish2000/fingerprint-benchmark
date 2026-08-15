@@ -268,14 +268,14 @@ def validate_fingerprints_matching_result_set(
     self_scores = 0
     genuine_scores = 0
 
-    if run.algorithm_id != frozen.PRODUCTION_ALGORITHM_ID:
+    if run.algorithm.algorithm_id != frozen.PRODUCTION_ALGORITHM_ID:
         issues.append(
             _issue(
                 code=IntegrityIssueCode.ALGORITHM_FINGERPRINT_MISMATCH,
                 reason="algorithm_identity_mismatch",
                 message=(
-                    f"the run records algorithm {run.algorithm_id!r}, not "
-                    f"{frozen.PRODUCTION_ALGORITHM_ID!r}"
+                    f"the run records algorithm {run.algorithm.algorithm_id!r}, "
+                    f"not {frozen.PRODUCTION_ALGORITHM_ID!r}"
                 ),
             )
         )

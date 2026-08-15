@@ -1,0 +1,85 @@
+{
+  "candidate_id": "fingerprints_matching_0_1_0",
+  "gate": "ARTIFACT_AND_RUNTIME_IDENTITY",
+  "gate_state": "PASS",
+  "implementation_origin": "OPEN_SOURCE_PYPI_ARTIFACT",
+  "install_index": "NONE (--no-index against the local wheelhouse)",
+  "installed_module_digests": {
+    "fingerprints_matching/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "fingerprints_matching/fingerprints_matching.py": "7439704c4dbe4f24b0188a5ee9f84c783421c9e5b47a7f4376aade793f2b5270",
+    "fingerprints_matching/minutiae_matching.py": "16a009804eb2a7b3531c450b49757ad40f4b1bdb455908c5df3b1e9c8dfe6cfa"
+  },
+  "license": "MIT",
+  "module_mismatches": [],
+  "network_after_environment_creation": "NONE",
+  "observed_environment": {
+    "cv2_library": "4.7.0",
+    "machine": "AMD64",
+    "numpy": "1.26.4",
+    "opencv": "4.7.0.72",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "present": true,
+    "python_version": "3.12.13"
+  },
+  "opencv_generation_rule": "CONTEMPORARY_WITH_ARTIFACT_PUBLICATION",
+  "opencv_is_part_of_algorithm_identity": true,
+  "package": "fingerprints-matching==0.1.0",
+  "pinned_environment": {
+    "cv2_library": "4.7.0",
+    "machine": "AMD64",
+    "numpy": "1.26.4",
+    "opencv_python": "4.7.0.72",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python_version": "3.12.13"
+  },
+  "published_artifacts": [
+    {
+      "expected_sha256": "cb9196c21ac63aeb6002ca2e60fec0b2764d822d23f97d86b637f461a2d6cb9c",
+      "expected_size_bytes": 4492,
+      "matches": true,
+      "name": "fingerprints_matching-0.1.0-py3-none-any.whl",
+      "present": true,
+      "role": "published_wheel"
+    },
+    {
+      "expected_sha256": "5533cdadae5067559cc84742cbe3c9521f993bedff42d64f9da05daa85818e37",
+      "expected_size_bytes": 3676,
+      "matches": true,
+      "name": "fingerprints_matching-0.1.0.tar.gz",
+      "present": true,
+      "role": "published_sdist"
+    }
+  ],
+  "runtime_manifest_fingerprint": "757e48ab43c7289cd1eafead171780e9f9aef9a9e0558174c49688ea75ccb739",
+  "runtime_wheels": [
+    {
+      "expected_sha256": "cb9196c21ac63aeb6002ca2e60fec0b2764d822d23f97d86b637f461a2d6cb9c",
+      "expected_size_bytes": 4492,
+      "matches": true,
+      "name": "fingerprints_matching-0.1.0-py3-none-any.whl",
+      "present": true,
+      "role": "runtime_wheel:fingerprints-matching"
+    },
+    {
+      "expected_sha256": "08beddf13648eb95f8d867350f6a018a4be2e5ad54c8d8caed89ebca558b2818",
+      "expected_size_bytes": 15517754,
+      "matches": true,
+      "name": "numpy-1.26.4-cp312-cp312-win_amd64.whl",
+      "present": true,
+      "role": "runtime_wheel:numpy"
+    },
+    {
+      "expected_sha256": "812af57553ec1c6709060c63f6b7e9ad07ddc0f592f3ccc6d00c71e0fe0e6376",
+      "expected_size_bytes": 38163649,
+      "matches": true,
+      "name": "opencv_python-4.7.0.72-cp37-abi3-win_amd64.whl",
+      "present": true,
+      "role": "runtime_wheel:opencv-python"
+    }
+  ],
+  "schema": "stage_15a_artifact_runtime_identity_v1",
+  "store_is_outside_repository": true,
+  "upstream_index": "https://pypi.org/project/fingerprints-matching/0.1.0/",
+  "version_mismatches": [],
+  "why_opencv_is_pinned": "the contours cv2.findContours returns are the direct input to feature extraction, so a different OpenCV is a different feature extractor. The package declares opencv-python with no bound"
+}

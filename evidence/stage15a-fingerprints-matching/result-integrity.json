@@ -1,0 +1,43 @@
+{
+  "algorithm_failures": 5611,
+  "calibration": false,
+  "duplicates": 0,
+  "expected_comparisons": 6000,
+  "failure_breakdown": {
+    "by_failure_code": {
+      "template_extraction_failed": 5611
+    },
+    "by_upstream_code": {
+      "CONVEXITY_DEFECTS_REFUSED_CONTOUR": 5610,
+      "NO_FEATURES_ON_FIRST_SIDE": 1
+    },
+    "rates_published": false,
+    "why_no_rates": "a rate at this stage is an invitation to compare algorithms before there is a common operating point. The counts are here; the comparison is a later layer"
+  },
+  "failures_recorded_as_zero": false,
+  "gate": "RESULTSET_INTEGRITY_AND_FINALIZATION",
+  "infrastructure_failures": 0,
+  "is_genuine_score_bearing": true,
+  "is_score_bearing": true,
+  "issues": [],
+  "logical_extractions": 12000,
+  "match_invocations": 6000,
+  "metrics": false,
+  "missing": 0,
+  "outcomes_partition_holds": true,
+  "plan_id": "plan_ce5faa7041d4",
+  "prior_algorithm_scores_read": false,
+  "result_set_validation_clean": true,
+  "run_id": "run_c2910aafb6cc",
+  "schema": "stage_15a_result_integrity_v1",
+  "score_export": false,
+  "score_statistics_published": false,
+  "scores": 389,
+  "scores_genuine": 22,
+  "scores_self": 367,
+  "self_score_is_constant_by_construction": true,
+  "self_score_value": 1.0,
+  "stored_outcomes": 6000,
+  "thresholds": false,
+  "validation_fingerprint": "1dd242d156ee4f1910525327f1692a070a1f8de6eec8ac856b20998247be81ca"
+}

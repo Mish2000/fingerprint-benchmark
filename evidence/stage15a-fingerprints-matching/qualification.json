@@ -1,0 +1,166 @@
+{
+  "candidate_id": "fingerprints_matching_0_1_0",
+  "claims": {
+    "A,B in a fresh process is the same value": true,
+    "A,B repeated is one value": true,
+    "A,B through a fresh object is the same value": true,
+    "a refusal repeats identically": true,
+    "every probe is an outcome, not a crash": true,
+    "every required failure probe ran": true,
+    "no comparison ended at infrastructure level": true,
+    "no failure carries a score": true,
+    "the comparison budget was respected": true
+  },
+  "comparisons_budget": 20,
+  "comparisons_used": 12,
+  "determinism_required": true,
+  "failure_probes": [
+    "blank_valid_image",
+    "malformed_image",
+    "missing_path",
+    "unreadable_invalid_image"
+  ],
+  "fixtures": "non-SD300: this project's synthetic ridge fields and upstream sample prints from the local artifact store",
+  "gate": "DETERMINISM_AND_FAILURE_CONTRACT",
+  "gate_state": "PASS",
+  "notes": {
+    "failure_breakdown": {
+      "blank_repeat": {
+        "status": "ALGORITHMIC_FAILURE",
+        "upstream_code": "NO_FEATURES_ON_FIRST_SIDE"
+      },
+      "blank_valid_image": {
+        "status": "ALGORITHMIC_FAILURE",
+        "upstream_code": "NO_FEATURES_ON_FIRST_SIDE"
+      },
+      "malformed_image": {
+        "status": "ALGORITHMIC_FAILURE",
+        "upstream_code": "IMAGE_NOT_DECODABLE"
+      },
+      "missing_path": {
+        "status": "ALGORITHMIC_FAILURE",
+        "upstream_code": "IMAGE_NOT_DECODABLE"
+      },
+      "unreadable_invalid_image": {
+        "status": "ALGORITHMIC_FAILURE",
+        "upstream_code": "IMAGE_NOT_DECODABLE"
+      }
+    },
+    "runtime": {
+      "machine": "AMD64",
+      "numpy": "1.26.4",
+      "opencv": "4.7.0.72",
+      "python_version": "3.12.13"
+    },
+    "self_comparison": {
+      "cached": false,
+      "score": 1.0,
+      "status": "SCORE",
+      "two_independent_extractions": true
+    },
+    "symmetry": {
+      "consequence": "left\u2192image_path1 and right\u2192image_path2 are bound into the algorithm's identity and the protocol never reverses them",
+      "score_left_right": 0.37683433970217184,
+      "score_right_left": 0.3701276164801643,
+      "symmetric": false
+    }
+  },
+  "observations": [
+    {
+      "case": "A_B_repeated",
+      "detail": "finite float64",
+      "score": 0.37683433970217184,
+      "score_hex": "0x1.81e0dc741f510p-2",
+      "status": "SCORE"
+    },
+    {
+      "case": "A_B_repeated",
+      "detail": "finite float64",
+      "score": 0.37683433970217184,
+      "score_hex": "0x1.81e0dc741f510p-2",
+      "status": "SCORE"
+    },
+    {
+      "case": "A_B_repeated",
+      "detail": "finite float64",
+      "score": 0.37683433970217184,
+      "score_hex": "0x1.81e0dc741f510p-2",
+      "status": "SCORE"
+    },
+    {
+      "case": "B_A",
+      "detail": "finite float64",
+      "score": 0.3701276164801643,
+      "score_hex": "0x1.7b02bbe083d37p-2",
+      "status": "SCORE"
+    },
+    {
+      "case": "A_A",
+      "detail": "finite float64",
+      "score": 1.0,
+      "score_hex": "0x1.0000000000000p+0",
+      "status": "SCORE"
+    },
+    {
+      "case": "A_B_fresh_object",
+      "detail": "finite float64",
+      "score": 0.37683433970217184,
+      "score_hex": "0x1.81e0dc741f510p-2",
+      "status": "SCORE"
+    },
+    {
+      "case": "A_B_fresh_process",
+      "detail": "finite float64",
+      "score": 0.37683433970217184,
+      "score_hex": "0x1.81e0dc741f510p-2",
+      "status": "SCORE"
+    },
+    {
+      "case": "blank_valid_image",
+      "detail": "ZeroDivisionError",
+      "status": "ALGORITHMIC_FAILURE",
+      "upstream_code": "NO_FEATURES_ON_FIRST_SIDE"
+    },
+    {
+      "case": "malformed_image",
+      "detail": "cv2.error",
+      "status": "ALGORITHMIC_FAILURE",
+      "upstream_code": "IMAGE_NOT_DECODABLE"
+    },
+    {
+      "case": "missing_path",
+      "detail": "cv2.error",
+      "status": "ALGORITHMIC_FAILURE",
+      "upstream_code": "IMAGE_NOT_DECODABLE"
+    },
+    {
+      "case": "unreadable_invalid_image",
+      "detail": "cv2.error",
+      "status": "ALGORITHMIC_FAILURE",
+      "upstream_code": "IMAGE_NOT_DECODABLE"
+    },
+    {
+      "case": "blank_valid_image",
+      "detail": "ZeroDivisionError",
+      "status": "ALGORITHMIC_FAILURE",
+      "upstream_code": "NO_FEATURES_ON_FIRST_SIDE"
+    }
+  ],
+  "required_cases": [
+    "A_B_repeated",
+    "A_B_fresh_object",
+    "A_B_fresh_process",
+    "B_A",
+    "A_A"
+  ],
+  "schema": "stage_15a_qualification_v1",
+  "sd300_used": false,
+  "symmetry_required": false,
+  "why_symmetry_is_not_required": "match normalises by len(minutiae1), so the first argument sets the denominator and the two orderings are different questions. Observed asymmetry binds left\u2192image_path1 into the algorithm's identity rather than failing the candidate (docs/adr/0109)",
+  "zero_feature_policy": {
+    "fpbench_denominator_fallback": "NONE",
+    "fpbench_invented_score_for_empty_features": "NONE",
+    "never": "exception \u2192 score 0",
+    "rule": "upstream raises \u2192 ALGORITHMIC_FAILURE, carrying no score"
+  }
+}

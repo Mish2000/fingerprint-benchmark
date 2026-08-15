@@ -42,9 +42,19 @@ def _marker() -> dict:
 
 
 def test_the_evidence_directory_holds_only_what_this_stage_publishes() -> None:
+    """Eight documents, plus the shared engine's own run receipt.
+
+    ``run_<id>.json`` is written by the research engine rather than by this
+    stage, exactly as it is for Stage 11B. It is allowed here by shape and not
+    by name, because the name carries a run id that changes with the run.
+    """
     if not EVIDENCE.is_dir():
         pytest.skip("Stage 15A evidence has not been published yet")
-    found = {p.name for p in EVIDENCE.iterdir() if p.is_file()}
+    found = {
+        p.name
+        for p in EVIDENCE.iterdir()
+        if p.is_file() and not (p.name.startswith("run_") and p.suffix == ".json")
+    }
     assert found <= set(frozen.EVIDENCE_DOCUMENTS), sorted(
         found - set(frozen.EVIDENCE_DOCUMENTS)
     )

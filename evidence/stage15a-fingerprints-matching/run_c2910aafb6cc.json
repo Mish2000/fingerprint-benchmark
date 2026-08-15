@@ -1,0 +1,62 @@
+{
+  "schema_version": "3",
+  "source_commit": "d74d57964025e44c5d92cfea8712434a4de8524f",
+  "source_tree_clean": true,
+  "dataset_id": "sd300",
+  "cohort_id": "sd300_50_subjects_test_22f8d52a7478",
+  "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "run_id": "run_c2910aafb6cc",
+  "run_fingerprint": "c2910aafb6cc1b0fd2cbae8db162c29e15ea284f17c8b181d07d7858f43e9573",
+  "plan_id": "plan_ce5faa7041d4",
+  "plan_fingerprint": "ce5faa7041d43b23c889c60315b140b7d20183d450a8ef41fb643eb23fa82b5b",
+  "environment_fingerprint": "4f1b532f06113b682fb8b807f6e4e85e973c754d9f803ed44e846cc8809e7396",
+  "integration_id": "fingerprints_matching_research_v1",
+  "integration_fingerprint": "0b95555b36e41227c18338d37a32dee62bab16299ed5d30ddad8f74eb8407c37",
+  "runtime_bundle_id": "runtime_5e90a9beb1f0",
+  "runtime_bundle_fingerprint": "5e90a9beb1f078df5bc1d89616f025c65c954ddab4fea2a119968379725863d8",
+  "runtime_asset_sha256s": {
+    "bridge_script": "b02ca6398237cb6e67a855bcc9f10a1d167c1910b67b2485c214f78f346298af",
+    "upstream_wheel": "cb9196c21ac63aeb6002ca2e60fec0b2764d822d23f97d86b637f461a2d6cb9c"
+  },
+  "result_set_id": "resultset_4450d95f4f30",
+  "result_set_fingerprint": "4450d95f4f303fff13fe6f69d0e7bd77fb7ee417c4edb5da542c20ff4b7331ef",
+  "audit_fingerprint": "ff9a43468422b636557c4c988670e8830abe80764a76d8791970670aea80354f",
+  "algorithm_validation_fingerprint": "1dd242d156ee4f1910525327f1692a070a1f8de6eec8ac856b20998247be81ca",
+  "completion_id": "completion_4bf76046d3da",
+  "completion_fingerprint": "4bf76046d3da16b0d5477632747000ea1dbdb485f3bf45d6952d25713d98c4b0",
+  "planned_jobs": 6000,
+  "stored_results": 6000,
+  "success_count": 389,
+  "algorithmic_failure_count": 5611,
+  "blocking_failure_count": 0,
+  "preparation_set_id": "prepset_be560e047991",
+  "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+  "transform_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+  "transform_profile_fingerprint": "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373",
+  "transform_runtime_fingerprint": "31a0a4346a3dd07843513cc1de5b167d8f2795b230a82bac709913032b74579c",
+  "failure_counts": {
+    "template_extraction_failed": 5611
+  },
+  "release_counts": {
+    "SD300A": 2000,
+    "SD300B": 2000,
+    "SD300C": 2000
+  },
+  "stage_counts": {
+    "plain_roll_mated": 1500,
+    "plain_roll_non_mated": 1500,
+    "plain_self": 1500,
+    "roll_self": 1500
+  },
+  "timing_summary": {
+    "adapter_ms.count": "6000",
+    "adapter_ms.min": "1.242",
+    "adapter_ms.median": "6.235",
+    "adapter_ms.p95": "51.939",
+    "adapter_ms.p99": "1171.732",
+    "adapter_ms.max": "19022.11",
+    "wall_clock_span_seconds": "353.691"
+  },
+  "statement": "This receipt proves execution completeness and provenance. It contains no biometric performance conclusion.",
+  "created_utc": "2026-08-15T17:13:06.663084+00:00"
+}

@@ -1,0 +1,56 @@
+{
+  "algorithm_slot": "algorithm_5",
+  "bound_markers": [
+    {
+      "outcome": "NONE",
+      "stage": "14A",
+      "why": "the superseded candidate. Bound as a non-final investigation with no request sent, and left exactly as HEAD published it"
+    },
+    {
+      "finalization_fingerprint": "3d271490edda9e3e9d066485c2d93e82e2eceb4556668df7d65a8207e591684c",
+      "outcome": "VERIFINGER_CANONICAL500_RAW_COMPLETE",
+      "stage": "11B",
+      "why": "Algorithm 4's 6,000 published outcomes, and the run this one is aligned against. Bound and never read for its scores"
+    },
+    {
+      "finalization_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
+      "outcome": "RESEARCH_ONLY_THIRD_PARTY_POLICY_READY",
+      "stage": "8E",
+      "why": "the third-party research-use policy, reused and not reopened"
+    }
+  ],
+  "candidate_id": "fingerprints_matching_0_1_0",
+  "commercial_search_reopened": false,
+  "forbidden_reads": [
+    "sourceafis_scores",
+    "nbis_scores",
+    "flx_scores",
+    "verifinger_scores"
+  ],
+  "out_of_queue_candidates": [
+    "fingerprintMatcher",
+    "MCC",
+    "OpenAFIS",
+    "JIPNet",
+    "AFR-Net",
+    "IDKit",
+    "FingerCell",
+    "Griaule",
+    "id3"
+  ],
+  "prior_algorithm_scores_read": false,
+  "reason_not_continued": "SELF_SERVICE_ACQUISITION_NOT_ESTABLISHED",
+  "reserve_candidate": "fingerflow_3_0_1",
+  "schema": "stage_15a_predecessor_selection_v1",
+  "selection_policy": {
+    "runnable_without_vendor_action": "HARD_REQUIREMENT",
+    "self_service_acquisition": "HARD_REQUIREMENT"
+  },
+  "stage14a_evidence_modified": false,
+  "stage14a_final_outcome": "NONE",
+  "stage14a_treatment": "frozen as non-final and left byte-for-byte as HEAD published it. No marker was written for it and none may be",
+  "superseded_candidate": "griaule_gbs_fingerprint_sdk_1to1",
+  "vendor_request_sent": false,
+  "what_changed": "the criterion, not the candidate. Three consecutive Algorithm 5 stages ended at a vendor \u2014 a refused licence, an entitlement that never arrived, and a package no official route serves \u2014 so self-service acquisition and runnability without vendor action became hard requirements",
+  "why_not_a_failure": "nobody contacted Griaule, so there is no refusal, no silence and no finding about the candidate to report. Rewriting an unfinished investigation as a FAIL would manufacture evidence (docs/adr/0104, docs/adr/0121)"
+}

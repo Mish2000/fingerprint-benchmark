@@ -1,4 +1,41 @@
 {
+  "activation_attempts": [
+    {
+      "attempt": "licensing_service_start",
+      "command_category": "START_DELIVERED_LICENSING_SERVICE",
+      "exit_status": "service started",
+      "finding": "the service starts and reports the same product revision as the archive; the host reaches the vendor over the network",
+      "performed_utc": "2026-08-15T09:00:00Z",
+      "route": "the route the delivered activation guide documents for this platform, run from the delivered activation directory with the delivered configuration unchanged (mode=single, trial=true)",
+      "tool": {
+        "sha256": "2a096c5db12bc4bebfd1dd9f0d22bca148f0839c8b1258ee544bb3e563592860",
+        "size_bytes": 772320,
+        "tool": "pgd"
+      }
+    },
+    {
+      "attempt": "licence_obtain_for_fingercell",
+      "command_category": "OBTAIN_COMPONENT_LICENCE",
+      "exit_status": "non-zero; no entitlement returned",
+      "finding": "no licence was returned for the FingerCell component. The service recorded no corresponding entry, which is an indication and not a conclusion: the local transport is not necessarily one the service logs at request level",
+      "performed_utc": "2026-08-15T09:00:00Z",
+      "route": "the official route the delivered tutorials use, after the required runtime initialisation",
+      "tool": null
+    },
+    {
+      "attempt": "activation_utility_usage",
+      "command_category": "READ_TOOL_USAGE_ONLY",
+      "exit_status": "0",
+      "finding": "the utility describes itself as activating Neurotechnology products from a serial number. Every activation path it offers takes a serial number, either from a file or on the command line, and its only other option generates a device identifier for that same serial-number flow. It exposes no trial, evaluation or unlicensed-activation path, and a trial ships no serial number",
+      "performed_utc": "2026-08-15T09:00:00Z",
+      "route": "the delivered Linux activation utility, asked for its own usage",
+      "tool": {
+        "sha256": "c410d2238f89be8221e9b3d291aa8c989074f25e32eccedf969da9f8af28361b",
+        "size_bytes": 14600,
+        "tool": "license_activation"
+      }
+    }
+  ],
   "gate": "RESEARCH_USE_AND_TRIAL_OPERATION",
   "license_bypass_attempted": false,
   "redistribution": {
@@ -36,7 +73,9 @@
     "duration_days": 30,
     "entitlement_component": null,
     "network_requirement": "to use a trial product a constant internet connection is required",
-    "start_semantics": "UNRESOLVED"
+    "start_semantics": "UNRESOLVED",
+    "trial_activation_succeeded": false,
+    "trial_clock_status": "UNKNOWN"
   },
   "trial_questions": [
     "trial_start_semantics",

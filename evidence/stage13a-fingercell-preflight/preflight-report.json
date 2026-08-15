@@ -203,7 +203,7 @@
       "what_has_been_done": "the delivered licence agreement and activation guide were read: the grant covers designing, developing and testing, the trial period is 30 days, activation is an explicit act, and no restriction on publishing measurements was found. The delivered licensing service was then started by the documented route for this platform, from the delivered activation directory and with the delivered configuration unchanged; it starts, reports the same revision as the archive, and the host reaches the vendor over the network. A licence request for the FingerCell component through the official route did not yield an entitlement, and the service recorded no request",
       "what_it_would_answer": "whether the route can be executed at all, and for how long",
       "what_remains": [
-        "provision the trial entitlements themselves through the delivered activation utility, which is a step distinct from enabling trial mode in the service configuration",
+        "resolve how trial entitlements are provisioned for this platform at all: the delivered Linux activation utility reports that every one of its activation paths takes a serial number, and a trial ships none",
         "obtain a licence for the FingerCell component specifically, and record that it was FingerCell's own entitlement",
         "record the trial start semantics, duration and network requirement as the delivered material states them"
       ]

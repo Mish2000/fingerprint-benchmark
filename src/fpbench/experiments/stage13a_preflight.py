@@ -1024,9 +1024,10 @@ def _gate_research_use_and_trial_operation() -> GateResult:
                     "recorded no request"
                 ),
                 what_remains=(
-                    "provision the trial entitlements themselves through the "
-                    "delivered activation utility, which is a step distinct from "
-                    "enabling trial mode in the service configuration",
+                    "resolve how trial entitlements are provisioned for this "
+                    "platform at all: the delivered Linux activation utility "
+                    "reports that every one of its activation paths takes a "
+                    "serial number, and a trial ships none",
                     "obtain a licence for the FingerCell component specifically, "
                     "and record that it was FingerCell's own entitlement",
                     "record the trial start semantics, duration and network "
@@ -2512,7 +2513,16 @@ def research_use_trial_document(preflight: FingerCellPreflight) -> Mapping[str, 
             "network_requirement": trial.get(
                 "network_requirement", observed.DELIVERED_NETWORK_CLAIM
             ),
+            # Not "the clock did not start". Nothing observed says when the
+            # 30 days begin, and no delivered or public source this stage read
+            # defines it. An activation that did not succeed is not evidence
+            # that no clock is running, and the honest value is UNKNOWN.
+            "trial_activation_succeeded": False,
+            "trial_clock_status": trial.get("clock_status", "UNKNOWN"),
         },
+        "activation_attempts": [
+            dict(row) for row in _rows("activation_attempts")
+        ],
         "same_vendor_licensing_isolation": frozen.SAME_VENDOR_LICENSING_ISOLATION,
         "refused_license_actions": list(frozen.REFUSED_LICENSE_ACTIONS),
         "license_bypass_attempted": False,

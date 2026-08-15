@@ -142,6 +142,16 @@ class Stage15AValidationReport:
     algorithmic_failures: int
     blocking_failures: int
 
+    #: Counted apart, because for this algorithm they are not the same fact. A
+    #: SELF comparison extracts the same image twice, every minutia matches
+    #: itself at distance zero and angle zero, and the score is exactly 1.0
+    #: whenever extraction succeeds at all. Those scores say the extractor ran;
+    #: they say nothing about whether this matcher can tell two prints apart.
+    #: Reporting one combined total would let 367 constructed 1.0s stand in for
+    #: discriminative coverage.
+    self_scores: int
+    genuine_scores: int
+
     failure_counts: Mapping[str, int]
     upstream_codes: Mapping[str, int]
     issues: tuple[IntegrityIssue, ...]
@@ -190,11 +200,23 @@ class Stage15AValidationReport:
     def is_score_bearing(self) -> bool:
         """Whether this result set contains any score at all.
 
-        The one property that decides whether Stage 15A can establish a fifth
-        raw matcher. Six thousand deterministic refusals are a complete,
-        internally consistent result set — and not a raw score set.
+        The property that decides whether Stage 15A can establish a fifth raw
+        matcher. Six thousand deterministic refusals are a complete, internally
+        consistent result set — and not a raw score set.
         """
         return self.successful_results > 0
+
+    @property
+    def is_genuine_score_bearing(self) -> bool:
+        """Whether any comparison of two *different* prints produced a score.
+
+        Published beside :attr:`is_score_bearing` rather than replacing it. The
+        stage's pass criterion is the one above, and this is the number a reader
+        needs in order to judge what that pass is worth: a result set whose only
+        scores are SELF comparisons has measured that the extractor sometimes
+        runs, not that the matcher discriminates.
+        """
+        return self.genuine_scores > 0
 
 
 def _issue(
@@ -243,6 +265,8 @@ def validate_fingerprints_matching_result_set(
     blocking = 0
     logical_extractions = 0
     comparisons = 0
+    self_scores = 0
+    genuine_scores = 0
 
     if run.algorithm_id != frozen.PRODUCTION_ALGORITHM_ID:
         issues.append(
@@ -344,6 +368,13 @@ def validate_fingerprints_matching_result_set(
         status = getattr(record, "status", None)
         if status is ExecutionStatus.SUCCESS:
             successes += 1
+            # SELF is decided from the record's own two image ids rather than
+            # from the pair manifest, because the adapter never saw the pair and
+            # the stored result is what has to be defensible on its own.
+            if record.left_image_id == record.right_image_id:
+                self_scores += 1
+            else:
+                genuine_scores += 1
             if getattr(record, "raw_score", None) is None:
                 issues.append(
                     _issue(
@@ -440,6 +471,8 @@ def validate_fingerprints_matching_result_set(
             "plan_id": plan.plan_id,
             "total": total,
             "successes": successes,
+            "self_scores": self_scores,
+            "genuine_scores": genuine_scores,
             "algorithmic": algorithmic,
             "blocking": blocking,
             "failure_counts": dict(sorted(failure_counts.items())),
@@ -458,6 +491,8 @@ def validate_fingerprints_matching_result_set(
         issues=tuple(issues),
         logical_extraction_calls=logical_extractions,
         comparison_calls=comparisons,
+        self_scores=self_scores,
+        genuine_scores=genuine_scores,
         validation_fingerprint=fingerprint,
         inspected_utc=inspected,
     )

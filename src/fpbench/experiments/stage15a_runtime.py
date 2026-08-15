@@ -453,7 +453,8 @@ def runtime_manifest_fingerprint(closure: RuntimeClosure) -> str:
             "opencv_python": frozen.PINNED_OPENCV,
             "cv2_library": frozen.PINNED_CV2_LIBRARY,
             "modules": dict(sorted(frozen.UPSTREAM_MODULE_DIGESTS.items())),
-        }
+        },
+        length=64,
     )
 
 

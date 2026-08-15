@@ -279,6 +279,9 @@ def _integrity(**overrides: object) -> dict[str, object]:
         "missing": 0,
         "duplicates": 0,
         "scores": 4000,
+        "scores_self": 2500,
+        "scores_genuine": 1500,
+        "is_genuine_score_bearing": True,
         "algorithm_failures": 2000,
         "infrastructure_failures": 0,
         "logical_extractions": 12000,
@@ -319,7 +322,14 @@ def test_a_clean_score_bearing_run_is_complete() -> None:
 
 def test_a_complete_run_with_no_score_is_not_algorithm_five() -> None:
     """Six thousand deterministic refusals are a finding, not a raw matcher."""
-    marker = _build(scores=0, algorithm_failures=6000, is_score_bearing=False)
+    marker = _build(
+        scores=0,
+        scores_self=0,
+        scores_genuine=0,
+        is_genuine_score_bearing=False,
+        algorithm_failures=6000,
+        is_score_bearing=False,
+    )
     assert marker["outcome"] == frozen.OUTCOME_FAIL
     assert marker["algorithm_5_established"] is False
     assert marker["opens_common_calibration"] is False
@@ -340,7 +350,27 @@ def test_an_infrastructure_failure_refuses_a_marker() -> None:
 
 def test_an_unpartitioned_result_set_refuses_a_marker() -> None:
     with pytest.raises(Stage15AResultIntegrityError):
-        _build(scores=100, algorithm_failures=100)
+        _build(scores=100, scores_self=100, scores_genuine=0, algorithm_failures=100)
+
+
+def test_a_set_whose_only_scores_are_self_is_published_as_such() -> None:
+    """SELF returns 1.0 by construction, so the split has to reach the marker.
+
+    The stage still passes on its stated criterion — a score is a score — but a
+    reader must be able to see that nothing here compared two different prints.
+    """
+    marker = _build(
+        scores=367,
+        scores_self=367,
+        scores_genuine=0,
+        is_genuine_score_bearing=False,
+        algorithm_failures=5633,
+    )
+    assert marker["outcome"] == frozen.OUTCOME_COMPLETE
+    assert marker["successful_scores_self"] == 367
+    assert marker["successful_scores_genuine"] == 0
+    assert marker["result_set_is_genuine_score_bearing"] is False
+    assert marker["self_score_is_constant_by_construction"] is True
 
 
 def test_a_gate_that_did_not_pass_refuses_a_marker() -> None:

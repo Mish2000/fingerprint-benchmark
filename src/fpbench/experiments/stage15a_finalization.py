@@ -233,6 +233,16 @@ def build_result_integrity_document(report: Any, *, run_id: str) -> dict[str, An
         "missing": max(0, frozen.EXPECTED_JOBS - total),
         "duplicates": 0,
         "scores": scores,
+        # The split that keeps the headline honest. A SELF comparison extracts
+        # one image twice and every minutia matches itself, so upstream returns
+        # exactly 1.0 whenever extraction succeeds — a fact about the extractor
+        # running, not about the matcher discriminating. Genuine scores are the
+        # ones that compare two different prints.
+        "scores_self": int(report.self_scores),
+        "scores_genuine": int(report.genuine_scores),
+        "self_score_is_constant_by_construction": True,
+        "self_score_value": 1.0,
+        "is_genuine_score_bearing": bool(report.is_genuine_score_bearing),
         "algorithm_failures": algorithmic,
         "infrastructure_failures": infrastructure,
         "outcomes_partition_holds": scores + algorithmic + infrastructure == total,
@@ -282,12 +292,20 @@ def stage15a_source_fingerprint(repository_root: Path) -> str:
         if not path.is_file():
             raise Stage15AFinalizationError(f"a Stage 15A source file is missing: {relative}")
         digests[relative] = _source_file_sha256(path)
-    return stable_hash({"schema": "stage_15a_source_v1", "files": digests})
+    return stable_hash({"schema": "stage_15a_source_v1", "files": digests}, length=64)
 
 
 def stage15a_finalization_fingerprint(marker: Mapping[str, Any]) -> str:
-    payload = {k: v for k, v in marker.items() if k != "stage_15a_finalization_fingerprint"}
-    return stable_hash(payload)
+    """The digest a later stage binds to, at the width every other marker uses.
+
+    ``stable_hash`` defaults to twelve characters, which is right for a run or
+    plan id and wrong here: Stage 15A binds Stage 11B and Stage 8E by 64-character
+    fingerprints, and whatever supersedes this stage will bind it the same way.
+    """
+    payload = {
+        k: v for k, v in marker.items() if k != "stage_15a_finalization_fingerprint"
+    }
+    return stable_hash(payload, length=64)
 
 
 def build_stage15a_finalization(
@@ -383,6 +401,12 @@ def build_stage15a_finalization(
         "expected_comparisons": frozen.EXPECTED_JOBS,
         "stored_outcomes": stored,
         "successful_scores": scores,
+        "successful_scores_self": int(integrity["scores_self"]),
+        "successful_scores_genuine": int(integrity["scores_genuine"]),
+        "self_score_is_constant_by_construction": True,
+        "result_set_is_genuine_score_bearing": bool(
+            integrity["is_genuine_score_bearing"]
+        ),
         "algorithm_failures": algorithmic,
         "infrastructure_failures": infrastructure,
         "missing_jobs": int(integrity["missing"]),

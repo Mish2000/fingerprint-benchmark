@@ -89,6 +89,12 @@ rather than omitted.
 So acquisition needs a request, and the request has not been sent. That is our
 move, not Griaule's.
 
+The request is not merely described as future work. The complete
+publication-safe draft is attached in `acquisition-status.json`, including its
+official recipient route, subject and body. Only the maintainer's name,
+institutional affiliation and reply contact remain as explicit placeholders, so
+the public evidence contains no personal address.
+
 ## What the documentation says, and why none of it settles a gate
 
 | Statement | Where it matters | Why it is not an answer |
@@ -131,7 +137,7 @@ decision in its own decision layer.
 evidence/stage14a-griaule-preflight/
 ├── README.md
 ├── predecessor-binding.json
-├── acquisition-status.json      G1 — every route walked, and where we stand
+├── acquisition-status.json      G1 — every route walked, status and request draft
 ├── package-manifest.json        G1 — what the package is, or nothing
 ├── research-use-trial.json      G1 — delivered terms and bundled trial
 ├── input-route.json             G2

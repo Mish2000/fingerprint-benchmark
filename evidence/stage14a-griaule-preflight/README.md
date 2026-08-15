@@ -63,6 +63,10 @@ So acquisition needs a request, and the request has not been sent. That is
 nobody has asked them yet. Publishing this as a vendor dependency would imply a
 silence that does not exist (docs/adr/0121).
 
+`acquisition-status.json` carries the complete publication-safe request draft:
+the official route to use, subject, body and the three personal placeholders the
+maintainer fills before sending. No personal address or credential is published.
+
 ## What this stage does not claim
 
 The vendor's documentation states a 90-day bundled trial, a 500 × 500 extraction
@@ -96,7 +100,7 @@ allowed.
 | File | What it answers |
 |------|-----------------|
 | `predecessor-binding.json` | what this stage is a successor to, and what it may never read |
-| `acquisition-status.json` | G1 — every official route walked, and where acquisition stands |
+| `acquisition-status.json` | G1 — every official route walked, where acquisition stands, and the unsent request draft |
 | `package-manifest.json` | G1 — what the package turned out to be, or nothing |
 | `research-use-trial.json` | G1 — what the delivered terms and bundled trial permit |
 | `input-route.json` | G2 — how a canonical image would reach the extractor |

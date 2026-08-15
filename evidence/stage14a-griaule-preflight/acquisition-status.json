@@ -138,6 +138,16 @@
       "why_it_is_refused": "it is refused for the obvious reason and recorded for a less obvious one: it is the first result a naive search for this package surfaces, and an evidence trail that simply omitted it would not show that it was seen and declined. No licence mechanism is bypassed, reset or worked around in this project, at any stage"
     }
   ],
+  "request_draft": {
+    "body": "Hello,\n\nI maintain an academic fingerprint benchmark and am evaluating the Griaule GBS Fingerprint SDK for academic, research-only and non-commercial use.\n\nPlease provide the current official GBS Fingerprint SDK package and its currently offered trial, or tell me the official acquisition steps. The evaluation is a bounded technical preflight to determine whether the SDK supports direct single-finger 500 x 500 pixel, 500 ppi grayscale image input without benchmark-side cropping or segmentation; single-finger template extraction; a raw scalar 1:1 similarity score before any thresholded decision; and an authoritative inventory of every setting or route choice that can affect that score.\n\nPlease also confirm the current product version and build, supported platforms, the applicable academic and research-use terms, redistribution terms, trial duration and activation requirements, and any further steps. No biometric images, templates or scores will be sent as part of this request.\n\nThank you,\n[maintainer name]\n[institutional affiliation]\n[reply contact]",
+    "placeholders_to_fill": [
+      "[maintainer name]",
+      "[institutional affiliation]",
+      "[reply contact]"
+    ],
+    "recipient_route": "one official sales or support route published by the vendor for SDK acquisition requests",
+    "subject": "Academic research request for the current GBS Fingerprint SDK package and trial"
+  },
   "request_sent": false,
   "request_sent_utc": null,
   "request_status": "PREPARED_NOT_SENT",

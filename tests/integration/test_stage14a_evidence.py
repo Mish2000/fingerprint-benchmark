@@ -20,6 +20,7 @@ from pathlib import PurePosixPath
 import pytest
 
 from fpbench.core.griaule_preflight_errors import Stage14AFinalizationError
+from fpbench.experiments import stage14a_acquisition as store
 from fpbench.experiments import stage14a_griaule_identity as frozen
 from fpbench.experiments import stage14a_griaule_observations as observed
 from fpbench.experiments import stage14a_preflight as engine
@@ -132,6 +133,15 @@ def test_an_unsent_request_is_published_as_ours_and_not_as_a_vendor_silence() ->
     assert document["outstanding_action"]["action"] == (
         "SEND_ONE_OFFICIAL_ACQUISITION_REQUEST"
     )
+
+
+def test_the_complete_publication_safe_request_draft_is_attached() -> None:
+    document = _document(frozen.ACQUISITION_STATUS_NAME)
+    assert document["request_draft"] == store.REQUEST_DRAFT.as_row()
+    assert document["request_draft"]["subject"]
+    assert "academic" in document["request_draft"]["body"]
+    assert "research-only" in document["request_draft"]["body"]
+    assert "non-commercial" in document["request_draft"]["body"]
 
 
 def test_the_refused_sources_are_recorded_rather_than_omitted() -> None:

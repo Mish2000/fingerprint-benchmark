@@ -294,6 +294,22 @@ def test_an_unsent_request_is_a_local_action_and_not_a_vendor_wait() -> None:
     assert store.AcquisitionStatus.REQUEST_NOT_SENT.is_refusal is False
 
 
+def test_prepared_not_sent_names_a_complete_publication_safe_draft() -> None:
+    draft = store.REQUEST_DRAFT.as_row()
+    assert draft["subject"]
+    assert "current official GBS Fingerprint SDK package" in draft["body"]
+    assert "academic" in draft["body"]
+    assert "research-only" in draft["body"]
+    assert "non-commercial" in draft["body"]
+    assert "raw scalar 1:1 similarity score" in draft["body"]
+    assert set(draft["placeholders_to_fill"]) == {
+        "[maintainer name]",
+        "[institutional affiliation]",
+        "[reply contact]",
+    }
+    engine.require_no_sensitive_material(draft, where="the acquisition request draft")
+
+
 def test_only_a_vendor_answer_is_a_refusal() -> None:
     refusals = {
         status for status in store.AcquisitionStatus if status.is_refusal

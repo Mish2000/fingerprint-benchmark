@@ -47,6 +47,7 @@ from fpbench.core.serialization import stable_hash
 from fpbench.experiments import stage14a_griaule_identity as frozen
 from fpbench.experiments import stage14a_griaule_observations as observed
 from fpbench.experiments.stage14a_acquisition import (
+    REQUEST_DRAFT,
     REQUEST_SENT_UTC,
     REQUEST_STATUS,
     AcquisitionState,
@@ -1780,6 +1781,7 @@ def acquisition_status_document(preflight: GriaulePreflight) -> Mapping[str, Any
         "request_status": REQUEST_STATUS.value,
         "request_sent": REQUEST_STATUS.is_sent,
         "request_sent_utc": REQUEST_SENT_UTC,
+        "request_draft": REQUEST_DRAFT.as_row(),
         "vendor_was_not_asked_and_did_not_refuse": not REQUEST_STATUS.is_sent,
         "self_service_locator_found": observed.SELF_SERVICE_LOCATOR_FOUND,
         "detail": state.detail,

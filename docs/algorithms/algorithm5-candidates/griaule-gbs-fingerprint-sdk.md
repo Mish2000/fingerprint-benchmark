@@ -54,6 +54,11 @@ The support host answers automated clients with a 403 and serves a normal
 knowledge base in a browser. It is recorded as retrieved by that means, not as
 unreachable and not as absent (docs/adr/0122).
 
+The complete publication-safe acquisition request is attached to
+`evidence/stage14a-griaule-preflight/acquisition-status.json`; only the
+maintainer's identity, affiliation and reply contact remain as placeholders. It
+has not been sent.
+
 ### Refused sources
 
 The package *is* obtainable elsewhere, and none of it counts: software-catalogue

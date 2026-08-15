@@ -51,6 +51,8 @@ __all__ = [
     "RequestStatus",
     "REQUEST_STATUS",
     "REQUEST_SENT_UTC",
+    "AcquisitionRequestDraft",
+    "REQUEST_DRAFT",
     "ArtifactPresence",
     "AcquisitionStatus",
     "PackageDeclaration",
@@ -131,6 +133,101 @@ REQUEST_STATUS = RequestStatus.PREPARED_NOT_SENT
 
 #: When the request was sent. ``None`` while it has not been.
 REQUEST_SENT_UTC: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class AcquisitionRequestDraft:
+    """The publication-safe request a maintainer can send through an official route.
+
+    The three placeholders keep personal material out of Git. Everything else is
+    complete, so ``PREPARED_NOT_SENT`` names a real draft rather than an intention
+    to write one later.
+    """
+
+    recipient_route: str
+    subject: str
+    body: str
+    placeholders_to_fill: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        for name in ("recipient_route", "subject", "body"):
+            if not str(getattr(self, name)).strip():
+                raise GriauleAcquisitionError(f"the request draft has no {name}")
+        if not self.placeholders_to_fill:
+            raise GriauleAcquisitionError(
+                "the public request draft must identify the personal fields to fill"
+            )
+        missing = tuple(
+            value for value in self.placeholders_to_fill if value not in self.body
+        )
+        if missing:
+            raise GriauleAcquisitionError(
+                f"the request draft does not carry its declared placeholders: {missing}"
+            )
+        required_statements = (
+            "academic",
+            "research-only",
+            "non-commercial",
+            "current official GBS Fingerprint SDK package",
+            "raw scalar 1:1 similarity score",
+        )
+        absent = tuple(value for value in required_statements if value not in self.body)
+        if absent:
+            raise GriauleAcquisitionError(
+                f"the request draft omits required scope: {absent}"
+            )
+
+    def as_row(self) -> Mapping[str, Any]:
+        """A deterministic, JSON-ready representation with no personal values."""
+        return {
+            "recipient_route": self.recipient_route,
+            "subject": self.subject,
+            "body": self.body,
+            "placeholders_to_fill": list(self.placeholders_to_fill),
+        }
+
+
+#: A complete request except for the sender's own identity and reply contact.
+#: It is evidence that ``PREPARED_NOT_SENT`` means prepared, while still making no
+#: claim that a request has been sent or that the vendor has failed to answer.
+REQUEST_DRAFT = AcquisitionRequestDraft(
+    recipient_route=(
+        "one official sales or support route published by the vendor for SDK "
+        "acquisition requests"
+    ),
+    subject=(
+        "Academic research request for the current GBS Fingerprint SDK package "
+        "and trial"
+    ),
+    body=(
+        "Hello,\n\n"
+        "I maintain an academic fingerprint benchmark and am evaluating the "
+        "Griaule GBS Fingerprint SDK for academic, research-only and "
+        "non-commercial use.\n\n"
+        "Please provide the current official GBS Fingerprint SDK package and its "
+        "currently offered trial, or tell me the official acquisition steps. The "
+        "evaluation is a bounded technical preflight to determine whether the SDK "
+        "supports direct single-finger 500 x 500 pixel, 500 ppi grayscale image "
+        "input without benchmark-side cropping or segmentation; single-finger "
+        "template extraction; a raw scalar 1:1 similarity score before any "
+        "thresholded decision; and an authoritative inventory of every setting or "
+        "route choice that can affect that score.\n\n"
+        "Please also confirm the current product version and build, supported "
+        "platforms, the applicable academic and research-use terms, redistribution "
+        "terms, trial duration and activation requirements, and any further steps. "
+        "No biometric images, templates or scores will be sent as part of this "
+        "request.\n\n"
+        "Thank you,\n"
+        "[maintainer name]\n"
+        "[institutional affiliation]\n"
+        "[reply contact]"
+    ),
+    placeholders_to_fill=(
+        "[maintainer name]",
+        "[institutional affiliation]",
+        "[reply contact]",
+    ),
+)
 
 
 class ArtifactPresence(str, Enum):

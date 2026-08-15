@@ -32,6 +32,8 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from fpbench.adapters.base import ADAPTER_CONTRACT_VERSION, FingerprintAlgorithmAdapter
+from fpbench.adapters.fingerprints_matching import identity as frozen
+from fpbench.adapters.fingerprints_matching import runtime
 from fpbench.adapters.fingerprints_matching.bridge_client import (
     BridgeResponse,
     BridgeWorker,
@@ -52,8 +54,6 @@ from fpbench.core.execution_models import (
     RawMatchResult,
 )
 from fpbench.core.stage15a_errors import Stage15AAdapterError
-from fpbench.experiments import stage15a_identity as frozen
-from fpbench.experiments import stage15a_runtime as runtime
 
 __all__ = ["FingerprintsMatchingAdapter", "ALGORITHMIC_FAILURE_CODES"]
 
@@ -104,8 +104,8 @@ class FingerprintsMatchingAdapter(FingerprintAlgorithmAdapter):
             timeout_seconds=self._timeout,
         )
         self._descriptor = AlgorithmDescriptor(
-            algorithm_id=frozen.PRODUCTION_ALGORITHM_ID,
-            display_name="fingerprints-matching 0.1.0",
+            algorithm_id=frozen.ALGORITHM_ID,
+            display_name=frozen.DISPLAY_NAME,
             adapter_id=frozen.ADAPTER_ID,
             adapter_version=frozen.ADAPTER_VERSION,
             adapter_contract_version=ADAPTER_CONTRACT_VERSION,

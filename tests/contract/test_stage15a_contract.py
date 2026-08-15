@@ -11,6 +11,7 @@ evidence does not support.
 
 from __future__ import annotations
 
+import ast
 import json
 from pathlib import Path
 
@@ -206,6 +207,85 @@ def test_the_adapter_maps_every_upstream_code_without_repairing_anything() -> No
     for code, stage in ALGORITHMIC_FAILURE_CODES.values():
         assert code in validation.ALGORITHMIC_FAILURE_CODES
         assert isinstance(stage, FailureStage)
+
+
+# ------------------------------------------------------------------- layering
+
+
+def test_the_adapter_does_not_reach_above_its_layer() -> None:
+    """The identity and the runtime closure live in the adapter package.
+
+    An adapter may import ``fpbench.core`` and itself and nothing else of
+    fpbench, so neither the constants it needs nor the closure it verifies may
+    live beside the stage that publishes them.
+    """
+    package = (
+        REPOSITORY_ROOT / "src" / "fpbench" / "adapters" / "fingerprints_matching"
+    )
+    offenders: list[str] = []
+    for path in sorted(package.glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                names = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                names = [node.module or ""]
+            else:
+                continue
+            for module in names:
+                if not module.startswith("fpbench"):
+                    continue
+                if module.startswith(("fpbench.core", "fpbench.adapters")):
+                    continue
+                offenders.append(f"{path.name} -> {module}")
+    assert offenders == [], offenders
+
+
+def test_the_stage_identity_and_the_adapter_identity_are_one_value() -> None:
+    """Re-exported, not restated — two copies of a digest is one copy too many."""
+    from fpbench.adapters.fingerprints_matching import identity as adapter_identity
+
+    assert frozen.CANDIDATE_ID == adapter_identity.ALGORITHM_ID
+    assert frozen.RUNTIME_ARTIFACT_SHA256 is adapter_identity.RUNTIME_ARTIFACT_SHA256
+    assert frozen.SOURCE_ARTIFACT_SHA256 is adapter_identity.SOURCE_ARTIFACT_SHA256
+    assert frozen.PINNED_OPENCV is adapter_identity.PINNED_OPENCV
+    assert frozen.RUNTIME_WHEELS is adapter_identity.RUNTIME_WHEELS
+    assert frozen.FORBIDDEN_CONFIG_KEYS is adapter_identity.FORBIDDEN_CONFIG_KEYS
+
+
+def test_the_duplicated_store_constants_agree_with_the_authority() -> None:
+    """``fpbench.third_party`` is above the adapter, so two constants are copied.
+
+    Copied deliberately and checked here, so a divergence is a failing test
+    rather than a silent second answer to "where do artifacts live?".
+    """
+    from fpbench.adapters.fingerprints_matching import identity as adapter_identity
+    from fpbench.third_party import artifacts as authority
+
+    assert adapter_identity.THIRD_PARTY_ROOT_ENV == authority.THIRD_PARTY_ROOT_ENV
+    assert (
+        adapter_identity.DEFAULT_STORE_RELATIVE
+        == authority.DEFAULT_STORE_RELATIVE.parts
+    )
+
+
+def test_the_two_store_resolvers_agree(tmp_path) -> None:
+    """The adapter's resolver and the authority's resolve to the same root."""
+    from fpbench.adapters.fingerprints_matching import runtime as adapter_runtime
+    from fpbench.third_party import artifacts as authority
+
+    assert (
+        adapter_runtime.resolve_store_root().resolve()
+        == authority.resolve_third_party_root().resolve()
+    )
+
+
+def test_the_adapter_store_resolver_refuses_a_root_inside_the_repository() -> None:
+    from fpbench.adapters.fingerprints_matching import runtime as adapter_runtime
+    from fpbench.core.stage15a_errors import Stage15ARuntimeIdentityError
+
+    with pytest.raises(Stage15ARuntimeIdentityError, match="inside the"):
+        adapter_runtime.resolve_store_root(repository_root=Path.home())
 
 
 # ------------------------------------------------------------------ the bridge

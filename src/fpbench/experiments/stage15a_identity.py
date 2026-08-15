@@ -21,6 +21,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from fpbench.adapters.fingerprints_matching import identity as adapter_identity
+
 __all__ = [
     "CANDIDATE_ID",
     "ALGORITHM_SLOT",
@@ -115,39 +117,33 @@ __all__ = [
 
 
 # ------------------------------------------------------------ candidate identity
+#
+# Imported from the adapter package rather than restated here. The adapter has to
+# know who it is, an adapter may not import this layer, and two copies of a
+# digest is one copy too many.
 
-CANDIDATE_ID = "fingerprints_matching_0_1_0"
+CANDIDATE_ID = adapter_identity.ALGORITHM_ID
 ALGORITHM_SLOT = "algorithm_5"
-IMPLEMENTATION_ORIGIN = "OPEN_SOURCE_PYPI_ARTIFACT"
+IMPLEMENTATION_ORIGIN = adapter_identity.IMPLEMENTATION_ORIGIN
 
-PACKAGE_NAME = "fingerprints-matching"
-PACKAGE_VERSION = "0.1.0"
-PACKAGE_REQUIREMENT = f"{PACKAGE_NAME}=={PACKAGE_VERSION}"
+PACKAGE_NAME = adapter_identity.PACKAGE_NAME
+PACKAGE_VERSION = adapter_identity.PACKAGE_VERSION
+PACKAGE_REQUIREMENT = adapter_identity.PACKAGE_REQUIREMENT
 
-#: The two digests PyPI publishes for 0.1.0. Written here before anything was
-#: fetched, so the download is checked against the record rather than the record
-#: written from the download.
-RUNTIME_ARTIFACT_NAME = "fingerprints_matching-0.1.0-py3-none-any.whl"
-RUNTIME_ARTIFACT_SHA256 = (
-    "cb9196c21ac63aeb6002ca2e60fec0b2764d822d23f97d86b637f461a2d6cb9c"
-)
-RUNTIME_ARTIFACT_SIZE_BYTES = 4492
+RUNTIME_ARTIFACT_NAME = adapter_identity.RUNTIME_ARTIFACT_NAME
+RUNTIME_ARTIFACT_SHA256 = adapter_identity.RUNTIME_ARTIFACT_SHA256
+RUNTIME_ARTIFACT_SIZE_BYTES = adapter_identity.RUNTIME_ARTIFACT_SIZE_BYTES
 
-SOURCE_ARTIFACT_NAME = "fingerprints_matching-0.1.0.tar.gz"
-SOURCE_ARTIFACT_SHA256 = (
-    "5533cdadae5067559cc84742cbe3c9521f993bedff42d64f9da05daa85818e37"
-)
-SOURCE_ARTIFACT_SIZE_BYTES = 3676
+SOURCE_ARTIFACT_NAME = adapter_identity.SOURCE_ARTIFACT_NAME
+SOURCE_ARTIFACT_SHA256 = adapter_identity.SOURCE_ARTIFACT_SHA256
+SOURCE_ARTIFACT_SIZE_BYTES = adapter_identity.SOURCE_ARTIFACT_SIZE_BYTES
 
-LICENSE = "MIT"
-UPSTREAM_INDEX = "https://pypi.org/project/fingerprints-matching/0.1.0/"
+LICENSE = adapter_identity.LICENSE
+UPSTREAM_INDEX = adapter_identity.UPSTREAM_INDEX
 
-#: Unfrozen until G3 passes. The production identity is what the benchmark will
-#: carry on 6,000 stored results, and naming it before the candidate has been
-#: shown to be deterministic would be naming an algorithm that might not exist.
-PRODUCTION_ALGORITHM_ID = "fingerprints_matching_0_1_0"
-ADAPTER_ID = "fingerprints_matching_subprocess"
-ADAPTER_VERSION = "1"
+PRODUCTION_ALGORITHM_ID = adapter_identity.ALGORITHM_ID
+ADAPTER_ID = adapter_identity.ADAPTER_ID
+ADAPTER_VERSION = adapter_identity.ADAPTER_VERSION
 
 
 # --------------------------------------------------------------------- the stage
@@ -235,25 +231,11 @@ OUT_OF_QUEUE_CANDIDATES: tuple[str, ...] = (
 
 # ------------------------------------------------------------- the upstream route
 
-ENTRY_MODULE = "fingerprints_matching.fingerprints_matching"
-ENTRY_CLASS = "FingerprintsMatching"
-ENTRY_FUNCTION = "fingerprints_matching"
-ENTRY_QUALNAME = f"{ENTRY_MODULE}.{ENTRY_CLASS}.{ENTRY_FUNCTION}"
-
-#: The installed module bytes, taken from the published wheel. The wheel and the
-#: sdist ship byte-identical modules, which is why one pair of digests answers
-#: for both distributions.
-UPSTREAM_MODULE_DIGESTS: dict[str, str] = {
-    "fingerprints_matching/__init__.py": (
-        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    ),
-    "fingerprints_matching/fingerprints_matching.py": (
-        "7439704c4dbe4f24b0188a5ee9f84c783421c9e5b47a7f4376aade793f2b5270"
-    ),
-    "fingerprints_matching/minutiae_matching.py": (
-        "16a009804eb2a7b3531c450b49757ad40f4b1bdb455908c5df3b1e9c8dfe6cfa"
-    ),
-}
+ENTRY_MODULE = adapter_identity.ENTRY_MODULE
+ENTRY_CLASS = adapter_identity.ENTRY_CLASS
+ENTRY_FUNCTION = adapter_identity.ENTRY_FUNCTION
+ENTRY_QUALNAME = adapter_identity.ENTRY_QUALNAME
+UPSTREAM_MODULE_DIGESTS = adapter_identity.UPSTREAM_MODULE_DIGESTS
 
 #: Every step between two paths and a float, and all of them upstream's. Read out
 #: of the installed module, not out of the package's README.
@@ -287,21 +269,21 @@ REFUSED_FPBENCH_STEPS: tuple[str, ...] = (
 
 # -------------------------------------------------------------- the score contract
 
-LEFT_ARGUMENT = "image_path1"
-RIGHT_ARGUMENT = "image_path2"
+LEFT_ARGUMENT = adapter_identity.LEFT_ARGUMENT
+RIGHT_ARGUMENT = adapter_identity.RIGHT_ARGUMENT
 
 SCORE_NATIVE_TYPE = "float"
-SCORE_DIRECTION = "HIGHER_MORE_SIMILAR"
+SCORE_DIRECTION = adapter_identity.SCORE_DIRECTION
 
 #: Upstream declares no range and fpbench does not derive one. The matcher
 #: normalises by ``len(minutiae1)`` and clamps each per-minutia contribution at
 #: zero, which bounds the value in practice — but a bound nobody published is an
 #: observation, and publishing it as a contract would invite a later stage to
 #: build a threshold on it.
-SCORE_RANGE = "UNSPECIFIED"
+SCORE_RANGE = adapter_identity.SCORE_RANGE
 
-FPBENCH_SCORE_TRANSFORMATION = "NONE"
-DECISION_THRESHOLD = "NONE"
+FPBENCH_SCORE_TRANSFORMATION = adapter_identity.FPBENCH_SCORE_TRANSFORMATION
+DECISION_THRESHOLD = adapter_identity.DECISION_THRESHOLD
 
 #: The package's README suggests 0.9 separates same-finger from different-finger.
 #: It is upstream's guidance to its own users, it is recorded because it exists,
@@ -310,62 +292,26 @@ UPSTREAM_README_THRESHOLD = 0.9
 
 #: Not required, and its absence is not a defect. ``match`` divides by
 #: ``len(minutiae1)``, so the first argument sets the denominator and the two
-#: orderings are different questions. Observed asymmetry binds left→first and
-#: right→second into the algorithm's identity (docs/adr/0109).
-SYMMETRY_REQUIRED = False
+#: orderings are different questions. Observed asymmetry binds left to the first
+#: argument and right to the second, in the algorithm's identity (docs/adr/0109).
+SYMMETRY_REQUIRED = adapter_identity.SYMMETRY_REQUIRED
 
 
 # ------------------------------------------------------------- the frozen runtime
+#
+# Imported for the same reason the identity above is: the adapter verifies this
+# closure before it reports itself ready, and it may not import this layer.
 
-PINNED_PYTHON_VERSION = "3.12.13"
-PINNED_PLATFORM = "Windows-11-10.0.26200-SP0"
-PINNED_MACHINE = "AMD64"
+PINNED_PYTHON_VERSION = adapter_identity.PINNED_PYTHON_VERSION
+PINNED_PLATFORM = adapter_identity.PINNED_PLATFORM
+PINNED_MACHINE = adapter_identity.PINNED_MACHINE
 
-PINNED_NUMPY = "1.26.4"
+PINNED_NUMPY = adapter_identity.PINNED_NUMPY
+PINNED_OPENCV = adapter_identity.PINNED_OPENCV
+PINNED_CV2_LIBRARY = adapter_identity.PINNED_CV2_LIBRARY
 
-#: The ``opencv-python`` *distribution* version. The ``cv2`` library it installs
-#: reports ``4.7.0`` — a different string for a different thing, and the closure
-#: checks both so that neither can be quietly substituted for the other.
-PINNED_OPENCV = "4.7.0.72"
-PINNED_CV2_LIBRARY = "4.7.0"
-
-#: Every wheel in the frozen environment, by digest. OpenCV is on this list as a
-#: first-class part of the algorithm's identity, not as packaging detail: the
-#: contours ``findContours`` returns are the direct input to feature extraction,
-#: so a different OpenCV is a different feature extractor (docs/adr/0125).
-RUNTIME_WHEELS: dict[str, dict[str, object]] = {
-    "fingerprints-matching": {
-        "version": PACKAGE_VERSION,
-        "filename": RUNTIME_ARTIFACT_NAME,
-        "sha256": RUNTIME_ARTIFACT_SHA256,
-        "size_bytes": RUNTIME_ARTIFACT_SIZE_BYTES,
-    },
-    "numpy": {
-        "version": PINNED_NUMPY,
-        "filename": "numpy-1.26.4-cp312-cp312-win_amd64.whl",
-        "sha256": (
-            "08beddf13648eb95f8d867350f6a018a4be2e5ad54c8d8caed89ebca558b2818"
-        ),
-        "size_bytes": 15517754,
-    },
-    "opencv-python": {
-        "version": PINNED_OPENCV,
-        "filename": "opencv_python-4.7.0.72-cp37-abi3-win_amd64.whl",
-        "sha256": (
-            "812af57553ec1c6709060c63f6b7e9ad07ddc0f592f3ccc6d00c71e0fe0e6376"
-        ),
-        "size_bytes": 38163649,
-    },
-}
-
-#: How the OpenCV pin was chosen, stated before it was resolved and independent
-#: of any score. The package declares ``opencv-python`` with no bound, so fpbench
-#: must pick one; it picks the release that was current when the artifact was
-#: published — 0.1.0 was uploaded on 2023-04-04 and 4.7.0.72 shipped 2023-02-22.
-#: numpy follows from that choice rather than being chosen: 1.26.4 is the only
-#: numpy 1.x line that supports the reference interpreter and satisfies the
-#: OpenCV wheel's ABI (docs/adr/0125).
-OPENCV_GENERATION_RULE = "CONTEMPORARY_WITH_ARTIFACT_PUBLICATION"
+RUNTIME_WHEELS = adapter_identity.RUNTIME_WHEELS
+OPENCV_GENERATION_RULE = adapter_identity.OPENCV_GENERATION_RULE
 
 
 # ----------------------------------------------------------------- qualification
@@ -398,7 +344,7 @@ EXECUTION_PROFILE_ID = "fingerprints_matching_canonical500_sequential_no_retry_v
 #: O(n1·n2) loop in Python. Fixed before the canonical set was opened, from
 #: qualification timings alone: a deadline tuned after seeing which pairs are
 #: slow has stopped being a guard (spec section 28).
-JOB_DEADLINE_SECONDS = 180
+JOB_DEADLINE_SECONDS = adapter_identity.JOB_DEADLINE_SECONDS
 MAX_WORKERS = 1
 RETRIES = 0
 
@@ -490,26 +436,7 @@ FORBIDDEN_READS: tuple[str, ...] = (
 
 #: Keys that would turn this into a decision, calibration or evaluation stage.
 #: Refused wherever they appear in the experiment document, at any depth.
-FORBIDDEN_CONFIG_KEYS: frozenset[str] = frozenset(
-    {
-        "accuracy",
-        "calibration",
-        "calibration_profile",
-        "decision_profile",
-        "decision_threshold",
-        "eer",
-        "far",
-        "far_target",
-        "fmr",
-        "fmr_target",
-        "fnmr",
-        "metrics",
-        "operating_point",
-        "roc",
-        "score_statistics",
-        "threshold",
-    }
-)
+FORBIDDEN_CONFIG_KEYS: frozenset[str] = adapter_identity.FORBIDDEN_CONFIG_KEYS
 
 REQUIRED_REPORTING_SWITCHES: dict[str, bool] = {
     "operational_summary": True,

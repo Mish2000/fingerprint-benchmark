@@ -69,6 +69,8 @@ __all__ = [
 
 _SOURCE_FILES: tuple[str, ...] = (
     "src/fpbench/core/stage15a_errors.py",
+    "src/fpbench/adapters/fingerprints_matching/identity.py",
+    "src/fpbench/adapters/fingerprints_matching/runtime.py",
     "src/fpbench/experiments/stage15a_identity.py",
     "src/fpbench/experiments/stage15a_runtime.py",
     "src/fpbench/experiments/stage15a_route.py",

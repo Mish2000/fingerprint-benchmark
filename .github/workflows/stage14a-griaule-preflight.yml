@@ -1,0 +1,365 @@
+name: Stage 14A Griaule GBS Fingerprint SDK preflight
+
+# What this workflow proves, and what it deliberately does not.
+#
+# It runs the whole Stage 14A contract — the candidate identity and its
+# unresolved-until-package version, the four gates and their order, the five gate
+# states and the PENDING_ACCESS/ACTION_REQUIRED/FAIL split that keeps a wait on
+# the vendor, a chore of our own and a finding about the candidate apart, the
+# acquisition state machine and its walked-route table, the refused mirror,
+# catalogue, reseller and licence-bypass sources, the canonical500 input rule and
+# its vendor-internal-crop exception, the raw 1:1 score requirement against a
+# thresholded-only decision, the settings closure that can never be empty, the
+# secret guard, the vendor-byte guard, and a marker that can only be
+# GRIAULE_ARTIFACT_ROUTE_PREFLIGHT_PASS or GRIAULE_ARTIFACT_ROUTE_PREFLIGHT_FAIL.
+#
+# All of it is pure Python. There is no dataset here, no torch, no vendor SDK, no
+# licence, no network and no workspace.
+#
+# It downloads **nothing** and activates **nothing**. There is no Griaule licence
+# or trial token in GitHub Secrets for this stage and there will not be one: the
+# evaluation environment is local, and a licensed credential in a service this
+# project does not control is exactly what this stage refuses. Tests that need a
+# delivered package carry the `griaule_artifact` marker and are not run here.
+#
+# A green tick here does not say an Algorithm 5 exists. Today it says something
+# narrower and exact: every official Griaule route was walked, none of them
+# serves the package, the request the vendor's own documentation points at has
+# not been sent, and therefore nothing whatever has been established about
+# Griaule — including that it is unwilling. The stage is INCOMPLETE, it writes no
+# marker, and the tests prove the publisher refuses to write one.
+
+on:
+  push:
+    paths:
+      - "src/fpbench/core/griaule_preflight_errors.py"
+      - "src/fpbench/experiments/stage14a_*.py"
+      - "evidence/stage14a-griaule-preflight/**"
+      - "tests/**stage14a**"
+      # Stage 14A binds Stage 13A as its predecessor, Stage 11B as immutable and
+      # Stage 8E's policy. A change to any of them changes what this stage's
+      # decisions mean, so the stage is re-run rather than trusted.
+      - "evidence/stage13a-fingercell-preflight/**"
+      - "evidence/stage11b-verifinger-canonical500-raw/**"
+      - "src/fpbench/third_party/**"
+      - "src/fpbench/core/third_party_models.py"
+      - "src/fpbench/core/third_party_errors.py"
+      - "evidence/stage8e-research-only-policy/**"
+      - "docs/adr/012[1-4]*.md"
+      - "docs/algorithms/algorithm5-candidates/**"
+      - "docs/experiments/stage14a-griaule-preflight.md"
+      - ".github/workflows/**"
+      - ".gitignore"
+      - ".gitattributes"
+      - "pyproject.toml"
+      - "Makefile"
+  pull_request:
+    paths:
+      - "src/fpbench/core/griaule_preflight_errors.py"
+      - "src/fpbench/experiments/stage14a_*.py"
+      - "evidence/stage14a-griaule-preflight/**"
+      - "tests/**stage14a**"
+      - "evidence/stage13a-fingercell-preflight/**"
+      - "evidence/stage11b-verifinger-canonical500-raw/**"
+      - "src/fpbench/third_party/**"
+      - "src/fpbench/core/third_party_models.py"
+      - "src/fpbench/core/third_party_errors.py"
+      - "evidence/stage8e-research-only-policy/**"
+      - "docs/adr/012[1-4]*.md"
+      - "docs/algorithms/algorithm5-candidates/**"
+      - "docs/experiments/stage14a-griaule-preflight.md"
+      - ".github/workflows/**"
+      - ".gitignore"
+      - ".gitattributes"
+      - "pyproject.toml"
+      - "Makefile"
+
+permissions:
+  contents: read
+
+jobs:
+  griaule-preflight-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[dev]"
+
+      - name: The frozen Stage 14A preflight contract
+        run: pytest -m "stage14a_contract" -q
+
+      - name: Committed Stage 14A evidence gate
+        run: pytest -m "stage14a" -q
+
+      - name: The three non-verdict states stay apart from FAIL
+        # The whole reason this stage has five gate states. A wait on the vendor,
+        # a chore of our own and a finding about the candidate look identical
+        # from outside and mean different things (docs/adr/0121).
+        run: |
+          python - <<'PY'
+          from fpbench.core.griaule_preflight_errors import GriauleGateError
+          from fpbench.experiments import stage14a_griaule_identity as frozen
+          from fpbench.experiments import stage14a_preflight as engine
+
+          gate = frozen.PreflightGate.OFFICIAL_ARTIFACT_AND_TRIAL_ACCESS
+          blocker = engine.Blocker(
+              gate=gate,
+              blocker_code=frozen.BlockerCode.VENDOR_ACCESS_REFUSED,
+              affected_component="the package",
+              evidence="none",
+              why_this_blocks_algorithm_5="it would",
+              how_this_would_be_lifted="by the vendor",
+          )
+          for status in (
+              frozen.GateStatus.PENDING_ACCESS,
+              frozen.GateStatus.ACTION_REQUIRED,
+          ):
+              try:
+                  engine.GateResult(
+                      gate=gate, status=status, summary="waiting", blockers=(blocker,)
+                  )
+              except GriauleGateError:
+                  pass
+              else:
+                  raise AssertionError(
+                      f"{status.value} accepted a blocker, which would publish a "
+                      "verdict nobody reached"
+                  )
+          assert not {m.value for m in frozen.BlockerCode} & {
+              m.value for m in frozen.RequiredAction
+          }
+          assert not {m.value for m in frozen.BlockerCode} & {
+              m.value for m in frozen.PendingKind
+          }
+          print("A wait, a chore and a finding cannot be confused for one another.")
+          PY
+
+      - name: The acquisition walk supports the negative claim it publishes
+        run: |
+          python - <<'PY'
+          from fpbench.experiments import stage14a_griaule_identity as frozen
+          from fpbench.experiments import stage14a_griaule_observations as observed
+
+          walked = [
+              route
+              for route in observed.OFFICIAL_ROUTES
+              if route.retrieval is observed.RetrievalStatus.RETRIEVED
+          ]
+          offered = [
+              route
+              for route in observed.OFFICIAL_ROUTES
+              if route.outcome is observed.RouteOutcome.PACKAGE_OFFERED
+          ]
+          assert observed.SELF_SERVICE_LOCATOR_FOUND is False
+          assert not offered
+          assert len(walked) >= 3, "a negative claim rests on having walked the routes"
+
+          official = {m for m in frozen.LocatorCategory if m.is_official}
+          covered = {route.category for route in observed.OFFICIAL_ROUTES}
+          assert official <= covered, sorted(m.value for m in official - covered)
+
+          refused = {item.category for item in observed.REFUSED_ROUTE_CATEGORIES}
+          assert frozen.LocatorCategory.UNLICENSED_REDISTRIBUTION in refused, (
+              "the licence-bypass download is recorded as seen and declined, not omitted"
+          )
+          print(f"{len(walked)} official routes retrieved, {len(offered)} serve a package.")
+          print(f"{len(refused)} third-party source categories recorded as refused.")
+          PY
+
+      - name: No Griaule package or licence material is tracked here
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.experiments.stage14a_acquisition import (
+              require_no_griaule_bytes_in_git,
+          )
+          from fpbench.third_party import require_no_third_party_bytes_in_git
+
+          generic = require_no_third_party_bytes_in_git(Path("."))
+          exact = require_no_griaule_bytes_in_git(Path("."))
+          print(
+              f"{generic.tracked_file_count} tracked files scanned against "
+              f"{len(generic.rules)} generic rules and the vendor artifact and "
+              "licence name rules."
+          )
+          print(f"Findings: {len(generic.findings)} generic, {len(exact.findings)} exact.")
+          PY
+
+      - name: No credential is present, and none is published
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          from fpbench.experiments.stage14a_finalization import (
+              require_no_sensitive_published_data,
+          )
+          from fpbench.experiments.stage14a_preflight import find_sensitive_material
+
+          leaked = sorted(
+              name
+              for name in os.environ
+              if "griaule" in name.lower()
+              and any(
+                  part in name.lower()
+                  for part in ("key", "secret", "token", "licen", "password", "hwid")
+              )
+          )
+          assert not leaked, f"the runner carries Griaule credentials: {leaked}"
+
+          require_no_sensitive_published_data(Path("."))
+
+          for probe in (
+              {"note": "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"},
+              {"machine_id": "whatever"},
+              {"trial_token": "whatever"},
+              {"note": "someone@example.com"},
+              {"note": "/home/someone/packages"},
+              {"note": "https://example.invalid/pkg?token=abc"},
+          ):
+              assert find_sensitive_material(probe), f"the guard missed {probe}"
+          print("No credential in the environment, none in the evidence, and the guard bites.")
+          PY
+
+      - name: This job has no runtime, no SDK and fetched nothing
+        run: |
+          python - <<'PY'
+          import importlib.util
+
+          for name in ("torch", "torchvision", "numpy", "scipy", "cv2", "sklearn"):
+              assert importlib.util.find_spec(name) is None, f"{name} is installed"
+
+          from fpbench.experiments.stage14a_acquisition import acquisition_state
+
+          state = acquisition_state()
+          assert state.obtained is False, (
+              "a runner has a delivered Griaule package, which means something fetched it"
+          )
+          print(f"No Griaule package and no licence is present here: {state.presence.value}. As intended.")
+          PY
+
+      - name: The Stage 14A workflow itself downloads and activates nothing
+        # The tokens are assembled from halves rather than written out, for the
+        # reason every stage since 8E assembles its own: a literal here would
+        # make the check refuse the step that performs it.
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          workflow = Path(
+              ".github/workflows/stage14a-griaule-preflight.yml"
+          ).read_text(encoding="utf-8")
+          body = workflow.split("jobs:", 1)[1]
+          tokens = [
+              "secrets." + "GRIAULE",
+              "licen" + "se_manager",
+              "hardware" + "id",
+              "w" + "get",
+              "cu" + "rl",
+              "unz" + "ip",
+          ]
+          found = sorted(token for token in tokens if token in body)
+          assert not found, f"the Stage 14A job body names {found}"
+          print(f"None of {len(tokens)} acquisition or activation tokens appears in this job.")
+          PY
+
+      - name: No SD300 path and no prior algorithm's scores are reachable
+        run: |
+          python - <<'PY'
+          import os
+
+          assert not os.environ.get("FPBENCH_SD300_ROOT"), (
+              "the dataset root is set for a stage that must not read it"
+          )
+
+          from fpbench.experiments import stage14a_preflight as engine
+
+          preflight = engine.run_preflight()
+          print(f"{preflight.outcome}")
+          for result in preflight.results:
+              print(f"  {result.gate.value}: {result.status.value}")
+          PY
+
+      - name: The publisher refuses a marker under a non-final outcome
+        # The point of the stage's honesty: a run that has not finished must look
+        # unfinished in its published evidence. The refusal test redirects draft
+        # writes to a temporary directory, so the committed publication stays
+        # untouched and the diff below proves it.
+        run: |
+          pytest -q \
+            tests/integration/test_stage14a_evidence.py::test_the_publisher_refuses_a_marker_under_a_non_final_outcome
+          git diff --exit-code -- evidence/stage14a-griaule-preflight
+
+      - name: Stage 13A, Stage 11B and Stage 8E are bound and unchanged
+        run: |
+          pytest -m "stage13a_contract or stage13a" -q
+          pytest -m "stage12a_contract or stage12a" -q
+          pytest -m "stage11b_contract or stage11b" -q
+          pytest -m "stage8e_contract or stage8e" -q
+          python - <<'PY'
+          from pathlib import Path
+
+          from fpbench.experiments.stage14a_preflight import (
+              require_stage11b_is_unchanged,
+              require_stage13a_is_the_closed_predecessor,
+              require_stage8e_is_the_policy_this_reuses,
+          )
+
+          require_stage8e_is_the_policy_this_reuses(Path("."))
+          predecessor = require_stage13a_is_the_closed_predecessor(Path("."))
+          eleven_b = require_stage11b_is_unchanged(Path("."))
+          print(f"Stage 13A is closed at {predecessor}, and it still reopens the Algorithm 5 slot.")
+          print(f"Stage 11B is unchanged at {eleven_b}.")
+          PY
+
+      - name: Regression suites for the prior stages
+        run: |
+          pytest -m "stage11a_contract or stage11a" -q
+          pytest -m "stage10a_contract or stage10a" -q
+          pytest -m "stage10b_contract or stage10b" -q
+          pytest -m "stage9a_contract or stage9a" -q
+          pytest -m "stage8a_contract or stage8a" -q
+          pytest -m "stage8b_contract or stage8b" -q
+          pytest -m "stage8c_contract or stage8c" -q
+          pytest -m "stage8d_contract or stage8d" -q
+          pytest -m "decisions or metrics or imaging or paired_evaluation" -q
+          pytest -m "(adapter_contract or nbis_contract) and not dataset" -q
+
+      - name: The outcome, and what it does and does not say
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("evidence/stage14a-griaule-preflight")
+          report = json.loads((root / "preflight-report.json").read_text())
+          acquisition = json.loads((root / "acquisition-status.json").read_text())
+
+          assert report["gate_count_defined"] == 4
+          assert report["scores_produced"] == 0
+          assert report["sd300_used"] is False
+          assert report["prior_algorithm_scores_read"] is False
+
+          if report["outcome_is_final"]:
+              marker = json.loads((root / "stage-14a-finalization.json").read_text())
+              assert marker["outcome"] == report["outcome"]
+              print(f"Stage 14A closed as {marker['outcome']}.")
+          else:
+              assert not (root / "stage-14a-finalization.json").exists(), (
+                  "a marker exists under a non-final outcome"
+              )
+              print(f"Stage 14A stands at {report['outcome']} and writes no marker.")
+              if not acquisition["request_sent"]:
+                  assert acquisition["vendor_was_not_asked_and_did_not_refuse"] is True
+                  print("Every official Griaule route was walked; none serves the package.")
+                  print("The one request this project owes has not been sent, so nothing")
+                  print("has been established about Griaule — including that it is unwilling.")
+
+          print("No trial activated, no score, adapter, threshold, calibration or metric exists.")
+          PY

@@ -115,6 +115,15 @@ help:
 	@echo "stage13a-contamination  prove no Stage 13A module reaches the same vendor's other algorithm"
 	@echo "stage13a-documents      write the twelve derivable evidence documents (commit them, then publish)"
 	@echo "stage13a-publish        write the final marker too; refuses while an action is outstanding"
+	@echo "stage14a-contract       the Griaule preflight: four gates, five states, raw 1:1 score, route closure"
+	@echo "stage14a-evidence       verify the committed Stage 14A Griaule-preflight evidence"
+	@echo "stage14a-status         re-derive and print the gates, the outcome and what remains"
+	@echo "stage14a-acquire        report every official route walked and where acquisition stands"
+	@echo "stage14a-declare        record a delivered package already in the store (PACKAGE=... LOCATOR=... CHANNEL=...)"
+	@echo "stage14a-guard          refuse if any Griaule package or licence material is tracked here"
+	@echo "stage14a-artifacts      run the checks that need a delivered Griaule package locally"
+	@echo "stage14a-documents      write the eight derivable evidence documents (commit them, then publish)"
+	@echo "stage14a-publish        write the final marker too; refuses a non-final outcome"
 	@echo "stage8c-workspace       Stage 8C alignment and preflight over the real inputs"
 	@echo "stage8c-verify          re-derive and print the Stage 8C evidence-only verification"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
@@ -632,6 +641,50 @@ stage13a-documents:
 
 stage13a-publish:
 	python -m fpbench.experiments.stage13a_finalization publish
+
+# ---------------------------------------------------- Stage 14A: Griaule preflight
+#
+# The smallest candidate stage since 8A, and deliberately so. Stages 12A and 13A
+# each built ten gates and a qualification harness for a candidate that never
+# produced one comparison, so this one asks the four questions that could
+# disqualify Griaule and builds nothing else until they are answered
+# (docs/adr/0123).
+#
+# There is no bridge target here, no adapter and no fake engine, because there is
+# nothing yet to build one against. `stage14a-acquire` fetches nothing: Griaule
+# publishes no self-service download, so acquisition is a request somebody sends,
+# and its status is a frozen constant a maintainer edits when they send it
+# (docs/adr/0121).
+
+stage14a-contract:
+	pytest -m "stage14a_contract" -q
+
+stage14a-evidence:
+	pytest -m "stage14a" -q
+
+stage14a-status:
+	python -m fpbench.experiments.stage14a_finalization status
+
+stage14a-acquire:
+	python -m fpbench.experiments.stage14a_acquisition state
+
+stage14a-declare:
+	python -m fpbench.experiments.stage14a_acquisition declare \
+		--filename "$(PACKAGE)" --locator "$(LOCATOR)" \
+		--locator-category "$(CHANNEL)" --product-version "$(VERSION)" \
+		--build "$(BUILD)" --platform "$(PLATFORM)" --obtained-utc "$(OBTAINED)"
+
+stage14a-guard:
+	python -m fpbench.experiments.stage14a_acquisition guard
+
+stage14a-artifacts:
+	pytest -m "griaule_artifact" -q -rs
+
+stage14a-documents:
+	python -m fpbench.experiments.stage14a_finalization documents
+
+stage14a-publish:
+	python -m fpbench.experiments.stage14a_finalization publish
 
 # ------------------------------------------------------------------- SourceAFIS
 

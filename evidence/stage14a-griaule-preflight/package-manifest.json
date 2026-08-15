@@ -1,0 +1,93 @@
+{
+  "algorithm_slot": "algorithm_5",
+  "candidate_id": "griaule_gbs_fingerprint_sdk_1to1",
+  "gate": "OFFICIAL_ARTIFACT_AND_TRIAL_ACCESS",
+  "gate_status": "ACTION_REQUIRED",
+  "identity_fields_required": [
+    "product_version",
+    "build_or_revision",
+    "platform",
+    "binding",
+    "package_sha256"
+  ],
+  "implementation_origin": "VENDOR_OFFICIAL_SDK",
+  "implementation_version": "UNRESOLVED_UNTIL_PACKAGE",
+  "observations_are_indications_only": true,
+  "package": null,
+  "package_obtained": false,
+  "product_family": "GBS Fingerprint SDK",
+  "production_algorithm_id_frozen": false,
+  "redistribution": {
+    "basis": "A vendor SDK delivered under a licence is not redistributable, and fpbench redistributes nothing in any case. No package byte, library, licence or template enters this repository.",
+    "redistributed_by_fpbench": false,
+    "redistribution_decision": "NOT_ALLOWED"
+  },
+  "schema": "stage_14a_package_manifest_v1",
+  "upstream_observations": [
+    {
+      "locator": "https://docs.griaule.com/sdks/en/fingerprintsdk.md",
+      "observation_id": "trial_is_bundled_with_the_package",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-15",
+      "statement": "the SDK requires a software licence to work correctly and is distributed with a trial licence valid for 90 days, after which a licence must be purchased by e-mail and installed in a fixed system directory",
+      "weight": "INDICATION_ONLY",
+      "what_it_indicates": "that the trial arrives inside the package rather than through a separate provisioning step, which is the one structural difference from Stage 13A worth hoping for: FingerCell's archive was obtained and its entitlement never was. It indicates what to look for in a delivered package and establishes nothing about one"
+    },
+    {
+      "locator": "https://docs.griaule.com/sdks/en/fingerprintsdk.md",
+      "observation_id": "three_builds_no_version",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-15",
+      "statement": "the installation section names three builds \u2014 x86-64, x86 and Linux \u2014 states that the reader must already have one of them, and gives no version number, no build number, no release date and no download locator",
+      "weight": "INDICATION_ONLY",
+      "what_it_indicates": "that the platform question is answerable and the identity question is not. It is the direct reason implementation_version is a sentinel: there is no published number to freeze even if freezing one from a page were allowed"
+    },
+    {
+      "locator": "https://docs.griaule.com/sdks/en/fingerprintsdk.md",
+      "observation_id": "extraction_crops_larger_images",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-15",
+      "statement": "capture supports images up to 1280 x 1280 pixels at 125 to 1000 DPI, while extraction states a maximum image size of 500 x 500 pixels and that larger images are cropped",
+      "weight": "INDICATION_ONLY",
+      "what_it_indicates": "the exact question G2 exists to answer. A crop the extractor performs on a full image it was handed is algorithm behaviour; a crop the caller is required to perform first is fpbench choosing which part of the finger the algorithm sees. The page does not say which of the two the API requires, and only a delivered header and sample can (docs/adr/0124)"
+    },
+    {
+      "locator": "https://docs.griaule.com/sdks/en/fingerprintsdk.md",
+      "observation_id": "canonical_500_fits_the_documented_limit",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-15",
+      "statement": "the documented extraction maximum is 500 x 500 pixels and the documented minimum is 50 x 50",
+      "weight": "INDICATION_ONLY",
+      "what_it_indicates": "that this benchmark's canonical inputs are not obviously oversized for the documented limit, which is worth knowing and is not an answer: whether a given canonical image is within it is a property of that image, and whether the API accepts it unmodified is a property of the delivered package"
+    },
+    {
+      "locator": "https://docs.griaule.com/sdks/en/fingerprintsdk.md",
+      "observation_id": "extraction_and_verification_api",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-15",
+      "statement": "the current API performs fingerprint extraction and one-to-one verification through GrExtract and GrVerify, with GrSetVerifyParameters and GrGetVerifyParameters beside them; one-to-many identification is not performed by this SDK and the extraction-parameter calls of the previous generation are listed as discontinued",
+      "weight": "INDICATION_ONLY",
+      "what_it_indicates": "the shape G3 and G4 will be checked against. Two of those four calls are matcher parameters, which is why G4 cannot treat the settings surface as empty; and a discontinued extraction-parameter call indicates a narrower knob surface than Stage 13A's candidate had, which the delivered header must confirm rather than inherit"
+    },
+    {
+      "locator": "https://docs.griaule.com/sdks/en/fingerprintsdk.md",
+      "observation_id": "threshold_is_a_minimum_score",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-15",
+      "statement": "the threshold is described as the minimum score needed to state that two fingerprints match, with a default of 20 stated to give a 1% false rejection rate, and the rotation tolerance as a maximum angle in degrees with a default of -1",
+      "weight": "INDICATION_ONLY",
+      "what_it_indicates": "that a score exists underneath the decision, which is necessary for G3 and nowhere near sufficient: a threshold described as a minimum score is consistent both with an API that returns the score and with one that returns only the comparison. Which of those the delivered header exposes is the gate. Neither default is applied here, and no calibration is performed against either"
+    },
+    {
+      "locator": "https://docs.griaule.com/sdks/en/fingerprintsdk.md",
+      "observation_id": "bmp_is_a_supported_container",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-15",
+      "statement": "BMP files are supported for fingerprint image saving and loading, and the current API exposes file load and save entry points beside an image-conversion one",
+      "weight": "INDICATION_ONLY",
+      "what_it_indicates": "that a container adaptation may be needed and that it would be a container adaptation rather than preprocessing, provided every pixel value and the geometry survive it unchanged. The exact route comes from the delivered package"
+    }
+  ],
+  "version_is_not_taken_from_the_website": true,
+  "why_the_version_is_a_sentinel": "the vendor's public documentation names three builds and publishes no version number, no build number and no release date for any of them. There is no number to freeze even if freezing one from a page were allowed, and it is not (docs/adr/0110)"
+}

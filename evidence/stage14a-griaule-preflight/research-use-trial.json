@@ -1,0 +1,21 @@
+{
+  "assessment": null,
+  "assessment_refusal": null,
+  "bundled_trial_present_in_package": null,
+  "gate": "OFFICIAL_ARTIFACT_AND_TRIAL_ACCESS",
+  "gate_status": "ACTION_REQUIRED",
+  "license_bypass_attempted": false,
+  "license_notices_read": false,
+  "policy_applies_to": "the terms delivered with the package",
+  "policy_does_not_apply_to": "the vendor's public documentation or marketing pages",
+  "redistributed_by_fpbench": false,
+  "schema": "stage_14a_research_use_trial_v1",
+  "stage8e_policy_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
+  "trial_activated": false,
+  "trial_clock_started": false,
+  "trial_days_advertised_upstream": 90,
+  "trial_is_advertised_as_bundled": true,
+  "trial_reset_attempted": false,
+  "why_no_activation_here": "Stage 14A activates nothing. A trial clock that starts before the route is known to be usable is a clock spent debugging rather than measuring, which is the mistake Stage 13A's own ADR 0115 was written against. Activation belongs to Stage 14B, after this stage has established that there is something worth activating for",
+  "why_no_assessment_yet": "Griaule delivers its licence terms with the package, and the public documentation states only that a trial licence is distributed inside it. No package has been delivered here, so no notice has been read and Stage 8E has been asked nothing. The policy is bound by fingerprint and will be applied to the terms that actually arrive, never to the documentation page."
+}

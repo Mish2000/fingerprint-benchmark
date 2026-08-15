@@ -127,6 +127,10 @@ can be held to.
 | [0118](0118-settings-are-read-before-they-are-set.md) | Settings are read before they are set | Accepted, implemented |
 | [0119](0119-pair-labels-come-from-the-api-under-test.md) | Pair labels come from the API under test | Accepted, implemented |
 | [0120](0120-binary-metadata-asks-questions-the-runtime-answers.md) | Binary metadata asks questions the runtime answers | Accepted, implemented |
+| [0121](0121-a-wait-and-a-chore-are-not-the-same-non-answer.md) | A wait and a chore are not the same non-answer | Accepted, implemented |
+| [0122](0122-a-blocked-fetch-is-not-a-missing-route.md) | A blocked fetch is not a missing route | Accepted, implemented |
+| [0123](0123-acquisition-is-tested-before-the-harness-is-built.md) | Acquisition is tested before the harness is built | Accepted, implemented |
+| [0124](0124-a-vendor-internal-crop-is-algorithm-behaviour.md) | A vendor-internal crop is algorithm behaviour | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

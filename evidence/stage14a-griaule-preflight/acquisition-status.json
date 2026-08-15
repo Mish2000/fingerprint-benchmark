@@ -1,0 +1,153 @@
+{
+  "acquisition_pass_conditions": [
+    "an official package was physically obtained through a vendor channel",
+    "its exact bytes were hashed here",
+    "the documentation delivered with it was obtained",
+    "the licence or EULA delivered with it was obtained",
+    "the trial mechanism distributed with it is present",
+    "the exact package identity was recorded from the artifact"
+  ],
+  "acquisition_status": "REQUEST_NOT_SENT",
+  "an_unsent_request_is_not_a_vendor_silence": true,
+  "detail": "every official route was walked and none of them serves the package; the one request this project owes has not been sent",
+  "gate": "OFFICIAL_ARTIFACT_AND_TRIAL_ACCESS",
+  "gate_status": "ACTION_REQUIRED",
+  "is_a_local_action": true,
+  "is_pending": false,
+  "is_refusal": false,
+  "named_vendor_contact_routes": [
+    "the licensing address published on the SDK documentation page",
+    "the support address published on the SDK documentation page",
+    "the contact form published on the vendor's corporate site",
+    "the request form published on the vendor's knowledge base"
+  ],
+  "official_delivery_channels": [
+    "VENDOR_SELF_SERVICE_DOWNLOAD",
+    "VENDOR_SUPPORT_DELIVERY",
+    "VENDOR_SALES_DELIVERY"
+  ],
+  "official_routes": [
+    {
+      "blocked_by": "the page documents installation and does not offer the file",
+      "category": "VENDOR_SELF_SERVICE_DOWNLOAD",
+      "description": "the vendor's own GBS Fingerprint SDK page, checked first because a download link here would have settled the gate outright",
+      "locator": "https://docs.griaule.com/sdks/en/fingerprintsdk.md",
+      "outcome": "NO_PACKAGE_OFFERED",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-15",
+      "route_id": "sdk_documentation_page",
+      "what_was_found": "installation instructions that begin after the file is already in hand \u2014 the reader is told to verify which of three builds they have and to double-click it. Every link on the rendered page was enumerated: none points to an installer, an archive or a download host, and the only outbound routes to the vendor are two e-mail addresses"
+    },
+    {
+      "blocked_by": "the site publishes documentation and does not publish packages",
+      "category": "VENDOR_SELF_SERVICE_DOWNLOAD",
+      "description": "the documentation site's own complete page index, checked so that the conclusion above rests on the whole site rather than on one page",
+      "locator": "https://docs.griaule.com/llms.txt",
+      "outcome": "NO_PACKAGE_OFFERED",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-15",
+      "route_id": "documentation_site_index",
+      "what_was_found": "the full published index of the documentation site. It lists the suite's applications, its installation guides and its SDK release notes, and holds no download page, package registry or evaluation bundle for the fingerprint SDK"
+    },
+    {
+      "blocked_by": "there is no download section on the corporate site",
+      "category": "VENDOR_SELF_SERVICE_DOWNLOAD",
+      "description": "the conventional download path on the vendor's corporate site, probed directly rather than inferred from the absence of a link",
+      "locator": "https://griaule.com/downloads",
+      "outcome": "NO_PACKAGE_OFFERED",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-15",
+      "route_id": "corporate_site_download_probe",
+      "what_was_found": "the host answers and the path does not exist. The localised variant of the same path was probed and does not exist either"
+    },
+    {
+      "blocked_by": "a contact form is not a package",
+      "category": "VENDOR_SALES_DELIVERY",
+      "description": "the corporate contact route, checked for a trial or evaluation request path",
+      "locator": "https://griaule.com/en/contact/",
+      "outcome": "CONTACT_ROUTE_ONLY",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-15",
+      "route_id": "corporate_contact_page",
+      "what_was_found": "a general contact form and regional telephone numbers. The page mentions no SDK, no trial, no evaluation and no download, so it is a way of reaching the vendor rather than a route to this product"
+    },
+    {
+      "blocked_by": "the knowledge base publishes no package; its request form is the route, and a request is an act somebody has to perform",
+      "category": "VENDOR_SUPPORT_DELIVERY",
+      "description": "the vendor's knowledge base, which its documentation names as the support route and which would be the natural home of a download article",
+      "locator": "https://support.griaule.com/hc/en-us",
+      "outcome": "CONTACT_ROUTE_ONLY",
+      "retrieval": "RETRIEVED",
+      "retrieved_utc": "2026-08-15",
+      "route_id": "support_knowledge_base",
+      "what_was_found": "a knowledge base offering an FAQ, guides and a request form. It has no downloads section, and a search of it returns nothing at all for the SDK \u2014 its articles are about the vendor's server products. The request form is a genuine official route and it asks a person for the package rather than serving one"
+    },
+    {
+      "blocked_by": "the request has not been sent; sending it is this project's own next step and not a vendor dependency",
+      "category": "VENDOR_SALES_DELIVERY",
+      "description": "the route the vendor's own SDK page names for anybody who does not already hold the file: a request, in the requester's own name, to the addresses that page publishes",
+      "locator": "VENDOR_SALES_OR_SUPPORT",
+      "outcome": "CONTACT_ROUTE_ONLY",
+      "retrieval": "NOT_RETRIEVED",
+      "retrieved_utc": null,
+      "route_id": "named_vendor_request",
+      "what_was_found": "the route exists and is the one the vendor points at. Nothing has been sent through it. It is recorded here as unwalked precisely so that no document in this stage can imply the vendor was asked and said nothing"
+    }
+  ],
+  "outstanding_action": {
+    "action": "SEND_ONE_OFFICIAL_ACQUISITION_REQUEST",
+    "gate": "OFFICIAL_ARTIFACT_AND_TRIAL_ACCESS",
+    "what_has_been_done": "the vendor's official routes were retrieved (sdk_documentation_page, documentation_site_index, corporate_site_download_probe, corporate_contact_page, support_knowledge_base): the SDK documentation page and every link on it, the documentation site's own complete page index, the corporate site's download path, the corporate contact page and the support knowledge base including a search of its articles. None publishes the package, and the refused third-party sources were identified and recorded as refused",
+    "what_it_would_answer": "whether the package and its bundled 90-day trial can be obtained for academic, research-only, non-commercial use. Until it is sent, nothing whatever is established about Griaule \u2014 including that it is unwilling",
+    "what_remains": [
+      "sending one official request, in the maintainer's own name, through a route the vendor publishes, stating that the use is academic, research-only and non-commercial"
+    ]
+  },
+  "package_obtained": false,
+  "package_presence": "ABSENT",
+  "pending_is_not_a_failure": true,
+  "pending_reason": null,
+  "refused_acquisition_sources": [
+    "a download mirror",
+    "a software-catalogue or freeware site",
+    "a third-party repository",
+    "a reseller or distributor store",
+    "an archive somebody uploaded",
+    "a copy received from another project",
+    "any build offered with a licence bypass, keygen or crack"
+  ],
+  "refused_route_categories": [
+    {
+      "category": "SOFTWARE_CATALOGUE",
+      "what_is_there": "several software-catalogue and freeware sites publish a Griaule fingerprint SDK download, some of them naming the 2007 and 2009 generations of the product",
+      "why_it_is_refused": "not the vendor, not current, and not a chain of custody anything can be pinned to. A package whose provenance runs to a catalogue site is a package this stage could not identify even after hashing it"
+    },
+    {
+      "category": "RESELLER_OR_DISTRIBUTOR",
+      "what_is_there": "at least one biometrics reseller publishes product pages for the vendor's fingerprint SDK",
+      "why_it_is_refused": "a commercial route through a third party is still not the vendor handing over a package"
+    },
+    {
+      "category": "THIRD_PARTY_MIRROR",
+      "what_is_there": "a manual for a 2014 edition of the SDK is mirrored on a document sharing site",
+      "why_it_is_refused": "it may well be the vendor's own PDF, and it is still a document this project did not receive from the vendor, describing an edition nobody offered it"
+    },
+    {
+      "category": "UNLICENSED_REDISTRIBUTION",
+      "what_is_there": "a download host advertises a build of the SDK together with a licence bypass",
+      "why_it_is_refused": "it is refused for the obvious reason and recorded for a less obvious one: it is the first result a naive search for this package surfaces, and an evidence trail that simply omitted it would not show that it was seen and declined. No licence mechanism is bypassed, reset or worked around in this project, at any stage"
+    }
+  ],
+  "request_sent": false,
+  "request_sent_utc": null,
+  "request_status": "PREPARED_NOT_SENT",
+  "schema": "stage_14a_acquisition_status_v1",
+  "self_service_locator_found": false,
+  "vendor_was_not_asked_and_did_not_refuse": true,
+  "what_would_change_the_status": [
+    "sending one official request, in the maintainer's own name, through a route the vendor publishes, stating that the use is academic, research-only and non-commercial",
+    "a vendor reply that delivers the package and its bundled trial",
+    "a vendor reply that declines, which would settle the gate as a refusal",
+    "a vendor reply that confirms no package is available for this use, which would settle it as unavailable"
+  ]
+}

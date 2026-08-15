@@ -1,0 +1,42 @@
+{
+  "direction": null,
+  "expected_direction_upstream": "HIGHER_IS_MORE_SIMILAR",
+  "fpbench_score_transformation": "NONE",
+  "gate": "SINGLE_FINGER_RAW_1TO1_SCORE_ROUTE",
+  "gate_status": "NOT_REACHED",
+  "native_type": null,
+  "observed_contract": null,
+  "pair_binding_comes_from_the_api_under_test": true,
+  "pair_role_binding": [
+    [
+      "pair.left",
+      "first_template"
+    ],
+    [
+      "pair.right",
+      "second_template"
+    ]
+  ],
+  "questions_the_delivered_header_must_answer": [
+    "does one image produce exactly one template through the delivered extraction entry point",
+    "do two templates produce a scalar similarity score through the delivered 1:1 verification entry point",
+    "is that score reachable without the API collapsing it into a match or no-match answer",
+    "what is the score's native numeric type",
+    "what is the score's direction",
+    "does the configured threshold change the number, or only the decision taken about it"
+  ],
+  "raw_score_reachable": null,
+  "schema": "stage_14a_score_contract_v1",
+  "score_shape_is_not_assumed": true,
+  "scores_produced_in_this_stage": 0,
+  "single_image_single_template": null,
+  "threshold": {
+    "applied_inside_the_score": null,
+    "calibration": "NONE",
+    "upstream_default_indication": 20,
+    "upstream_default_rotation_tolerance_indication": -1,
+    "upstream_defaults_are_observations_only": true,
+    "used_as_a_decision_here": false,
+    "why": "this benchmark stores raw scores and derives every decision in its own decision layer from its own protocol. The vendor's default of 20 is recorded because it is what the delivered engine will be constructed with, not because anything here applies it"
+  }
+}

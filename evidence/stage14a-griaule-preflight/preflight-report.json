@@ -1,0 +1,109 @@
+{
+  "algorithm_slot": "algorithm_5",
+  "blockers": [],
+  "candidate_id": "griaule_gbs_fingerprint_sdk_1to1",
+  "failure_class": null,
+  "gate_count_defined": 4,
+  "gates": [
+    {
+      "blockers": [],
+      "documents": [
+        "acquisition-status.json",
+        "package-manifest.json",
+        "research-use-trial.json"
+      ],
+      "gate": "OFFICIAL_ARTIFACT_AND_TRIAL_ACCESS",
+      "is_final": false,
+      "outstanding_action": "SEND_ONE_OFFICIAL_ACQUISITION_REQUEST",
+      "pending": null,
+      "position": 1,
+      "status": "ACTION_REQUIRED",
+      "summary": "every official route was walked and none of them serves the package; the one request this project owes has not been sent"
+    },
+    {
+      "blockers": [],
+      "documents": [
+        "input-route.json"
+      ],
+      "gate": "DIRECT_CANONICAL500_INPUT_ROUTE",
+      "is_final": false,
+      "outstanding_action": null,
+      "pending": null,
+      "position": 2,
+      "status": "NOT_REACHED",
+      "summary": "the run stopped at OFFICIAL_ARTIFACT_AND_TRIAL_ACCESS, so this question was never asked: nothing was obtained, read, loaded or executed for it"
+    },
+    {
+      "blockers": [],
+      "documents": [
+        "score-contract.json"
+      ],
+      "gate": "SINGLE_FINGER_RAW_1TO1_SCORE_ROUTE",
+      "is_final": false,
+      "outstanding_action": null,
+      "pending": null,
+      "position": 3,
+      "status": "NOT_REACHED",
+      "summary": "the run stopped at OFFICIAL_ARTIFACT_AND_TRIAL_ACCESS, so this question was never asked: nothing was obtained, read, loaded or executed for it"
+    },
+    {
+      "blockers": [],
+      "documents": [
+        "route-closure.json"
+      ],
+      "gate": "SCORE_AFFECTING_ROUTE_CLOSURE",
+      "is_final": false,
+      "outstanding_action": null,
+      "pending": null,
+      "position": 4,
+      "status": "NOT_REACHED",
+      "summary": "the run stopped at OFFICIAL_ARTIFACT_AND_TRIAL_ACCESS, so this question was never asked: nothing was obtained, read, loaded or executed for it"
+    }
+  ],
+  "gates_awaiting_action": 1,
+  "gates_passed": 0,
+  "gates_pending_access": 0,
+  "gates_reached": 1,
+  "implementation_origin": "VENDOR_OFFICIAL_SDK",
+  "implementation_version": "UNRESOLVED_UNTIL_PACKAGE",
+  "observations_fingerprint": "160a9e27bfe99f58405b10ea0e7e15247d3039a9f98d13d2676cdd21281e1283",
+  "opens_stage_14b": false,
+  "outcome": "GRIAULE_PREFLIGHT_INCOMPLETE",
+  "outcome_is_final": false,
+  "outstanding_actions": [
+    {
+      "action": "SEND_ONE_OFFICIAL_ACQUISITION_REQUEST",
+      "gate": "OFFICIAL_ARTIFACT_AND_TRIAL_ACCESS",
+      "what_has_been_done": "the vendor's official routes were retrieved (sdk_documentation_page, documentation_site_index, corporate_site_download_probe, corporate_contact_page, support_knowledge_base): the SDK documentation page and every link on it, the documentation site's own complete page index, the corporate site's download path, the corporate contact page and the support knowledge base including a search of its articles. None publishes the package, and the refused third-party sources were identified and recorded as refused",
+      "what_it_would_answer": "whether the package and its bundled 90-day trial can be obtained for academic, research-only, non-commercial use. Until it is sent, nothing whatever is established about Griaule \u2014 including that it is unwilling",
+      "what_remains": [
+        "sending one official request, in the maintainer's own name, through a route the vendor publishes, stating that the use is academic, research-only and non-commercial"
+      ]
+    }
+  ],
+  "pending_reasons": [],
+  "predecessor_fingerprint": "b24bdb672926abfb5dd5a9e03a4c3aab39f51488d9a5413092adef392d99871d",
+  "preflight_fingerprint": "1b67c33ab4787b5504c31f0ab03c7e250b74a3b2c39ca40005bf86e6cdfd2842",
+  "prior_algorithm_scores_read": false,
+  "product_family": "GBS Fingerprint SDK",
+  "reopens_algorithm_5_search": false,
+  "schema": "stage_14a_preflight_report_v1",
+  "scores_produced": 0,
+  "sd300_used": false,
+  "what_a_non_final_outcome_means": "GRIAULE_PREFLIGHT_PENDING_ACCESS means an official route was walked and somebody outside this project has to move next. GRIAULE_PREFLIGHT_INCOMPLETE means this project has a step left to take. Neither is a finding about Griaule and neither writes a marker (docs/adr/0121)",
+  "what_this_stage_does_not_do": [
+    "activate a trial",
+    "execute anything that produces a biometric score",
+    "run a determinism experiment",
+    "measure performance",
+    "read SD300 image bytes, its pair manifest or its scores",
+    "read any prior algorithm's scores",
+    "create a fingerprint algorithm adapter",
+    "integrate anything into the algorithm registry",
+    "run the 6,000-pair canonical workload",
+    "produce a threshold profile",
+    "calibrate anything",
+    "produce a metric"
+  ],
+  "writes_a_marker": false
+}

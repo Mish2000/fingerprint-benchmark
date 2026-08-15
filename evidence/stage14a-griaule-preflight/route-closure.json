@@ -1,0 +1,66 @@
+{
+  "categories_not_accounted_for": [
+    "verification threshold",
+    "rotation tolerance",
+    "template format",
+    "image resolution metadata",
+    "extraction options",
+    "quality options",
+    "matching profile or options"
+  ],
+  "categories_to_account_for": [
+    "verification threshold",
+    "rotation tolerance",
+    "template format",
+    "image resolution metadata",
+    "extraction options",
+    "quality options",
+    "matching profile or options"
+  ],
+  "default_fpbench_changed": false,
+  "gate": "SCORE_AFFECTING_ROUTE_CLOSURE",
+  "gate_status": "NOT_REACHED",
+  "no_setting_is_chosen_by_trying_values": true,
+  "package_identity_fields": [
+    "product_version",
+    "build_or_revision",
+    "platform",
+    "binding",
+    "package_sha256"
+  ],
+  "provenance_vocabulary": [
+    {
+      "is_upstream_authority": true,
+      "provenance": "DELIVERED_DEFAULT"
+    },
+    {
+      "is_upstream_authority": true,
+      "provenance": "DELIVERED_DOCUMENTATION"
+    },
+    {
+      "is_upstream_authority": false,
+      "provenance": "UPSTREAM_PUBLIC_PAGE"
+    },
+    {
+      "is_upstream_authority": false,
+      "provenance": "FPBENCH_CHOICE"
+    },
+    {
+      "is_upstream_authority": false,
+      "provenance": "UNRESOLVED"
+    }
+  ],
+  "route_closed": false,
+  "schema": "stage_14a_route_closure_v1",
+  "setting_inventory_fields": [
+    "name",
+    "type",
+    "delivered_default_value",
+    "source_authority",
+    "score_affecting",
+    "fpbench_changed"
+  ],
+  "settings": [],
+  "unresolved_score_affecting_settings": [],
+  "why_two_categories_cannot_be_empty": "the vendor's own public documentation proves a verification threshold and a rotation tolerance exist and are matcher parameters. An inventory that never mentions them would be visibly incomplete rather than arguably complete"
+}

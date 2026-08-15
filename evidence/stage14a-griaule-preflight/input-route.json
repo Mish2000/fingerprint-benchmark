@@ -1,0 +1,51 @@
+{
+  "benchmark_input_pixel_format": "gray8",
+  "benchmark_input_ppi": 500,
+  "benchmark_input_profile": "canonical_500",
+  "decode_equivalence_requirements": [
+    "every pixel value is identical",
+    "the geometry is unchanged: same width, same height, no crop, no pad"
+  ],
+  "fpbench_preprocessing_required": null,
+  "gate": "DIRECT_CANONICAL500_INPUT_ROUTE",
+  "gate_status": "NOT_REACHED",
+  "ideal_route": [
+    "canonical gray8 500 ppi",
+    "the full original pixel matrix, unmodified",
+    "the official Griaule image object or loader",
+    "the official extraction entry point",
+    "any crop the extractor performs internally"
+  ],
+  "observed_route": null,
+  "permitted_decode_route": [
+    "the canonical PNG",
+    "a lossless decode to gray8",
+    "the identical gray8 pixel values",
+    "the container the delivered API accepts",
+    "500 ppi recorded in the container's own resolution metadata"
+  ],
+  "refused_preprocessing": [
+    "cropping to the extractor's pixel limit",
+    "choosing a crop origin",
+    "resizing",
+    "padding",
+    "rotating",
+    "selecting a region of interest",
+    "enhancement",
+    "normalisation"
+  ],
+  "required_input_ppi": 500,
+  "route_established": false,
+  "schema": "stage_14a_input_route_v1",
+  "the_question_this_gate_answers": "whether the caller or the extractor is the one required to respect the documented 500 x 500 extraction limit. A crop the extractor performs on a full image it was handed is algorithm behaviour; a crop the caller must perform first is fpbench choosing which part of the finger the algorithm sees, and it is a hard reject (docs/adr/0124)",
+  "upstream_capture_pixel_limit": [
+    1280,
+    1280
+  ],
+  "upstream_extraction_pixel_limit": [
+    500,
+    500
+  ],
+  "upstream_limit_is_an_indication_not_a_route": true,
+  "vendor_internal_crop_is_algorithm_behaviour": true
+}

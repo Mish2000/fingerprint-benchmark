@@ -242,7 +242,12 @@ def test_the_marker_gate_counts_agree_with_the_engine() -> None:
     preflight = engine.run_preflight()
     assert payload["gates_reached"] == preflight.gates_reached
     assert payload["gates_passed"] == preflight.gates_passed
-    assert payload["gates_awaiting_action"] == 0
+    assert payload["gates_awaiting_action"] == preflight.gates_awaiting_action
+    # Only a PASS requires every gate to have been asked and answered. A FAIL may
+    # strand an action it caused: a route that cannot be executed cannot be
+    # observed either (docs/adr/0124).
+    if payload["outcome"] == frozen.STAGE_13A_PASS_OUTCOME:
+        assert payload["gates_awaiting_action"] == 0
 
 
 # ------------------------------------------------------------ the boundaries

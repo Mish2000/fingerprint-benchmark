@@ -299,7 +299,10 @@ def validate_fingerprints_matching_result_set(
             continue
 
         total += 1
-        metadata = dict(getattr(record, "metadata", {}) or {})
+        # The adapter's own metadata, which is where the route's account of
+        # itself lives. ``runner_metadata`` beside it belongs to the engine and
+        # is not this route's to assert anything about.
+        metadata = dict(getattr(record, "adapter_metadata", {}) or {})
         forbidden = sorted(set(metadata) & FORBIDDEN_METADATA_KEYS)
         if forbidden:
             issues.append(

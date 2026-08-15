@@ -157,13 +157,17 @@ def test_a_gate_awaiting_an_action_publishes_no_blocker() -> None:
     awaiting = [
         row for row in document["gates"] if row["status"] == "ACTION_REQUIRED"
     ]
+    # The invariant is per gate. A gate awaiting an action never carries a
+    # blocker; a *different* gate may still have failed, and that failure is what
+    # decides the outcome.
     for row in awaiting:
         assert row["blockers"] == []
         assert row["outstanding_action"] is not None
     if awaiting:
+        assert len(document["outstanding_actions"]) == len(awaiting)
+    if document["outcome"] == frozen.STAGE_13A_INCOMPLETE_OUTCOME:
         assert document["blockers"] == []
         assert document["failure_class"] is None
-        assert len(document["outstanding_actions"]) == len(awaiting)
 
 
 def test_an_outstanding_action_says_what_was_done_and_what_remains() -> None:

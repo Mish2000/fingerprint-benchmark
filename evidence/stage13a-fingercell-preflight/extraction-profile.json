@@ -21,6 +21,6 @@
   ],
   "schema": "stage_13a_extraction_profile_v1",
   "single_finger_rule": "one image -> one fresh Extract -> one template, on each side of every comparison",
-  "status": "ACTION_REQUIRED",
+  "status": "NOT_REACHED",
   "template_cache_permitted": false
 }

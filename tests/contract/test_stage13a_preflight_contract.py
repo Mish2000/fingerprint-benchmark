@@ -324,7 +324,9 @@ def test_a_run_that_failed_reports_no_gate_as_never_reached_without_a_failure() 
 def test_an_incomplete_run_reopens_nothing_and_opens_nothing() -> None:
     """It is not a verdict, so it neither admits nor rejects the candidate."""
     preflight = engine.run_preflight()
-    if preflight.is_incomplete:
+    # Only when nothing failed. A failure elsewhere dominates, and it strands
+    # actions rather than being softened by them (docs/adr/0124).
+    if preflight.is_incomplete and preflight.stopped_at is None:
         assert preflight.outcome == frozen.STAGE_13A_INCOMPLETE_OUTCOME
         assert preflight.opens_stage_13b is False
         assert preflight.reopens_algorithm_5_search is False

@@ -46,5 +46,5 @@
   ],
   "sample_dimensions_are_not_a_preprocessing_rule": true,
   "schema": "stage_13a_input_route_v1",
-  "status": "ACTION_REQUIRED"
+  "status": "NOT_REACHED"
 }

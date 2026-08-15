@@ -533,6 +533,18 @@ class BlockerCode(str, Enum):
     RESEARCH_USE_BLOCKED = "RESEARCH_USE_BLOCKED"
     TRIAL_ACTIVATION_FAILED = "TRIAL_ACTIVATION_FAILED"
 
+    #: The delivered trial route was walked to its end in a qualified
+    #: environment and produced no entitlement for this component.
+    #:
+    #: Deliberately narrow. It says what was observed here — this artifact, this
+    #: platform, this environment, this project's own route — and not that the
+    #: Linux trial is broken, that the vendor's Linux support is broken, or that
+    #: the product cannot be evaluated. None of those follows from one
+    #: environment failing to obtain a licence (docs/adr/0124).
+    FINGERCELL_TRIAL_ENTITLEMENT_UNAVAILABLE_IN_QUALIFIED_ENVIRONMENT = (
+        "FINGERCELL_TRIAL_ENTITLEMENT_UNAVAILABLE_IN_QUALIFIED_ENVIRONMENT"
+    )
+
     CANONICAL500_ROUTE_UNRESOLVED = "CANONICAL500_ROUTE_UNRESOLVED"
     FPBENCH_PREPROCESSING_REQUIRED = "FPBENCH_PREPROCESSING_REQUIRED"
 
@@ -572,6 +584,7 @@ GATE_BLOCKERS: tuple[tuple[PreflightGate, tuple[BlockerCode, ...]], ...] = (
         (
             BlockerCode.RESEARCH_USE_BLOCKED,
             BlockerCode.TRIAL_ACTIVATION_FAILED,
+            BlockerCode.FINGERCELL_TRIAL_ENTITLEMENT_UNAVAILABLE_IN_QUALIFIED_ENVIRONMENT,
         ),
     ),
     (
@@ -1743,6 +1756,14 @@ class FailureClass(str, Enum):
     OFFICIAL_TRIAL_UNAVAILABLE = "OFFICIAL_TRIAL_UNAVAILABLE"
     RESEARCH_USE_BLOCKED = "RESEARCH_USE_BLOCKED"
     TRIAL_ACTIVATION_FAILED = "TRIAL_ACTIVATION_FAILED"
+
+    #: The route was walked to its end and no entitlement was issued. Narrower
+    #: than TRIAL_ACTIVATION_FAILED, which would suggest an activation step went
+    #: wrong; here every documented step succeeded and the licensing service
+    #: simply had nothing for this component (docs/adr/0124).
+    OPERATIONAL_TRIAL_ENTITLEMENT_NOT_ESTABLISHED = (
+        "OPERATIONAL_TRIAL_ENTITLEMENT_NOT_ESTABLISHED"
+    )
     TRIAL_WORKLOAD_INSUFFICIENT = "TRIAL_WORKLOAD_INSUFFICIENT"
     PRODUCT_IDENTITY_MISMATCH = "PRODUCT_IDENTITY_MISMATCH"
     RUNTIME_CLOSURE_UNRESOLVED = "RUNTIME_CLOSURE_UNRESOLVED"
@@ -2191,7 +2212,11 @@ def _require_failure_classes_cover_the_blockers() -> None:
         code.value
         for code in BlockerCode
         if code.value not in classes
-        and code is not BlockerCode.VERIFINGER_COMPONENT_IN_THE_ROUTE
+        and code
+        not in (
+            BlockerCode.VERIFINGER_COMPONENT_IN_THE_ROUTE,
+            BlockerCode.FINGERCELL_TRIAL_ENTITLEMENT_UNAVAILABLE_IN_QUALIFIED_ENVIRONMENT,
+        )
     )
     if uncovered:
         raise FingerCellCandidateIdentityError(

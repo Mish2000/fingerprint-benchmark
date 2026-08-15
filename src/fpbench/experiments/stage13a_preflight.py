@@ -997,6 +997,53 @@ def _gate_research_use_and_trial_operation() -> GateResult:
             ),
         )
 
+    # The delivered route was walked to its end and returned no entitlement.
+    # This is a FAIL rather than an outstanding action precisely because there is
+    # nothing left to perform: every documented step for this platform succeeded,
+    # and the licensing service answered that it has nothing for this component
+    # (docs/adr/0124).
+    if trial is not None and str(trial.get("route_exhausted", "")).lower() == "true":
+        return GateResult(
+            gate=gate,
+            status=frozen.GateStatus.FAIL,
+            summary=(
+                "the delivered trial route was walked to its end in this "
+                "environment and produced no FingerCell entitlement: the "
+                "licensing service runs and answers, the client half of the "
+                "trial switch is on, and the subsystem reports the licence as "
+                "not obtained rather than the service as unreachable"
+            ),
+            blockers=(
+                Blocker(
+                    gate=gate,
+                    blocker_code=(
+                        frozen.BlockerCode
+                        .FINGERCELL_TRIAL_ENTITLEMENT_UNAVAILABLE_IN_QUALIFIED_ENVIRONMENT
+                    ),
+                    affected_component="the FingerCell trial entitlement",
+                    evidence=str(
+                        trial.get("detail", "no entitlement was issued")
+                    ),
+                    why_this_blocks_algorithm_5=(
+                        "without an entitlement for the FingerCell component "
+                        "nothing can be extracted or matched, so no gate below "
+                        "this one can be answered about the delivered runtime at "
+                        "all. The archive, its identity, the binding and the "
+                        "compiled bridge are all in hand and none of them can be "
+                        "exercised"
+                    ),
+                    how_this_would_be_lifted=(
+                        "by an entitlement issued for this component through the "
+                        "vendor's own route — which may mean a trial provisioning "
+                        "step this project has not been able to reach, or a "
+                        "licence obtained under different arrangements. It is not "
+                        "lifted by a serial-number workaround, by substituting a "
+                        "commercial licence, or by any reset or bypass"
+                    ),
+                ),
+            ),
+        )
+
     if assessment is None or trial is None:
         return GateResult(
             gate=gate,
@@ -2028,6 +2075,12 @@ class FingerCellPreflight:
     def outcome(self) -> str:
         if self.passed:
             return frozen.STAGE_13A_PASS_OUTCOME
+        # A failure dominates an outstanding action. Something was found wrong
+        # with the candidate, and a chore left unperformed elsewhere does not
+        # soften that — it is usually stranded *by* the failure, because a route
+        # that cannot be executed cannot be observed either (docs/adr/0124).
+        if self.stopped_at is not None:
+            return frozen.STAGE_13A_FAIL_OUTCOME
         if self.is_incomplete:
             return frozen.STAGE_13A_INCOMPLETE_OUTCOME
         return frozen.STAGE_13A_FAIL_OUTCOME
@@ -2039,16 +2092,22 @@ class FingerCellPreflight:
     @property
     def reopens_algorithm_5_search(self) -> bool:
         """A final failure returns selection to the next Algorithm 5 candidate."""
-        return not self.passed and not self.is_incomplete
+        return self.outcome == frozen.STAGE_13A_FAIL_OUTCOME
 
     @property
     def failure_class(self) -> frozen.FailureClass | None:
         """What kind of failure this is, derived from the blocker that stopped it."""
-        if self.passed or self.is_incomplete:
+        if self.outcome != frozen.STAGE_13A_FAIL_OUTCOME:
             return None
         codes = {blocker.blocker_code for blocker in self.blockers}
         if frozen.BlockerCode.VERIFINGER_COMPONENT_IN_THE_ROUTE in codes:
             return frozen.FailureClass.PRODUCT_IDENTITY_MISMATCH
+        if (
+            frozen.BlockerCode
+            .FINGERCELL_TRIAL_ENTITLEMENT_UNAVAILABLE_IN_QUALIFIED_ENVIRONMENT
+            in codes
+        ):
+            return frozen.FailureClass.OPERATIONAL_TRIAL_ENTITLEMENT_NOT_ESTABLISHED
         for code in codes:
             try:
                 return frozen.FailureClass(code.value)

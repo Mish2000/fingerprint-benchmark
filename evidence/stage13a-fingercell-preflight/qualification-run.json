@@ -110,5 +110,5 @@
     "Match(A1, A2) is the SELF comparison",
     "no template is reused, cached or shared between the two sides"
   ],
-  "status": "ACTION_REQUIRED"
+  "status": "NOT_REACHED"
 }

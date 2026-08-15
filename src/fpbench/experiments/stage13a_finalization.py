@@ -573,11 +573,10 @@ class Stage13AFinalization:
                 "more gates passed than were reached, which is not a thing that "
                 "can happen"
             )
-        if self.gates_awaiting_action:
+        if self.gates_awaiting_action and self.outcome == STAGE_13A_PASS_OUTCOME:
             raise ValueError(
-                "a finalized Stage 13A has no gate awaiting a local action. An "
-                "outstanding action means the preflight is INCOMPLETE, and an "
-                "INCOMPLETE preflight writes no marker (docs/adr/0112)"
+                "a PASS Stage 13A has no gate awaiting a local action; every gate "
+                "was asked and answered (docs/adr/0112)"
             )
 
         for name in Stage13AFinalization.DENIED_FLAGS:

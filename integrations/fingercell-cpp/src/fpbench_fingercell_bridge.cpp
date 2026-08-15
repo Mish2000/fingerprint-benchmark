@@ -97,11 +97,69 @@ void Emit(const std::string &key, long long value)
 //
 // Trial mode is passed in rather than read from the delivered flag file, so that
 // starting the trial clock is always something the caller asked for by name.
-bool ObtainLicense(bool trialMode)
+// The delivered licensing subsystem's own name for what it is reporting.
+std::string ObtainedStatusName(NLicenseObtainedStatus status)
 {
-	NLicenseManager::SetTrialMode(trialMode);
+	switch (status)
+	{
+	case nlosLicenseObtained: return "LICENSE_OBTAINED";
+	case nlosLicenseNotObtained: return "LICENSE_NOT_OBTAINED";
+	case nlosServerOffline: return "SERVER_OFFLINE";
+	case nlosUnknown:
+	default: return "UNKNOWN";
+	}
+}
+
+bool ObtainLicense()
+{
+	// Read back rather than echoed: this is the runtime's own answer about the
+	// client half of the trial switch, not the value we just passed in. The
+	// switch itself is set before any licensing initialisation, in main, because
+	// the runtime refuses it afterwards — see the note there.
 	Emit("trial_mode", NLicenseManager::GetTrialMode() ? "true" : "false");
-	if (!NLicense::Obtain(kLicenseServer, kLicensePort, kLicenseComponent))
+
+	// Ask the subsystem what it thinks the situation is before asking it to act.
+	// A supported query, and the difference between "the service is unreachable"
+	// and "the service is there and has nothing for this component" is the whole
+	// question this stage is stuck on.
+	try
+	{
+		const NLicenseObtainedStatus before =
+			NLicense::GetObtainedStatus(kLicenseServer, kLicensePort, kLicenseComponent);
+		Emit("obtained_status_before", ObtainedStatusName(before));
+	}
+	catch (NError &error)
+	{
+		Emit("obtained_status_before", "QUERY_FAILED");
+		Emit("obtained_status_error_code", static_cast<long long>(error.GetCode()));
+	}
+
+	const bool obtained =
+		NLicense::Obtain(kLicenseServer, kLicensePort, kLicenseComponent);
+
+	try
+	{
+		const NLicenseObtainedStatus after =
+			NLicense::GetObtainedStatus(kLicenseServer, kLicensePort, kLicenseComponent);
+		Emit("obtained_status_after", ObtainedStatusName(after));
+	}
+	catch (NError &)
+	{
+		Emit("obtained_status_after", "QUERY_FAILED");
+	}
+
+	try
+	{
+		Emit(
+			"component_activated",
+			NLicense::IsComponentActivated(kLicenseComponent) ? "true" : "false");
+	}
+	catch (NError &)
+	{
+		Emit("component_activated", "QUERY_FAILED");
+	}
+
+	if (!obtained)
 	{
 		std::cerr << "could not obtain a licence for the "
 		          << ToUtf8(NString(kLicenseComponent)) << " component" << std::endl;
@@ -235,7 +293,7 @@ int CommandDiagnose(bool trialMode)
 {
 	EmitEnvironmentIdentity();
 
-	if (!ObtainLicense(trialMode)) return 2;
+	if (!ObtainLicense()) return 2;
 
 	FingerCellEngine fingerCell;
 	Emit("engine_constructed", "true");
@@ -274,7 +332,7 @@ int CommandDiagnose(bool trialMode)
 // internals (docs/adr/0118, docs/adr/0120).
 int CommandSettings(bool trialMode)
 {
-	if (!ObtainLicense(trialMode)) return 2;
+	if (!ObtainLicense()) return 2;
 
 	FingerCellEngine fingerCell;
 	Emit("engine_constructed", "true");
@@ -302,7 +360,7 @@ int CommandSettings(bool trialMode)
 
 int CommandExtract(bool trialMode, const NChar *imagePath, const NChar *outPath)
 {
-	if (!ObtainLicense(trialMode)) return 2;
+	if (!ObtainLicense()) return 2;
 
 	FingerCellEngine fingerCell;
 	NImage image = LoadAtBenchmarkResolution(imagePath);
@@ -318,7 +376,7 @@ int CommandExtract(bool trialMode, const NChar *imagePath, const NChar *outPath)
 
 int CommandMatch(bool trialMode, const NChar *referencePath, const NChar *candidatePath)
 {
-	if (!ObtainLicense(trialMode)) return 2;
+	if (!ObtainLicense()) return 2;
 
 	FingerCellEngine fingerCell;
 	NBuffer reference = NFile::ReadAllBytes(referencePath);
@@ -338,7 +396,7 @@ int CommandMatch(bool trialMode, const NChar *referencePath, const NChar *candid
 // selects between the two.
 int CommandPair(bool trialMode, const NChar *leftPath, const NChar *rightPath)
 {
-	if (!ObtainLicense(trialMode)) return 2;
+	if (!ObtainLicense()) return 2;
 
 	FingerCellEngine fingerCell;
 
@@ -367,7 +425,7 @@ int CommandPair(bool trialMode, const NChar *leftPath, const NChar *rightPath)
 // fact about this bridge's plumbing rather than about the algorithm.
 int CommandSelf(bool trialMode, const NChar *imagePath)
 {
-	if (!ObtainLicense(trialMode)) return 2;
+	if (!ObtainLicense()) return 2;
 
 	FingerCellEngine fingerCell;
 
@@ -415,13 +473,21 @@ int main(int argc, NChar **argv)
 	const NString command(argv[1]);
 	const bool trialMode = TrialFlag(argv[2]);
 
-	// Required runtime initialisation, and not optional.
+	// The trial switch comes first, and the order is upstream's requirement
+	// rather than a preference. Setting it later fails outright:
 	//
-	// Every delivered tutorial calls this before touching the SDK, by way of the
-	// sample support header. Without it the licensing subsystem is not brought
-	// up and `NLicense::Obtain` fails without ever reaching the local licensing
-	// service — which is precisely what the first diagnostic run of this bridge
-	// observed, before a single template had been extracted (docs/adr/0123).
+	//     (-7) TrialMode cannot be changed after NLicenseManager initialization
+	//
+	// Licensing initialisation happens during core start-up, so anything that
+	// sets trial mode after `NCore::OnStart()` is asking for a mode the runtime
+	// has already committed. Every delivered tutorial sets it in the same place,
+	// before any SDK work; the ordering only becomes visible when something
+	// initialises licensing explicitly (docs/adr/0123).
+	NLicenseManager::SetTrialMode(trialMode);
+
+	// Required runtime initialisation, and not optional. Every delivered
+	// tutorial performs it before touching the SDK, by way of the sample support
+	// header; without it the licensing subsystem is never brought up.
 	NCore::OnStart();
 
 	int status;

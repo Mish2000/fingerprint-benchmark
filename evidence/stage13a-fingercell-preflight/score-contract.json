@@ -45,6 +45,6 @@
   ],
   "schema": "stage_13a_score_contract_v1",
   "score_range_is_not_assumed": true,
-  "status": "ACTION_REQUIRED",
+  "status": "NOT_REACHED",
   "threshold_produced": false
 }

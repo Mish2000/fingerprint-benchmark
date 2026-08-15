@@ -34,6 +34,15 @@
         "size_bytes": 14600,
         "tool": "license_activation"
       }
+    },
+    {
+      "attempt": "final_entitlement_attempt",
+      "command_category": "OBTAIN_COMPONENT_LICENCE",
+      "exit_status": "2; no entitlement returned",
+      "finding": "the runtime first refused a trial switch set after licensing initialisation, naming the ordering requirement outright; with the order corrected the switch was accepted and read back as enabled, and the subsystem reported LICENSE_NOT_OBTAINED rather than SERVER_OFFLINE",
+      "performed_utc": "2026-08-15T09:20:16Z",
+      "route": "the authoritative route the artifact defines: documented licensing script, trial switch before licensing initialisation, core start-up, then the component licence request",
+      "tool": null
     }
   ],
   "gate": "RESEARCH_USE_AND_TRIAL_OPERATION",
@@ -67,7 +76,7 @@
     "reused_not_reopened": true,
     "why_null_and_not_false": "no component has been assessed, so Stage 8E made no decision. A false here would read as a research-use refusal nobody made (docs/adr/0095)"
   },
-  "status": "ACTION_REQUIRED",
+  "status": "FAIL",
   "trial": {
     "activated": false,
     "duration_days": 30,

@@ -2,7 +2,7 @@
   "gate": "TRAINING_PROVENANCE",
   "not_searched_is_an_action_not_a_finding": true,
   "observed": null,
-  "overlap_status": "NOT_SEARCHED",
+  "overlap_status": "NOT_REACHED",
   "schema": "stage_13a_training_provenance_v1",
   "sd300_image_bytes_read": false,
   "sd300_pair_manifest_read": false,
@@ -13,7 +13,7 @@
     "SD 300"
   ],
   "standard": "the same one Algorithm 4 was held to: proprietary and undisclosed until something says otherwise",
-  "status": "ACTION_REQUIRED",
+  "status": "NOT_REACHED",
   "surfaces": [
     "training",
     "validation",

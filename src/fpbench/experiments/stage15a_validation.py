@@ -477,7 +477,10 @@ def validate_fingerprints_matching_result_set(
             "blocking": blocking,
             "failure_counts": dict(sorted(failure_counts.items())),
             "upstream_codes": dict(sorted(upstream_codes.items())),
-        }
+        },
+        # The research receipt stores this as a digest and requires 64
+        # characters; ``stable_hash`` defaults to twelve.
+        length=64,
     )
     return Stage15AValidationReport(
         run_id=run.run_id,

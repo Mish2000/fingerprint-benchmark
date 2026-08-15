@@ -2197,9 +2197,10 @@ make stage12a-evidence
 
 ## Next stage
 
-**Algorithm 4 exists.** Stage 11B ran the canonical 6,000 under VeriFinger
-2025.2 and stored 6,000 raw outcomes, so the benchmark now holds four raw result
-sets over identical inputs.
+**Five algorithms have run.** Stage 15A ran the canonical 6,000 under
+`fingerprints-matching` 0.1.0, so the benchmark now holds five raw result sets
+over identical inputs. The fifth is far thinner than the other four, and the
+counts below say how thin.
 
 ```
 Stage 9A    algorithm 4 = FLARE  — artifact and method qualification   BLOCKED
@@ -2210,21 +2211,72 @@ Stage 11A   algorithm 4 candidate — VeriFinger 2025.2 preflight        PASS (1
 Stage 11B   VeriFinger production integration and canonical raw run    COMPLETE (6,000)
 Stage 12A   algorithm 5 candidate — Innovatrics IDKit preflight        FAIL (vendor refusal)
 Stage 12B   IDKit production integration and canonical raw run         CLOSED
+Stage 13A   algorithm 5 candidate — FingerCell 3.3 preflight           FAIL (no entitlement)
+Stage 14A   algorithm 5 candidate — Griaule GBS SDK preflight          NON-FINAL, superseded
+Stage 15A   fingerprints-matching 0.1.0 — qualification and raw run    COMPLETE (6,000)
 ```
 
-**Algorithm 5 selection continues.** IDKit is closed after the explicit refusal;
-the id3 Finger SDK request remains under vendor review in the background; and
-Neurodactyl is the next active candidate. Stage 12A does not contact another
-sales representative, use a reseller or reframe the research use as commercial.
+The three most recent stages have no narrative section of their own above; their
+evidence reports are the write-up: [Stage
+13A](evidence/stage13a-fingercell-preflight/README.md), [Stage
+14A](evidence/stage14a-griaule-preflight/README.md) and [Stage
+15A](evidence/stage15a-fingerprints-matching/README.md). Each verifies with no
+dataset, no package and no network — `make stage13a-evidence`,
+`make stage14a-evidence`, `make stage15a-evidence`.
 
-**What is open, and what is not.** The Stage 11B marker records
-`opens_algorithm_5_search: true` and `opens_common_calibration: false`, and the
-second matters more than the first. Four raw result sets are not a ranking: each
-algorithm's scores live on its own scale, VeriFinger's vendor anchor of 48 is not
-comparable to SourceAFIS's documented 40 or to NBIS's, and an operating point may
-not be chosen from the SD300 scores SD300 will then be evaluated at. Until a
-common calibrated operating policy exists, nothing here says which algorithm is
-more accurate — and nothing here may.
+**Stage 14A is not a failure, and is not recorded as one.** No Griaule package is
+served by any official route, so acquisition would have needed a request — and
+that request was never sent. `stage14a_final_outcome` is `NONE`,
+`vendor_request_sent` is `false`, there is no finalization marker, and Stage 15A
+edited nothing in that directory. There is no refusal and no silence to report,
+because nobody asked; publishing a `FAIL` would manufacture a vendor position
+that does not exist ([ADR 0104](docs/adr/0104-a-preflight-that-was-not-run-is-not-a-preflight-that-failed.md),
+[ADR 0121](docs/adr/0121-a-wait-and-a-chore-are-not-the-same-non-answer.md)).
+
+**The selection rule changed, and that is what superseded Griaule.** Three
+consecutive Algorithm 5 stages ended at a vendor without establishing anything
+about a matcher: IDKit refused, FingerCell's trial entitlement never arrived, and
+Griaule's package is not served. Self-service acquisition and runnability without
+vendor action are now **hard requirements** for a candidate
+([ADR 0126](docs/adr/0126-self-service-acquisition-is-a-hard-requirement.md)).
+That is a statement about what this project can qualify on its own schedule, not
+a judgement of the excluded candidates — VeriFinger, the benchmark's own
+Algorithm 4, would fail the second requirement outright. The rule is not
+retroactive: algorithms 1–4 keep their slots.
+
+**Algorithm 5 exists, and its coverage is the open question.** Stage 15A's marker
+records `algorithm_5_established: true` and `opens_common_calibration: true` on
+the stated criterion — the result set carries scores. What it carries is:
+
+```
+6,000 stored outcomes    0 missing    0 duplicate    0 infrastructure failures
+  389 scores
+    ├─ 367 SELF          exactly 1.0, by construction
+    └─  22 genuine       0.0 to 0.0196
+5,611 algorithmic failures    5,610 of them convexity-defect refusals
+```
+
+A SELF comparison extracts one image twice and every minutia matches itself at
+distance and angle zero, so upstream returns exactly 1.0 whenever extraction
+succeeds at all. Those 367 rows say the extractor ran on 367 of 3,000 canonical
+images; they say nothing about whether this matcher discriminates. **Twenty-two
+comparisons of two different prints produced a number**, and the marker publishes
+`successful_scores_self` and `successful_scores_genuine` separately so the total
+cannot stand in for the coverage
+([ADR 0128](docs/adr/0128-a-result-set-with-no-score-is-not-a-raw-matcher.md)).
+
+**What is open, and what is not.** Five raw result sets are still not a ranking.
+Each algorithm's scores live on its own scale, VeriFinger's vendor anchor of 48
+is not comparable to SourceAFIS's documented 40 or to NBIS's, and an operating
+point may not be chosen from the SD300 scores SD300 will then be evaluated at.
+Until a common calibrated operating policy exists, nothing here says which
+algorithm is more accurate — and nothing here may. Stage 15A opens that phase; it
+does not decide whether twenty-two genuine scores are worth calibrating against
+roughly 5,900 from each of the other four. That judgement belongs to the
+calibration stage, made with these counts in front of it. If the answer is no,
+`predecessor-selection.json` names the reserve candidate: `fingerflow_3_0_1`.
+The marker's own `fallback_candidate` is `null`, because a fallback is recorded
+only when the result set carries no score at all.
 
 **Stage 10C stays reserved for id3.** It was defined as the id3 artifact and
 runtime integration that a passing 10B would open, and recycling the number for
@@ -2232,23 +2284,21 @@ a different candidate would make the history unreadable — a later reader would
 find a 10C with nothing to do with the 10B above it. The marker carries
 `stage_10c_reserved_for_this_candidate: true` and refuses to say otherwise.
 
-**Two tracks, and neither waits for the other.** Requesting an id3 evaluation
-licence — the package, the activation, the exact quota and metering semantics,
-and confirmation that the planned research workload is permitted — is one act by
-one person, and it reopens Stage 10B if it succeeds. The next candidate preflight
-does not depend on it and should not wait for it. If id3 answers quickly and the
-quota is sufficient, 10B requalifies and 10C opens. If not, no time was lost.
-
-id3's blocker is much weaker than FLARE's or JIPNet's, and the marker says so:
-the candidate failed no gate about its input domain, its published method, its
-raw score or its research-use terms.
+**The id3 track is parked rather than closed.** Requesting an evaluation licence
+would still reopen Stage 10B on its merits — id3's blocker was always much weaker
+than FLARE's or JIPNet's, and the marker says so: the candidate failed no gate
+about its input domain, its published method, its raw score or its research-use
+terms. What has changed is that the request is no longer on the critical path.
+Under the hard requirements above, a candidate needing a vendor to act is not in
+the Algorithm 5 queue, and reopening the commercial route means superseding
+ADR 0126 rather than working around it.
 
 The search still starts from a written specification rather than an impression: a
 candidate must be an official artifact, must accept `canonical_500` through a
 route somebody upstream defined, must name its artifacts by bytes, must produce
 one finite scalar per attempt with no threshold, must not have been fitted on
-SD300, and must run here. Any candidate that fails one of those fails, and no
-gate is weakened to fill the slot.
+SD300, and must run here — now without anybody's permission. Any candidate that
+fails one of those fails, and no gate is weakened to fill the slot.
 
 Four things would lift the route blockers, and each is concrete: an authoritative
 statement of the 512-to-256 resampling; an authoritative statement of what fills

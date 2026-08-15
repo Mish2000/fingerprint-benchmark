@@ -50,16 +50,24 @@ The order is deliberate and the gate machine enforces it:
 11. close determinism, failures, workload and provenance;
 12. publish a real PASS or a real FAIL.
 
-Steps 8 and 9 are in that order on purpose. The trial runs 30 days from an
-explicit activation, so the bridge is made to compile before any clock starts
-(docs/adr/0115).
+Steps 8 and 9 are in that order on purpose. The delivered guide requires an
+explicit activation but does not establish when the 30-day clock begins. The
+bridge was therefore made to compile before the entitlement request, avoiding
+build work under a clock whose state is `UNKNOWN` (docs/adr/0115).
 
-## Current state
+## Final state
 
-`FINGERCELL_PREFLIGHT_INCOMPLETE`. Gate 1 passes; the other nine await local
-actions. No trial has been activated, no module has been loaded, and no score has
-been produced. No finalization marker exists, and none may be written while any
-action is outstanding.
+`FINGERCELL_PREFLIGHT_FAIL`, failure class
+`OPERATIONAL_TRIAL_ENTITLEMENT_NOT_ESTABLISHED`. G1 passed. G2 retains
+`RUNTIME_CLOSURE_NOT_OBSERVED`. G3 failed after the delivered Linux entitlement
+route was exhausted, and G4–G10 were not reached. A finalization marker is
+published; Stage 13B stays closed and the Algorithm 5 search is reopened.
+
+The client trial switch was accepted and read back as enabled. The licensing
+subsystem reported `LICENSE_NOT_OBTAINED` before and after the component request,
+and did not report `SERVER_OFFLINE`; no entitlement was returned. These are
+status observations, not authority for an inference about transport semantics.
+No template was extracted, no match ran and no score was produced.
 
 ## What the archive settled before anything was executed
 
@@ -80,7 +88,7 @@ it, under a licence obtained for the component named `FingerCell` specifically.
 
 No adapter, no registry entry, no experiment configuration, no 6,000-comparison
 run, no result set, no threshold, no calibration, no metric. All of that is Stage
-13B, and only a PASS opens it.
+13B, and the FAIL does not open it.
 
 ## Running it
 

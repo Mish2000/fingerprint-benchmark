@@ -10,9 +10,10 @@ a plausible default, and opens nothing.
 There is no third marker. ``FINGERCELL_PREFLIGHT_INCOMPLETE`` is a published
 outcome of the *preflight* and never of a finalization: a marker is a
 finalization, and there is nothing final about a step somebody has not taken yet.
-The publisher refuses to write one while any gate is ``ACTION_REQUIRED``, which
-is what stops "incomplete" from quietly becoming the third state that gets used
-(docs/adr/0112).
+The publisher refuses an incomplete preflight.  A final ``FAIL`` may still carry
+an outstanding action stranded by the earlier blocker that made the remaining
+runtime work impossible; only a ``PASS`` requires every action to be closed
+(docs/adr/0112, docs/adr/0124).
 
 What the marker denies is checked rather than written as prose: no SD300 image
 byte, score or pair manifest was read, no prior algorithm's scores were consulted,
@@ -357,27 +358,27 @@ class Stage13AFinalization:
     implementation_origin: str
     official_trial_obtained: bool
     runtime_closure_pinned: bool
-    verifinger_component_in_route: bool
+    verifinger_component_in_route: bool | None
 
     # What the terms and the trial permitted, or nothing.
     research_use_opens_execution: bool | None
-    research_use_blocked: bool
+    research_use_blocked: bool | None
     trial_activated: bool
     trial_workload_sufficient: bool | None
     license_bypass_attempted: bool
     trial_reset_attempted: bool
 
     # What the route turned out to be, or nothing.
-    canonical500_route: bool
-    fpbench_preprocessing_required: bool
-    ppi_500_effective_at_extraction: bool
-    single_finger_template: bool
+    canonical500_route: bool | None
+    fpbench_preprocessing_required: bool | None
+    ppi_500_effective_at_extraction: bool | None
+    single_finger_template: bool | None
     template_format: str | None
     template_merging: bool
     template_cache_used: bool
     extractor_settings_frozen: bool
     hidden_score_affecting_settings: int | None
-    raw_score_route: bool
+    raw_score_route: bool | None
     score_native_type: str | None
     score_direction: str | None
     threshold_applied_inside_the_score: bool
@@ -385,11 +386,11 @@ class Stage13AFinalization:
 
     # What a run demonstrated, or nothing.
     pair_orientation: str
-    self_independent_extraction: bool
-    repeat_determinism: bool
-    restart_determinism: bool
-    mandatory_failure_probes_passed: int
-    local_smoke_passed: bool
+    self_independent_extraction: bool | None
+    repeat_determinism: bool | None
+    restart_determinism: bool | None
+    mandatory_failure_probes_passed: int | None
+    local_smoke_passed: bool | None
     runtime_timing_measured: bool
 
     training_provenance: str
@@ -461,12 +462,9 @@ class Stage13AFinalization:
         "stage8e_evidence_changed",
         "stage11b_evidence_changed",
         "stage12a_evidence_changed",
-        "research_use_blocked",
-        "fpbench_preprocessing_required",
         "template_merging",
         "template_cache_used",
         "threshold_applied_inside_the_score",
-        "verifinger_component_in_route",
     )
 
     #: Every claim a ``PASS`` marker must establish.
@@ -598,13 +596,14 @@ class Stage13AFinalization:
                     "otherwise would be describing a different stage"
                 )
 
-        probes = int(self.mandatory_failure_probes_passed)
-        if not 0 <= probes <= MANDATORY_FAILURE_PROBE_COUNT:
-            raise ValueError(
-                f"mandatory_failure_probes_passed is {probes} and the stage "
-                f"defines {MANDATORY_FAILURE_PROBE_COUNT}"
-            )
-        object.__setattr__(self, "mandatory_failure_probes_passed", probes)
+        if self.mandatory_failure_probes_passed is not None:
+            probes = int(self.mandatory_failure_probes_passed)
+            if not 0 <= probes <= MANDATORY_FAILURE_PROBE_COUNT:
+                raise ValueError(
+                    f"mandatory_failure_probes_passed is {probes} and the stage "
+                    f"defines {MANDATORY_FAILURE_PROBE_COUNT}"
+                )
+            object.__setattr__(self, "mandatory_failure_probes_passed", probes)
 
         blockers = tuple(dict(item) for item in self.blockers)
         for blocker in blockers:
@@ -719,6 +718,16 @@ class Stage13AFinalization:
                 "a PASS Stage 13A has a trial capacity that covers the frozen "
                 "workload"
             )
+        for name in (
+            "verifinger_component_in_route",
+            "research_use_blocked",
+            "fpbench_preprocessing_required",
+        ):
+            if getattr(self, name) is not False:
+                raise ValueError(
+                    f"a PASS Stage 13A establishes {name} is false; null would "
+                    "leave the corresponding gate fact unestablished"
+                )
         if self.hidden_score_affecting_settings != 0:
             raise ValueError(
                 "a PASS Stage 13A leaves no score-affecting setting unresolved; a "
@@ -1109,9 +1118,9 @@ def write_stage13a_evidence(
     stage since 8D published under.
 
     Raises:
-        Stage13AFinalizationError: a marker was asked for while a gate is
-            awaiting a local action, or the tree is not clean apart from the
-            marker being written.
+        Stage13AFinalizationError: a marker was asked for while the preflight is
+            incomplete, or the tree is not clean apart from the marker being
+            written.
     """
     from fpbench.experiments import stage13a_fingercell_observations as observed
     from fpbench.experiments import stage13a_preflight as engine
@@ -1228,6 +1237,10 @@ def _marker_claims(
     record = engine.qualification_record() or {}
     determinism = record.get("determinism") if isinstance(record, Mapping) else {}
     determinism = determinism if isinstance(determinism, Mapping) else {}
+    self_semantics = (
+        record.get("self_semantics") if isinstance(record, Mapping) else {}
+    )
+    self_semantics = self_semantics if isinstance(self_semantics, Mapping) else {}
     probes = record.get("failure_probes") if isinstance(record, Mapping) else ()
     probes = probes if isinstance(probes, (list, tuple)) else ()
     probes_passed = sum(
@@ -1236,14 +1249,43 @@ def _marker_claims(
         if isinstance(item, Mapping) and item.get("behaved_correctly")
     )
 
+    def gate_status(gate: frozen.PreflightGate) -> frozen.GateStatus:
+        return preflight.status(gate)
+
     def gate_passed(gate: frozen.PreflightGate) -> bool:
-        return preflight.status(gate) is frozen.GateStatus.PASS
+        return gate_status(gate) is frozen.GateStatus.PASS
+
+    def gate_result(gate: frozen.PreflightGate) -> bool | None:
+        """True/false only when the gate observed an answer; otherwise unknown."""
+        status = gate_status(gate)
+        if status is frozen.GateStatus.PASS:
+            return True
+        if status is frozen.GateStatus.FAIL:
+            return False
+        return None
+
+    def observed_at_gate(
+        gate: frozen.PreflightGate, value: Any
+    ) -> Any | None:
+        if gate_status(gate) in (frozen.GateStatus.PASS, frozen.GateStatus.FAIL):
+            return value
+        return None
 
     orientation = "_".join(
         f"{left.split('.')[-1]}_{right}" for left, right in PAIR_ROLE_BINDING
     )
     obtained = acquisition.obtained
-    qualified = gate_passed(frozen.PreflightGate.PAIR_SELF_DETERMINISM_FAILURES)
+    qualification_gate = frozen.PreflightGate.PAIR_SELF_DETERMINISM_FAILURES
+    g2_blockers = {
+        blocker.blocker_code for blocker in preflight.result(
+            frozen.PreflightGate.PACKAGE_RUNTIME_IDENTITY
+        ).blockers
+    }
+    g3_blockers = {
+        blocker.blocker_code for blocker in preflight.result(
+            frozen.PreflightGate.RESEARCH_USE_AND_TRIAL_OPERATION
+        ).blockers
+    }
     return {
         "schema_version": STAGE_13A_SCHEMA_VERSION,
         "kind": STAGE_FINALIZATION_KIND,
@@ -1279,21 +1321,37 @@ def _marker_claims(
         "runtime_closure_pinned": gate_passed(
             frozen.PreflightGate.PACKAGE_RUNTIME_IDENTITY
         ),
-        "verifinger_component_in_route": False,
+        "verifinger_component_in_route": (
+            True
+            if frozen.BlockerCode.VERIFINGER_COMPONENT_IN_THE_ROUTE in g2_blockers
+            else False
+            if gate_passed(frozen.PreflightGate.PACKAGE_RUNTIME_IDENTITY)
+            else None
+        ),
         "research_use_opens_execution": True if passed else None,
-        "research_use_blocked": False,
+        "research_use_blocked": (
+            True
+            if frozen.BlockerCode.RESEARCH_USE_BLOCKED in g3_blockers
+            else False
+            if gate_passed(frozen.PreflightGate.RESEARCH_USE_AND_TRIAL_OPERATION)
+            else None
+        ),
         "trial_activated": bool(trial.get("activated")),
         "trial_workload_sufficient": True if passed else None,
         "license_bypass_attempted": False,
         "trial_reset_attempted": False,
-        "canonical500_route": gate_passed(
+        "canonical500_route": gate_result(
             frozen.PreflightGate.CANONICAL500_INPUT_ROUTE
         ),
-        "fpbench_preprocessing_required": False,
-        "ppi_500_effective_at_extraction": (
-            int(route.get("effective_ppi", 0)) == frozen.REQUIRED_INPUT_PPI
+        "fpbench_preprocessing_required": observed_at_gate(
+            frozen.PreflightGate.CANONICAL500_INPUT_ROUTE,
+            bool(route.get("fpbench_preprocessing_required")),
         ),
-        "single_finger_template": gate_passed(
+        "ppi_500_effective_at_extraction": observed_at_gate(
+            frozen.PreflightGate.CANONICAL500_INPUT_ROUTE,
+            int(route.get("effective_ppi", 0)) == frozen.REQUIRED_INPUT_PPI,
+        ),
+        "single_finger_template": gate_result(
             frozen.PreflightGate.SINGLE_FINGER_EXTRACTION_PROFILE
         ),
         "template_format": (
@@ -1304,15 +1362,15 @@ def _marker_claims(
         "extractor_settings_frozen": gate_passed(
             frozen.PreflightGate.SCORE_AFFECTING_SETTINGS_CLOSURE
         ),
-        # Counted, not assumed. Under a pass it is zero because the closure gate
-        # said so; under a failure with an archive in hand it is however many
-        # settings the inspection actually left without an authority; and with no
-        # archive it is ``None``, because a count of zero over an inventory
-        # nobody recorded would read as a closed inventory.
-        "hidden_score_affecting_settings": (
-            len(engine.unresolved_score_affecting_settings()) if obtained else None
+        # Counted only if G7 actually ran. A zero from an empty, unobserved
+        # inventory would falsely publish a closed settings surface.
+        "hidden_score_affecting_settings": observed_at_gate(
+            frozen.PreflightGate.SCORE_AFFECTING_SETTINGS_CLOSURE,
+            len(engine.unresolved_score_affecting_settings()),
         ),
-        "raw_score_route": gate_passed(frozen.PreflightGate.RAW_1TO1_SCORE_CONTRACT),
+        "raw_score_route": gate_result(
+            frozen.PreflightGate.RAW_1TO1_SCORE_CONTRACT
+        ),
         "score_native_type": (
             str(contract.get("native_type")) if contract.get("native_type") else None
         ),
@@ -1322,13 +1380,25 @@ def _marker_claims(
         "threshold_applied_inside_the_score": False,
         "fpbench_score_transformation": FPBENCH_SCORE_TRANSFORMATION,
         "pair_orientation": orientation,
-        "self_independent_extraction": qualified,
-        "repeat_determinism": bool(
-            determinism.get("repeat_in_the_same_process")
+        "self_independent_extraction": observed_at_gate(
+            qualification_gate,
+            (
+                int(self_semantics.get("independent_extractions", 0)) == 2
+                if "independent_extractions" in self_semantics
+                else None
+            ),
         ),
-        "restart_determinism": bool(determinism.get("fresh_process")),
-        "mandatory_failure_probes_passed": probes_passed,
-        "local_smoke_passed": qualified,
+        "repeat_determinism": observed_at_gate(
+            qualification_gate,
+            determinism.get("repeat_in_the_same_process"),
+        ),
+        "restart_determinism": observed_at_gate(
+            qualification_gate, determinism.get("fresh_process")
+        ),
+        "mandatory_failure_probes_passed": observed_at_gate(
+            qualification_gate, probes_passed
+        ),
+        "local_smoke_passed": gate_result(qualification_gate),
         "runtime_timing_measured": gate_passed(
             frozen.PreflightGate.FULL_WORKLOAD_FEASIBILITY
         ),
@@ -1378,9 +1448,10 @@ def main(argv: list[str] | None = None) -> int:
     """``python -m fpbench.experiments.stage13a_finalization``.
 
     ``documents`` writes everything but the marker; ``publish`` writes the marker
-    too and refuses a dirty tree — and refuses outright while any gate awaits a
-    local action. ``status`` derives everything and prints the outcome, the gate
-    list and what remains, without writing anything.
+    too and refuses a dirty tree — and refuses an incomplete preflight. A final
+    FAIL may retain an action stranded by its blocker. ``status`` derives
+    everything and prints the outcome, the gate list and what remains, without
+    writing anything.
     """
     from fpbench.experiments import stage13a_fingercell_identity as ids
     from fpbench.experiments import stage13a_fingercell_observations as observed

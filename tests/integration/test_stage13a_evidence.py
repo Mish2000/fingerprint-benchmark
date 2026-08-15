@@ -286,6 +286,61 @@ def test_the_marker_gate_counts_agree_with_the_engine() -> None:
         assert payload["gates_awaiting_action"] == 0
 
 
+def test_the_final_marker_keeps_unreached_gate_facts_unknown() -> None:
+    if not MARKER.is_file():
+        pytest.skip("Stage 13A has not been finalized")
+    marker = _document(frozen.STAGE_13A_FINALIZATION_NAME)
+    report = _document(frozen.PREFLIGHT_REPORT_NAME)
+    statuses = {row["gate"]: row["status"] for row in report["gates"]}
+
+    assert statuses["PACKAGE_RUNTIME_IDENTITY"] == "ACTION_REQUIRED"
+    for gate in (
+        "CANONICAL500_INPUT_ROUTE",
+        "SINGLE_FINGER_EXTRACTION_PROFILE",
+        "RAW_1TO1_SCORE_CONTRACT",
+        "SCORE_AFFECTING_SETTINGS_CLOSURE",
+        "PAIR_SELF_DETERMINISM_FAILURES",
+    ):
+        assert statuses[gate] == "NOT_REACHED"
+
+    for field in (
+        "verifinger_component_in_route",
+        "research_use_opens_execution",
+        "research_use_blocked",
+        "trial_workload_sufficient",
+        "canonical500_route",
+        "fpbench_preprocessing_required",
+        "ppi_500_effective_at_extraction",
+        "single_finger_template",
+        "template_format",
+        "hidden_score_affecting_settings",
+        "raw_score_route",
+        "score_native_type",
+        "score_direction",
+        "self_independent_extraction",
+        "repeat_determinism",
+        "restart_determinism",
+        "mandatory_failure_probes_passed",
+        "local_smoke_passed",
+    ):
+        assert marker[field] is None, field
+
+    # These report work that was not done, rather than a factual negative.
+    assert marker["runtime_closure_pinned"] is False
+    assert marker["extractor_settings_frozen"] is False
+    assert marker["runtime_timing_measured"] is False
+
+
+def test_the_final_failure_publishes_statuses_without_transport_inference() -> None:
+    report = _document(frozen.PREFLIGHT_REPORT_NAME)
+    marker = _document(frozen.STAGE_13A_FINALIZATION_NAME)
+    text = json.dumps({"report": report, "marker": marker})
+    assert "LICENSE_NOT_OBTAINED" in text
+    assert "SERVER_OFFLINE" in text
+    assert "service was reached and answered" not in text
+    assert "service runs and answers" not in text
+
+
 # ------------------------------------------------------------ the boundaries
 
 

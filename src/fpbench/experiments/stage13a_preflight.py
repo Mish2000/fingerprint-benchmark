@@ -999,9 +999,10 @@ def _gate_research_use_and_trial_operation() -> GateResult:
 
     # The delivered route was walked to its end and returned no entitlement.
     # This is a FAIL rather than an outstanding action precisely because there is
-    # nothing left to perform: every documented step for this platform succeeded,
-    # and the licensing service answered that it has nothing for this component
-    # (docs/adr/0124).
+    # nothing left to perform through that route. The supported status query
+    # reported LICENSE_NOT_OBTAINED before and after the request, and did not
+    # report SERVER_OFFLINE. Those are the observations; no transport semantics
+    # are inferred from the distinction (docs/adr/0124).
     if trial is not None and str(trial.get("route_exhausted", "")).lower() == "true":
         return GateResult(
             gate=gate,
@@ -1009,9 +1010,10 @@ def _gate_research_use_and_trial_operation() -> GateResult:
             summary=(
                 "the delivered trial route was walked to its end in this "
                 "environment and produced no FingerCell entitlement: the "
-                "licensing service runs and answers, the client half of the "
-                "trial switch is on, and the subsystem reports the licence as "
-                "not obtained rather than the service as unreachable"
+                "client half of the trial switch was accepted and read back as "
+                "enabled, and the licensing subsystem reported "
+                "LICENSE_NOT_OBTAINED before and after the component request; "
+                "it did not report SERVER_OFFLINE"
             ),
             blockers=(
                 Blocker(
@@ -1021,8 +1023,15 @@ def _gate_research_use_and_trial_operation() -> GateResult:
                         .FINGERCELL_TRIAL_ENTITLEMENT_UNAVAILABLE_IN_QUALIFIED_ENVIRONMENT
                     ),
                     affected_component="the FingerCell trial entitlement",
-                    evidence=str(
-                        trial.get("detail", "no entitlement was issued")
+                    evidence=(
+                        "the licensing service was started by the documented "
+                        "route for this platform with the delivered configuration "
+                        "unchanged and reported the same revision as the archive; "
+                        "the client half of the trial switch was set before "
+                        "licensing initialisation, as the runtime requires, and "
+                        "read back as enabled; the licensing subsystem then "
+                        "reported LICENSE_NOT_OBTAINED both before and after the "
+                        "component request, and did not report SERVER_OFFLINE"
                     ),
                     why_this_blocks_algorithm_5=(
                         "without an entitlement for the FingerCell component "
@@ -2863,9 +2872,10 @@ def preflight_report_document(preflight: FingerCellPreflight) -> Mapping[str, An
         "gate_states": [item.value for item in frozen.GateStatus],
         "action_required_is_not_a_failure": (
             "ACTION_REQUIRED means a local step this project can perform has not "
-            "been performed. It is not a finding about FingerCell, it produces no "
-            "finalization marker, and it is never published as a blocker "
-            "(docs/adr/0112)"
+            "been performed. It is not a finding about FingerCell, never appears "
+            "as a blocker, and by itself produces no finalization marker. A later "
+            "FAIL may strand the action and still finalize the stage "
+            "(docs/adr/0112, docs/adr/0124)"
         ),
         "only_a_failure_stops_the_run": (
             "a gate awaiting an action is recorded and the run continues, so that "

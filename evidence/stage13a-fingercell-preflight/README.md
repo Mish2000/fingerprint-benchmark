@@ -1,7 +1,8 @@
 # Stage 13A — Neurotechnology FingerCell 3.3 preflight
 
-**Status: `FINGERCELL_PREFLIGHT_INCOMPLETE`. No finalization marker exists, and
-that is the correct published state.**
+**Status: `FINGERCELL_PREFLIGHT_FAIL`. Failure class:
+`OPERATIONAL_TRIAL_ENTITLEMENT_NOT_ESTABLISHED`. Stage 13B stays closed and the
+Algorithm 5 search is reopened.**
 
 One question:
 
@@ -11,26 +12,28 @@ One question:
 > preprocessing, parameter tuning, merging, thresholding or a score
 > transformation?
 
-Ten hard gates answer it. Two are answered; eight are waiting on work this
-project has not done yet.
+Ten hard gates answer it. G1 passed. G2 still has one runtime observation that
+could not be performed. G3 failed after the delivered Linux entitlement route
+was exhausted. G4–G10 were therefore not reached.
 
 | # | Gate | Status | Outstanding |
 |---|------|--------|-------------|
 | 1 | `OFFICIAL_ARTIFACT_ACQUISITION` | **PASS** | — |
-| 2 | `PACKAGE_RUNTIME_IDENTITY` | **PASS** | — |
-| 3 | `RESEARCH_USE_AND_TRIAL_OPERATION` | `ACTION_REQUIRED` | `TRIAL_NOT_ACTIVATED` |
-| 4 | `CANONICAL500_INPUT_ROUTE` | `ACTION_REQUIRED` | `RUNTIME_NOT_EXERCISED` |
-| 5 | `SINGLE_FINGER_EXTRACTION_PROFILE` | `ACTION_REQUIRED` | `SETTINGS_NOT_ENUMERATED` |
-| 6 | `RAW_1TO1_SCORE_CONTRACT` | `ACTION_REQUIRED` | `SCORE_CONTRACT_NOT_OBSERVED` |
-| 7 | `SCORE_AFFECTING_SETTINGS_CLOSURE` | `ACTION_REQUIRED` | `SETTINGS_CLOSURE_NOT_ESTABLISHED` |
-| 8 | `PAIR_SELF_DETERMINISM_FAILURES` | `ACTION_REQUIRED` | `QUALIFICATION_NOT_RUN` |
-| 9 | `FULL_WORKLOAD_FEASIBILITY` | `ACTION_REQUIRED` | `WORKLOAD_NOT_MEASURED` |
-| 10 | `TRAINING_PROVENANCE` | `ACTION_REQUIRED` | `PROVENANCE_NOT_SEARCHED` |
+| 2 | `PACKAGE_RUNTIME_IDENTITY` | `ACTION_REQUIRED` | `RUNTIME_CLOSURE_NOT_OBSERVED` |
+| 3 | `RESEARCH_USE_AND_TRIAL_OPERATION` | **FAIL** | no FingerCell entitlement returned |
+| 4 | `CANONICAL500_INPUT_ROUTE` | `NOT_REACHED` | — |
+| 5 | `SINGLE_FINGER_EXTRACTION_PROFILE` | `NOT_REACHED` | — |
+| 6 | `RAW_1TO1_SCORE_CONTRACT` | `NOT_REACHED` | — |
+| 7 | `SCORE_AFFECTING_SETTINGS_CLOSURE` | `NOT_REACHED` | — |
+| 8 | `PAIR_SELF_DETERMINISM_FAILURES` | `NOT_REACHED` | — |
+| 9 | `FULL_WORKLOAD_FEASIBILITY` | `NOT_REACHED` | — |
+| 10 | `TRAINING_PROVENANCE` | `NOT_REACHED` | — |
 
-**Only a failure stops the run.** A gate awaiting an action is recorded and the
-run continues to the next one, so what is published here is the whole remaining
-job rather than one next step. `NOT_REACHED` appears only after a real failure,
-and there is none (docs/adr/0104).
+**Only a failure stops the run.** The G2 action was recorded and execution
+continued. G3 then failed, so G4–G10 are `NOT_REACHED`. The G2 action remains
+stranded by the same missing entitlement that prevents the process from running;
+that does not turn the final FAIL back into an incomplete outcome
+(docs/adr/0104, docs/adr/0124).
 
 ## What `ACTION_REQUIRED` means, and what it does not
 
@@ -45,19 +48,25 @@ action actually performed and exposed an incompatibility
     -> FAIL
 ```
 
-Every open gate here is `ACTION_REQUIRED` because **the trial has not been
-activated and nothing has been executed**. Nothing has been found out about
-FingerCell that counts against it. No blocker is raised,
-no failure class is assigned, Stage 13B is not opened, and the Algorithm 5 search
-is *not* reopened — because nothing has been decided.
+The client trial switch was set before licensing initialisation, accepted, and
+read back as enabled. The licensing subsystem then reported
+`LICENSE_NOT_OBTAINED` before and after the FingerCell component request, and did
+not report `SERVER_OFFLINE`. No entitlement was returned. Those status values are
+the observation; this publication does not infer transport semantics from their
+difference.
+
+That exhausted route is the blocker behind
+`OPERATIONAL_TRIAL_ENTITLEMENT_NOT_ESTABLISHED`. Stage 13B is not opened, and the
+Algorithm 5 search is reopened.
 
 There is no `PENDING_VENDOR` state here at all. Stage 12A needed one because an
 Innovatrics representative had to answer an email before anything could happen.
 Neurotechnology publishes a direct trial download, so every remaining question is
 one this project answers for itself.
 
-`ACTION_REQUIRED` is not a final outcome and produces no finalization marker. A
-stage that is honestly half done looks half done here.
+`ACTION_REQUIRED` alone is not a final outcome and produces no finalization
+marker. Here it coexists with a later final FAIL because the failed entitlement
+route stranded the runtime-closure observation.
 
 ## What gate 1 established
 
@@ -115,10 +124,11 @@ a sample source or the shipped licence — and not out of a product page.
   developing, testing and distributing", restricts reverse engineering,
   decompilation, disassembly, rental and transfer, and states no restriction on
   publishing measurements obtained with the SDK.
-- **The trial.** 30 days, an explicit activation step, and a constant network
-  requirement for trial products. Activation being a distinct act is what makes
-  it possible to build and compile the bridge *before* any clock starts
-  (docs/adr/0115).
+- **The trial.** The delivered guide states a 30-day period, requires an explicit
+  activation step, and requires a constant network connection for trial products.
+  It does not establish when the clock begins; that remains `UNKNOWN`. Compiling
+  the bridge before the entitlement request avoided spending any potentially
+  running clock on build errors (docs/adr/0115).
 
 ## Which binding was selected, and why it is not Java
 
@@ -157,8 +167,10 @@ Neither of those facts came from inspecting a vendor binary. The delivered
 tutorial build files name those four libraries outright for the official 1:1
 route, and the bridge this project linked records the same four as its own
 dynamic dependencies. Stage 13A does not inspect compiled modules at all
-(docs/adr/0120). The claim is confirmed once more against the loaded module set
-when the bridge first runs.
+(docs/adr/0120). The loaded module set was never observed because the entitlement
+blocker stopped the route. The marker therefore publishes
+`verifinger_component_in_route: null`, not `false`: absence from the vendor build
+declaration and bridge link closure does not establish runtime absence.
 
 Separately, a source-level guard proves no Stage 13A module imports the sibling
 algorithm's adapter, bridge, runtime or published identity.
@@ -184,26 +196,28 @@ and not for the header.
 ## What has been built
 
 The qualification bridge is written, compiled and linked against the delivered
-headers and libraries, for `linux/x86_64`. It was **not run**: building obtains no
-licence and loads no module, which is the whole point of doing it first
-(docs/adr/0115). It is pinned into the inspection record by source fingerprint and
-binary digest, so a later run cannot outlive the build that produced it.
+headers and libraries for `linux/x86_64`. It was invoked only through the
+licensing path: trial mode was enabled before licensing initialisation and a
+FingerCell entitlement was requested. The request returned no entitlement, so no
+extraction, match or score path ran. The bridge is pinned into the inspection
+record by source fingerprint and binary digest.
 
 Windows has no MSVC toolchain on this host, so the bridge targets the vendor's
 Linux x86-64 build — one of the two platforms the trial is published for.
 
 ## What has not been done
 
-Nothing has been activated, loaded or executed. Specifically:
+No FingerCell entitlement was issued and no scoring route executed. Specifically:
 
-- no trial has been activated and no licence has been requested;
-- no vendor module has been loaded into any process;
+- trial mode was enabled, but trial activation did not succeed and the trial
+  clock remains `UNKNOWN`;
+- the loaded runtime closure was not recorded, so sibling-component presence is
+  `UNKNOWN` rather than false;
 - no template has been extracted and no score has been produced;
 - no settings have been read off a constructed engine;
 - no qualification run against the delivered SDK exists;
 - no trial capacity or runtime cost has been measured;
-- no training-provenance search has been performed — which is an outstanding
-  action and is never published as evidence of an overlap.
+- no training-provenance search has been performed because G10 was not reached.
 
 ## What this stage did not touch
 
@@ -233,7 +247,7 @@ Nothing has been activated, loaded or executed. Specifically:
 | `workload-feasibility.json` | G9 — whether 6,000 comparisons fit the trial |
 | `training-provenance.json` | G10 — SD300 overlap |
 | `preflight-report.json` | the whole run |
-| `stage-13a-finalization.json` | **absent** — written only under PASS or a final FAIL |
+| `stage-13a-finalization.json` | the final FAIL, blocker, unknowns and byte bindings |
 
 ## Reproducing this
 

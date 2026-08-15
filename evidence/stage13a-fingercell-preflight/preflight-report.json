@@ -34,13 +34,13 @@
     "no prior algorithm's scores were consulted",
     "no production integration was created"
   ],
-  "action_required_is_not_a_failure": "ACTION_REQUIRED means a local step this project can perform has not been performed. It is not a finding about FingerCell, it produces no finalization marker, and it is never published as a blocker (docs/adr/0112)",
+  "action_required_is_not_a_failure": "ACTION_REQUIRED means a local step this project can perform has not been performed. It is not a finding about FingerCell, never appears as a blocker, and by itself produces no finalization marker. A later FAIL may strand the action and still finalize the stage (docs/adr/0112, docs/adr/0124)",
   "algorithm_slot": "algorithm_5",
   "blockers": [
     {
       "affected_component": "the FingerCell trial entitlement",
       "blocker_code": "FINGERCELL_TRIAL_ENTITLEMENT_UNAVAILABLE_IN_QUALIFIED_ENVIRONMENT",
-      "evidence": "the licensing service was started by the documented route for this platform with the delivered configuration unchanged and reported the same revision as the archive; the client half of the trial switch was set before licensing initialisation, as the runtime requires, and read back as enabled; the licensing subsystem then reported the licence as LICENSE_NOT_OBTAINED both before and after the request. It did not report the service as offline, so the service was reached and answered",
+      "evidence": "the licensing service was started by the documented route for this platform with the delivered configuration unchanged and reported the same revision as the archive; the client half of the trial switch was set before licensing initialisation, as the runtime requires, and read back as enabled; the licensing subsystem then reported LICENSE_NOT_OBTAINED both before and after the component request, and did not report SERVER_OFFLINE",
       "gate": "RESEARCH_USE_AND_TRIAL_OPERATION",
       "how_this_would_be_lifted": "by an entitlement issued for this component through the vendor's own route \u2014 which may mean a trial provisioning step this project has not been able to reach, or a licence obtained under different arrangements. It is not lifted by a serial-number workaround, by substituting a commercial licence, or by any reset or bypass",
       "why_this_blocks_algorithm_5": "without an entitlement for the FingerCell component nothing can be extracted or matched, so no gate below this one can be answered about the delivered runtime at all. The archive, its identity, the binding and the compiled bridge are all in hand and none of them can be exercised"
@@ -106,7 +106,7 @@
       "gate": "RESEARCH_USE_AND_TRIAL_OPERATION",
       "outstanding_action": null,
       "status": "FAIL",
-      "summary": "the delivered trial route was walked to its end in this environment and produced no FingerCell entitlement: the licensing service runs and answers, the client half of the trial switch is on, and the subsystem reports the licence as not obtained rather than the service as unreachable"
+      "summary": "the delivered trial route was walked to its end in this environment and produced no FingerCell entitlement: the client half of the trial switch was accepted and read back as enabled, and the licensing subsystem reported LICENSE_NOT_OBTAINED before and after the component request; it did not report SERVER_OFFLINE"
     },
     {
       "blockers": [],

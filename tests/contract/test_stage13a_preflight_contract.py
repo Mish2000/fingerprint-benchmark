@@ -882,7 +882,7 @@ def test_no_marker_can_ever_carry_the_incomplete_outcome() -> None:
         _marker(outcome=frozen.STAGE_13A_INCOMPLETE_OUTCOME)
 
 
-def test_a_marker_cannot_be_written_with_a_gate_awaiting_an_action() -> None:
+def test_a_pass_marker_cannot_be_written_with_an_outstanding_action() -> None:
     with pytest.raises(ValueError, match="no gate awaiting a local action"):
         _marker(gates_awaiting_action=1)
 
@@ -900,6 +900,11 @@ def test_a_pass_marker_needs_all_four_failure_probes() -> None:
 def test_a_pass_marker_cannot_carry_a_sibling_component_in_the_route() -> None:
     with pytest.raises(ValueError, match="verifinger_component_in_route"):
         _marker(verifinger_component_in_route=True)
+
+
+def test_a_pass_marker_cannot_leave_a_sibling_check_unknown() -> None:
+    with pytest.raises(ValueError, match="verifinger_component_in_route"):
+        _marker(verifinger_component_in_route=None)
 
 
 def test_a_marker_cannot_claim_a_score_transformation() -> None:
@@ -949,6 +954,61 @@ def test_a_fail_marker_publishes_the_unestablished_as_unestablished() -> None:
             failure_class="OFFICIAL_TRIAL_UNAVAILABLE",
             blockers=(blocker,),
         )
+
+
+def test_a_fail_marker_keeps_not_reached_facts_unknown() -> None:
+    blocker = {
+        "gate": "RESEARCH_USE_AND_TRIAL_OPERATION",
+        "blocker_code": (
+            "FINGERCELL_TRIAL_ENTITLEMENT_UNAVAILABLE_IN_QUALIFIED_ENVIRONMENT"
+        ),
+        "affected_component": "the FingerCell trial entitlement",
+        "evidence": "LICENSE_NOT_OBTAINED before and after the request",
+        "why_this_blocks_algorithm_5": "no extraction or match can run",
+        "how_this_would_be_lifted": "an entitlement issued by the vendor",
+    }
+    marker = _marker(
+        outcome=frozen.STAGE_13A_FAIL_OUTCOME,
+        gates_reached=3,
+        gates_passed=1,
+        gates_awaiting_action=1,
+        runtime_closure_pinned=False,
+        verifinger_component_in_route=None,
+        research_use_opens_execution=None,
+        research_use_blocked=None,
+        trial_activated=False,
+        trial_workload_sufficient=None,
+        canonical500_route=None,
+        fpbench_preprocessing_required=None,
+        ppi_500_effective_at_extraction=None,
+        single_finger_template=None,
+        template_format=None,
+        extractor_settings_frozen=False,
+        hidden_score_affecting_settings=None,
+        raw_score_route=None,
+        score_native_type=None,
+        score_direction=None,
+        self_independent_extraction=None,
+        repeat_determinism=None,
+        restart_determinism=None,
+        mandatory_failure_probes_passed=None,
+        local_smoke_passed=None,
+        runtime_timing_measured=False,
+        training_provenance="NOT_REACHED",
+        sd300_overlap_status="NOT_REACHED",
+        failure_class="OPERATIONAL_TRIAL_ENTITLEMENT_NOT_ESTABLISHED",
+        opens_stage_13b=False,
+        reopens_algorithm_5_search=True,
+        blockers=(blocker,),
+    )
+    assert marker.gates_awaiting_action == 1
+    assert marker.hidden_score_affecting_settings is None
+    assert marker.verifinger_component_in_route is None
+    assert marker.canonical500_route is None
+    assert marker.mandatory_failure_probes_passed is None
+    assert marker.runtime_closure_pinned is False
+    assert marker.extractor_settings_frozen is False
+    assert marker.runtime_timing_measured is False
 
 
 def test_the_fingerprint_covers_the_claims() -> None:

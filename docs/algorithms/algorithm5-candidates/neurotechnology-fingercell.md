@@ -1,6 +1,7 @@
 # Neurotechnology FingerCell 3.3 — Algorithm 5 candidate
 
-**Status: under preflight (Stage 13A). Not selected, not integrated, not run.**
+**Status: Stage 13A closed as `FINGERCELL_PREFLIGHT_FAIL`. Not selected, not
+integrated, and no benchmark run was performed.**
 
 | | |
 |---|---|
@@ -79,10 +80,16 @@ general biometrics module that carries the other fingerprint engine. That is
 recorded as a candidate closure to be confirmed against the loaded module set, not
 as a settled fact (docs/adr/0114, docs/adr/0120).
 
-## What has not happened
+## Final disposition
 
-No trial activated, no module loaded, no template extracted, no score produced, no
-adapter written, no benchmark run. Stage 13A is `FINGERCELL_PREFLIGHT_INCOMPLETE`
-and publishes no finalization marker.
+The client trial switch was enabled before licensing initialisation, but the
+delivered Linux entitlement route returned no FingerCell entitlement. The
+subsystem reported `LICENSE_NOT_OBTAINED` before and after the request and did not
+report `SERVER_OFFLINE`; no transport meaning is inferred from that distinction.
+
+No template was extracted, no score was produced, no adapter was written and no
+benchmark run occurred. The loaded runtime closure was not observed, so sibling
+component presence remains unknown. Stage 13A publishes its final FAIL marker,
+keeps Stage 13B closed and reopens the Algorithm 5 search.
 
 See `evidence/stage13a-fingercell-preflight/` for the full state.

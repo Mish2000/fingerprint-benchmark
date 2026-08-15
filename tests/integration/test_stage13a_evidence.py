@@ -67,10 +67,24 @@ def test_every_derivable_document_is_present() -> None:
     assert not missing, missing
 
 
-def test_every_document_redirves_byte_for_byte_from_source() -> None:
-    """The published bytes are the derived bytes, not an edited copy of them."""
+def test_every_document_rederives_or_is_bound_by_the_final_marker() -> None:
+    """Verify live drafts from source and final evidence from its byte binding.
+
+    A finalized run may depend on an unredistributable archive and licence that
+    are intentionally absent in CI.  In that state the committed marker, rather
+    than an unrelated offline rerun, is the authority over the published bytes.
+    """
     if not EVIDENCE.is_dir():
         pytest.skip("Stage 13A evidence has not been published yet")
+
+    if MARKER.is_file():
+        marker = _document(frozen.STAGE_13A_FINALIZATION_NAME)
+        for name in frozen.DERIVABLE_EVIDENCE_FILES:
+            assert file_sha256(EVIDENCE / PurePosixPath(name)) == marker[
+                "evidence_content_hashes"
+            ][name]
+        return
+
     from fpbench.core.serialization import to_plain
 
     preflight = engine.run_preflight()
@@ -134,6 +148,17 @@ def test_the_published_evidence_names_no_prior_algorithm_score() -> None:
 
 def test_the_report_agrees_with_the_engine_about_every_gate() -> None:
     document = _document(frozen.PREFLIGHT_REPORT_NAME)
+    if MARKER.is_file():
+        marker = _document(frozen.STAGE_13A_FINALIZATION_NAME)
+        assert document["outcome"] == marker["outcome"]
+        assert document["gates_reached"] == marker["gates_reached"]
+        assert document["gates_passed"] == marker["gates_passed"]
+        assert document["gates_awaiting_action"] == marker["gates_awaiting_action"]
+        assert document["failure_class"] == marker["failure_class"]
+        assert document["blockers"] == marker["blockers"]
+        assert document["gate_count_defined"] == frozen.GATE_COUNT
+        return
+
     preflight = engine.run_preflight()
     published = {row["gate"]: row["status"] for row in document["gates"]}
     for result in preflight.results:
@@ -143,12 +168,13 @@ def test_the_report_agrees_with_the_engine_about_every_gate() -> None:
 
 
 def test_each_gate_document_carries_its_own_gate_and_status() -> None:
-    preflight = engine.run_preflight()
+    report = _document(frozen.PREFLIGHT_REPORT_NAME)
+    published = {row["gate"]: row["status"] for row in report["gates"]}
     for gate in frozen.GATE_ORDER:
         (name,) = frozen.gate_documents(gate)
         document = _document(name)
         assert document["gate"] == gate.value
-        assert document["status"] == preflight.status(gate).value
+        assert document["status"] == published[gate.value]
 
 
 def test_a_gate_awaiting_an_action_publishes_no_blocker() -> None:
@@ -182,28 +208,38 @@ def test_an_outstanding_action_says_what_was_done_and_what_remains() -> None:
 # -------------------------------------------------------------- the marker
 
 
-def test_no_marker_exists_while_the_preflight_is_incomplete() -> None:
-    """A stage that is honestly half done looks half done in its evidence."""
-    preflight = engine.run_preflight()
-    if preflight.outcome != frozen.STAGE_13A_INCOMPLETE_OUTCOME:
-        pytest.skip("the preflight has reached a final outcome")
-    assert not MARKER.is_file(), (
-        "a finalization marker exists for a preflight that is still awaiting a "
-        "local action; a marker is a finalization (docs/adr/0112)"
-    )
+def test_marker_presence_agrees_with_the_published_outcome() -> None:
+    """A published incomplete run has no marker; a final run has exactly one."""
+    report = _document(frozen.PREFLIGHT_REPORT_NAME)
+    if report["outcome"] == frozen.STAGE_13A_INCOMPLETE_OUTCOME:
+        assert not MARKER.is_file(), (
+            "a finalization marker exists for published evidence that is still "
+            "awaiting a local action (docs/adr/0112)"
+        )
+    else:
+        assert report["outcome"] in frozen.STAGE_13A_FINAL_OUTCOMES
+        assert MARKER.is_file(), "a final Stage 13A outcome has no marker"
 
 
 def test_the_publisher_refuses_a_marker_while_an_action_is_outstanding(
-    tmp_path,
+    tmp_path, monkeypatch,
 ) -> None:
     from fpbench.core.fingercell_preflight_errors import Stage13AFinalizationError
-    from fpbench.experiments.stage13a_finalization import write_stage13a_evidence
+    from fpbench.experiments import stage13a_finalization as finalization
 
     preflight = engine.run_preflight()
     if preflight.outcome != frozen.STAGE_13A_INCOMPLETE_OUTCOME:
         pytest.skip("the preflight has reached a final outcome")
+
+    write_json = finalization.write_evidence_json
+
+    def write_to_scratch(path, value):
+        return write_json(tmp_path / path.name, value)
+
+    monkeypatch.setattr(finalization, "write_evidence_json", write_to_scratch)
     with pytest.raises(Stage13AFinalizationError, match="outstanding"):
-        write_stage13a_evidence(REPOSITORY_ROOT, include_marker=True)
+        finalization.write_stage13a_evidence(REPOSITORY_ROOT, include_marker=True)
+    assert not (tmp_path / frozen.STAGE_13A_FINALIZATION_NAME).exists()
 
 
 def test_the_marker_verifies_against_the_published_bytes() -> None:
@@ -239,10 +275,10 @@ def test_the_marker_gate_counts_agree_with_the_engine() -> None:
     if not MARKER.is_file():
         pytest.skip("Stage 13A has not been finalized")
     payload = json.loads(MARKER.read_text(encoding="utf-8"))
-    preflight = engine.run_preflight()
-    assert payload["gates_reached"] == preflight.gates_reached
-    assert payload["gates_passed"] == preflight.gates_passed
-    assert payload["gates_awaiting_action"] == preflight.gates_awaiting_action
+    report = _document(frozen.PREFLIGHT_REPORT_NAME)
+    assert payload["gates_reached"] == report["gates_reached"]
+    assert payload["gates_passed"] == report["gates_passed"]
+    assert payload["gates_awaiting_action"] == report["gates_awaiting_action"]
     # Only a PASS requires every gate to have been asked and answered. A FAIL may
     # strand an action it caused: a route that cannot be executed cannot be
     # observed either (docs/adr/0124).

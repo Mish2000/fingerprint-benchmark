@@ -25,9 +25,10 @@ name: Stage 13A Neurotechnology FingerCell preflight
 #
 # A green tick here does not say an Algorithm 5 exists. Today it says something
 # narrower and exact: the official trial was obtained and pinned by digest, its
-# identity and delivered API were read out of the archive, and the stage is
-# waiting on a local action — writing and compiling the qualification bridge —
-# before the trial clock is ever started (docs/adr/0112, docs/adr/0115).
+# identity and delivered API were read out of the archive, the bridge compiled,
+# and the documented Linux licensing route was exhausted without an entitlement.
+# Stage 13A therefore closes as a qualified-environment FAIL; no extraction,
+# match or score was produced.
 
 on:
   push:
@@ -290,38 +291,15 @@ jobs:
               print(f"  {result.gate.value}: {result.status.value}")
           PY
 
-      - name: An incomplete preflight writes no marker
-        # The invariant that keeps "not done yet" from becoming a published
-        # verdict. On a runner with no archive the run stops at the acquisition
-        # gate, and the publisher must refuse a marker rather than write a FAIL
-        # about a candidate nobody tested (docs/adr/0112).
+      - name: An offline replay cannot replace the finalized evidence
+        # CI intentionally has no archive. Its live preflight is incomplete, but
+        # that does not invalidate the final evidence produced in the qualified
+        # environment. The refusal test redirects draft writes to a temporary
+        # directory and proves the committed publication remains untouched.
         run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          from fpbench.core.fingercell_preflight_errors import Stage13AFinalizationError
-          from fpbench.experiments import stage13a_fingercell_identity as frozen
-          from fpbench.experiments import stage13a_preflight as engine
-          from fpbench.experiments.stage13a_finalization import write_stage13a_evidence
-
-          preflight = engine.run_preflight()
-          assert preflight.outcome == frozen.STAGE_13A_INCOMPLETE_OUTCOME, preflight.outcome
-          assert preflight.failure_class is None
-          assert not preflight.blockers
-          assert preflight.opens_stage_13b is False
-          assert preflight.reopens_algorithm_5_search is False
-
-          try:
-              write_stage13a_evidence(Path("."), include_marker=True)
-          except Stage13AFinalizationError as exc:
-              assert "outstanding" in str(exc)
-              print("The publisher refuses a marker while a local action is outstanding.")
-          else:
-              raise AssertionError("a marker was written for an incomplete preflight")
-
-          marker = Path("evidence/stage13a-fingercell-preflight/stage-13a-finalization.json")
-          assert not marker.is_file(), "an incomplete Stage 13A published a marker"
-          PY
+          pytest -q \
+            tests/integration/test_stage13a_evidence.py::test_the_publisher_refuses_a_marker_while_an_action_is_outstanding
+          git diff --exit-code -- evidence/stage13a-fingercell-preflight
 
       - name: Stage 12A, Stage 11B and Stage 8E are bound and unchanged
         run: |
@@ -359,12 +337,22 @@ jobs:
 
       - name: The outcome, and what it does and does not say
         run: |
-          python -m fpbench.experiments.stage13a_finalization status
           python - <<'PY'
-          print()
-          print("No score was produced here, no archive was fetched and no trial was")
-          print("activated. FINGERCELL_PREFLIGHT_INCOMPLETE is not a verdict about")
-          print("FingerCell: it says a local action this project can perform has not")
-          print("been performed yet. Stage 13B stays closed, and the Algorithm 5")
-          print("search is NOT reopened, because nothing has been decided.")
+          import json
+          from pathlib import Path
+
+          root = Path("evidence/stage13a-fingercell-preflight")
+          report = json.loads((root / "preflight-report.json").read_text())
+          marker = json.loads((root / "stage-13a-finalization.json").read_text())
+          assert report["outcome"] == marker["outcome"] == "FINGERCELL_PREFLIGHT_FAIL"
+          assert marker["failure_class"] == (
+              "OPERATIONAL_TRIAL_ENTITLEMENT_NOT_ESTABLISHED"
+          )
+          assert marker["opens_stage_13b"] is False
+          assert marker["reopens_algorithm_5_search"] is True
+          assert marker["benchmark_run_performed"] is False
+          assert marker["result_set_produced"] is False
+          print("Stage 13A closed on the unavailable trial entitlement.")
+          print("No extraction, match, score, adapter, threshold, calibration or metric exists.")
+          print("Stage 13B stays closed and the Algorithm 5 search is reopened.")
           PY

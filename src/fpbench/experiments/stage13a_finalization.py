@@ -287,8 +287,20 @@ def file_sha256(path: Path) -> str:
 
 
 def source_file_sha256(path: Path) -> str:
-    """Digest one source file by its exact bytes."""
-    return file_sha256(path)
+    """Digest one source file with checkout-specific newlines normalised.
+
+    ``core.autocrlf`` is enabled for this repository, so hashing raw source
+    bytes would give the same committed code a different identity on Windows
+    and Linux.  Published evidence is pinned to LF by ``.gitattributes`` and is
+    still hashed byte for byte by :func:`file_sha256`.
+    """
+    try:
+        content = Path(path).read_bytes().replace(b"\r\n", b"\n")
+    except OSError as exc:
+        raise Stage13AFinalizationError(
+            f"cannot hash Stage 13A source {path}: {exc}"
+        ) from exc
+    return hashlib.sha256(content).hexdigest()
 
 
 def stage13a_source_fingerprint(repository_root: Path) -> str:

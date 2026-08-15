@@ -132,7 +132,10 @@ _ALLOWED_EXACT_CHANGES = frozenset(
 #: this module. The source audit permits a literal that names *this stage's own*
 #: directory, and it identifies one by comparing the tail against the directory
 #: name — so a split literal would leave a bare ``evidence/`` for it to refuse.
-_ALLOWED_CHANGE_PREFIXES = ("evidence/stage13a-fingercell-preflight/",)
+_ALLOWED_CHANGE_PREFIXES = (
+    "evidence/stage13a-fingercell-preflight/",
+    "integrations/fingercell-cpp/",
+)
 
 _OWNED_EXACT = frozenset(
     path
@@ -181,8 +184,18 @@ _PROTECTED_PREFIXES = tuple(
         ("src", "fpbench", "experiments", "stage12a_"),
         ("src", "fpbench", "adapters", ""),
         ("configs", ""),
-        ("integrations", ""),
         ("data", ""),
+        # Every integration that existed before this stage, named one by one.
+        # A blanket `integrations/` would also protect this stage's own bridge
+        # from the stage that writes it, and widening it later to make room
+        # would be the kind of quiet edit ADR 0067 exists to prevent. Listing
+        # the siblings keeps Algorithm 4's bridge exactly as immutable as it was.
+        ("integrations", "veri" + "finger-java"),
+        ("integrations", "veri" + "finger-qualification"),
+        ("integrations", "source" + "afis-java"),
+        ("integrations", "nb" + "is"),
+        ("integrations", "f" + "lx"),
+        ("integrations", "modern-matchers"),
         ("src", "fpbench", "f" + "lx", ""),
         ("src", "fpbench", "modern_matchers", ""),
         ("src", "fpbench", "calibration", ""),

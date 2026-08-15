@@ -85,28 +85,36 @@ class ObservationWeight(str, Enum):
 class DeliveredEvidenceMethod(str, Enum):
     """How a delivered fact was obtained from the archive.
 
-    The first three read files the vendor ships *as* text: a revision stamp, a
-    C header, a sample source, an HTML licence. Nothing is translated and nothing
-    is inspected that was not written to be read.
+    Every member reads something the vendor ships *to be read*: a revision stamp,
+    a C header, a sample source, a delivered build file, an HTML licence, a
+    documentation PDF, or the directory layout itself. Nothing is translated and
+    nothing is inspected that was not written for a developer to open.
 
-    ``COMPILED_MODULE_METADATA`` is different. It covers reading a compiled
-    module's import table and its embedded printable strings — file structure and
-    literals, not translated code. It is recorded separately, and no gate is
-    settled by it: what it produces is a *question for the runtime*, which the
-    SDK's own property and module APIs then answer through supported calls
-    (docs/adr/0120).
+    There is deliberately no member for reading a compiled module. Inspecting a
+    shipped binary's import table or its embedded literals would sit close to a
+    line the delivered licence draws — it forbids reverse engineering,
+    decompilation and disassembly — and it answers a weaker question than it
+    appears to: a static import table describes what a module *can* load, not
+    what a process does load, and a string proves a name exists somewhere in a
+    binary, not that it is a supported, externally-selectable property.
+
+    Both questions it was reached for have supported answers. The link closure is
+    named outright by the delivered build files, and the settings surface is
+    named by the delivered documentation and headers and confirmed by the SDK's
+    own property enumeration at runtime (docs/adr/0120).
     """
 
     DELIVERED_TEXT_FILE = "DELIVERED_TEXT_FILE"
     DELIVERED_HEADER = "DELIVERED_HEADER"
     DELIVERED_SAMPLE_SOURCE = "DELIVERED_SAMPLE_SOURCE"
+    DELIVERED_BUILD_FILE = "DELIVERED_BUILD_FILE"
     DELIVERED_DOCUMENTATION = "DELIVERED_DOCUMENTATION"
     DIRECTORY_LISTING = "DIRECTORY_LISTING"
-    COMPILED_MODULE_METADATA = "COMPILED_MODULE_METADATA"
 
     @property
     def may_settle_a_gate(self) -> bool:
-        return self is not DeliveredEvidenceMethod.COMPILED_MODULE_METADATA
+        """Every delivered method is an authority. The one that was not is gone."""
+        return True
 
 
 @dataclass(frozen=True, slots=True)
@@ -489,39 +497,44 @@ DELIVERED_OBSERVATIONS: tuple[DeliveredObservation, ...] = (
         ),
     ),
     DeliveredObservation(
-        observation_id="observed_module_imports",
-        member="FingerCell_3_3_SDK/Bin/Win64_x64/FingerCell.dll",
-        statement=(
-            "the FingerCell module's import table names the common Neurotechnology "
-            "runtime and the media runtime, together with platform C runtime and "
-            "socket libraries, and does not name the general biometrics module "
-            "that carries the vendor's other fingerprint engine"
+        observation_id="delivered_link_closure",
+        member=(
+            "FingerCell_3_3_SDK/Tutorials/FingerCell/CPP/FCVerifyFingerCPP/Makefile"
         ),
-        method=DeliveredEvidenceMethod.COMPILED_MODULE_METADATA,
+        statement=(
+            "the delivered tutorial build links exactly four Neurotechnology "
+            "libraries - FingerCell, NMedia, NCore and NLicensing - and the "
+            "matching project file names the same four import libraries against "
+            "the 64-bit library directory and the delivered include directory"
+        ),
+        method=DeliveredEvidenceMethod.DELIVERED_BUILD_FILE,
         what_it_settles=(
-            "nothing on its own. It is the reason to ask the runtime which modules "
-            "it actually loads, and the contamination claim is settled by that "
-            "observation and by the delivered headers - not by this one "
-            "(docs/adr/0120)"
+            "the runtime closure of the official 1:1 route, stated by upstream's "
+            "own build rather than inferred from a compiled module. The general "
+            "biometrics module that carries the vendor's other fingerprint engine "
+            "is not among them, which is what the contamination claim rests on "
+            "(docs/adr/0114, docs/adr/0120)"
         ),
     ),
     DeliveredObservation(
-        observation_id="observed_property_names",
-        member="FingerCell_3_3_SDK/Bin/Win64_x64/FingerCell.dll",
+        observation_id="delivered_documented_settings",
+        member="FingerCell_3_3_SDK/Documentation/FingerCell.pdf",
         statement=(
-            "the module's embedded literals include property names the delivered "
-            "C++ binding exposes no typed accessor for - among them the minutiae "
-            "count limits, the large-template switch and a quality-use switch - "
-            "together with messages about a minimum image resolution and about a "
-            "selected matching algorithm being unavailable"
+            "the delivered documentation gives the extractor's algorithm "
+            "parameters and their defaults - a maximal and a minimal minutia "
+            "count, a large-template switch, the template format - alongside the "
+            "image quality threshold and the matching algorithm the binding "
+            "exposes directly"
         ),
-        method=DeliveredEvidenceMethod.COMPILED_MODULE_METADATA,
+        method=DeliveredEvidenceMethod.DELIVERED_DOCUMENTATION,
         what_it_settles=(
-            "nothing on its own, and it is the single most useful thing this stage "
-            "has learned so far: the settings surface is wider than the typed API, "
-            "so the closure gate must enumerate properties on a constructed engine "
-            "through the supported property mechanism instead of ticking off a "
-            "list written in advance (docs/adr/0118)"
+            "that the externally-selectable settings surface is wider than the "
+            "three typed accessors the C++ binding provides, so the closure gate "
+            "enumerates a constructed engine through the supported property "
+            "mechanism rather than ticking off the typed API. What it does not do "
+            "is license a hunt through implementation internals: the gate closes "
+            "settings upstream documents or exposes, not every name inside a "
+            "module (docs/adr/0118)"
         ),
     ),
 )

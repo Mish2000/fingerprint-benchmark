@@ -68,6 +68,9 @@ __all__ = [
     "hash_component",
     "runtime_closure",
     "runtime_closure_fingerprint",
+    "BRIDGE_SOURCE_FILES",
+    "bridge_source_fingerprint",
+    "bridge_binary_sha256",
     "TrackedByteFinding",
     "TrackedByteAudit",
     "audit_tracked_bytes_against_fingercell_artifacts",
@@ -539,6 +542,50 @@ def runtime_closure(
             )
         )
     return tuple(components)
+
+
+#: The bridge's own sources, inside this repository. Hashed together so that an
+#: edit to either the code or the way it is built moves the fingerprint.
+BRIDGE_SOURCE_FILES: tuple[str, ...] = (
+    "integrations/fingercell-cpp/src/fpbench_fingercell_bridge.cpp",
+    "integrations/fingercell-cpp/Makefile",
+)
+
+
+def bridge_source_fingerprint(*, repository_root: Path | None = None) -> str:
+    """One digest over the bridge's source and its build definition.
+
+    Bound into every qualification record, because a bridge is edited far more
+    often than an archive is re-downloaded: without this, twenty comparisons that
+    qualified one build would go on answering for every later one.
+    """
+    root = Path(repository_root) if repository_root is not None else Path.cwd()
+    entries: dict[str, str] = {}
+    for name in BRIDGE_SOURCE_FILES:
+        path = root / PurePosixPath(name)
+        if not path.is_file():
+            raise FingerCellAcquisitionError(
+                f"the bridge source {name} is missing, so no run can be bound to it"
+            )
+        entries[name] = _file_sha256(path)
+    return stable_hash(
+        {"schema": "stage_13a_bridge_source_v1", "files": entries}, length=64
+    )
+
+
+def bridge_binary_sha256(path: Path) -> str:
+    """The digest of the built bridge.
+
+    Separate from the source fingerprint on purpose: identical source rebuilt
+    against different headers or libraries produces a different artifact, and it
+    is the artifact that produced the scores.
+    """
+    target = Path(path)
+    if not target.is_file():
+        raise FingerCellAcquisitionError(
+            f"no built bridge at {target.name}; compile it before binding a run to it"
+        )
+    return _file_sha256(target)
 
 
 def runtime_closure_fingerprint(components: tuple[RuntimeComponent, ...]) -> str:

@@ -149,6 +149,7 @@ __all__ = [
     "REFUSED_SETTING_PROVENANCE",
     "SETTINGS_TO_CLOSE",
     "SETTINGS_LIST_IS_NOT_EXHAUSTIVE",
+    "SETTINGS_CLOSURE_COVERS_EXTERNALLY_SELECTABLE_VALUES_ONLY",
     "SETTING_DISCOVERY_SURFACES",
     "SETTING_ROW_FIELDS",
     "SETTINGS_ARE_READ_BEFORE_THEY_ARE_SET",
@@ -184,7 +185,9 @@ __all__ = [
     "QualificationOutcome",
     "QUALIFICATION_RECORD_NAME",
     "QUALIFICATION_RECORD_SCHEMA",
+    "SETTINGS_CONTRACT_VERSION",
     "QUALIFICATION_RECORD_BINDING_FIELDS",
+    "QUALIFICATION_RECORD_BINDING_IS_MANDATORY_FOR_A_REAL_RUN",
     "FROZEN_COMPARISON_ATTEMPTS",
     "FROZEN_INDEPENDENT_EXTRACTIONS",
     "FROZEN_MATCHER_INVOCATIONS",
@@ -1173,13 +1176,22 @@ SETTINGS_TO_CLOSE: tuple[str, ...] = (
 #: built by ticking off a list written in advance is not a closure.
 SETTINGS_LIST_IS_NOT_EXHAUSTIVE = True
 
-#: Where to look, so that "we checked" means something specific.
+#: And the sentence that bounds it. The gate closes the settings upstream
+#: *offers* — the ones its documentation describes, its bindings expose, its
+#: samples set, or its own property enumeration reports on a constructed engine.
+#: It does not close implementation internals, and it is not a licence to hunt
+#: for names inside a shipped binary: a symbol that is not externally selectable
+#: is not a setting this benchmark could have chosen differently, so freezing it
+#: would say nothing about reproducibility (docs/adr/0120).
+SETTINGS_CLOSURE_COVERS_EXTERNALLY_SELECTABLE_VALUES_ONLY = True
+
+#: Where to look, so that "we checked" means something specific. Every surface is
+#: one upstream published or the SDK itself reports.
 SETTING_DISCOVERY_SURFACES: tuple[str, ...] = (
     "the delivered API documentation",
     "the delivered sample and tutorial sources",
-    "property metadata or reflection on a constructed engine",
-    "the runtime object's own property enumeration",
     "the delivered headers and language bindings",
+    "the runtime object's own property enumeration on a constructed engine",
 )
 
 #: What is recorded for every setting found.
@@ -1426,20 +1438,42 @@ class QualificationOutcome(str, Enum):
 QUALIFICATION_RECORD_NAME = "qualification-attempt.json"
 QUALIFICATION_RECORD_SCHEMA = "stage_13a_qualification_v1"
 
+#: The version of the settings contract a run was performed under. Bumped by hand
+#: whenever the closure's shape changes, so that a record produced under an older
+#: understanding of "which settings matter" cannot silently answer for a newer one.
+SETTINGS_CONTRACT_VERSION = "1"
+
 #: What a qualification record is bound to. ``engine_kind`` alone is not enough:
-#: a record produced against a different trial archive, a different binding or an
-#: earlier driver would otherwise close a gate it knows nothing about. A reader
-#: recomputes what it can and refuses a stale record.
+#: a record produced against a different trial archive, a different bridge or an
+#: earlier driver would otherwise close a gate it knows nothing about.
+#:
+#: The two bridge fields are the ones that matter most and are the easiest to
+#: forget. A bridge is edited far more often than an archive is re-downloaded, so
+#: without them the twenty comparisons that qualified one build would go on
+#: answering for every later one. ``bridge_source_fingerprint`` moves when the
+#: source changes and ``bridge_binary_sha256`` moves when the *built artifact*
+#: changes — which also catches a rebuild against different headers or libraries
+#: from identical source.
+#:
+#: A reader recomputes what it can and refuses a stale record.
 QUALIFICATION_RECORD_BINDING_FIELDS: tuple[str, ...] = (
     "archive_sha256",
     "product_revision",
-    "binding_fingerprint",
+    "bridge_source_fingerprint",
+    "bridge_binary_sha256",
+    "selected_binding",
+    "settings_contract_version",
     "runtime_closure_fingerprint",
     "driver_fingerprint",
-    "settings_profile_fingerprint",
     "fixture_fingerprint",
     "platform",
+    "architecture",
 )
+
+#: Every binding field must be present and non-empty before a record produced by
+#: the delivered SDK may answer a gate. A record that left one blank would be a
+#: record nobody could tell apart from one produced by a different build.
+QUALIFICATION_RECORD_BINDING_IS_MANDATORY_FOR_A_REAL_RUN = True
 
 
 # ---------------------------------------------------------------- the workload

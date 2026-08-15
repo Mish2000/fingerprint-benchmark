@@ -59,12 +59,15 @@
   "record_binding_fields": [
     "archive_sha256",
     "product_revision",
-    "binding_fingerprint",
+    "bridge_source_fingerprint",
+    "bridge_binary_sha256",
+    "selected_binding",
+    "settings_contract_version",
     "runtime_closure_fingerprint",
     "driver_fingerprint",
-    "settings_profile_fingerprint",
     "fixture_fingerprint",
-    "platform"
+    "platform",
+    "architecture"
   ],
   "refused_orientation_reductions": [
     "average",

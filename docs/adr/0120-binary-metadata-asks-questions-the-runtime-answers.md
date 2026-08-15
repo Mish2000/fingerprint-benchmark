@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted, implemented.
+Accepted, implemented. Revised during Stage 13A: the first implementation kept
+binary-derived facts as non-authoritative observations, and review removed them
+altogether.
 
 ## Context
 
@@ -11,51 +13,75 @@ module: which modules the algorithm depends on (the contamination question), and
 which properties it carries (the settings closure question).
 
 Reading a module's import table and its embedded printable strings answers both
-quickly. It is also uncomfortably close to a line the delivered licence draws: the
-agreement forbids reverse engineering, decompilation and disassembly.
+quickly. Two things are wrong with letting that stand.
 
-Reading a file's structure and its literals is not translating its code, and it is
-what any packaging or dependency tool does. But "not technically disassembly" is a
-poor foundation for a gate, and there is a second problem that is purely
-technical: a static import table describes what a module *can* load, not what a
-process *does* load, and an embedded string proves a name exists somewhere in a
-binary, not that it is a live, settable property.
+**The licence.** The delivered agreement forbids reverse engineering,
+decompilation and disassembly. Reading a file's structure and its literals is not
+translating its code, and it is what any dependency tool does — but "not
+technically disassembly" is a poor foundation for a benchmark's evidence, and this
+project does not need to stand on it.
+
+**The epistemics.** A static import table describes what a module *can* load, not
+what a process does load. An embedded string proves a name exists somewhere in a
+binary, not that it is a supported, externally-selectable property. Both are
+weaker than they look, and the second invites a settings closure built from
+implementation internals — freezing symbols the benchmark could never have chosen
+differently, which says nothing about reproducibility.
+
+The decisive point is that neither question needed it. Both have supported
+answers sitting in plain sight.
 
 ## Decision
 
-Facts obtained from compiled-module metadata are recorded with their method named,
-and they **settle nothing**.
+Stage 13A does not inspect compiled modules at all. There is no evidence method
+for it, so a fact obtained that way cannot be recorded even as an indication.
 
-The observation register carries an explicit method for each delivered fact.
+**The link closure comes from the delivered build files.** The tutorial's
+`Makefile` and project file name the libraries for the official 1:1 route
+outright:
+
+```text
+LDLIBS ?= -lFingerCell -lNMedia -lNCore -lNLicensing
+```
+
+and the bridge this project links records the same four as its own dynamic
+dependencies. Both are ordinary build artifacts — one the vendor ships to be
+read, one we produced.
+
+**The settings surface comes from the documentation, the headers and the
+runtime.** The delivered documentation names the extractor's parameters and
+defaults; the binding exposes three of them directly; and the SDK's own property
+capture reports what a constructed engine actually holds. A constant states that
+the closure covers **externally-selectable values only** — what upstream offers,
+not what a module contains.
+
+The evidence method vocabulary is therefore all authorities:
 `DELIVERED_TEXT_FILE`, `DELIVERED_HEADER`, `DELIVERED_SAMPLE_SOURCE`,
-`DELIVERED_DOCUMENTATION` and `DIRECTORY_LISTING` are authorities.
-`COMPILED_MODULE_METADATA` is not: a property on the record reports that it may
-not settle a gate, and its weight is downgraded to an indication.
-
-What it is for is generating questions. The import table says which modules to
-expect, and the runtime's own module reporting confirms what was loaded. The
-embedded names say which properties to ask for, and the SDK's supported property
-mechanism confirms which exist and what they hold.
-
-The contamination claim and the settings closure are therefore both settled by
-supported calls against a running engine, with the delivered headers and samples
-as the documentary authority — and the static observation recorded as the reason
-anybody knew to ask.
+`DELIVERED_BUILD_FILE`, `DELIVERED_DOCUMENTATION`, `DIRECTORY_LISTING`.
 
 ## Alternatives
 
-**Let the import table settle the contamination gate.** It is strong evidence and
-it is still the wrong kind: a module can be loaded dynamically, and a static table
-would not show it.
+**Keep binary observations, marked non-authoritative.** The first implementation.
+It is honest and it still leaves the licence question open and a tempting
+almost-authority in the evidence. Removing it cost nothing, because the supported
+sources say the same thing.
 
-**Do not inspect the binary at all.** The settings surface being wider than the
-typed API is the single most useful thing this stage has learned so far, and
-nothing in the documentation said it.
+**Let the import table settle the contamination gate.** Strong evidence of the
+wrong kind: a module can be loaded dynamically and a static table would not show
+it.
+
+**Skip the contamination question until runtime.** It is the highest-value
+question this stage asks and the delivered build files answer it before anything
+is executed.
 
 ## Consequences
 
-Two gates that could have been closed quickly and weakly are instead open and
-recorded as awaiting a runtime observation.
+The contamination claim rests on two ordinary build artifacts, and the settings
+closure rests on documentation plus the SDK's own property mechanism. Nothing in
+Stage 13A's evidence depends on having opened a vendor binary.
 
-The evidence states how every delivered fact was obtained, so a reader can weigh
-each one without taking the conclusion on trust.
+It costs the one genuinely surprising finding that binary inspection produced — a
+property name absent from both the typed API and this project's prior plan. That
+loss is bounded: the runtime property capture will report it if it is real and
+externally selectable, and if it is not, it was never a setting this benchmark
+could have chosen.

@@ -54,6 +54,7 @@ from fpbench.experiments.stage13a_fingercell_identity import (
     MANDATORY_FAILURE_PROBE_COUNT,
     QUALIFICATION_MAX_SCORING_COMPARISONS,
     QUALIFICATION_PASSES,
+    QUALIFICATION_RECORD_BINDING_FIELDS,
     QUALIFICATION_RECORD_NAME,
     QUALIFICATION_RECORD_SCHEMA,
     QualificationOutcome,
@@ -425,6 +426,24 @@ class QualificationRecord:
     failure_detail: str | None = None
 
     def __post_init__(self) -> None:
+        # A record produced by the delivered SDK is the only kind that can close
+        # a gate, so it is the only kind required to say exactly what produced
+        # it. The two bridge fields are the ones a person forgets: a bridge is
+        # edited far more often than an archive is re-downloaded, and without
+        # them one build's twenty comparisons would answer for every later build.
+        if self.engine_kind is EngineKind.DELIVERED_SDK:
+            missing = sorted(
+                name
+                for name in QUALIFICATION_RECORD_BINDING_FIELDS
+                if not str(self.binding.get(name, "")).strip()
+            )
+            if missing:
+                raise FingerCellQualificationError(
+                    f"a record produced by the delivered SDK is missing {missing} "
+                    "from its binding. A run that cannot say which archive, which "
+                    "bridge and which settings contract produced it is a run that "
+                    "would stay valid after all three had changed"
+                )
         if self.scoring_comparisons > QUALIFICATION_MAX_SCORING_COMPARISONS:
             raise FingerCellQualificationError(
                 f"{self.scoring_comparisons} score-producing comparisons exceeds "

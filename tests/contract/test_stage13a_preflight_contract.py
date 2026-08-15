@@ -586,6 +586,81 @@ def test_a_fake_record_never_answers_a_gate() -> None:
     assert harness.EngineKind.FAKE_SDK.value != harness.EngineKind.DELIVERED_SDK.value
 
 
+def test_the_record_binds_the_bridge_that_produced_it() -> None:
+    """A bridge is edited far more often than an archive is re-downloaded."""
+    for name in (
+        "archive_sha256",
+        "product_revision",
+        "bridge_source_fingerprint",
+        "bridge_binary_sha256",
+        "selected_binding",
+        "settings_contract_version",
+        "fixture_fingerprint",
+        "platform",
+        "architecture",
+    ):
+        assert name in frozen.QUALIFICATION_RECORD_BINDING_FIELDS, name
+
+
+def test_a_delivered_record_without_its_binding_is_refused(tmp_path: Path) -> None:
+    fixtures = harness.build_fixtures(tmp_path, width=96, height=120)
+    record = harness.run_qualification(
+        harness.fake_engine_factory,
+        fixtures,
+        engine_kind=harness.EngineKind.FAKE_SDK,
+    )
+    with pytest.raises(FingerCellQualificationError, match="missing"):
+        harness.QualificationRecord(
+            schema=record.schema,
+            engine_kind=harness.EngineKind.DELIVERED_SDK,
+            status=record.status,
+            scoring_comparisons=record.scoring_comparisons,
+            comparisons=record.comparisons,
+            determinism=record.determinism,
+            pair_orientation=record.pair_orientation,
+            self_semantics=record.self_semantics,
+            failure_probes=record.failure_probes,
+            timings=record.timings,
+            binding={"platform": "linux"},
+            started_utc=record.started_utc,
+        )
+
+
+def test_a_fully_bound_delivered_record_is_accepted(tmp_path: Path) -> None:
+    fixtures = harness.build_fixtures(tmp_path, width=96, height=120)
+    record = harness.run_qualification(
+        harness.fake_engine_factory,
+        fixtures,
+        engine_kind=harness.EngineKind.FAKE_SDK,
+    )
+    binding = {name: "x" for name in frozen.QUALIFICATION_RECORD_BINDING_FIELDS}
+    bound = harness.QualificationRecord(
+        schema=record.schema,
+        engine_kind=harness.EngineKind.DELIVERED_SDK,
+        status=record.status,
+        scoring_comparisons=record.scoring_comparisons,
+        comparisons=record.comparisons,
+        determinism=record.determinism,
+        pair_orientation=record.pair_orientation,
+        self_semantics=record.self_semantics,
+        failure_probes=record.failure_probes,
+        timings=record.timings,
+        binding=binding,
+        started_utc=record.started_utc,
+    )
+    assert bound.engine_kind is harness.EngineKind.DELIVERED_SDK
+
+
+def test_the_bridge_source_fingerprint_covers_source_and_build() -> None:
+    assert store.BRIDGE_SOURCE_FILES == (
+        "integrations/fingercell-cpp/src/fpbench_fingercell_bridge.cpp",
+        "integrations/fingercell-cpp/Makefile",
+    )
+    first = store.bridge_source_fingerprint(repository_root=REPOSITORY_ROOT)
+    assert len(first) == 64
+    assert first == store.bridge_source_fingerprint(repository_root=REPOSITORY_ROOT)
+
+
 def test_a_failed_run_is_kept_rather_than_discarded(tmp_path: Path) -> None:
     class Broken:
         def extract(self, image_path):  # noqa: ANN001, ANN202
@@ -901,16 +976,39 @@ def test_a_public_page_never_settles_a_gate() -> None:
         assert item.weight is observed.ObservationWeight.INDICATION_ONLY
 
 
-def test_a_delivered_fact_from_compiled_metadata_settles_nothing() -> None:
-    """Binary metadata asks a question; the runtime answers it (docs/adr/0120)."""
-    method = observed.DeliveredEvidenceMethod.COMPILED_MODULE_METADATA
-    assert method.may_settle_a_gate is False
-    from_metadata = [
-        item for item in observed.DELIVERED_OBSERVATIONS if item.method is method
+def test_no_observation_is_obtained_by_inspecting_a_compiled_module() -> None:
+    """Binary inspection is gone, not merely downgraded (docs/adr/0120).
+
+    The delivered licence forbids reverse engineering, decompilation and
+    disassembly, and a static import table answers a weaker question than it
+    appears to. Both things it was reached for have supported answers: the
+    delivered build files name the link closure, and the SDK's own property
+    capture reports the settings surface.
+    """
+    methods = {item.value for item in observed.DeliveredEvidenceMethod}
+    assert "COMPILED_MODULE_METADATA" not in methods
+    for item in observed.DELIVERED_OBSERVATIONS:
+        assert item.weight is observed.ObservationWeight.DELIVERED_AUTHORITY
+        assert item.method.may_settle_a_gate
+
+
+def test_the_link_closure_comes_from_a_delivered_build_file() -> None:
+    rows = [
+        item
+        for item in observed.DELIVERED_OBSERVATIONS
+        if item.method is observed.DeliveredEvidenceMethod.DELIVERED_BUILD_FILE
     ]
-    assert from_metadata
-    for item in from_metadata:
-        assert item.weight is observed.ObservationWeight.INDICATION_ONLY
+    assert rows, "the runtime closure needs a delivered authority behind it"
+    assert any("Makefile" in item.member for item in rows)
+
+
+def test_the_settings_closure_covers_only_externally_selectable_values() -> None:
+    """Not a licence to hunt for names inside a shipped binary."""
+    assert frozen.SETTINGS_CLOSURE_COVERS_EXTERNALLY_SELECTABLE_VALUES_ONLY is True
+    joined = " ".join(frozen.SETTING_DISCOVERY_SURFACES).lower()
+    assert "binary" not in joined
+    assert "literal" not in joined
+    assert "property enumeration" in joined
 
 
 def test_delivered_text_and_headers_are_authorities() -> None:

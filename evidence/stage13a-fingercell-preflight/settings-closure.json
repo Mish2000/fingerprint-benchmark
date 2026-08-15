@@ -2,9 +2,8 @@
   "discovery_surfaces": [
     "the delivered API documentation",
     "the delivered sample and tutorial sources",
-    "property metadata or reflection on a constructed engine",
-    "the runtime object's own property enumeration",
-    "the delivered headers and language bindings"
+    "the delivered headers and language bindings",
+    "the runtime object's own property enumeration on a constructed engine"
   ],
   "gate": "SCORE_AFFECTING_SETTINGS_CLOSURE",
   "matching_algorithm_expected_value": 0,

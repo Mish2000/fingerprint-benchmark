@@ -33,3 +33,7 @@ dist/
 # built jar is verifiable rather than trusted.
 integrations/*/target/
 *.class
+
+# Stage 13A FingerCell bridge build output (links vendor libraries from the
+# local artifact store; the binary is a build artifact and never committed).
+integrations/fingercell-cpp/build/

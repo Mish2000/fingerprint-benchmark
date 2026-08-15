@@ -811,13 +811,21 @@ def _gate_package_runtime_identity() -> GateResult:
             ),
         )
 
-    if not bool(identity.get("bridge_compiled")):
+    bridge_source = str(identity.get("bridge_source_fingerprint", "")).strip()
+    bridge_binary = str(identity.get("bridge_binary_sha256", "")).strip()
+    if (
+        not bool(identity.get("bridge_compiled"))
+        or len(bridge_source) != 64
+        or len(bridge_binary) != 64
+    ):
         return GateResult(
             gate=gate,
             status=frozen.GateStatus.ACTION_REQUIRED,
             summary=(
-                f"the {binding} binding is selected and the qualification bridge "
-                "has not been compiled against it"
+                f"the {binding} binding is selected and no identified qualification "
+                "bridge has been built against it. A bridge that was compiled but "
+                "not pinned would let one build's twenty comparisons answer for "
+                "every later build"
             ),
             outstanding=OutstandingAction(
                 gate=gate,
@@ -830,6 +838,9 @@ def _gate_package_runtime_identity() -> GateResult:
                     "write the small qualification bridge against that binding",
                     "compile and link it against the delivered headers and "
                     "libraries",
+                    "record its source fingerprint and the digest of the built "
+                    "binary, so that a run can be bound to the exact build that "
+                    "produced it",
                 ),
                 what_it_would_answer=(
                     "whether the route compiles at all — which is worth knowing "
@@ -904,9 +915,12 @@ def _gate_package_runtime_identity() -> GateResult:
         summary=(
             f"the archive is {frozen.PRODUCT_FAMILY} "
             f"{frozen.DECLARED_PRODUCT_VERSION} revision "
-            f"{identity.get('product_revision')}, the {binding} binding is "
-            f"selected, {len(closure)} runtime components are pinned by digest, "
-            "and the extractor and matcher in the route are FingerCell's own"
+            f"{identity.get('product_revision')} on "
+            f"{identity.get('platform')}/{identity.get('architecture')}, the "
+            f"{binding} binding is selected, a qualification bridge is built and "
+            f"pinned by source and binary digest, {len(closure)} runtime "
+            "components are pinned by digest, and the extractor and matcher in "
+            "the route are FingerCell's own"
         ),
     )
 

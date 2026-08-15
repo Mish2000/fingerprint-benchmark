@@ -26,7 +26,7 @@
       "no prior algorithm's adapter, bridge or configuration is imported",
       "no prior algorithm's scores are read"
     ],
-    "evidence": "the transitive module closure of the FingerCell route is FingerCell plus the common runtime, the media runtime and the licensing runtime; the general biometrics module that carries the vendor's other fingerprint engine is not reachable from it. Recorded as a static candidate closure and confirmed against the loaded module set once the bridge runs",
+    "evidence": "the delivered build files link FingerCell, NMedia, NCore and NLicensing and nothing else, and the linked bridge records exactly those four Neurotechnology libraries as NEEDED. The general biometrics module that carries the vendor's other fingerprint engine is absent from both. No vendor module was inspected to establish this (docs/adr/0114, docs/adr/0120)",
     "permitted_common_components": [
       "the common object/runtime library",
       "the image and media library",
@@ -170,22 +170,22 @@
       "what_it_settles": "that trial mode is selected by the delivered material itself, so the qualification bridge follows the same switch the official samples do rather than inventing a licensing path"
     },
     {
-      "may_settle_a_gate": false,
-      "member": "FingerCell_3_3_SDK/Bin/Win64_x64/FingerCell.dll",
-      "method": "COMPILED_MODULE_METADATA",
-      "observation_id": "observed_module_imports",
-      "statement": "the FingerCell module's import table names the common Neurotechnology runtime and the media runtime, together with platform C runtime and socket libraries, and does not name the general biometrics module that carries the vendor's other fingerprint engine",
-      "weight": "INDICATION_ONLY",
-      "what_it_settles": "nothing on its own. It is the reason to ask the runtime which modules it actually loads, and the contamination claim is settled by that observation and by the delivered headers - not by this one (docs/adr/0120)"
+      "may_settle_a_gate": true,
+      "member": "FingerCell_3_3_SDK/Tutorials/FingerCell/CPP/FCVerifyFingerCPP/Makefile",
+      "method": "DELIVERED_BUILD_FILE",
+      "observation_id": "delivered_link_closure",
+      "statement": "the delivered tutorial build links exactly four Neurotechnology libraries - FingerCell, NMedia, NCore and NLicensing - and the matching project file names the same four import libraries against the 64-bit library directory and the delivered include directory",
+      "weight": "DELIVERED_AUTHORITY",
+      "what_it_settles": "the runtime closure of the official 1:1 route, stated by upstream's own build rather than inferred from a compiled module. The general biometrics module that carries the vendor's other fingerprint engine is not among them, which is what the contamination claim rests on (docs/adr/0114, docs/adr/0120)"
     },
     {
-      "may_settle_a_gate": false,
-      "member": "FingerCell_3_3_SDK/Bin/Win64_x64/FingerCell.dll",
-      "method": "COMPILED_MODULE_METADATA",
-      "observation_id": "observed_property_names",
-      "statement": "the module's embedded literals include property names the delivered C++ binding exposes no typed accessor for - among them the minutiae count limits, the large-template switch and a quality-use switch - together with messages about a minimum image resolution and about a selected matching algorithm being unavailable",
-      "weight": "INDICATION_ONLY",
-      "what_it_settles": "nothing on its own, and it is the single most useful thing this stage has learned so far: the settings surface is wider than the typed API, so the closure gate must enumerate properties on a constructed engine through the supported property mechanism instead of ticking off a list written in advance (docs/adr/0118)"
+      "may_settle_a_gate": true,
+      "member": "FingerCell_3_3_SDK/Documentation/FingerCell.pdf",
+      "method": "DELIVERED_DOCUMENTATION",
+      "observation_id": "delivered_documented_settings",
+      "statement": "the delivered documentation gives the extractor's algorithm parameters and their defaults - a maximal and a minimal minutia count, a large-template switch, the template format - alongside the image quality threshold and the matching algorithm the binding exposes directly",
+      "weight": "DELIVERED_AUTHORITY",
+      "what_it_settles": "that the externally-selectable settings surface is wider than the three typed accessors the C++ binding provides, so the closure gate enumerates a constructed engine through the supported property mechanism rather than ticking off the typed API. What it does not do is license a hunt through implementation internals: the gate closes settings upstream documents or exposes, not every name inside a module (docs/adr/0118)"
     }
   ],
   "expected_product": "FingerCell",
@@ -204,12 +204,16 @@
     "architecture": "x86_64",
     "binding_selection_basis": "the only delivered FingerCell desktop sample and the only FingerCell tutorials are C++; the Java binding ships but its only FingerCell sample targets Android, and the .NET assemblies ship with no FingerCell sample at all",
     "binding_version": "3.3.0.0",
-    "bridge_compiled": false,
-    "platform": "windows",
+    "bridge_binary_sha256": "9c176e252c8f827234cc40b6ef3436211a47be1b376896ea68e6312304de559b",
+    "bridge_compiled": true,
+    "bridge_source_fingerprint": "3cbf890f8211a4456f15b32923cfad7f801bc810acc9162ae9c046c559bf591e",
+    "bridge_toolchain": "g++ 13.3.0 (Ubuntu 24.04, WSL2)",
+    "platform": "linux",
     "product": "FingerCell",
     "product_revision": "20211013",
     "product_version": "3.3",
-    "runtime_closure_fingerprint": "3d9487b2a8ed5c8948987c6e6986d6a9f68fd9bd55fe6bcc237119b3082d1f52",
+    "runtime_closure_basis": "the delivered tutorial Makefile and project file name exactly these four libraries for the official 1:1 route, and the linked bridge records the same four as its dynamic dependencies",
+    "runtime_closure_fingerprint": "373daa3e3701c47ed03934dee421ecd08f545aeac70cbe4e6ebccad4fd7b4f71",
     "selected_binding": "CPP"
   },
   "refused_product_families": [
@@ -221,34 +225,34 @@
   "runtime_closure": [
     {
       "component_role": "FINGERCELL_ALGORITHM",
-      "relative_path": "unpacked/FingerCell_3_3_SDK/Bin/Win64_x64/FingerCell.dll",
-      "sha256": "24b6b4b7d1bfd1e941b8fb6cecfd506fd78806cacdb6e7b874683dd0bec6194b",
-      "size_bytes": 259408,
-      "source_archive_member": "FingerCell_3_3_SDK/Bin/Win64_x64/FingerCell.dll",
-      "version_or_revision": null
-    },
-    {
-      "component_role": "COMMON_RUNTIME",
-      "relative_path": "unpacked/FingerCell_3_3_SDK/Bin/Win64_x64/NCore.dll",
-      "sha256": "cdabc52374ad64b1db1427a6d868997d3fd2676f43f4ce59c3145e687219d9b2",
-      "size_bytes": 1843536,
-      "source_archive_member": "FingerCell_3_3_SDK/Bin/Win64_x64/NCore.dll",
+      "relative_path": "unpacked/FingerCell_3_3_SDK/Lib/Linux_x86_64/libFingerCell.so",
+      "sha256": "b4dbd8f5204a39fd28b3cab8f54a09ef80af2860175cbf020a493232d40e9408",
+      "size_bytes": 288656,
+      "source_archive_member": "FingerCell_3_3_SDK/Lib/Linux_x86_64/libFingerCell.so",
       "version_or_revision": null
     },
     {
       "component_role": "IMAGE_RUNTIME",
-      "relative_path": "unpacked/FingerCell_3_3_SDK/Bin/Win64_x64/NMedia.dll",
-      "sha256": "3cd1a40eb70befae79fa08dc1209185cd8be85e8bade21bce97da462b006b0fe",
-      "size_bytes": 2870608,
-      "source_archive_member": "FingerCell_3_3_SDK/Bin/Win64_x64/NMedia.dll",
+      "relative_path": "unpacked/FingerCell_3_3_SDK/Lib/Linux_x86_64/libNMedia.so",
+      "sha256": "2aa44e3d1e4be3d39ce412c8d777c69459ecc1c6535cacab5fa8a0669b623658",
+      "size_bytes": 3331432,
+      "source_archive_member": "FingerCell_3_3_SDK/Lib/Linux_x86_64/libNMedia.so",
+      "version_or_revision": null
+    },
+    {
+      "component_role": "COMMON_RUNTIME",
+      "relative_path": "unpacked/FingerCell_3_3_SDK/Lib/Linux_x86_64/libNCore.so",
+      "sha256": "b440ac7a7440de76dd1d508ee1349ee1ca2a17b58e1371a2bbdee645cac7d00f",
+      "size_bytes": 2192840,
+      "source_archive_member": "FingerCell_3_3_SDK/Lib/Linux_x86_64/libNCore.so",
       "version_or_revision": null
     },
     {
       "component_role": "LICENSING",
-      "relative_path": "unpacked/FingerCell_3_3_SDK/Bin/Win64_x64/NLicensing.dll",
-      "sha256": "953a1fbd14d77b222da604ae5501404baab40d36623914f94de05053b47199ea",
-      "size_bytes": 1133392,
-      "source_archive_member": "FingerCell_3_3_SDK/Bin/Win64_x64/NLicensing.dll",
+      "relative_path": "unpacked/FingerCell_3_3_SDK/Lib/Linux_x86_64/libNLicensing.so",
+      "sha256": "615c9f4fe46dc58f757901ce7ac77bef2f20b0a6feeeddce48e9797ac3064162",
+      "size_bytes": 1382920,
+      "source_archive_member": "FingerCell_3_3_SDK/Lib/Linux_x86_64/libNLicensing.so",
       "version_or_revision": null
     }
   ],
@@ -262,5 +266,5 @@
     "source_archive_member"
   ],
   "schema": "stage_13a_package_runtime_identity_v1",
-  "status": "ACTION_REQUIRED"
+  "status": "PASS"
 }

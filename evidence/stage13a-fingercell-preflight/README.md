@@ -11,13 +11,13 @@ One question:
 > preprocessing, parameter tuning, merging, thresholding or a score
 > transformation?
 
-Ten hard gates answer it. One is answered; nine are waiting on work this project
-has not done yet.
+Ten hard gates answer it. Two are answered; eight are waiting on work this
+project has not done yet.
 
 | # | Gate | Status | Outstanding |
 |---|------|--------|-------------|
 | 1 | `OFFICIAL_ARTIFACT_ACQUISITION` | **PASS** | — |
-| 2 | `PACKAGE_RUNTIME_IDENTITY` | `ACTION_REQUIRED` | `BRIDGE_NOT_COMPILED` |
+| 2 | `PACKAGE_RUNTIME_IDENTITY` | **PASS** | — |
 | 3 | `RESEARCH_USE_AND_TRIAL_OPERATION` | `ACTION_REQUIRED` | `TRIAL_NOT_ACTIVATED` |
 | 4 | `CANONICAL500_INPUT_ROUTE` | `ACTION_REQUIRED` | `RUNTIME_NOT_EXERCISED` |
 | 5 | `SINGLE_FINGER_EXTRACTION_PROFILE` | `ACTION_REQUIRED` | `SETTINGS_NOT_ENUMERATED` |
@@ -45,9 +45,9 @@ action actually performed and exposed an incompatibility
     -> FAIL
 ```
 
-Every open gate here is `ACTION_REQUIRED` because **this project has not written
-and compiled the qualification bridge, and has not activated the trial**. Nothing
-has been found out about FingerCell that counts against it. No blocker is raised,
+Every open gate here is `ACTION_REQUIRED` because **the trial has not been
+activated and nothing has been executed**. Nothing has been found out about
+FingerCell that counts against it. No blocker is raised,
 no failure class is assigned, Stage 13B is not opened, and the Algorithm 5 search
 is *not* reopened — because nothing has been decided.
 
@@ -147,18 +147,18 @@ The static module closure of the FingerCell route is small and does not include
 the general biometrics module that carries the vendor's other fingerprint engine:
 
 ```text
-FingerCell.dll   the algorithm under test
-  -> NCore.dll   common runtime
-  -> NMedia.dll  image runtime
-NLicensing.dll   licensing, for the FingerCell entitlement
+libFingerCell.so    the algorithm under test
+libNMedia.so        image runtime
+libNCore.so         common runtime
+libNLicensing.so    licensing, for the FingerCell entitlement
 ```
 
-This is recorded as a **static candidate closure**, not as a settled fact. It was
-obtained by reading a compiled module's import table, and this stage does not let
-binary metadata settle a gate: it treats it as a question to put to the runtime,
-which the SDK's own module and property APIs answer through supported calls once
-the bridge runs (docs/adr/0120). The contamination claim is confirmed against the
-loaded module set at that point.
+Neither of those facts came from inspecting a vendor binary. The delivered
+tutorial build files name those four libraries outright for the official 1:1
+route, and the bridge this project linked records the same four as its own
+dynamic dependencies. Stage 13A does not inspect compiled modules at all
+(docs/adr/0120). The claim is confirmed once more against the loaded module set
+when the bridge first runs.
 
 Separately, a source-level guard proves no Stage 13A module imports the sibling
 algorithm's adapter, bridge, runtime or published identity.
@@ -169,16 +169,28 @@ The delivered C++ binding exposes typed accessors for exactly three properties:
 `ImageQualityThreshold` (documented default 60), `MatchingAlgorithm` (documented
 default 0) and `TemplateFormat`.
 
-The module itself carries further property names that the typed surface never
-reaches — including the minutiae count limits, the large-template switch, and a
-quality-use switch that appears in no plan written in advance.
+The delivered documentation describes more than three — the minutiae count limits
+and a large-template switch among them — so the externally-selectable surface is
+wider than the typed API.
 
-So the settings closure cannot be built by ticking off a list. It has to
+So the settings closure cannot be built by ticking off the typed API. It has to
 enumerate the properties of a constructed engine through the supported property
 mechanism, **before** setting anything, because using a generic setter to "pin"
 defaults before reading them destroys the evidence that they were the defaults
-(docs/adr/0118). That is why gate 7 is a question for the runtime and not for the
-header.
+(docs/adr/0118). The closure covers what upstream makes externally selectable —
+not implementation internals. That is why gate 7 is a question for the runtime
+and not for the header.
+
+## What has been built
+
+The qualification bridge is written, compiled and linked against the delivered
+headers and libraries, for `linux/x86_64`. It was **not run**: building obtains no
+licence and loads no module, which is the whole point of doing it first
+(docs/adr/0115). It is pinned into the inspection record by source fingerprint and
+binary digest, so a later run cannot outlive the build that produced it.
+
+Windows has no MSVC toolchain on this host, so the bridge targets the vendor's
+Linux x86-64 build — one of the two platforms the trial is published for.
 
 ## What has not been done
 

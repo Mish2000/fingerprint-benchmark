@@ -1,0 +1,91 @@
+# fingerprints-matching 0.1.0, as Stage 15A qualified it.
+#
+# The whole algorithm is 4,492 bytes of pure Python on PyPI under MIT: one
+# top-level function that takes two image paths, performs its own decode,
+# greyscale conversion, Otsu binarisation, contour segmentation, convexity-defect
+# feature extraction twice and one match, and returns a number. There is no
+# vendor, no licence, no scanner, no model file and no build step.
+#
+# Everything in this file is either an identity that must not drift or a
+# statement about what is deliberately *not* done. The adapter derives all of it
+# from `fpbench.experiments.stage15a_identity`, so a mistake here cannot change
+# what runs — it can only disagree with it, and a contract test says so.
+#
+# There is no threshold in this file and there will not be one. The package's
+# README suggests 0.9 separates same-finger from different-finger; that is
+# upstream's guidance to its own users, and it is not an operating point this
+# benchmark has adopted (docs/adr/0003).
+
+algorithm:
+  id: fingerprints_matching_0_1_0
+  display_name: fingerprints-matching 0.1.0
+  adapter_id: fingerprints_matching_subprocess
+
+  # For reference only. The authority is fpbench.experiments.stage15a_identity.
+  adapter_version: "1"
+  implementation_version: "0.1.0"
+  implementation_origin: open_source_pypi_artifact
+  package: fingerprints-matching==0.1.0
+  license: MIT
+  score_direction: higher_is_more_similar
+
+  # Self-service acquisition and runnability without any vendor action are hard
+  # requirements as of Stage 15A. This candidate satisfies both: the artifact is
+  # a public download, and nothing has to be activated (docs/adr/0126).
+  self_service_acquisition: true
+  runnable_without_vendor_action: true
+  redistribution_allowed: true   # MIT
+
+artifact:
+  # Never copied into the workspace beyond the run's own bundle. Verified by
+  # digest before every preparation.
+  runtime_artifact: fingerprints_matching-0.1.0-py3-none-any.whl
+  runtime_artifact_sha256: cb9196c21ac63aeb6002ca2e60fec0b2764d822d23f97d86b637f461a2d6cb9c
+  source_artifact: fingerprints_matching-0.1.0.tar.gz
+  source_artifact_sha256: 5533cdadae5067559cc84742cbe3c9521f993bedff42d64f9da05daa85818e37
+
+# ---------------------------------------------------------------------------
+# The frozen runtime.
+#
+# OpenCV is listed here as part of the algorithm's identity rather than as
+# packaging detail. The contours cv2.findContours returns are the direct and
+# only input to feature construction, and the package declares `opencv-python`
+# with no version bound at all — so whatever a resolver picks on the day *is*
+# the feature extractor. The pin is chosen by a rule stated before it was
+# resolved: the release current when the artifact was published on 2023-04-04
+# (docs/adr/0125).
+# ---------------------------------------------------------------------------
+runtime:
+  python_version: "3.12.13"
+  platform: Windows-11-10.0.26200-SP0
+  machine: AMD64
+  numpy: "1.26.4"
+  opencv_python: "4.7.0.72"
+  cv2_library: "4.7.0"
+  opencv_generation_rule: CONTEMPORARY_WITH_ARTIFACT_PUBLICATION
+  network_after_environment_creation: none
+  install_index: none   # --no-index against a local wheelhouse
+
+# ---------------------------------------------------------------------------
+# The route, read out of the installed module rather than out of the README.
+# ---------------------------------------------------------------------------
+route:
+  entry_point: fingerprints_matching.fingerprints_matching.FingerprintsMatching.fingerprints_matching
+  left_argument: image_path1
+  right_argument: image_path2
+
+  # match returns sum(best)/len(minutiae1), so the first argument sets the
+  # denominator and the two orderings are different questions. The binding is
+  # fixed and never reversed, maximised or averaged (docs/adr/0109).
+  orientation_is_part_of_identity: true
+  symmetry_required: false
+
+  logical_extractions_per_comparison: 2
+  comparisons_per_job: 1
+  template_cache: none
+
+  # Every one of these lives inside the package route or nowhere. fpbench adds
+  # none of them.
+  fpbench_preprocessing: none
+  fpbench_score_transformation: none
+  decision_threshold: none

@@ -157,3 +157,16 @@ def _ensure_builtin_adapters() -> None:
         from fpbench.adapters.verifinger_java.adapter import VeriFingerJavaAdapter
 
         register_adapter("verifinger_java_subprocess", VeriFingerJavaAdapter.from_config)
+
+    if "fingerprints_matching_subprocess" not in ADAPTERS:
+        # Registering it needs neither OpenCV nor the frozen runtime. Unlike the
+        # four above, this algorithm's dependencies are not the adapter's own:
+        # the pinned numpy and OpenCV live in an environment outside the
+        # repository, and importing fpbench must never require them.
+        from fpbench.adapters.fingerprints_matching.adapter import (
+            FingerprintsMatchingAdapter,
+        )
+
+        register_adapter(
+            "fingerprints_matching_subprocess", FingerprintsMatchingAdapter.from_config
+        )

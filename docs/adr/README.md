@@ -131,6 +131,10 @@ can be held to.
 | [0122](0122-a-blocked-fetch-is-not-a-missing-route.md) | A blocked fetch is not a missing route | Accepted, implemented |
 | [0123](0123-acquisition-is-tested-before-the-harness-is-built.md) | Acquisition is tested before the harness is built | Accepted, implemented |
 | [0124](0124-a-vendor-internal-crop-is-algorithm-behaviour.md) | A vendor-internal crop is algorithm behaviour | Accepted, implemented |
+| [0125](0125-opencv-is-part-of-this-algorithms-identity.md) | OpenCV is part of this algorithm's identity | Accepted, implemented |
+| [0126](0126-self-service-acquisition-is-a-hard-requirement.md) | Self-service acquisition is a hard requirement for Algorithm 5 | Accepted, implemented |
+| [0127](0127-an-upstream-refusal-is-an-outcome-not-a-rejection.md) | An upstream refusal is an outcome, not a rejection criterion | Accepted, implemented |
+| [0128](0128-a-result-set-with-no-score-is-not-a-raw-matcher.md) | A result set with no score is not a raw matcher | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

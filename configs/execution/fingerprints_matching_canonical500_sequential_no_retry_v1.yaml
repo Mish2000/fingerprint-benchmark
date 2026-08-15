@@ -1,0 +1,35 @@
+# The execution profile for the Stage 15A run over canonical 500 ppi inputs.
+#
+# A new profile rather than a copy, and the one thing that differs from the
+# reference is the budget. This route spends one decode, one Otsu pass, one
+# contour segmentation and an O(n1·n2) loop in pure Python inside a single job,
+# and the qualification measured that at roughly 140 ms end to end on fixtures
+# with 326 features a side.
+#
+# 180 seconds is therefore a margin of about a thousand. It is deliberately
+# generous *and* deliberately fixed: it was chosen from qualification timings
+# before the canonical set was opened, because a deadline tuned after seeing
+# which pairs are slow has stopped being a guard (spec section 28).
+#
+# Everything that decides *which pixels* are opened is identical to the
+# reference profile, character for character, because it names the same
+# immutable input set. Those parameters are what the alignment report checks and
+# what PreparedInputExpectations validates every stored result against.
+#
+# Every value under `parameters` is a string, because that is what
+# `ExecutionProfile` holds and the profile hash is taken over exactly those
+# strings.
+#
+# There is no threshold here, no decision profile and no retry count above zero.
+# A failed comparison is a recorded outcome; re-running only the failures would
+# produce a run whose results came from two attempts (docs/adr/0013).
+
+profile:
+  profile_id: fingerprints_matching_canonical500_sequential_no_retry_v1
+  preparer_id: canonical_500_png
+  timeout_seconds: 180
+  deterministic_seed: 0
+
+parameters:
+  resolution_mode: canonical_500
+  target_ppi: "500"

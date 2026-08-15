@@ -59,6 +59,14 @@ _EXTERNAL_TOOLING = {
         (pytest.mark.verifinger_artifact,),
         "FPBENCH_REQUIRE_VERIFINGER",
     ),
+    # The package is 4,492 bytes, but the runtime it needs is not: a pinned
+    # interpreter with a pinned numpy and a pinned OpenCV, in an environment
+    # outside the repository, because OpenCV's exact version is part of this
+    # algorithm's identity (docs/adr/0125). CI has none of it.
+    "fingerprints_matching_subprocess": (
+        (pytest.mark.fingerprints_matching_artifact,),
+        "FPBENCH_REQUIRE_FINGERPRINTS_MATCHING",
+    ),
 }
 
 ADAPTER_PARAMS = [

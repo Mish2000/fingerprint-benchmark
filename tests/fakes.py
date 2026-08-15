@@ -84,6 +84,12 @@ def registry_configuration(adapter_id: str) -> dict[str, object]:
         from fpbench.experiments.verifinger_runtime_manifest import default_installation
 
         return {"installation": str(default_installation())}
+    if adapter_id == "fingerprints_matching_subprocess":
+        # The frozen runtime is addressed through the repository root, because
+        # that is what locates both the bridge script and — via the third-party
+        # store resolver — the pinned environment. An absent environment is an
+        # UNAVAILABLE report, not a construction error.
+        return {"repository_root": str(Path(__file__).resolve().parents[1])}
     if adapter_id != "nbis_mindtct_bozorth3_subprocess":
         return {}
     from nbisworld import certified_build_directory

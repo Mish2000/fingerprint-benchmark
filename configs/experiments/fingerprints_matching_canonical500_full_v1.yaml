@@ -1,0 +1,125 @@
+# Stage 15A: fingerprints-matching 0.1.0 over the canonical SD300 comparisons
+# SourceAFIS, NBIS, flx and VeriFinger already ran.
+#
+# This file selects nothing. Every identifier in it names something that already
+# exists and was produced by an earlier, finalised stage: the reference run, its
+# plan, its result set, and the immutable 500 ppi input set all four earlier
+# algorithms were run against. No cohort is chosen here, no pair is generated
+# here, and no new prepared image is materialised here — Stage 15A reuses the
+# pair manifest of run_4c59fa02a6ab, row for row, in its order (docs/adr/0074).
+#
+# There is no threshold in this file and there will not be one. The score is a
+# float from a 4,492-byte MIT package whose README suggests 0.9 to its own
+# users; that is not an operating point this benchmark has adopted, and one may
+# not be chosen from the SD300 scores this run is about to produce
+# (docs/adr/0003, docs/adr/0076).
+#
+# There is deliberately no preflight pilot over SD300 either. The qualification
+# ran on non-SD300 fixtures, and these 6,000 comparisons are the canonical
+# production execution — not a rehearsal for one.
+
+experiment_id: fingerprints_matching_canonical500_full_v1
+kind: research
+replicate_index: 0
+
+dataset_config: configs/datasets/sd300.yaml
+protocol_config: configs/protocols/sd300_50_subjects.yaml
+algorithm_config: configs/algorithms/fingerprints_matching_0_1_0_v1.yaml
+
+# Every participating image must carry VERIFIED checksum evidence, exactly as
+# the reference run required.
+require_verified_checksums: true
+
+# ---------------------------------------------------------------------------
+# The artifact and the runtime this run is bound to.
+#
+# Each value is re-derived at preparation time from the local artifact store and
+# from the frozen environment, and preparation stops on any mismatch — before a
+# run exists, before an image is opened. Restating them here is what makes the
+# binding reviewable in a diff rather than only in code.
+# ---------------------------------------------------------------------------
+artifact:
+  package: fingerprints-matching==0.1.0
+  license: MIT
+  runtime_artifact_sha256: cb9196c21ac63aeb6002ca2e60fec0b2764d822d23f97d86b637f461a2d6cb9c
+  source_artifact_sha256: 5533cdadae5067559cc84742cbe3c9521f993bedff42d64f9da05daa85818e37
+
+  algorithm_id: fingerprints_matching_0_1_0
+  adapter_id: fingerprints_matching_subprocess
+  adapter_version: "1"
+
+runtime:
+  python_version: "3.12.13"
+  numpy: "1.26.4"
+  opencv_python: "4.7.0.72"
+  cv2_library: "4.7.0"
+
+  # The reference run's own policy, unchanged, so the two runs pin their
+  # runtimes the same way.
+  materialization_policy: content_addressed_copy_v1
+  research_mode: true
+
+  # Stage 15A materialises no image. Every pixel it reads belongs to
+  # prepset_be560e047991 and was written by Stage 6A (spec section 11).
+  image_materialization_policy: reference_existing_prepared_images
+
+# ---------------------------------------------------------------------------
+# The canonical experiment this run is aligned against.
+# ---------------------------------------------------------------------------
+reference:
+  run_id: run_4c59fa02a6ab
+  plan_id: plan_b4ae66e91923
+  result_set_id: resultset_087b084fb8a8
+  cohort_id: sd300_50_subjects_test_22f8d52a7478
+  pair_manifest_hash: ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b
+
+preparation:
+  set_id: prepset_be560e047991
+  set_fingerprint: be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f
+  transform_profile_id: canonical_gray8_500ppi_lanczos3_v1
+  transform_profile_fingerprint: 28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373
+  transform_runtime_fingerprint: 31a0a4346a3dd07843513cc1de5b167d8f2795b230a82bac709913032b74579c
+  target_ppi: 500
+
+expected:
+  jobs: 6000
+  pairs_per_release_stage: 500
+  pairs_per_release: 2000
+  pairs_per_stage: 1500
+  releases: [SD300A, SD300B, SD300C]
+  subjects: 50
+  participating_images: 3000
+
+  # Which resolution each release's artefacts were scaled *from*. Checked
+  # through the preparation entries: by the time the adapter reads a file it is
+  # already 500 ppi and the source resolution is no longer inferable
+  # (docs/adr/0032).
+  source_ppi:
+    SD300A: 500
+    SD300B: 1000
+    SD300C: 2000
+
+# ---------------------------------------------------------------------------
+# The operations one job performs.
+#
+# The upstream entry point extracts both sides itself and shares nothing between
+# them, SELF included. Twelve thousand logical extractions over the run.
+# ---------------------------------------------------------------------------
+operations:
+  logical_extractions_per_comparison: 2
+  comparisons_per_job: 1
+  template_cache: none
+
+execution:
+  profile_config: configs/execution/fingerprints_matching_canonical500_sequential_no_retry_v1.yaml
+  profile_id: fingerprints_matching_canonical500_sequential_no_retry_v1
+  sequential: true
+  max_workers: 1
+  retries: 0
+  job_deadline_seconds: 180
+
+reporting:
+  operational_summary: true   # timings, counts and failure codes only
+  biometric_metrics: false    # no FMR, no FNMR, no EER, no accuracy claim
+  score_statistics: false     # no mean, no median, no distribution of scores
+  score_export: false         # no score row leaves the workspace

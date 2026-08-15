@@ -22,7 +22,11 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
         imaging-test imaging-fixtures canonical-prepare canonical-materialize \
         canonical-status canonical-finalize \
         canonical-run-prepare canonical-run-execute canonical-run-status \
-        canonical-run-finalize
+        canonical-run-finalize \
+        stage15a-contract stage15a-evidence stage15a-artifacts stage15a-acquire \
+        stage15a-runtime stage15a-runtime-verify stage15a-route stage15a-qualify \
+        stage15a-preflight stage15a-status stage15a-integrity stage15a-verify \
+        stage15a-documents stage15a-publish
 
 help:
 	@echo "test                    unit + integration, no dataset, no Java, no full run"
@@ -124,6 +128,18 @@ help:
 	@echo "stage14a-artifacts      run the checks that need a delivered Griaule package locally"
 	@echo "stage14a-documents      write the eight derivable evidence documents (commit them, then publish)"
 	@echo "stage14a-publish        write the final marker too; refuses a non-final outcome"
+	@echo "stage15a-contract       the fingerprints-matching qualification: six gates, the route contract, the failure split"
+	@echo "stage15a-evidence       verify the committed Stage 15A evidence"
+	@echo "stage15a-acquire        fetch the two published PyPI artifacts and check both digests"
+	@echo "stage15a-runtime        build the frozen offline runtime from the local wheelhouse"
+	@echo "stage15a-runtime-verify G1: the artifact and runtime closure, re-hashed"
+	@echo "stage15a-route          G2: the upstream image-to-score contract, parsed from the installed module"
+	@echo "stage15a-qualify        G3: determinism and the failure contract, on non-SD300 fixtures"
+	@echo "stage15a-preflight      check every input the 6,000 run will read, and write nothing"
+	@echo "stage15a-status         report where the Stage 15A run stands"
+	@echo "stage15a-integrity      G6: the integrity pass over the stored outcomes"
+	@echo "stage15a-documents      write the seven derivable evidence documents (commit them, then publish)"
+	@echo "stage15a-publish        write the marker too; refuses a result set that is not score-bearing"
 	@echo "stage8c-workspace       Stage 8C alignment and preflight over the real inputs"
 	@echo "stage8c-verify          re-derive and print the Stage 8C evidence-only verification"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
@@ -820,3 +836,69 @@ canonical-run-status:
 
 canonical-run-finalize:
 	$(CANONICAL_RUN) finalize
+
+# ------------------------------------------------- Stage 15A: fingerprints-matching
+#
+# The first Algorithm 5 candidate that needs nobody's permission and nobody's
+# answer. Self-service acquisition and runnability without vendor action became
+# hard requirements after three consecutive stages ended at a vendor, and this
+# candidate is a 4,492-byte MIT package on PyPI (docs/adr/0126).
+#
+# The 6,000-comparison run is deliberately absent from this file, exactly as it
+# is for Stage 11B. It may not be started under a different commit than it was
+# prepared under, and a convenient target is how that happens by accident. The
+# documented invocation is docs/experiments/fingerprints-matching-canonical500-raw.md.
+#
+# Order matters. `acquire` fetches the artifacts, `runtime` builds the frozen
+# environment from the local wheelhouse with --no-index, and only then can G1
+# pass. Everything after that reads bytes that are already pinned.
+
+STAGE15A := python -m fpbench.experiments.stage15a_publish
+
+stage15a-contract:
+	pytest -m "stage15a_contract" -q
+
+# The committed evidence is mandatory and may never skip.
+stage15a-evidence:
+	pytest -m "stage15a" -q
+
+stage15a-artifacts:
+	pytest -m "fingerprints_matching_artifact" -q -rs
+
+# Fetches the two published distributions into the local store and checks both
+# digests against the frozen identity. Never run in CI: the store lives outside
+# the repository and no runner has one.
+stage15a-acquire:
+	python -m fpbench.experiments.stage15a_acquire
+
+# Builds the frozen environment from the local wheelhouse, offline. After this
+# the runtime never reaches the network again.
+stage15a-runtime:
+	python -m fpbench.experiments.stage15a_acquire runtime
+
+stage15a-runtime-verify:
+	python -m fpbench.experiments.stage15a_runtime verify
+
+stage15a-route:
+	python -m fpbench.experiments.stage15a_route
+
+stage15a-qualify:
+	python -m fpbench.experiments.stage15a_qualification
+
+stage15a-preflight:
+	$(STAGE15A) preflight
+
+stage15a-status:
+	$(STAGE15A) status
+
+stage15a-integrity:
+	$(STAGE15A) integrity
+
+stage15a-verify:
+	$(STAGE15A) verify
+
+stage15a-documents:
+	$(STAGE15A) documents
+
+stage15a-publish:
+	$(STAGE15A) publish

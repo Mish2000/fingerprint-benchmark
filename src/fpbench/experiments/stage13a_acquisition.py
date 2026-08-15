@@ -640,6 +640,13 @@ _LICENSE_NAME_FRAGMENTS = (
     "trialflag",
 )
 
+#: Text files that carry no extension at all. A build definition is source, and
+#: a bridge's Makefile necessarily sits in a directory named after the product it
+#: builds against.
+_TEXT_FILENAMES = frozenset(
+    {"makefile", "dockerfile", "license", "notice", "readme", ".gitignore"}
+)
+
 #: Extensions that would carry a runtime rather than a description of one.
 _BINARY_SUFFIXES = (".dll", ".so", ".dylib", ".lib", ".a", ".jar", ".exe", ".zip")
 
@@ -751,8 +758,10 @@ def audit_tracked_bytes_against_fingercell_artifacts(
                 )
             )
             continue
-        if suffix not in _TEXT_SUFFIXES and any(
-            fragment in lowered for fragment in _VENDOR_NAME_FRAGMENTS
+        if (
+            suffix not in _TEXT_SUFFIXES
+            and name not in _TEXT_FILENAMES
+            and any(fragment in lowered for fragment in _VENDOR_NAME_FRAGMENTS)
         ):
             findings.append(
                 TrackedByteFinding(

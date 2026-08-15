@@ -83,9 +83,9 @@
         "package-runtime-identity.json"
       ],
       "gate": "PACKAGE_RUNTIME_IDENTITY",
-      "outstanding_action": null,
-      "status": "PASS",
-      "summary": "the archive is FingerCell 3.3 revision 20211013 on linux/x86_64, the CPP binding is selected, a qualification bridge is built and pinned by source and binary digest, 4 runtime components are pinned by digest, and the extractor and matcher in the route are FingerCell's own"
+      "outstanding_action": "RUNTIME_CLOSURE_NOT_OBSERVED",
+      "status": "ACTION_REQUIRED",
+      "summary": "the declared link closure is settled and no process has been observed loading anything. A library may load a further component during construction or extraction without appearing in any link closure, so what is declared cannot rule one out"
     },
     {
       "blockers": [],
@@ -168,8 +168,8 @@
       "summary": "nobody has searched the delivered material and the vendor's public statements for a training-set overlap"
     }
   ],
-  "gates_awaiting_action": 8,
-  "gates_passed": 2,
+  "gates_awaiting_action": 9,
+  "gates_passed": 1,
   "gates_reached": 10,
   "implementation_origin": "VENDOR_OFFICIAL_SDK",
   "non_goals": [
@@ -188,12 +188,22 @@
   "outcome": "FINGERCELL_PREFLIGHT_INCOMPLETE",
   "outstanding_actions": [
     {
+      "action": "RUNTIME_CLOSURE_NOT_OBSERVED",
+      "gate": "PACKAGE_RUNTIME_IDENTITY",
+      "what_has_been_done": "the vendor's own build files name the four libraries the official 1:1 route links, and the built bridge records the same four as its dependencies; neither names the general biometrics module that carries the sibling engine",
+      "what_it_would_answer": "whether the route that produces a score is FingerCell's own all the way down, rather than only at link time",
+      "what_remains": [
+        "run the bridge once and record which shared objects the process actually mapped, via the operating system's mapped-module report for the bridge's own process",
+        "confirm that no sibling extractor or matcher is among them"
+      ]
+    },
+    {
       "action": "TRIAL_NOT_ACTIVATED",
       "gate": "RESEARCH_USE_AND_TRIAL_OPERATION",
-      "what_has_been_done": "the delivered licence agreement and activation guide were read: the grant covers designing, developing and testing, the trial period is 30 days, activation is an explicit act, and no restriction on publishing measurements was found",
+      "what_has_been_done": "the delivered licence agreement and activation guide were read: the grant covers designing, developing and testing, the trial period is 30 days, activation is an explicit act, and no restriction on publishing measurements was found. The delivered licensing service was then started by the documented route for this platform, from the delivered activation directory and with the delivered configuration unchanged; it starts, reports the same revision as the archive, and the host reaches the vendor over the network. A licence request for the FingerCell component through the official route did not yield an entitlement, and the service recorded no request",
       "what_it_would_answer": "whether the route can be executed at all, and for how long",
       "what_remains": [
-        "activate the trial through the vendor's own activation route",
+        "provision the trial entitlements themselves through the delivered activation utility, which is a step distinct from enabling trial mode in the service configuration",
         "obtain a licence for the FingerCell component specifically, and record that it was FingerCell's own entitlement",
         "record the trial start semantics, duration and network requirement as the delivered material states them"
       ]
@@ -282,7 +292,7 @@
     "a qualification driver",
     "an evidence publisher"
   ],
-  "preflight_fingerprint": "7c8dcf3bfc5f0eb6f696ebf089e95ed447f7c295bd7481453091420c5e92d0b6",
+  "preflight_fingerprint": "c8aa3fa36c41e45207bf62057544b3bcd079ea61807da43e39fbd4fdb31431c9",
   "product": "FingerCell",
   "product_version": "3.3",
   "reopens_algorithm_5_search": false,

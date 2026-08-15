@@ -10,6 +10,16 @@
     "it needs the least additional glue"
   ],
   "bindings_are_not_mixed": true,
+  "closure_halves": [
+    {
+      "half": "declared_link_closure",
+      "what_it_settles": "what the vendor's build files name and the bridge links against; settled before execution"
+    },
+    {
+      "half": "observed_runtime_closure",
+      "what_it_settles": "which shared objects the process actually mapped while the route ran; settled only by running it"
+    }
+  ],
   "components_to_look_for": [
     "the FingerCell native module",
     "the common Neurotechnology runtime",
@@ -22,11 +32,15 @@
     "claims_to_prove": [
       "the FingerCell algorithm module is the extractor under test",
       "the FingerCell algorithm module is the matcher under test",
-      "no VeriFinger extractor or matcher is reachable from the route",
+      "no sibling extractor or matcher is declared by the vendor's own build",
+      "no sibling extractor or matcher is in the bridge's link closure",
+      "no sibling extractor or matcher is loaded while the route runs",
       "no prior algorithm's adapter, bridge or configuration is imported",
       "no prior algorithm's scores are read"
     ],
     "evidence": "the delivered build files link FingerCell, NMedia, NCore and NLicensing and nothing else, and the linked bridge records exactly those four Neurotechnology libraries as NEEDED. The general biometrics module that carries the vendor's other fingerprint engine is absent from both. No vendor module was inspected to establish this (docs/adr/0114, docs/adr/0120)",
+    "no_sibling_dependency_in_bridge_link_closure": false,
+    "no_sibling_dependency_in_vendor_build_declaration": false,
     "permitted_common_components": [
       "the common object/runtime library",
       "the image and media library",
@@ -40,8 +54,43 @@
       "a VeriFinger template format used as the compared representation",
       "a VeriFinger configuration or settings profile"
     ],
-    "sibling_algorithm_in_route": false
+    "runtime_sibling_component_loaded": "NOT_YET_OBSERVED"
   },
+  "declared_closure_does_not_prove_runtime_closure": true,
+  "declared_link_closure": [
+    {
+      "component_role": "FINGERCELL_ALGORITHM",
+      "relative_path": "unpacked/FingerCell_3_3_SDK/Lib/Linux_x86_64/libFingerCell.so",
+      "sha256": "b4dbd8f5204a39fd28b3cab8f54a09ef80af2860175cbf020a493232d40e9408",
+      "size_bytes": 288656,
+      "source_archive_member": "FingerCell_3_3_SDK/Lib/Linux_x86_64/libFingerCell.so",
+      "version_or_revision": null
+    },
+    {
+      "component_role": "IMAGE_RUNTIME",
+      "relative_path": "unpacked/FingerCell_3_3_SDK/Lib/Linux_x86_64/libNMedia.so",
+      "sha256": "2aa44e3d1e4be3d39ce412c8d777c69459ecc1c6535cacab5fa8a0669b623658",
+      "size_bytes": 3331432,
+      "source_archive_member": "FingerCell_3_3_SDK/Lib/Linux_x86_64/libNMedia.so",
+      "version_or_revision": null
+    },
+    {
+      "component_role": "COMMON_RUNTIME",
+      "relative_path": "unpacked/FingerCell_3_3_SDK/Lib/Linux_x86_64/libNCore.so",
+      "sha256": "b440ac7a7440de76dd1d508ee1349ee1ca2a17b58e1371a2bbdee645cac7d00f",
+      "size_bytes": 2192840,
+      "source_archive_member": "FingerCell_3_3_SDK/Lib/Linux_x86_64/libNCore.so",
+      "version_or_revision": null
+    },
+    {
+      "component_role": "LICENSING",
+      "relative_path": "unpacked/FingerCell_3_3_SDK/Lib/Linux_x86_64/libNLicensing.so",
+      "sha256": "615c9f4fe46dc58f757901ce7ac77bef2f20b0a6feeeddce48e9797ac3064162",
+      "size_bytes": 1382920,
+      "source_archive_member": "FingerCell_3_3_SDK/Lib/Linux_x86_64/libNLicensing.so",
+      "version_or_revision": null
+    }
+  ],
   "delivered_observations": [
     {
       "may_settle_a_gate": true,
@@ -204,9 +253,9 @@
     "architecture": "x86_64",
     "binding_selection_basis": "the only delivered FingerCell desktop sample and the only FingerCell tutorials are C++; the Java binding ships but its only FingerCell sample targets Android, and the .NET assemblies ship with no FingerCell sample at all",
     "binding_version": "3.3.0.0",
-    "bridge_binary_sha256": "9c176e252c8f827234cc40b6ef3436211a47be1b376896ea68e6312304de559b",
+    "bridge_binary_sha256": "4072f0a4c94b5f189fb9f8c1dcbb0d384082d5a6bc57a3b3bf3efdb971df6744",
     "bridge_compiled": true,
-    "bridge_source_fingerprint": "3cbf890f8211a4456f15b32923cfad7f801bc810acc9162ae9c046c559bf591e",
+    "bridge_source_fingerprint": "1fc837a26da01fe9cbee1006455500507ac6918b9e9f7f43a828245570c0caa9",
     "bridge_toolchain": "g++ 13.3.0 (Ubuntu 24.04, WSL2)",
     "platform": "linux",
     "product": "FingerCell",
@@ -216,47 +265,15 @@
     "runtime_closure_fingerprint": "373daa3e3701c47ed03934dee421ecd08f545aeac70cbe4e6ebccad4fd7b4f71",
     "selected_binding": "CPP"
   },
+  "observed_runtime_closure": [],
   "refused_product_families": [
     "VERIFINGER_SDK",
     "MEGAMATCHER_SDK",
     "FREE_FINGERPRINT_VERIFICATION_SDK",
     "FINGERCELL_EMBEDDED_SOURCE_PACKAGE"
   ],
-  "runtime_closure": [
-    {
-      "component_role": "FINGERCELL_ALGORITHM",
-      "relative_path": "unpacked/FingerCell_3_3_SDK/Lib/Linux_x86_64/libFingerCell.so",
-      "sha256": "b4dbd8f5204a39fd28b3cab8f54a09ef80af2860175cbf020a493232d40e9408",
-      "size_bytes": 288656,
-      "source_archive_member": "FingerCell_3_3_SDK/Lib/Linux_x86_64/libFingerCell.so",
-      "version_or_revision": null
-    },
-    {
-      "component_role": "IMAGE_RUNTIME",
-      "relative_path": "unpacked/FingerCell_3_3_SDK/Lib/Linux_x86_64/libNMedia.so",
-      "sha256": "2aa44e3d1e4be3d39ce412c8d777c69459ecc1c6535cacab5fa8a0669b623658",
-      "size_bytes": 3331432,
-      "source_archive_member": "FingerCell_3_3_SDK/Lib/Linux_x86_64/libNMedia.so",
-      "version_or_revision": null
-    },
-    {
-      "component_role": "COMMON_RUNTIME",
-      "relative_path": "unpacked/FingerCell_3_3_SDK/Lib/Linux_x86_64/libNCore.so",
-      "sha256": "b440ac7a7440de76dd1d508ee1349ee1ca2a17b58e1371a2bbdee645cac7d00f",
-      "size_bytes": 2192840,
-      "source_archive_member": "FingerCell_3_3_SDK/Lib/Linux_x86_64/libNCore.so",
-      "version_or_revision": null
-    },
-    {
-      "component_role": "LICENSING",
-      "relative_path": "unpacked/FingerCell_3_3_SDK/Lib/Linux_x86_64/libNLicensing.so",
-      "sha256": "615c9f4fe46dc58f757901ce7ac77bef2f20b0a6feeeddce48e9797ac3064162",
-      "size_bytes": 1382920,
-      "source_archive_member": "FingerCell_3_3_SDK/Lib/Linux_x86_64/libNLicensing.so",
-      "version_or_revision": null
-    }
-  ],
   "runtime_closure_is_not_inherited_from_a_sibling": true,
+  "runtime_closure_observation_method": "the operating system's mapped-module report for the bridge's own process",
   "runtime_component_fields": [
     "relative_path",
     "component_role",
@@ -266,5 +283,5 @@
     "source_archive_member"
   ],
   "schema": "stage_13a_package_runtime_identity_v1",
-  "status": "PASS"
+  "status": "ACTION_REQUIRED"
 }

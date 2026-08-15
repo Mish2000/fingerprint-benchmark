@@ -26,9 +26,16 @@
 // parse. Errors go to stderr with a non-zero exit status. A failure is never
 // reported as a score.
 
+#include <algorithm>
+#include <cstddef>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
+
+#if defined(__linux__)
+#include <sys/utsname.h>
+#endif
 
 #include <NCore.hpp>
 #include <NMedia.hpp>
@@ -140,6 +147,122 @@ NImage LoadAtBenchmarkResolution(const NChar *path)
 	Emit("effective_horz_resolution", static_cast<long long>(image.GetHorzResolution()));
 	Emit("effective_vert_resolution", static_cast<long long>(image.GetVertResolution()));
 	return image;
+}
+
+// Report the environment this process is running in.
+//
+// Enough to identify the substrate and nothing that identifies the machine or
+// the person: no hostname, no machine ID, no user, no paths outside the store.
+// The execution substrate is part of this implementation's identity and is
+// published rather than folded into the platform string (docs/adr/0122).
+void EmitEnvironmentIdentity()
+{
+#if defined(__linux__)
+	Emit("os_family", "linux");
+	struct utsname info;
+	if (uname(&info) == 0)
+	{
+		Emit("kernel_release", std::string(info.release));
+		Emit("machine", std::string(info.machine));
+		// WSL identifies itself in the kernel release string. Recorded because
+		// the vendor documents Linux x86-64 as a target and does not name WSL,
+		// so the claim stays exactly as strong as the evidence: their Linux
+		// build, run under this substrate.
+		const std::string release(info.release);
+		const bool wsl = release.find("microsoft") != std::string::npos ||
+		                 release.find("Microsoft") != std::string::npos ||
+		                 release.find("WSL") != std::string::npos;
+		Emit("wsl_indicated", wsl ? "true" : "false");
+	}
+#elif defined(_WIN32)
+	Emit("os_family", "windows");
+	Emit("wsl_indicated", "false");
+#else
+	Emit("os_family", "unknown");
+#endif
+	Emit("pointer_bits", static_cast<long long>(sizeof(void *) * 8));
+}
+
+// Record which shared objects this process actually mapped.
+//
+// The operating system's own report about our own process, read after the
+// engine has been constructed. This is not an inspection of a vendor artifact:
+// it is documentation of the environment a score would be produced in, and it is
+// the only thing that can show a component loaded during construction that no
+// link closure would ever mention (docs/adr/0121).
+void EmitLoadedModules()
+{
+#if defined(__linux__)
+	std::ifstream maps("/proc/self/maps");
+	if (!maps)
+	{
+		Emit("loaded_modules_available", "false");
+		return;
+	}
+	Emit("loaded_modules_available", "true");
+	std::vector<std::string> seen;
+	std::string line;
+	while (std::getline(maps, line))
+	{
+		const std::size_t start = line.find('/');
+		if (start == std::string::npos) continue;
+		const std::string path = line.substr(start);
+		if (path.find(".so") == std::string::npos) continue;
+		if (std::find(seen.begin(), seen.end(), path) != seen.end()) continue;
+		seen.push_back(path);
+	}
+	std::sort(seen.begin(), seen.end());
+	Emit("loaded_module_count", static_cast<long long>(seen.size()));
+	for (std::size_t index = 0; index < seen.size(); index++)
+	{
+		// Only the file name. A full path on this host names a person.
+		const std::string &full = seen[index];
+		const std::size_t slash = full.find_last_of('/');
+		const std::string name = slash == std::string::npos ? full : full.substr(slash + 1);
+		Emit("loaded_module." + std::to_string(index), name);
+	}
+#else
+	Emit("loaded_modules_available", "false");
+#endif
+}
+
+// The diagnostic first run.
+//
+// Environment, licence, construction, properties, loaded modules, clean exit —
+// and deliberately no Extract and no Match. If the licensing or the settings
+// profile surprise us, this costs seconds instead of a whole qualification.
+int CommandDiagnose(bool trialMode)
+{
+	EmitEnvironmentIdentity();
+
+	if (!ObtainLicense(trialMode)) return 2;
+
+	FingerCellEngine fingerCell;
+	Emit("engine_constructed", "true");
+
+	NPropertyBag properties;
+	fingerCell.CaptureProperties(properties);
+	Emit("property_count", properties.GetCount());
+	for (NInt index = 0; index < properties.GetCount(); index++)
+	{
+		NNameValuePair pair = properties.Get(index);
+		Emit("property." + ToUtf8(pair.GetName()), ToUtf8(pair.GetValue().ToString()));
+	}
+
+	Emit("typed.ImageQualityThreshold", fingerCell.GetImageQualityThreshold());
+	Emit("typed.MatchingAlgorithm", fingerCell.GetMatchingAlgorithm());
+	Emit("typed.TemplateFormat", static_cast<long long>(fingerCell.GetTemplateFormat()));
+
+	// After construction, so that anything the engine pulled in on the way up is
+	// already mapped.
+	EmitLoadedModules();
+
+	Emit("extract_performed", "false");
+	Emit("match_performed", "false");
+
+	ReleaseLicense();
+	Emit("clean_shutdown", "true");
+	return 0;
 }
 
 // Report every property the engine exposes, before anything has been set.
@@ -292,33 +415,53 @@ int main(int argc, NChar **argv)
 	const NString command(argv[1]);
 	const bool trialMode = TrialFlag(argv[2]);
 
+	// Required runtime initialisation, and not optional.
+	//
+	// Every delivered tutorial calls this before touching the SDK, by way of the
+	// sample support header. Without it the licensing subsystem is not brought
+	// up and `NLicense::Obtain` fails without ever reaching the local licensing
+	// service — which is precisely what the first diagnostic run of this bridge
+	// observed, before a single template had been extracted (docs/adr/0123).
+	NCore::OnStart();
+
+	int status;
 	try
 	{
-		if (command == NString(N_T("settings")))
+		if (command == NString(N_T("diagnose")))
 		{
-			return CommandSettings(trialMode);
+			status = CommandDiagnose(trialMode);
 		}
-		if (command == NString(N_T("extract")))
+		else if (command == NString(N_T("settings")))
 		{
-			if (argc < 5) return Usage();
-			return CommandExtract(trialMode, argv[3], argv[4]);
+			status = CommandSettings(trialMode);
 		}
-		if (command == NString(N_T("match")))
+		else if (command == NString(N_T("extract")))
 		{
-			if (argc < 5) return Usage();
-			return CommandMatch(trialMode, argv[3], argv[4]);
+			if (argc < 5) { NCore::OnExit(NFalse); return Usage(); }
+			status = CommandExtract(trialMode, argv[3], argv[4]);
 		}
-		if (command == NString(N_T("pair")))
+		else if (command == NString(N_T("match")))
 		{
-			if (argc < 5) return Usage();
-			return CommandPair(trialMode, argv[3], argv[4]);
+			if (argc < 5) { NCore::OnExit(NFalse); return Usage(); }
+			status = CommandMatch(trialMode, argv[3], argv[4]);
 		}
-		if (command == NString(N_T("self")))
+		else if (command == NString(N_T("pair")))
 		{
-			if (argc < 4) return Usage();
-			return CommandSelf(trialMode, argv[3]);
+			if (argc < 5) { NCore::OnExit(NFalse); return Usage(); }
+			status = CommandPair(trialMode, argv[3], argv[4]);
 		}
-		return Usage();
+		else if (command == NString(N_T("self")))
+		{
+			if (argc < 4) { NCore::OnExit(NFalse); return Usage(); }
+			status = CommandSelf(trialMode, argv[3]);
+		}
+		else
+		{
+			NCore::OnExit(NFalse);
+			return Usage();
+		}
+		NCore::OnExit(NFalse);
+		return status;
 	}
 	catch (NError &error)
 	{
@@ -327,11 +470,13 @@ int main(int argc, NChar **argv)
 		// keep the output shape regular.
 		std::cerr << "error_code=" << error.GetCode() << "\n"
 		          << "error=" << ToUtf8(error.ToString()) << std::endl;
+		NCore::OnExit(NFalse);
 		return 3;
 	}
 	catch (const std::exception &error)
 	{
 		std::cerr << "error=" << error.what() << std::endl;
+		NCore::OnExit(NFalse);
 		return 4;
 	}
 }

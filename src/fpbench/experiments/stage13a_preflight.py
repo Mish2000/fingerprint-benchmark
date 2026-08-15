@@ -849,6 +849,38 @@ def _gate_package_runtime_identity() -> GateResult:
             ),
         )
 
+    observed = _rows("observed_runtime_closure")
+    if not observed:
+        return GateResult(
+            gate=gate,
+            status=frozen.GateStatus.ACTION_REQUIRED,
+            summary=(
+                "the declared link closure is settled and no process has been "
+                "observed loading anything. A library may load a further "
+                "component during construction or extraction without appearing "
+                "in any link closure, so what is declared cannot rule one out"
+            ),
+            outstanding=OutstandingAction(
+                gate=gate,
+                action=frozen.RequiredAction.RUNTIME_CLOSURE_NOT_OBSERVED,
+                what_has_been_done=(
+                    "the vendor's own build files name the four libraries the "
+                    "official 1:1 route links, and the built bridge records the "
+                    "same four as its dependencies; neither names the general "
+                    "biometrics module that carries the sibling engine"
+                ),
+                what_remains=(
+                    "run the bridge once and record which shared objects the "
+                    f"process actually mapped, via {frozen.RUNTIME_CLOSURE_OBSERVATION_METHOD}",
+                    "confirm that no sibling extractor or matcher is among them",
+                ),
+                what_it_would_answer=(
+                    "whether the route that produces a score is FingerCell's own "
+                    "all the way down, rather than only at link time"
+                ),
+            ),
+        )
+
     if contamination and bool(contamination.get("sibling_algorithm_in_route")):
         return GateResult(
             gate=gate,
@@ -981,10 +1013,20 @@ def _gate_research_use_and_trial_operation() -> GateResult:
                     "the delivered licence agreement and activation guide were "
                     "read: the grant covers designing, developing and testing, "
                     "the trial period is 30 days, activation is an explicit act, "
-                    "and no restriction on publishing measurements was found"
+                    "and no restriction on publishing measurements was found. "
+                    "The delivered licensing service was then started by the "
+                    "documented route for this platform, from the delivered "
+                    "activation directory and with the delivered configuration "
+                    "unchanged; it starts, reports the same revision as the "
+                    "archive, and the host reaches the vendor over the network. "
+                    "A licence request for the FingerCell component through the "
+                    "official route did not yield an entitlement, and the service "
+                    "recorded no request"
                 ),
                 what_remains=(
-                    "activate the trial through the vendor's own activation route",
+                    "provision the trial entitlements themselves through the "
+                    "delivered activation utility, which is a step distinct from "
+                    "enabling trial mode in the service configuration",
                     "obtain a licence for the FingerCell component specifically, "
                     "and record that it was FingerCell's own entitlement",
                     "record the trial start semantics, duration and network "
@@ -2390,7 +2432,18 @@ def package_runtime_identity_document(
         "bindings_are_not_mixed": frozen.BINDINGS_ARE_NOT_MIXED,
         "runtime_component_fields": list(frozen.RUNTIME_COMPONENT_FIELDS),
         "components_to_look_for": list(frozen.RUNTIME_COMPONENTS_TO_LOOK_FOR),
-        "runtime_closure": [dict(row) for row in closure],
+        "closure_halves": [
+            {"half": name, "what_it_settles": what}
+            for name, what in frozen.CLOSURE_HALVES
+        ],
+        "declared_link_closure": [dict(row) for row in closure],
+        "observed_runtime_closure": [dict(row) for row in _rows("observed_runtime_closure")],
+        "runtime_closure_observation_method": (
+            frozen.RUNTIME_CLOSURE_OBSERVATION_METHOD
+        ),
+        "declared_closure_does_not_prove_runtime_closure": (
+            frozen.DECLARED_CLOSURE_DOES_NOT_PROVE_RUNTIME_CLOSURE
+        ),
         "runtime_closure_is_not_inherited_from_a_sibling": (
             frozen.RUNTIME_CLOSURE_IS_NOT_INHERITED_FROM_A_SIBLING
         ),
@@ -2400,8 +2453,20 @@ def package_runtime_identity_document(
             "permitted_common_components": list(
                 frozen.PERMITTED_COMMON_RUNTIME_COMPONENTS
             ),
-            "sibling_algorithm_in_route": bool(
-                contamination.get("sibling_algorithm_in_route", False)
+            # Three separate claims, because they are settled at three different
+            # moments and only the third is about what actually ran. Collapsing
+            # them into one "contamination clean" would publish a claim stronger
+            # than the evidence behind it (docs/adr/0121).
+            "no_sibling_dependency_in_vendor_build_declaration": bool(
+                contamination.get("no_sibling_in_vendor_build_declaration", False)
+            ),
+            "no_sibling_dependency_in_bridge_link_closure": bool(
+                contamination.get("no_sibling_in_bridge_link_closure", False)
+            ),
+            "runtime_sibling_component_loaded": (
+                contamination.get("runtime_sibling_component_loaded")
+                if contamination.get("runtime_sibling_component_loaded") is not None
+                else "NOT_YET_OBSERVED"
             ),
             "evidence": contamination.get("evidence"),
         },

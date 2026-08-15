@@ -94,7 +94,10 @@ def test_no_published_document_carries_an_image_template_or_score() -> None:
 
 def test_every_published_runtime_path_is_relative() -> None:
     document = _document(frozen.PACKAGE_RUNTIME_IDENTITY_NAME)
-    for component in document["runtime_closure"]:
+    components = list(document["declared_link_closure"]) + list(
+        document["observed_runtime_closure"]
+    )
+    for component in components:
         path = component["relative_path"]
         assert not path.startswith("/")
         assert ":" not in path

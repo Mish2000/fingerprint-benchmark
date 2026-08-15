@@ -73,6 +73,8 @@ __all__ = [
     "VENDOR_REVISION_HASH_INDICATION",
     "VENDOR_REVISION_HASH_IS_NOT_A_DIGEST",
     "FINAL_IDENTITY_COMPONENTS",
+    "EXECUTION_ENVIRONMENT_IS_PART_OF_IDENTITY",
+    "STAGE_13B_INHERITS_THIS_EXECUTION_ENVIRONMENT",
     "EVIDENCE_DIRECTORY",
     "README_NAME",
     "PREDECESSOR_BINDING_NAME",
@@ -121,6 +123,9 @@ __all__ = [
     "VERIFINGER_ALGORITHM_COMPONENTS",
     "PERMITTED_COMMON_RUNTIME_COMPONENTS",
     "CONTAMINATION_CLAIMS_TO_PROVE",
+    "CLOSURE_HALVES",
+    "RUNTIME_CLOSURE_OBSERVATION_METHOD",
+    "DECLARED_CLOSURE_DOES_NOT_PROVE_RUNTIME_CLOSURE",
     "TrialStartSemantics",
     "TRIAL_QUESTIONS",
     "LICENSE_SEPARATED_QUESTIONS",
@@ -150,6 +155,7 @@ __all__ = [
     "SETTINGS_TO_CLOSE",
     "SETTINGS_LIST_IS_NOT_EXHAUSTIVE",
     "SETTINGS_CLOSURE_COVERS_EXTERNALLY_SELECTABLE_VALUES_ONLY",
+    "SETTINGS_CLOSURE_RULE",
     "SETTING_DISCOVERY_SURFACES",
     "SETTING_ROW_FIELDS",
     "SETTINGS_ARE_READ_BEFORE_THEY_ARE_SET",
@@ -301,7 +307,8 @@ VENDOR_REVISION_HASH_INDICATION = "394e593011b1b1dca288371e0af499198f4a77d1"
 VENDOR_REVISION_HASH_IS_NOT_A_DIGEST = True
 
 #: What a final algorithm identity has to name. Every one is a property of the
-#: delivered archive or of a runtime observed loading it.
+#: delivered archive, of the bridge built against it, or of a runtime observed
+#: loading it.
 FINAL_IDENTITY_COMPONENTS: tuple[str, ...] = (
     "product",
     "product_version",
@@ -309,11 +316,36 @@ FINAL_IDENTITY_COMPONENTS: tuple[str, ...] = (
     "archive_sha256",
     "platform",
     "architecture",
+    "execution_environment",
+    "toolchain",
     "selected_binding",
     "binding_version",
     "runtime_closure_fingerprint",
     "settings_profile_fingerprint",
 )
+
+#: The execution substrate is part of the implementation's identity and is
+#: published rather than folded into the platform string.
+#:
+#: This benchmark compares frozen *implementations*, not abstract algorithms held
+#: under laboratory conditions identical down to the operating system. What must
+#: match across algorithms is the 6,000-pair protocol, the canonical pixels, and
+#: the absence of tuning or threshold leakage — not the host OS. So a candidate
+#: qualified on one substrate is a candidate qualified on that substrate, and the
+#: substrate is named.
+#:
+#: The vendor publishes this trial for Windows and Linux on x86 and x86-64 alike
+#: and documents Linux x86-64 as a full development target. It does not name WSL,
+#: so nothing here claims WSL is a vendor-approved target: the claim is the exact
+#: one the evidence supports — the vendor's Linux x86-64 build, run under WSL2,
+#: observed to behave deterministically (docs/adr/0122).
+EXECUTION_ENVIRONMENT_IS_PART_OF_IDENTITY = True
+
+#: And the consequence for the next stage. Moving platform after qualification
+#: would produce an implementation that Stage 13A never qualified, so Stage 13B
+#: inherits this substrate. A Windows-versus-Linux comparison would be a separate
+#: experiment and is not on the path to Algorithm 5.
+STAGE_13B_INHERITS_THIS_EXECUTION_ENVIRONMENT = True
 
 
 # ------------------------------------------------------------------- evidence
@@ -613,6 +645,13 @@ class RequiredAction(str, Enum):
     #: (docs/adr/0115).
     BRIDGE_NOT_COMPILED = "BRIDGE_NOT_COMPILED"
 
+    #: The bridge is built and nothing has yet observed which shared objects a
+    #: process actually loads. Distinct from the link closure on purpose: a
+    #: library may load a further component during construction or extraction
+    #: without ever appearing among the bridge's own dependencies, so a link
+    #: closure cannot rule one out (docs/adr/0121).
+    RUNTIME_CLOSURE_NOT_OBSERVED = "RUNTIME_CLOSURE_NOT_OBSERVED"
+
     #: The trial has not been activated and no licence has been obtained.
     TRIAL_NOT_ACTIVATED = "TRIAL_NOT_ACTIVATED"
 
@@ -652,6 +691,7 @@ GATE_ACTIONS: tuple[tuple[PreflightGate, tuple[RequiredAction, ...]], ...] = (
             RequiredAction.PACKAGE_NOT_INVENTORIED,
             RequiredAction.BINDING_NOT_SELECTED,
             RequiredAction.BRIDGE_NOT_COMPILED,
+            RequiredAction.RUNTIME_CLOSURE_NOT_OBSERVED,
         ),
     ),
     (
@@ -910,10 +950,47 @@ PERMITTED_COMMON_RUNTIME_COMPONENTS: tuple[str, ...] = (
 CONTAMINATION_CLAIMS_TO_PROVE: tuple[str, ...] = (
     "the FingerCell algorithm module is the extractor under test",
     "the FingerCell algorithm module is the matcher under test",
-    "no VeriFinger extractor or matcher is reachable from the route",
+    "no sibling extractor or matcher is declared by the vendor's own build",
+    "no sibling extractor or matcher is in the bridge's link closure",
+    "no sibling extractor or matcher is loaded while the route runs",
     "no prior algorithm's adapter, bridge or configuration is imported",
     "no prior algorithm's scores are read",
 )
+
+#: The runtime closure has two halves and they answer different questions.
+#:
+#: The declared half is settled before anything runs: the vendor's own build
+#: files name what the official route links, and the built bridge records the
+#: same set as its dependencies. Both are ordinary build artifacts.
+#:
+#: The observed half can only be settled by running. A shared library may load a
+#: further component during construction or during extraction without that
+#: component ever appearing in anybody's link closure, so a declared closure
+#: cannot rule one out — it can only say what was asked for at link time. The
+#: gate needs both, and it is the observed half that closes it (docs/adr/0121).
+CLOSURE_HALVES: tuple[tuple[str, str], ...] = (
+    (
+        "declared_link_closure",
+        "what the vendor's build files name and the bridge links against; "
+        "settled before execution",
+    ),
+    (
+        "observed_runtime_closure",
+        "which shared objects the process actually mapped while the route ran; "
+        "settled only by running it",
+    ),
+)
+
+#: How the loaded set is observed. The operating system's own report about *this
+#: project's own process* — not an inspection of a vendor artifact. Recorded as a
+#: named method so nobody later mistakes it for binary analysis.
+RUNTIME_CLOSURE_OBSERVATION_METHOD = (
+    "the operating system's mapped-module report for the bridge's own process"
+)
+
+#: A link closure is not a runtime closure, and publishing the first as though it
+#: were the second would be the strongest unearned claim this stage could make.
+DECLARED_CLOSURE_DOES_NOT_PROVE_RUNTIME_CLOSURE = True
 
 
 # ---------------------------------------------------- G3 research use and trial
@@ -1184,6 +1261,19 @@ SETTINGS_LIST_IS_NOT_EXHAUSTIVE = True
 #: is not a setting this benchmark could have chosen differently, so freezing it
 #: would say nothing about reproducibility (docs/adr/0120).
 SETTINGS_CLOSURE_COVERS_EXTERNALLY_SELECTABLE_VALUES_ONLY = True
+
+#: The whole rule in two lines, because the boundary is what matters and it is
+#: easy to drift across in either direction.
+SETTINGS_CLOSURE_RULE: tuple[tuple[str, str], ...] = (
+    (
+        "documented or configurable through a supported API",
+        "must be inventoried and frozen",
+    ),
+    (
+        "internal implementation detail with no supported control",
+        "frozen implicitly by the vendor binary digest, and not inventoried",
+    ),
+)
 
 #: Where to look, so that "we checked" means something specific. Every surface is
 #: one upstream published or the SDK itself reports.

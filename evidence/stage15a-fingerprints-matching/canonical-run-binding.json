@@ -46,7 +46,7 @@
     "result_set_id": "resultset_087b084fb8a8",
     "run_id": "run_4c59fa02a6ab"
   },
-  "result_set_id": null,
+  "result_set_id": "resultset_4450d95f4f30",
   "run_id": "run_c2910aafb6cc",
   "schema": "stage_15a_canonical_run_binding_v1",
   "sd300_pilot_before_the_run": false,

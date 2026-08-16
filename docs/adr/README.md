@@ -135,6 +135,10 @@ can be held to.
 | [0126](0126-self-service-acquisition-is-a-hard-requirement.md) | Self-service acquisition is a hard requirement for Algorithm 5 | Accepted, implemented |
 | [0127](0127-an-upstream-refusal-is-an-outcome-not-a-rejection.md) | An upstream refusal is an outcome, not a rejection criterion | Accepted, implemented |
 | [0128](0128-a-result-set-with-no-score-is-not-a-raw-matcher.md) | A result set with no score is not a raw matcher | Accepted, implemented |
+| [0129](0129-a-dead-mirror-is-not-a-missing-artifact.md) | A dead mirror is not a missing artifact | Accepted, implemented |
+| [0130](0130-a-candidate-is-not-replaced-because-of-its-scores.md) | A candidate is not replaced because of its scores | Accepted, implemented |
+| [0131](0131-a-refusal-and-a-crash-are-different-outcomes.md) | A refusal and a crash are different outcomes | Accepted, implemented |
+| [0132](0132-the-route-is-settled-by-authority-not-by-experiment.md) | The route is settled by authority, not by experiment | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

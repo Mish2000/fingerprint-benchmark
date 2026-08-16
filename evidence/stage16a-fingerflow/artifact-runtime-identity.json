@@ -1,0 +1,286 @@
+{
+  "absent": [],
+  "blocker": null,
+  "candidate_id": "fingerflow_3_0_1",
+  "checkpoints": [
+    {
+      "expected_sha256": "fa9df6c854636723dab479b1d79fb3981966a86af129d7e2a45b048482a0bf19",
+      "expected_size_bytes": 81112872,
+      "locator": "https://www.dropbox.com/s/gppil4wybdjcihy/CoarseNet.h5?dl=1",
+      "matches": true,
+      "name": "CoarseNet.h5",
+      "present": true,
+      "role": "coarse_net",
+      "source": "dropbox"
+    },
+    {
+      "expected_sha256": "b88a45e97e071ce28cc5c0549d166296763d31cacb55853422da2854b8910645",
+      "expected_size_bytes": 654226304,
+      "locator": "https://www.dropbox.com/s/k7q2vs9255jf2dh/FineNet.h5?dl=1",
+      "matches": true,
+      "name": "FineNet.h5",
+      "present": true,
+      "role": "fine_net",
+      "source": "dropbox"
+    },
+    {
+      "expected_sha256": "b9bfb708191bf4da661f8a038fefc7bf8d9a77079ea9c10a502600393c2ddcb5",
+      "expected_size_bytes": 619422104,
+      "locator": "1dfQDW8yxjmFPVu0Ddui2voxdngOrU3rc",
+      "matches": true,
+      "name": "ClassifyNet.h5",
+      "present": true,
+      "role": "classify_net",
+      "source": "google_drive"
+    },
+    {
+      "expected_sha256": "6a71a5e32a7b37e71f062435a79d92ab66f703d4f34565ed18d20d1eaf2f973a",
+      "expected_size_bytes": 256015980,
+      "locator": "1v091s0eY4_VOLU9BqDXVSaZcFnA9qJPl",
+      "matches": true,
+      "name": "CoreNet.weights",
+      "present": true,
+      "role": "core_net",
+      "source": "google_drive"
+    },
+    {
+      "expected_sha256": "89cfd445437d0388b28c580b81e73987e2eb6575a27016deab55aeb63b6f22c5",
+      "expected_size_bytes": 61376,
+      "locator": "1cEz3oCYS4JCUiZxpU5o8lYesMOVgR0rt",
+      "matches": true,
+      "name": "VerifyNet-10.h5",
+      "present": true,
+      "role": "verify_net",
+      "source": "google_drive"
+    },
+    {
+      "expected_sha256": "7ca10f22716c0af7f47fb8e80c828ea038563eec4acbdc571b1f4f31048639df",
+      "expected_size_bytes": 63424,
+      "locator": "1CI7z1r99AEV6Lrm2bQeGEFmVdQ8colUW",
+      "matches": true,
+      "name": "VerifyNet-14.h5",
+      "present": true,
+      "role": "verify_net",
+      "source": "google_drive"
+    },
+    {
+      "expected_sha256": "c1915e0da71168a36d88c8e05e5714b60c1df90dd06587d5e62a549c83be091f",
+      "expected_size_bytes": 67520,
+      "locator": "1lP1zDHTa7TemWPluv89ueFWCa95RnLF-",
+      "matches": true,
+      "name": "VerifyNet-20.h5",
+      "present": true,
+      "role": "verify_net",
+      "source": "google_drive"
+    },
+    {
+      "expected_sha256": "bb925bba3f8313c8ef1b3559f3ec80a133b9fab2a15f75f576990ba326ce1ec1",
+      "expected_size_bytes": 69568,
+      "locator": "1h2RwuM1-mgiF4dfwslbgiI7-K8F4aw2A",
+      "matches": true,
+      "name": "VerifyNet-24.h5",
+      "present": true,
+      "role": "verify_net",
+      "source": "google_drive"
+    },
+    {
+      "expected_sha256": "8d5926725338732ee0781fa4d9be5fb13c62c88f26f8a5b8a95f6dfecb00e3f9",
+      "expected_size_bytes": 71616,
+      "locator": "1gQEzJKlCmUqe7Sx-W-6H1w1NGY8M98bX",
+      "matches": true,
+      "name": "VerifyNet-30.h5",
+      "present": true,
+      "role": "verify_net",
+      "source": "google_drive"
+    }
+  ],
+  "closure_is_contemporary_with_artifact": false,
+  "closure_rule": "RESOLVED_AT_ACQUISITION_FROM_UPSTREAM_DECLARED_FLOORS",
+  "dead_upstream_locators": [
+    {
+      "endpoints_tried": [
+        "/uc",
+        "/file/d/",
+        "drive.usercontent"
+      ],
+      "host": "google_drive",
+      "role": "coarse_net",
+      "served_instead_by": "the Dropbox mirror in the same README",
+      "status": "HTTP_404"
+    },
+    {
+      "endpoints_tried": [
+        "/uc",
+        "/file/d/",
+        "drive.usercontent"
+      ],
+      "host": "google_drive",
+      "role": "fine_net",
+      "served_instead_by": "the Dropbox mirror in the same README",
+      "status": "HTTP_404"
+    }
+  ],
+  "gate": "EXACT_UPSTREAM_IDENTITY",
+  "gate_state": "PASS",
+  "implementation_origin": "OPEN_SOURCE_PYPI_ARTIFACT",
+  "install_index": "NONE (--no-index against the local wheelhouse)",
+  "license": "MIT",
+  "mismatches": [],
+  "network_after_environment_creation": "NONE",
+  "notes": {
+    "checkpoint_bytes_total": 1611110764,
+    "runtime_probe": {
+      "CoreNet.weights carries a darknet header": "major=0 minor=2 rev=5",
+      "Matcher(30, VerifyNet-30.h5) loads its weights": true,
+      "every .h5 checkpoint is valid HDF5": true,
+      "fingerflow.extractor imports": true,
+      "fingerflow.matcher imports": true,
+      "why this is recorded under G1": "it proves the acquired bytes are models rather than error pages. Whether there is one way to *use* them is G2"
+    }
+  },
+  "observed_environment": {
+    "interpreter": "python.exe",
+    "machine": "AMD64",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python_version": "3.12.13"
+  },
+  "package": "fingerflow==3.0.1",
+  "pinned_environment": {
+    "device_mode": "CPU",
+    "machine": "AMD64",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python_version": "3.12.13"
+  },
+  "published_distributions": [
+    {
+      "expected_sha256": "d256c1351b74b2e746386a3c32c61e92d569a8ba9f79cb9f9e084367000e3c35",
+      "expected_size_bytes": 54538,
+      "locator": "https://pypi.org/project/fingerflow/3.0.1/",
+      "matches": true,
+      "name": "fingerflow-3.0.1-py3-none-any.whl",
+      "present": true,
+      "role": "published_wheel",
+      "source": "pypi"
+    },
+    {
+      "expected_sha256": "f73ad527224d3b9f4587254a3bc6154a5411de12488803fb47a11faea1d2e678",
+      "expected_size_bytes": 46105,
+      "locator": "https://pypi.org/project/fingerflow/3.0.1/",
+      "matches": true,
+      "name": "fingerflow-3.0.1.tar.gz",
+      "present": true,
+      "role": "published_sdist",
+      "source": "pypi"
+    }
+  ],
+  "required_checkpoint_roles": [
+    "coarse_net",
+    "fine_net",
+    "classify_net",
+    "core_net",
+    "verify_net"
+  ],
+  "roles_covered": [
+    "coarse_net",
+    "fine_net",
+    "classify_net",
+    "core_net",
+    "verify_net"
+  ],
+  "runtime_closure": {
+    "Keras-Applications": {
+      "sha256": "df4323692b8c1174af821bf906f1e442e63fa7589bf0f1230a0b6bdc5a810c95",
+      "size_bytes": 50704,
+      "version": "1.0.8",
+      "wheel": "Keras_Applications-1.0.8-py3-none-any.whl"
+    },
+    "fingerflow": {
+      "sha256": "d256c1351b74b2e746386a3c32c61e92d569a8ba9f79cb9f9e084367000e3c35",
+      "size_bytes": 54538,
+      "version": "3.0.1",
+      "wheel": "fingerflow-3.0.1-py3-none-any.whl"
+    },
+    "h5py": {
+      "sha256": "96b422019a1c8975c2d5dadcf61d4ba6f01c31f92bbde6e4649607885fe502d6",
+      "size_bytes": 3182868,
+      "version": "3.16.0",
+      "wheel": "h5py-3.16.0-cp312-cp312-win_amd64.whl"
+    },
+    "keras": {
+      "sha256": "836460e480930acbd19bb7a17e62f9ecad40e8a9af9a651fc8d0586a96d27e20",
+      "size_bytes": 2398595,
+      "version": "3.15.1",
+      "wheel": "keras-3.15.1-py3-none-any.whl"
+    },
+    "ml_dtypes": {
+      "sha256": "2a3e9d53925597fbffafd2a37048dadeddd0bdaba58058f6ae0869ed709a184d",
+      "size_bytes": 439333,
+      "version": "0.6.0",
+      "wheel": "ml_dtypes-0.6.0-cp312-cp312-win_amd64.whl"
+    },
+    "numpy": {
+      "sha256": "28ac63476ec7651484215ee7fa15a1f78b57c14621f01e392afe17b9a1390ce4",
+      "size_bytes": 12464674,
+      "version": "2.5.2",
+      "wheel": "numpy-2.5.2-cp312-cp312-win_amd64.whl"
+    },
+    "opencv-python": {
+      "sha256": "f90ba04b8f73bc5c3814037699739f0156f597338a98f05956c684e7c3ca10d2",
+      "size_bytes": 44000345,
+      "version": "5.0.0.93",
+      "wheel": "opencv_python-5.0.0.93-cp37-abi3-win_amd64.whl"
+    },
+    "pandas": {
+      "sha256": "80a611068e8a3ac23f7398c6c14eb46dc974e5cc9997f653e2dcfd1da74edd41",
+      "size_bytes": 9831691,
+      "version": "3.0.5",
+      "wheel": "pandas-3.0.5-cp312-cp312-win_amd64.whl"
+    },
+    "scikit-image": {
+      "sha256": "abed017474593cd3056ae0fe948d07d0747b27a085e92df5474f4955dd65aec0",
+      "size_bytes": 11911059,
+      "version": "0.26.0",
+      "wheel": "scikit_image-0.26.0-cp312-cp312-win_amd64.whl"
+    },
+    "scipy": {
+      "sha256": "71ccc8faa2dd16ac310233203474a8b5cb67f10dedd54a3116d34943f4b19132",
+      "size_bytes": 36597428,
+      "version": "1.18.0",
+      "wheel": "scipy-1.18.0-cp312-cp312-win_amd64.whl"
+    },
+    "tensorflow": {
+      "sha256": "1590cbf87b6bcbd34d8e9ad70d0c696135e0aa71be31803b27358cf7ed63f8fc",
+      "size_bytes": 331887041,
+      "version": "2.20.0",
+      "wheel": "tensorflow-2.20.0-cp312-cp312-win_amd64.whl"
+    },
+    "tf-keras": {
+      "sha256": "3f0e0a34d9a4c8758f24fdc1053e6e335f16ab5534c7d34f1899b8924779760c",
+      "size_bytes": 1694335,
+      "version": "2.20.1",
+      "wheel": "tf_keras-2.20.1-py3-none-any.whl"
+    }
+  },
+  "schema": "stage_16a_artifact_runtime_identity_v1",
+  "self_service_acquisition": true,
+  "store_is_outside_repository": true,
+  "third_party_bytes_added_to_git": false,
+  "upstream_commit": "a0a53259ec575704d19ae0ae770335536e567583",
+  "upstream_declared_pins": {
+    "Keras-Applications": "1.0.8",
+    "matplotlib": "3.4.2",
+    "numpy": "1.19.5",
+    "opencv-python": "4.5.3.56",
+    "pandas": "1.3.1",
+    "scikit-image": "0.18.3",
+    "scipy": "1.6.2",
+    "tensorflow": "2.5.1"
+  },
+  "upstream_index": "https://pypi.org/project/fingerflow/3.0.1/",
+  "upstream_publishes_checkpoint_digests": false,
+  "upstream_repository": "https://github.com/jakubarendac/fingerflow",
+  "upstream_tag": "v3.0.1",
+  "vendor_or_author_request_required": false,
+  "why_digests_are_computed_here": "upstream ships none, so without these 'the CoarseNet weights' names a file nobody can check and a re-acquisition years from now is unfalsifiable",
+  "why_not_contemporary": "upstream pins tensorflow==2.5.1, numpy==1.19.5 and opencv-python==4.5.3.56; TensorFlow 2.5 stops at CPython 3.9 and none of the three install on any Python this project runs. The declared floor is unbounded, so a resolve today gives TensorFlow 2.20 and Keras 3 \u2014 a different Keras major from the one these weights were serialised under (docs/adr/0125 states the rule this cannot satisfy)"
+}

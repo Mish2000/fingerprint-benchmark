@@ -1,0 +1,32 @@
+{
+  "candidate_id": "fingerflow_3_0_1",
+  "comparisons_budget": 20,
+  "comparisons_used": 0,
+  "determinism_required": true,
+  "failure_probes": [
+    "malformed_image",
+    "blank_valid_image",
+    "missing_input",
+    "no_core_or_insufficient_minutiae",
+    "invalid_matcher_feature_input"
+  ],
+  "fixtures": "non-SD300 only",
+  "gate": "NON_SD300_QUALIFICATION",
+  "gate_state": "NOT_REACHED",
+  "non_result_classes": {
+    "EXPLICIT_ALGORITHMIC_NON_RESULT": "upstream states the condition and returns from it \u2014 no core detected, fewer minutiae than the model accepts. A result: the algorithm declined this input, and the result set records the refusal",
+    "UNHANDLED_IMPLEMENTATION_EXCEPTION": "a valid fingerprint reached an internal tensor, index, shape or OpenCV exception and the route aborted. Not a result, not a template-extraction failure and not evidence about the fingerprint \u2014 a defect in the route, and a qualification failure (docs/adr/0131)"
+  },
+  "observations": [],
+  "required_cases": [
+    "A_B_repeated",
+    "A_B_fresh_object",
+    "A_B_fresh_process",
+    "B_A",
+    "A_A"
+  ],
+  "schema": "stage_16a_qualification_v1",
+  "sd300_used": false,
+  "why_not_reached": "the qualification runs the route, and G2 established there is no single route to run. Probing one of the four undetermined alternatives would qualify a pipeline fpbench invented",
+  "why_the_split_exists": "Stage 15A's candidate aborted whole images from inside cv2.convexityDefects on valid prints, and a result set recorded that as template extraction failing. It is not the same thing as an algorithm declining an input, and a candidate that does it systematically is disqualified rather than described (docs/adr/0131)"
+}

@@ -2214,15 +2214,49 @@ Stage 12B   IDKit production integration and canonical raw run         CLOSED
 Stage 13A   algorithm 5 candidate — FingerCell 3.3 preflight           FAIL (no entitlement)
 Stage 14A   algorithm 5 candidate — Griaule GBS SDK preflight          NON-FINAL, superseded
 Stage 15A   fingerprints-matching 0.1.0 — qualification and raw run    COMPLETE (6,000)
+Stage 16A   algorithm 5 candidate — FingerFlow 3.0.1 qualification    FAIL (route not closed)
 ```
 
-The three most recent stages have no narrative section of their own above; their
+The four most recent stages have no narrative section of their own above; their
 evidence reports are the write-up: [Stage
 13A](evidence/stage13a-fingercell-preflight/README.md), [Stage
-14A](evidence/stage14a-griaule-preflight/README.md) and [Stage
-15A](evidence/stage15a-fingerprints-matching/README.md). Each verifies with no
+14A](evidence/stage14a-griaule-preflight/README.md), [Stage
+15A](evidence/stage15a-fingerprints-matching/README.md) and [Stage
+16A](evidence/stage16a-fingerflow/README.md). Each verifies with no
 dataset, no package and no network — `make stage13a-evidence`,
-`make stage14a-evidence`, `make stage15a-evidence`.
+`make stage14a-evidence`, `make stage15a-evidence`, `make stage16a-evidence`.
+
+**Stage 16A answered the coverage question by not filling the slot.** FingerFlow
+3.0.1 was Stage 15A's named reserve, and its artifact is in good order: MIT, on
+PyPI, nine published checkpoints totalling 1.5 GB, all self-service, all hashed,
+all loadable. It fails at G2. The package extracts minutiae and cores at one end
+and consumes a six-column array at the other, and **nothing in it joins the
+two** — that construction exists only in two repository scripts which disagree
+about how many minutiae to retain, what to do when there are fewer, whether
+inference rotates the image, and which of five published VerifyNet weights is the
+matcher. Six of the ten questions between an image and a confidence close on
+upstream authority; four would have to be answered by fpbench, and each of the
+four moves the score. No experiment was run to break the ties, because choosing
+the alternative that scores better would pick the algorithm's own pipeline out of
+the evaluation data
+([ADR 0132](docs/adr/0132-the-route-is-settled-by-authority-not-by-experiment.md)).
+Algorithm 5 is open again, and `fallback_candidate` is `null` — the reserve is
+used up and naming a successor here would look like research this stage did not
+do.
+
+**Stage 15A was passed over for its mechanism, not for its numbers.** Its
+evidence stands unmodified, its run was not repeated, and its scores were not
+read to choose a successor. The recorded reason is
+`STRUCTURAL_EXTRACTION_ROUTE_FAILURE` — the route is deterministic, the matcher
+succeeds whenever both sides extract, the failures originate in feature
+extraction, one invalid contour aborts an otherwise processable image, and
+remediation would mean editing the upstream algorithm. What the reason is *not*
+is published beside it, and the evidence gate fails if those denials go missing:
+not low genuine scores, not poor discrimination, not worse than another matcher
+([ADR 0130](docs/adr/0130-a-candidate-is-not-replaced-because-of-its-scores.md)).
+The "at least one score" criterion that admitted Stage 15A is retired; its
+replacement has four conjunctive conditions and the fourth deliberately carries
+no number.
 
 **Stage 14A is not a failure, and is not recorded as one.** No Griaule package is
 served by any official route, so acquisition would have needed a request — and
@@ -2273,10 +2307,10 @@ Until a common calibrated operating policy exists, nothing here says which
 algorithm is more accurate — and nothing here may. Stage 15A opens that phase; it
 does not decide whether twenty-two genuine scores are worth calibrating against
 roughly 5,900 from each of the other four. That judgement belongs to the
-calibration stage, made with these counts in front of it. If the answer is no,
-`predecessor-selection.json` names the reserve candidate: `fingerflow_3_0_1`.
-The marker's own `fallback_candidate` is `null`, because a fallback is recorded
-only when the result set carries no score at all.
+calibration stage, made with these counts in front of it. Stage 15A's own
+`predecessor-selection.json` named `fingerflow_3_0_1` as the reserve; Stage 16A
+examined it and could not close its route, so that reserve is spent and the
+Algorithm 5 slot is open rather than filled twice.
 
 **Stage 10C stays reserved for id3.** It was defined as the id3 artifact and
 runtime integration that a passing 10B would open, and recycling the number for

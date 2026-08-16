@@ -1,0 +1,354 @@
+{
+  "blocker": "UPSTREAM_INFERENCE_ROUTE_NOT_CLOSED",
+  "candidate_id": "fingerflow_3_0_1",
+  "decision_rule": [
+    "OFFICIAL_INFERENCE_EXAMPLE",
+    "SINGLE_UNAMBIGUOUS_UPSTREAM_IMPLEMENTATION",
+    "UPSTREAM_DECLARED_DEFAULT",
+    "FPBENCH_WOULD_HAVE_TO_CHOOSE"
+  ],
+  "digest_mismatches": [],
+  "experiments_run_to_choose_between_alternatives": 0,
+  "extractor_output_columns": {
+    "core": [
+      "x1",
+      "y1",
+      "x2",
+      "y2",
+      "score",
+      "w",
+      "h"
+    ],
+    "minutiae": [
+      "x",
+      "y",
+      "angle",
+      "score",
+      "class"
+    ]
+  },
+  "feature_assembly_is_in_the_package": false,
+  "gate": "UPSTREAM_INFERENCE_ROUTE_CLOSURE",
+  "gate_state": "FAIL",
+  "matcher_input_arithmetic": {
+    "MINUTIAE_FEATURES": 9,
+    "MINUTIA_NEIGHBORS": 5,
+    "implied_input_columns": 6,
+    "why": "enhance_minutiae_points drops x and y and appends five neighbour distances, so nine features means six input columns: the extractor's five plus one distance to the core"
+  },
+  "not_read_from": "the package README's prose, or any run of the code",
+  "questions": [
+    {
+      "answer": "the detection whose score is the maximum; the core point is the centre of its bounding box, x = mean(x1, x2), y = mean(y1, y2)",
+      "authority": "SINGLE_UNAMBIGUOUS_UPSTREAM_IMPLEMENTATION",
+      "key": "which_core_is_selected",
+      "question": "CoreNet returns every detected core. Which one is the core?",
+      "settled": true,
+      "upstream_statements": [
+        {
+          "runnable_as_written": true,
+          "says": "get_correct_core_point: core_data.score == core_data.score.max(), bbox centre",
+          "source": "scripts/utils/generate_encodings_for_matching.py"
+        },
+        {
+          "note": "compared as parsed trees, not as text \u2014 the two definitions are structurally identical",
+          "runnable_as_written": true,
+          "says": "get_correct_core_point: the same function, character for character",
+          "source": "scripts/extractor/visualise_feature_vector.py"
+        }
+      ],
+      "why": "one rule, stated the same way in both places that state it. A tie at the maximum score returns more than one row and the later broadcast against the minutiae frame would raise, which is an implementation defect rather than an ambiguity in the rule"
+    },
+    {
+      "answer": "ascending by distance to the core",
+      "authority": "SINGLE_UNAMBIGUOUS_UPSTREAM_IMPLEMENTATION",
+      "key": "how_minutiae_are_ordered",
+      "question": "In what order do the retained minutiae enter the array?",
+      "settled": true,
+      "upstream_statements": [
+        {
+          "runnable_as_written": false,
+          "says": "nsmallest(MINUTIAE_NUM, 'core_distance') \u2014 ascending by construction",
+          "source": "scripts/utils/generate_encodings_for_matching.py"
+        },
+        {
+          "runnable_as_written": false,
+          "says": "sort_values(by=['core_distance']) \u2014 ascending by default",
+          "source": "scripts/extractor/visualise_feature_vector.py"
+        },
+        {
+          "note": "training-set construction, not inference: the shuffle is how the network is taught not to depend on row order",
+          "runnable_as_written": true,
+          "says": "np.random.shuffle on the anchor when building training pairs",
+          "source": "scripts/matcher/utils/utils.py"
+        }
+      ],
+      "why": "both assemblies order by the same key in the same direction"
+    },
+    {
+      "answer": null,
+      "authority": "FPBENCH_WOULD_HAVE_TO_CHOOSE",
+      "key": "how_many_minutiae_are_retained",
+      "question": "How many minutiae make up one feature vector?",
+      "settled": false,
+      "upstream_statements": [
+        {
+          "runnable_as_written": false,
+          "says": "MINUTIAE_NUM = 30",
+          "source": "scripts/utils/generate_encodings_for_matching.py"
+        },
+        {
+          "runnable_as_written": false,
+          "says": "MINUTIAE_NUM = 20",
+          "source": "scripts/extractor/visualise_feature_vector.py"
+        },
+        {
+          "note": "no VerifyNet checkpoint is published for that precision",
+          "runnable_as_written": true,
+          "says": "MINUTIAE_TO_USE = [40]",
+          "source": "scripts/utils/change_minutiae_count.py"
+        },
+        {
+          "note": "an example of the call, not of how its argument was produced",
+          "runnable_as_written": false,
+          "says": "the usage example constructs Matcher(30, \"verify_net\")",
+          "source": "README.md"
+        },
+        {
+          "note": "the only script that actually calls the matcher",
+          "runnable_as_written": true,
+          "says": "Matcher(20, ...)",
+          "source": "scripts/matcher/evaluate_matcher.py"
+        }
+      ],
+      "why": "four different counts across five upstream sources, and no statement anywhere that one of them is the default. The README offers a tendency \u2014 more minutiae, higher precision \u2014 which ranks the options without choosing one. The count is not a detail: it fixes the model's input shape and decides which minutiae are compared at all"
+    },
+    {
+      "answer": "twice, both in upstream code. Which minutiae enter the vector: the ones with the smallest euclidean distance from (x, y) to the core point. Which distances become features: for each minutia, the 5 smallest euclidean distances to the other minutiae, sorted ascending, taken as entries [1:6] of the sorted distance list",
+      "authority": "SINGLE_UNAMBIGUOUS_UPSTREAM_IMPLEMENTATION",
+      "key": "how_nearest_minutiae_selection_works",
+      "question": "Which minutiae are near what, and how is nearness measured?",
+      "settled": true,
+      "upstream_statements": [
+        {
+          "runnable_as_written": false,
+          "says": "core_distance = np.linalg.norm(minutiae[['x','y']] - core)",
+          "source": "scripts/utils/generate_encodings_for_matching.py"
+        },
+        {
+          "note": "shipped in the package, so this half is not in question",
+          "runnable_as_written": true,
+          "says": "find_n_nearest_minutiae sorts every distance and slices [1:6], dropping the zero self-distance",
+          "source": "src/fingerflow/matcher/VerifyNet/utils.py"
+        }
+      ],
+      "why": "the rule is stated once in the package and once in the assembly, and neither has an alternative"
+    },
+    {
+      "answer": "they do not reach it at all. enhance_minutiae_points drops columns 0 and 1 \u2014 x and y \u2014 so the only core-relative quantity the model sees is the scalar core_distance column",
+      "authority": "SINGLE_UNAMBIGUOUS_UPSTREAM_IMPLEMENTATION",
+      "key": "how_coordinates_are_made_core_relative",
+      "question": "Do absolute coordinates reach the model, and in what frame?",
+      "settled": true,
+      "upstream_statements": [
+        {
+          "runnable_as_written": true,
+          "says": "updated_minutia[2:] \u2014 the first two columns are discarded",
+          "source": "src/fingerflow/matcher/VerifyNet/utils.py"
+        },
+        {
+          "runnable_as_written": true,
+          "says": "the extractor's frame is ['x','y','angle','score','class']",
+          "source": "src/fingerflow/extractor/ClassifyNet/utils.py"
+        }
+      ],
+      "why": "one implementation, in the package, and it settles the question by removing it: no translation, no rotation, no re-origin \u2014 the coordinates are deleted"
+    },
+    {
+      "answer": "no. The angle column passes from the extractor to the model untouched",
+      "authority": "SINGLE_UNAMBIGUOUS_UPSTREAM_IMPLEMENTATION",
+      "key": "whether_angles_are_transformed",
+      "question": "Is the minutia angle rescaled, wrapped or re-referenced?",
+      "settled": true,
+      "upstream_statements": [
+        {
+          "runnable_as_written": true,
+          "says": "angle is column 2 of the extractor's frame",
+          "source": "src/fingerflow/extractor/ClassifyNet/utils.py"
+        },
+        {
+          "runnable_as_written": true,
+          "says": "only columns 0 and 1 are removed; nothing is rewritten",
+          "source": "src/fingerflow/matcher/VerifyNet/utils.py"
+        }
+      ],
+      "why": "no upstream code anywhere converts, wraps or re-references the angle. Absence is an answer here because the whole path from the extractor's frame to the model's tensor is upstream code"
+    },
+    {
+      "answer": null,
+      "authority": "FPBENCH_WOULD_HAVE_TO_CHOOSE",
+      "key": "whether_rotation_augmentation_belongs_to_inference",
+      "question": "Does the image get rotated before extraction at inference time?",
+      "settled": false,
+      "upstream_statements": [
+        {
+          "note": "returns the name 'nearest_minutiae', which the function never assigns \u2014 the assignment is commented out, so the function raises NameError on its first call",
+          "runnable_as_written": false,
+          "says": "rotate_image_and_extract_minutaie_points rotates 90 degrees clockwise unconditionally and is driven 4 times per image, feeding each rotation back as the next input",
+          "source": "scripts/utils/generate_encodings_for_matching.py"
+        },
+        {
+          "note": "the non-rotating variant was deleted rather than disabled",
+          "runnable_as_written": false,
+          "says": "the commented-out branch calls load_image_and_extract_minutaie_points, which is defined nowhere in the file",
+          "source": "scripts/utils/generate_encodings_for_matching.py"
+        },
+        {
+          "runnable_as_written": false,
+          "says": "assembles a feature vector with no rotation at all",
+          "source": "scripts/extractor/visualise_feature_vector.py"
+        }
+      ],
+      "why": "the only surviving image-to-features function rotates, and it is a training-data generator producing four rotations of one image as four rows. Whether inference should rotate zero times or once is a question upstream never asks, and the answer moves every coordinate, every core distance and every neighbour distance in the vector"
+    },
+    {
+      "answer": "an explicit non-result: the assembly returns an empty frame and the caller skips the image. In fpbench's vocabulary that is EXPLICIT_ALGORITHMIC_NON_RESULT",
+      "authority": "SINGLE_UNAMBIGUOUS_UPSTREAM_IMPLEMENTATION",
+      "key": "what_happens_if_no_core_is_detected",
+      "question": "CoreNet finds nothing. What is the result?",
+      "settled": true,
+      "upstream_statements": [
+        {
+          "runnable_as_written": false,
+          "says": "if len(core_point) == 0: return pd.DataFrame()",
+          "source": "scripts/utils/generate_encodings_for_matching.py"
+        },
+        {
+          "runnable_as_written": false,
+          "says": "the same guard, first clause of the same condition",
+          "source": "scripts/extractor/visualise_feature_vector.py"
+        }
+      ],
+      "why": "both assemblies state the condition and return from it. This is the shape of a refusal an algorithm owns, and the result set would record it as one"
+    },
+    {
+      "answer": null,
+      "authority": "FPBENCH_WOULD_HAVE_TO_CHOOSE",
+      "key": "what_happens_below_the_required_minutiae_count",
+      "question": "Fewer minutiae are found than the model's input needs. Then what?",
+      "settled": false,
+      "upstream_statements": [
+        {
+          "note": "parsed: the assembly contains no len(...) < comparison",
+          "runnable_as_written": false,
+          "says": "no count guard. nsmallest returns however many rows exist and the caller tests only .empty, so a short vector reaches a model whose input shape is fixed",
+          "source": "scripts/utils/generate_encodings_for_matching.py"
+        },
+        {
+          "note": "parsed: an explicit count guard is present",
+          "runnable_as_written": false,
+          "says": "len(minutiae_data) < MINUTIAE_NUM: return an empty frame",
+          "source": "scripts/extractor/visualise_feature_vector.py"
+        },
+        {
+          "note": "a second failure mode, earlier than the model, and also unstated",
+          "runnable_as_written": true,
+          "says": "below 6 minutiae, find_n_nearest_minutiae returns fewer than 5 distances and the enhanced array becomes ragged",
+          "source": "src/fingerflow/matcher/VerifyNet/utils.py"
+        }
+      ],
+      "why": "the two assemblies classify the same input in opposite ways. One produces an explicit algorithmic non-result; the other produces an unhandled shape error inside predict. Under this stage's own failure split those are not two spellings of one outcome \u2014 one is a refusal the result set records, the other is a route defect that disqualifies the candidate (docs/adr/0131). Upstream declares no default"
+    },
+    {
+      "answer": null,
+      "authority": "FPBENCH_WOULD_HAVE_TO_CHOOSE",
+      "key": "which_verify_net_precision_and_checkpoint",
+      "question": "Which of the five published VerifyNet weights is the matcher?",
+      "settled": false,
+      "upstream_statements": [
+        {
+          "runnable_as_written": true,
+          "says": "publishes VerifyNet 10, 14, 20, 24 and 30, none marked default",
+          "source": "README.md"
+        },
+        {
+          "runnable_as_written": false,
+          "says": "the usage example is Matcher(30, \"verify_net\")",
+          "source": "README.md"
+        },
+        {
+          "note": "the only upstream code that constructs a matcher and calls verify",
+          "runnable_as_written": true,
+          "says": "Matcher(20, WEIGHTS_20)",
+          "source": "scripts/matcher/evaluate_matcher.py"
+        },
+        {
+          "note": "a tendency, which ranks the options without selecting one",
+          "runnable_as_written": true,
+          "says": "'in general, the more minutiae points the higher precision'",
+          "source": "README.md"
+        }
+      ],
+      "why": "the README's example and the only runnable matcher script disagree, and precision is not separable from the retained count \u2014 the model's input is (precision, 9, 1), so choosing one chooses the other. Five published checkpoints and no declared default is the textbook case for this gate's last rule"
+    }
+  ],
+  "read_from": "the pinned upstream sources, parsed",
+  "route_steps": [
+    "canonical_500 PNG",
+    "extractor.utils.preprocess_image_data \u2014 BGR2GRAY, crop to a multiple of 8",
+    "MinutiaeNet: CoarseNet + FineNet \u2014 candidate minutiae and their scores",
+    "ClassifyNet \u2014 the class column",
+    "CoreNet (YOLOv4) \u2014 core bounding boxes and their scores",
+    "core selection + core_distance + minutiae subset  << NOT IN THE PACKAGE >>",
+    "VerifyNet/utils.enhance_minutiae_points \u2014 drop x,y, append 5 neighbour distances",
+    "VerifyNet/utils.preprocess_predict_input",
+    "Matcher.verify -> VerifyNet.verify_fingerprints -> model.predict",
+    "float confidence"
+  ],
+  "schema": "stage_16a_upstream_inference_route_v1",
+  "settled_questions": [
+    "which_core_is_selected",
+    "how_minutiae_are_ordered",
+    "how_nearest_minutiae_selection_works",
+    "how_coordinates_are_made_core_relative",
+    "whether_angles_are_transformed",
+    "what_happens_if_no_core_is_detected"
+  ],
+  "settling_authorities": [
+    "OFFICIAL_INFERENCE_EXAMPLE",
+    "SINGLE_UNAMBIGUOUS_UPSTREAM_IMPLEMENTATION",
+    "UPSTREAM_DECLARED_DEFAULT"
+  ],
+  "source_digests": {
+    "README.md": "f80536538425ef936dab662c6872ccd5c7beb1fe0cdcc18bf934904a3902fed3",
+    "requirements.txt": "33f240b71e72672d9483c9f8775bec62f8556f7a35c24a7ec1aabab1a1b0e949",
+    "scripts/extractor/visualise_feature_vector.py": "80d8d43805c6e9d4801106fcf464cc0ae2b419ab573ac68ef08e52a3b4b4b3e1",
+    "scripts/matcher/evaluate_matcher.py": "7b44e555569ec17328610e572ae6c769e43b576074f97aa66103e265552ade96",
+    "scripts/matcher/utils/utils.py": "c2a00b3eba38ab9d68a73a2ce088e341535efb5516a7d894dfbdb47437914224",
+    "scripts/utils/change_minutiae_count.py": "a75d0c9e1533d615b78eed1b8e06f891f5cf0632aa1f61b2122ab6dd13c83ffb",
+    "scripts/utils/generate_encodings_for_matching.py": "0e6beb1b6676d13273fc3e178076cd979b97717728b67211161839bb0d1d9fa5",
+    "src/fingerflow/extractor/ClassifyNet/utils.py": "11f47ba84ada8e95816d23b3996593accf84c74b8111074682bc31e041b88bd8",
+    "src/fingerflow/extractor/CoreNet/utils.py": "df0ba071e7b52b94e06c1b4fa4a259487058812991ec4e51a5760da42b01fa94",
+    "src/fingerflow/extractor/core_net.py": "7d2bf80c9412a4a304d59be63058ee8dc2b6650d14f346795f3ddfe8f7314175",
+    "src/fingerflow/extractor/extractor.py": "bf348e74be2a6d7515b05efbee21bb65d37c4c85e4772dbd24c2f2d68ed33e17",
+    "src/fingerflow/extractor/utils.py": "795559d766b5f12214235330ed397fbf18bb0402ed2dac8085bfc59b2c302869",
+    "src/fingerflow/matcher/VerifyNet/constants.py": "2a40cec5998260960caeb99a37ef8662bab9f42646e7658342855a7e4512fcc2",
+    "src/fingerflow/matcher/VerifyNet/utils.py": "e357ea89aed1483c073dde5244afa8248884fb360e63da9159c5394efdf7d84e",
+    "src/fingerflow/matcher/VerifyNet/verify_net_model.py": "1a01e6c36b520f8b8139312c8b289ba64e19e8f5fcbe38471b4b965e9bf0b31d",
+    "src/fingerflow/matcher/matcher.py": "bd59dea36519514805d002fff37db2a468f4bb8a8aee54b2089c7414e8f6a0be",
+    "src/fingerflow/matcher/verify_net.py": "6435e0c6019ff110dcb4241035584d850a3afb4cab5acc777cb1fd36583eb4c5"
+  },
+  "sources_present": true,
+  "unsettled_questions": [
+    "how_many_minutiae_are_retained",
+    "whether_rotation_augmentation_belongs_to_inference",
+    "what_happens_below_the_required_minutiae_count",
+    "which_verify_net_precision_and_checkpoint"
+  ],
+  "upstream_commit": "a0a53259ec575704d19ae0ae770335536e567583",
+  "where_feature_assembly_lives": [
+    "scripts/utils/generate_encodings_for_matching.py",
+    "scripts/extractor/visualise_feature_vector.py"
+  ],
+  "why_no_experiments": "picking the alternative that produces more or better scores would choose the algorithm's route out of the evaluation data. The rule is upstream authority or FAIL (docs/adr/0132)"
+}

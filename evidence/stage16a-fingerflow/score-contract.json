@@ -1,0 +1,42 @@
+{
+  "argument_binding": {
+    "averaged": false,
+    "maximum_of_both_orderings": false,
+    "pair.left": "anchor",
+    "pair.right": "sample",
+    "reversed": false
+  },
+  "calibration": "NONE",
+  "candidate_id": "fingerflow_3_0_1",
+  "entry_point": "fingerflow.matcher.Matcher.verify",
+  "entry_signature": [
+    "anchor",
+    "sample"
+  ],
+  "gate": "SCORE_CONTRACT_FREEZE",
+  "gate_state": "NOT_REACHED",
+  "schema": "stage_16a_score_contract_v1",
+  "score_direction": "HIGHER_MORE_SIMILAR",
+  "score_native_type": "float",
+  "score_range": "UNSPECIFIED",
+  "score_transform": "NONE",
+  "symmetry_repairs_refused": [
+    "averaging",
+    "maximum_of_both_orderings"
+  ],
+  "symmetry_required": false,
+  "threshold": "NONE",
+  "upstream_readme_range": "0-1",
+  "upstream_readme_range_is_fpbench_contract": false,
+  "what_the_artifact_shows": {
+    "final_layer": "Dense(1, activation='sigmoid')",
+    "observed_python_type": "numpy.float32",
+    "observed_under": "the frozen closure, loading VerifyNet-30.h5 at precision 30 and calling verify on two synthetic six-column arrays",
+    "threshold_inside_verify": "NONE",
+    "type_note": "numpy.float32 is widened to a Python float for storage; that is a type normalisation and not a score transformation",
+    "verify returns one scalar": true
+  },
+  "why_not_reached": "G2 did not close the route, so there is no defined feature vector to hand verify and no comparison to make. The contract above is what the artifact establishes about the matcher alone, which was never the part in question",
+  "why_range_is_unspecified": "the sigmoid bounds the value by construction and the README says 0-1, but a published range is the first thing a later stage would build an operating point on. It is recorded as observed, not frozen as a contract",
+  "why_symmetry_is_tested_not_assumed": "verify runs both sides through one shared embedding network and combines them with a euclidean distance, which is symmetric in principle \u2014 but a BatchNormalization layer sits between that distance and the sigmoid. If the two orderings differ the orientation is frozen, never repaired (docs/adr/0109)"
+}

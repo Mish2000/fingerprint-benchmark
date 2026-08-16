@@ -1,0 +1,29 @@
+{
+  "algorithm_5_acceptance_conditions": [
+    "the inference route is upstream-authoritative and closed",
+    "no systemic implementation exception on valid fingerprint input",
+    "extraction and matching do not collapse from an internal defect across the dataset",
+    "a materially large number of score-bearing comparisons between two different impressions"
+  ],
+  "algorithm_failures": 0,
+  "at_least_one_score_is_not_sufficient": true,
+  "calibration": false,
+  "duplicates": 0,
+  "expected_comparisons": 6000,
+  "failures_recorded_as_zero": false,
+  "gate": "RESULT_INTEGRITY_AND_ALGORITHM_5_DECISION",
+  "gate_state": "NOT_REACHED",
+  "infrastructure_failures": 0,
+  "metrics": false,
+  "missing": 6000,
+  "prior_algorithm_scores_read": false,
+  "route_failures": 0,
+  "schema": "stage_16a_result_integrity_v1",
+  "score_export": false,
+  "score_statistics_published": false,
+  "scores": 0,
+  "stored_outcomes": 0,
+  "thresholds": false,
+  "why_not_reached": "there is no result set. The stage closed at G2 and executed nothing",
+  "why_the_fourth_condition_has_no_number": "a count invented after seeing the data is a threshold chosen from the evaluation set. If a candidate approaches Stage 15A's extreme the stage stops before the marker and the judgement is made on the mechanism, by a person (docs/adr/0130)"
+}

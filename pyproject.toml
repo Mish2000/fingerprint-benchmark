@@ -83,4 +83,7 @@ markers = [
     "stage15a: the committed Stage 15A fingerprints-matching evidence gate (no dataset, no runtime and no prior-result workspace)",
     "stage15a_full_run: the Stage 15A workspace — the canonical 6,000 comparisons under fingerprints-matching (needs the dataset manifests, the frozen runtime and the finished SourceAFIS chain)",
     "fingerprints_matching_artifact: needs the pinned fingerprints-matching artifacts and the frozen runtime in the local third-party store (set FPBENCH_THIRD_PARTY_ROOT); never runs in CI",
+    "stage16a_contract: the frozen Stage 16A FingerFlow qualification — the candidate identity and its pinned commit, the nine checkpoint digests and the dead-mirror rule, the seven gates and fail-fast, the four route authorities and the one that fails, the refusal to break a route tie by experiment, the explicit-refusal against unhandled-exception split, the predecessor record that cites a mechanism and never a score, the retired at-least-one-score criterion, and a marker that cannot establish Algorithm 5 over an unclosed route (pure Python, no package, no TensorFlow, no checkpoint, no network and no dataset)",
+    "stage16a: the committed Stage 16A FingerFlow evidence gate (no dataset, no runtime and no prior-result workspace)",
+    "fingerflow_artifact: needs the pinned FingerFlow distributions, the nine published checkpoints and the pinned upstream sources in the local third-party store (set FPBENCH_THIRD_PARTY_ROOT); never runs in CI",
 ]

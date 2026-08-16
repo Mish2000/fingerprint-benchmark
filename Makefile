@@ -26,7 +26,9 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
         stage15a-contract stage15a-evidence stage15a-artifacts stage15a-acquire \
         stage15a-runtime stage15a-runtime-verify stage15a-route stage15a-qualify \
         stage15a-preflight stage15a-status stage15a-integrity stage15a-verify \
-        stage15a-documents stage15a-publish
+        stage15a-documents stage15a-publish \
+        stage16a-contract stage16a-evidence stage16a-acquire stage16a-artifacts \
+        stage16a-route stage16a-verify stage16a-documents stage16a-publish
 
 help:
 	@echo "test                    unit + integration, no dataset, no Java, no full run"
@@ -140,6 +142,13 @@ help:
 	@echo "stage15a-integrity      G6: the integrity pass over the stored outcomes"
 	@echo "stage15a-documents      write the seven derivable evidence documents (commit them, then publish)"
 	@echo "stage15a-publish        write the marker too; refuses a result set that is not score-bearing"
+	@echo "stage16a-contract       the FingerFlow qualification: seven gates, the route authorities, the failure split"
+	@echo "stage16a-evidence       verify the committed Stage 16A evidence"
+	@echo "stage16a-acquire        fetch the distributions, the nine checkpoints and the pinned sources; check every digest"
+	@echo "stage16a-artifacts      G1: the artifact and runtime closure, re-hashed"
+	@echo "stage16a-route          G2: the ten route questions, parsed from the pinned upstream sources"
+	@echo "stage16a-documents      write the seven derivable evidence documents (write the README, commit, then publish)"
+	@echo "stage16a-publish        write the marker too; refuses Algorithm 5 over an unclosed route"
 	@echo "stage8c-workspace       Stage 8C alignment and preflight over the real inputs"
 	@echo "stage8c-verify          re-derive and print the Stage 8C evidence-only verification"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
@@ -902,3 +911,29 @@ stage15a-documents:
 
 stage15a-publish:
 	$(STAGE15A) publish
+
+STAGE16A := python -m fpbench.experiments.stage16a_finalization
+
+stage16a-contract:
+	pytest -m "stage16a_contract" -q
+
+stage16a-evidence:
+	pytest -m "stage16a" -q
+
+stage16a-acquire:
+	python -m fpbench.experiments.stage16a_acquire
+
+stage16a-artifacts:
+	python -m fpbench.experiments.stage16a_artifacts
+
+stage16a-route:
+	python -m fpbench.experiments.stage16a_route
+
+stage16a-verify:
+	$(STAGE16A) verify
+
+stage16a-documents:
+	$(STAGE16A) documents
+
+stage16a-publish:
+	$(STAGE16A) publish

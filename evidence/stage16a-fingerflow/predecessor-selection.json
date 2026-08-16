@@ -1,0 +1,58 @@
+{
+  "algorithm_slot": "algorithm_5",
+  "bound_markers": [
+    {
+      "finalization_fingerprint": "9377dc90d27a09521675d9e0f7fb33e0c60678e822f33d2bf05e84045062ff2f",
+      "outcome": "FINGERPRINTS_MATCHING_CANONICAL500_RAW_COMPLETE",
+      "stage": "15A",
+      "why": "the predecessor candidate. Its evidence stands unmodified and its scores were not read; only its extraction mechanism is cited. The fingerprint is the one Stage 15A carries after its result set id was bound into the marker that had published it as null \u2014 an evidence correction, with no rerun and no conclusion moved"
+    },
+    {
+      "finalization_fingerprint": "3d271490edda9e3e9d066485c2d93e82e2eceb4556668df7d65a8207e591684c",
+      "outcome": "VERIFINGER_CANONICAL500_RAW_COMPLETE",
+      "stage": "11B",
+      "why": "Algorithm 4's 6,000 published outcomes, and the run this one would be aligned against. Bound and never read for its scores"
+    },
+    {
+      "finalization_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
+      "outcome": "RESEARCH_ONLY_THIRD_PARTY_POLICY_READY",
+      "stage": "8E",
+      "why": "the third-party research-use policy, reused and not reopened"
+    }
+  ],
+  "candidate_id": "fingerflow_3_0_1",
+  "evidence": [
+    "route deterministic",
+    "matcher stage succeeds whenever both sides extract",
+    "widespread failures originate in feature extraction",
+    "single invalid contour aborts an otherwise processable image",
+    "remediation would require modifying upstream algorithm"
+  ],
+  "forbidden_reads": [
+    "sourceafis_scores",
+    "nbis_scores",
+    "flx_scores",
+    "verifinger_scores",
+    "fingerprints_matching_scores"
+  ],
+  "how_the_successor_was_chosen": "it was already chosen. fingerflow_3_0_1 is the reserve candidate Stage 15A's own predecessor-selection record names, under a selection policy that predates any result from either candidate",
+  "predecessor_scores_read": false,
+  "prior_algorithm_scores_read": false,
+  "reason": "STRUCTURAL_EXTRACTION_ROUTE_FAILURE",
+  "reason_is_not": [
+    "low genuine scores",
+    "poor discrimination",
+    "worse than another matcher"
+  ],
+  "schema": "stage_16a_predecessor_selection_v1",
+  "selection_policy": {
+    "runnable_without_vendor_action": "HARD_REQUIREMENT",
+    "self_service_acquisition": "HARD_REQUIREMENT"
+  },
+  "stage15a_evidence_modified": false,
+  "stage15a_outcome": "FINGERPRINTS_MATCHING_CANONICAL500_RAW_COMPLETE",
+  "stage15a_raw_results_modified": false,
+  "stage15a_rerun": false,
+  "stage15a_selected_for_algorithm_5": false,
+  "why_the_mechanism_and_not_the_scores": "a score distribution cannot distinguish an algorithm that is strict from one that is broken, and Stage 15A was both complete and valid while being unusable. Choosing a successor on separation or on genuine-score counts would also rank two algorithms before there is a common operating point between any of the five, which every stage since 7D has refused to do"
+}

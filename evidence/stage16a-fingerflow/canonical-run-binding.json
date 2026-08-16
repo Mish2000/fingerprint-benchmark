@@ -1,0 +1,48 @@
+{
+  "cohort_selected_here": false,
+  "execution": {
+    "max_workers": 1,
+    "profile_id": "fingerflow_canonical500_sequential_no_retry_v1",
+    "retries": 0
+  },
+  "expected": {
+    "comparisons": 6000,
+    "logical_extractions": 12000,
+    "match_invocations": 6000,
+    "participating_images": 3000,
+    "per_release_stage": 500,
+    "releases": [
+      "SD300A",
+      "SD300B",
+      "SD300C"
+    ]
+  },
+  "experiment_id": "fingerflow_canonical500_full_v1",
+  "gate": "CANONICAL500_RAW_EXECUTION",
+  "gate_state": "NOT_REACHED",
+  "images_materialised_here": false,
+  "pairs_generated_here": false,
+  "plan_id": null,
+  "preparation": {
+    "set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+    "set_id": "prepset_be560e047991",
+    "target_ppi": 500,
+    "transform_profile_fingerprint": "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373",
+    "transform_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+    "transform_runtime_fingerprint": "31a0a4346a3dd07843513cc1de5b167d8f2795b230a82bac709913032b74579c"
+  },
+  "reference": {
+    "cohort_id": "sd300_50_subjects_test_22f8d52a7478",
+    "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+    "plan_id": "plan_b4ae66e91923",
+    "result_set_id": "resultset_087b084fb8a8",
+    "run_id": "run_4c59fa02a6ab"
+  },
+  "result_set_id": null,
+  "run_id": null,
+  "schema": "stage_16a_canonical_run_binding_v1",
+  "sd300_images_opened": 0,
+  "sd300_pilot_before_the_run": false,
+  "why_no_pilot": "a pilot over the evaluation set is an SD300 run nobody counted. The qualification runs on non-SD300 fixtures and the 6,000 are the production execution",
+  "why_not_reached": "no adapter was frozen, because G5 requires G1 through G4 to pass and G2 did not. Nothing was executed and no SD300 image was opened"
+}

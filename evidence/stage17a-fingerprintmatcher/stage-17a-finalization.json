@@ -9,13 +9,13 @@
   "blocker": "BOOLEAN_OR_THRESHOLD_ONLY_OUTPUT",
   "bound_markers": [
     {
-      "finalization_fingerprint": "78bec17615d59e3362c6ed8b1fae35564d8262f471a01ded3c7be9c5a8f8d670",
+      "finalization_fingerprint": "4d3c881c2461474a3b6b288e351bddfc2b248937cd07f494d2a5dbc1e4be2f87",
       "outcome": "FINGERFLOW_ROUTE_CLOSURE_FAIL",
       "stage": "16A",
       "why": "the predecessor candidate, closed at its route gate. It left Algorithm 5 open with no reserve named, which is why this stage exists"
     },
     {
-      "finalization_fingerprint": "9377dc90d27a09521675d9e0f7fb33e0c60678e822f33d2bf05e84045062ff2f",
+      "finalization_fingerprint": "3c1711e2732b81b41ccd610540295cf70dc3308332731b54b2a6e95f4d30927c",
       "outcome": "FINGERPRINTS_MATCHING_CANONICAL500_RAW_COMPLETE",
       "stage": "15A",
       "why": "the algorithm whose slot is still contested. Bound and never read for its scores"
@@ -31,7 +31,7 @@
   "calibration_roster": [],
   "candidate_id": "fingerprintmatcher_1_0_6",
   "canonical_run_executed": false,
-  "created_utc": "2026-08-16T10:12:23Z",
+  "created_utc": "2026-08-16T10:29:11Z",
   "decision_profile_produced": false,
   "display_name": "fingerprintMatcher 1.0.6",
   "entry_point": "fingerprintmatcher.fingerprintMatcher.match_fingerprints",
@@ -95,10 +95,10 @@
   "sd300_images_opened": 0,
   "self_service_acquisition": true,
   "source_artifact_sha256": "50692faf63ca8bccb83ea8a2adfac7284e389b05bc19347c86a513a85f868411",
-  "source_commit": "68f6640c6e6269119968b8b5ba579155f99858eb",
+  "source_commit": "423d69fa52462066b92759f3d1d752b7c4647e04",
   "source_tree_clean": true,
-  "stage17a_source_fingerprint": "b5f2f33275f3097c874f5f6162e2d1572ebeb21c3e6bf45a64a2a2fd86d51622",
-  "stage_17a_finalization_fingerprint": "14adbbd3729d03d7e1bf20bc321f7372693c4d575eabbc84bc8ca653a89f56ce",
+  "stage17a_source_fingerprint": "853f06c261e25d9c6526dbe9d28d0c1d8f5970c9ad17afc1064dc593d2a311b3",
+  "stage_17a_finalization_fingerprint": "1ad023093c8bdaf67e0901621b1db07d10bdf8da9b6524ea06cd9cd63a975781",
   "stdout_parsed_for_a_score": false,
   "stored_outcomes": 0,
   "third_party_bytes_added_to_git": false,

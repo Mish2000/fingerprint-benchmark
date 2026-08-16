@@ -1,0 +1,49 @@
+{
+  "authority_is_the_distribution": true,
+  "candidate_id": "fingerprintmatcher_1_0_6",
+  "declared_dependencies": [
+    "opencv-python>=4.9.0",
+    "opencv-contrib-python"
+  ],
+  "declared_dependencies_are_contradictory": true,
+  "gate": "OFFICIAL_ARTIFACT_IDENTITY",
+  "gate_state": "PASS",
+  "implementation_origin": "OPEN_SOURCE_PYPI_ARTIFACT",
+  "license": "MIT",
+  "module": {
+    "expected_sha256": "590edeae5835576729cf3529d4c371230dbdc36bd3f9b06c1b88f75535c59652",
+    "name": "fingerprintmatcher.py",
+    "sdist_and_wheel_are_identical": true,
+    "sdist_sha256": "590edeae5835576729cf3529d4c371230dbdc36bd3f9b06c1b88f75535c59652",
+    "wheel_sha256": "590edeae5835576729cf3529d4c371230dbdc36bd3f9b06c1b88f75535c59652",
+    "why_this_is_checked": "a package whose two distributions ship different modules has no single answer to 'what does it do', and this stage's whole method is to read one file"
+  },
+  "package": "fingerprintMatcher==1.0.6",
+  "published_distributions": [
+    {
+      "expected_sha256": "50692faf63ca8bccb83ea8a2adfac7284e389b05bc19347c86a513a85f868411",
+      "expected_size_bytes": 3008,
+      "matches": true,
+      "name": "fingerprintMatcher-1.0.6.tar.gz",
+      "present": true,
+      "role": "published_sdist"
+    },
+    {
+      "expected_sha256": "4491a191b6f874acdfe287fb47bff788d6b01c88e71d4c247e3fd7baceb2e5b2",
+      "expected_size_bytes": 3126,
+      "matches": true,
+      "name": "fingerprintMatcher-1.0.6-py3-none-any.whl",
+      "present": true,
+      "role": "published_wheel"
+    }
+  ],
+  "schema": "stage_17a_artifact_identity_v1",
+  "self_service_acquisition": true,
+  "store_is_outside_repository": true,
+  "third_party_bytes_added_to_git": false,
+  "upstream_index": "https://pypi.org/project/fingerprintMatcher/1.0.6/",
+  "upstream_repository": "https://github.com/Tharunk07/fingerprintMatcher",
+  "vendor_or_author_request_required": false,
+  "why_contradictory": "opencv-python and opencv-contrib-python are alternative builds of the same cv2 module and are not supported side by side. The entry point calls cv2.xfeatures2d.SIFT_create, which the main distribution does not provide: on opencv-python 5.0.0, cv2 exposes SIFT_create at the top level and has no xfeatures2d attribute at all. Recorded as an observation; the gate does not turn on it",
+  "why_not_the_repository": "the official repository does not presently show fingerprintmatcher.py at its root, and PyPI is what a `pip install` resolves. The bytes that would run are the bytes that get read"
+}

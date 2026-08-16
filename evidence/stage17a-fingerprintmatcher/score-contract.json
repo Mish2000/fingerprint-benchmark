@@ -1,0 +1,57 @@
+{
+  "additional_findings_not_gate_conclusions": [
+    {
+      "detail": "knnMatch(k=2) yields a shorter list for a query with fewer than two neighbours, and unpacking it into two names raises ValueError on a valid image",
+      "hazard": "UNHANDLED_IMPLEMENTATION_EXCEPTION",
+      "where": "for p, q in matches"
+    },
+    {
+      "detail": "keypoints_count is min(len(keypoints_1), len(keypoints_2)) with no guard, so an image SIFT finds no keypoints in raises ZeroDivisionError rather than producing a refusal",
+      "hazard": "UNHANDLED_IMPLEMENTATION_EXCEPTION",
+      "where": "len(match_points) / keypoints_count"
+    }
+  ],
+  "blocker": "BOOLEAN_OR_THRESHOLD_ONLY_OUTPUT",
+  "calibration": "NONE",
+  "candidate_id": "fingerprintmatcher_1_0_6",
+  "decision_threshold": "NONE",
+  "entry_point": "fingerprintmatcher.fingerprintMatcher.match_fingerprints",
+  "entry_signature": [
+    "self",
+    "img1_path",
+    "img2_path"
+  ],
+  "findings": {
+    "docstring_declares_returns": "None",
+    "internal_decision_thresholds": [
+      "match_ratio > 0.95"
+    ],
+    "printed_observables": 3,
+    "ratio_expression": "match_ratio = len(match_points) / keypoints_count",
+    "ratio_is_returned": false,
+    "return_statements_carrying_a_value": 0
+  },
+  "fpbench_score_transformation": "NONE",
+  "gate": "RAW_SCORE_CONTRACT",
+  "gate_state": "FAIL",
+  "not_read_from": "the project's GitHub repository, its PyPI description, or any execution of the code",
+  "questions": [
+    "does the entry point return a native scalar before any decision is applied",
+    "is the score direction provable from the implementation"
+  ],
+  "read_from": "the published module, parsed out of the sdist and the wheel",
+  "returns_native_scalar_before_decision": false,
+  "schema": "stage_17a_score_contract_v1",
+  "score_direction": null,
+  "score_direction_provable_from_source": false,
+  "upstream_readme_confirms_it": {
+    "note": "a bare statement with nothing on the left of an =. Upstream's own documentation captures no value, because there is none",
+    "usage": "fingerprint_matcher.match_fingerprints(\"path/to/image1\", \"path/to/image2\")"
+  },
+  "what_recovering_a_score_would_require": [
+    "re-implementing the function to return match_ratio",
+    "or parsing the text it prints to stdout"
+  ],
+  "what_the_callable_actually_publishes": "a decision, announced on stdout, against a threshold its author chose. The similarity ratio is computed, compared with 0.95 and discarded; the matching branch prints a percentage of it and the non-matching branch prints no number at all",
+  "why_that_is_refused": "both make fpbench the author of the number. A benchmark that reconstructs a score its candidate declined to publish is measuring its own harness (docs/adr/0133)"
+}

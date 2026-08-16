@@ -28,7 +28,9 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
         stage15a-preflight stage15a-status stage15a-integrity stage15a-verify \
         stage15a-documents stage15a-publish \
         stage16a-contract stage16a-evidence stage16a-acquire stage16a-artifacts \
-        stage16a-route stage16a-verify stage16a-documents stage16a-publish
+        stage16a-route stage16a-verify stage16a-documents stage16a-publish \
+        stage17a-contract stage17a-evidence stage17a-acquire stage17a-artifacts \
+        stage17a-score stage17a-verify stage17a-documents stage17a-publish
 
 help:
 	@echo "test                    unit + integration, no dataset, no Java, no full run"
@@ -149,6 +151,13 @@ help:
 	@echo "stage16a-route          G2: the ten route questions, parsed from the pinned upstream sources"
 	@echo "stage16a-documents      write the seven derivable evidence documents (write the README, commit, then publish)"
 	@echo "stage16a-publish        write the marker too; refuses Algorithm 5 over an unclosed route"
+	@echo "stage17a-contract       the fingerprintMatcher qualification: the score contract, parsed"
+	@echo "stage17a-evidence       verify the committed Stage 17A evidence"
+	@echo "stage17a-acquire        fetch the two published PyPI distributions and check both digests"
+	@echo "stage17a-artifacts      G1: both distributions, and the one module they must agree on"
+	@echo "stage17a-score          G2: does match_fingerprints return a raw scalar at all"
+	@echo "stage17a-documents      write the three derivable evidence documents (commit them, then publish)"
+	@echo "stage17a-publish        write the marker too; refuses a score direction over a failed contract"
 	@echo "stage8c-workspace       Stage 8C alignment and preflight over the real inputs"
 	@echo "stage8c-verify          re-derive and print the Stage 8C evidence-only verification"
 	@echo "sourceafis-build        build the SourceAFIS Java bridge"
@@ -937,3 +946,29 @@ stage16a-documents:
 
 stage16a-publish:
 	$(STAGE16A) publish
+
+STAGE17A := python -m fpbench.experiments.stage17a_finalization
+
+stage17a-contract:
+	pytest -m "stage17a_contract" -q
+
+stage17a-evidence:
+	pytest -m "stage17a" -q
+
+stage17a-acquire:
+	python -m fpbench.experiments.stage17a_acquire
+
+stage17a-artifacts:
+	python -m fpbench.experiments.stage17a_score_contract artifacts
+
+stage17a-score:
+	python -m fpbench.experiments.stage17a_score_contract score
+
+stage17a-verify:
+	$(STAGE17A) verify
+
+stage17a-documents:
+	$(STAGE17A) documents
+
+stage17a-publish:
+	$(STAGE17A) publish

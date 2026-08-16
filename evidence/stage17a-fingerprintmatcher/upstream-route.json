@@ -1,0 +1,27 @@
+{
+  "candidate_id": "fingerprintmatcher_1_0_6",
+  "fpbench_refuses_to_add": [
+    "alignment",
+    "crop",
+    "enhancement",
+    "resize",
+    "roi",
+    "score_transform",
+    "segmentation",
+    "thresholding"
+  ],
+  "gate": "UPSTREAM_ROUTE_CLOSURE",
+  "gate_state": "NOT_REACHED",
+  "observed_without_being_a_gate_conclusion": {
+    "note": "the entry point does decode both images with cv2.imread and build SIFT features itself, so fpbench would not have had to supply preprocessing. That is recorded because it is true, and it does not rescue the stage"
+  },
+  "route_would_have_to_be": [
+    "image1, image2",
+    "package preprocessing",
+    "feature extraction",
+    "matching",
+    "raw scalar"
+  ],
+  "schema": "stage_17a_upstream_route_v1",
+  "why_not_reached": "the route gate asks whether every step from an image to a scalar belongs to upstream. G2 established that there is no scalar at the end of it, and a route to a number that does not exist is not a route with a gap in it"
+}

@@ -139,6 +139,7 @@ can be held to.
 | [0130](0130-a-candidate-is-not-replaced-because-of-its-scores.md) | A candidate is not replaced because of its scores | Accepted, implemented |
 | [0131](0131-a-refusal-and-a-crash-are-different-outcomes.md) | A refusal and a crash are different outcomes | Accepted, implemented |
 | [0132](0132-the-route-is-settled-by-authority-not-by-experiment.md) | The route is settled by authority, not by experiment | Accepted, implemented |
+| [0133](0133-a-score-the-package-does-not-return-is-not-its-score.md) | A score the package does not return is not its score | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

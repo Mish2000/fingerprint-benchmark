@@ -2215,16 +2215,38 @@ Stage 13A   algorithm 5 candidate — FingerCell 3.3 preflight           FAIL (n
 Stage 14A   algorithm 5 candidate — Griaule GBS SDK preflight          NON-FINAL, superseded
 Stage 15A   fingerprints-matching 0.1.0 — qualification and raw run    COMPLETE (6,000)
 Stage 16A   algorithm 5 candidate — FingerFlow 3.0.1 qualification    FAIL (route not closed)
+Stage 17A   algorithm 5 candidate — fingerprintMatcher 1.0.6         FAIL (returns no score)
 ```
 
-The four most recent stages have no narrative section of their own above; their
+The five most recent stages have no narrative section of their own above; their
 evidence reports are the write-up: [Stage
 13A](evidence/stage13a-fingercell-preflight/README.md), [Stage
 14A](evidence/stage14a-griaule-preflight/README.md), [Stage
-15A](evidence/stage15a-fingerprints-matching/README.md) and [Stage
-16A](evidence/stage16a-fingerflow/README.md). Each verifies with no
+15A](evidence/stage15a-fingerprints-matching/README.md), [Stage
+16A](evidence/stage16a-fingerflow/README.md) and [Stage
+17A](evidence/stage17a-fingerprintmatcher/README.md). Each verifies with no
 dataset, no package and no network — `make stage13a-evidence`,
-`make stage14a-evidence`, `make stage15a-evidence`, `make stage16a-evidence`.
+`make stage14a-evidence`, `make stage15a-evidence`, `make stage16a-evidence`,
+`make stage17a-evidence`.
+
+**Stage 17A read one file and stopped, on purpose.** `fingerprintMatcher` 1.0.6
+is the cleanest candidate on paper this project has seen — MIT, on PyPI, one pure
+Python file of 3 KB, no vendor, no checkpoint, no licence clock, and a documented
+`match_fingerprints(image1, image2)`. Its published module has **no `return`
+statement carrying a value**; its own docstring declares `Returns: None`; and the
+similarity ratio it computes is compared against a hard-coded `0.95` and
+discarded, with a percentage printed to stdout in the matching branch and no
+number at all in the other. What the package publishes is a decision on its
+author's threshold, not a score. Recovering the ratio would mean re-implementing
+the function or scraping its output, and both make fpbench the author of the
+number
+([ADR 0133](docs/adr/0133-a-score-the-package-does-not-return-is-not-its-score.md)).
+Nothing was installed, nothing was executed, no SD300 image was opened, and the
+marker refuses to publish a score direction for a package that returns no score.
+The stage's gate order is the lesson from the three before it, which each built
+acquisition, runtime or route machinery for a candidate that never reached it:
+**read the entry point and confirm it returns a value, before building
+anything.**
 
 **Stage 16A answered the coverage question by not filling the slot.** FingerFlow
 3.0.1 was Stage 15A's named reserve, and its artifact is in good order: MIT, on

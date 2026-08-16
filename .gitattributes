@@ -13,3 +13,4 @@ evidence/stage13a-fingercell-preflight/** text eol=lf
 evidence/stage14a-griaule-preflight/** text eol=lf
 evidence/stage15a-fingerprints-matching/** text eol=lf
 evidence/stage16a-fingerflow/** text eol=lf
+evidence/stage17a-fingerprintmatcher/** text eol=lf

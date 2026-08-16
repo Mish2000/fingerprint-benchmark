@@ -1,0 +1,109 @@
+{
+  "absolute_paths_in_evidence": false,
+  "adapter_frozen": false,
+  "algorithm_5_established": false,
+  "algorithm_id": "fingerprintmatcher_1_0_6",
+  "algorithm_ranking_published": false,
+  "algorithm_slot": "algorithm_5",
+  "authority_is_the_distribution": true,
+  "blocker": "BOOLEAN_OR_THRESHOLD_ONLY_OUTPUT",
+  "bound_markers": [
+    {
+      "finalization_fingerprint": "78bec17615d59e3362c6ed8b1fae35564d8262f471a01ded3c7be9c5a8f8d670",
+      "outcome": "FINGERFLOW_ROUTE_CLOSURE_FAIL",
+      "stage": "16A",
+      "why": "the predecessor candidate, closed at its route gate. It left Algorithm 5 open with no reserve named, which is why this stage exists"
+    },
+    {
+      "finalization_fingerprint": "9377dc90d27a09521675d9e0f7fb33e0c60678e822f33d2bf05e84045062ff2f",
+      "outcome": "FINGERPRINTS_MATCHING_CANONICAL500_RAW_COMPLETE",
+      "stage": "15A",
+      "why": "the algorithm whose slot is still contested. Bound and never read for its scores"
+    },
+    {
+      "finalization_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
+      "outcome": "RESEARCH_ONLY_THIRD_PARTY_POLICY_READY",
+      "stage": "8E",
+      "why": "the third-party research-use policy, reused and not reopened"
+    }
+  ],
+  "calibration_performed": false,
+  "calibration_roster": [],
+  "candidate_id": "fingerprintmatcher_1_0_6",
+  "canonical_run_executed": false,
+  "created_utc": "2026-08-16T10:12:23Z",
+  "decision_profile_produced": false,
+  "display_name": "fingerprintMatcher 1.0.6",
+  "entry_point": "fingerprintmatcher.fingerprintMatcher.match_fingerprints",
+  "evidence_content_hashes": {
+    "README.md": "a398533f53f64b7b6301407268ddbeed510f305a746e36d1b78ce7594be104da",
+    "artifact-identity.json": "2a9e27036d8ae6d9787002ce5dd7e341d6422d25b0bc46e9edccaa2d8b7cb254",
+    "score-contract.json": "23f191aec3b2e0a52f2a092da281b29764bd4ccb9d57067e968a0e6e9dc93a22",
+    "upstream-route.json": "ec2ced4bba3e8a63802851b978d3aea7e33e2d821d7e209384a4713755030cbf"
+  },
+  "fallback_candidate": null,
+  "gate_count_defined": 7,
+  "gate_order": [
+    "G1",
+    "G2",
+    "G3",
+    "G4",
+    "G5",
+    "G6",
+    "G7"
+  ],
+  "gate_reached_last": "RAW_SCORE_CONTRACT",
+  "gates": {
+    "CANONICAL500_RAW_EXECUTION": "NOT_REACHED",
+    "NON_SD300_QUALIFICATION": "NOT_REACHED",
+    "OFFICIAL_ARTIFACT_IDENTITY": "PASS",
+    "PRODUCTION_ADAPTER_FREEZE": "NOT_REACHED",
+    "RAW_SCORE_CONTRACT": "FAIL",
+    "RESULT_INTEGRITY_AND_ALGORITHM_5_DECISION": "NOT_REACHED",
+    "UPSTREAM_ROUTE_CLOSURE": "NOT_REACHED"
+  },
+  "immediate_stop_conditions": [
+    "BOOLEAN_OR_THRESHOLD_ONLY_OUTPUT",
+    "SCORE_DIRECTION_NOT_PROVABLE",
+    "FPBENCH_WOULD_HAVE_TO_SUPPLY_PREPROCESSING",
+    "UNHANDLED_SYSTEMATIC_IMPLEMENTATION_DEFECT_ON_VALID_FINGERPRINTS"
+  ],
+  "implementation_origin": "OPEN_SOURCE_PYPI_ARTIFACT",
+  "implementation_version": "1.0.6",
+  "internal_decision_thresholds": [
+    "match_ratio > 0.95"
+  ],
+  "kind": "stage_17a_finalization",
+  "license": "MIT",
+  "metrics_produced": false,
+  "module_sha256": "590edeae5835576729cf3529d4c371230dbdc36bd3f9b06c1b88f75535c59652",
+  "opens_common_calibration": false,
+  "outcome": "FINGERPRINTMATCHER_SCORE_CONTRACT_FAIL",
+  "package": "fingerprintMatcher==1.0.6",
+  "package_executed": false,
+  "package_installed": false,
+  "prior_algorithm_scores_consulted": false,
+  "reopens_algorithm_5_search": true,
+  "returns_native_scalar_before_decision": false,
+  "runnable_without_vendor_action": true,
+  "runtime_artifact_sha256": "4491a191b6f874acdfe287fb47bff788d6b01c88e71d4c247e3fd7baceb2e5b2",
+  "schema_version": "1",
+  "score_direction": null,
+  "score_direction_provable_from_source": false,
+  "score_reconstructed_by_fpbench": false,
+  "score_statistics_published": false,
+  "sd300_images_opened": 0,
+  "self_service_acquisition": true,
+  "source_artifact_sha256": "50692faf63ca8bccb83ea8a2adfac7284e389b05bc19347c86a513a85f868411",
+  "source_commit": "68f6640c6e6269119968b8b5ba579155f99858eb",
+  "source_tree_clean": true,
+  "stage17a_source_fingerprint": "b5f2f33275f3097c874f5f6162e2d1572ebeb21c3e6bf45a64a2a2fd86d51622",
+  "stage_17a_finalization_fingerprint": "14adbbd3729d03d7e1bf20bc321f7372693c4d575eabbc84bc8ca653a89f56ce",
+  "stdout_parsed_for_a_score": false,
+  "stored_outcomes": 0,
+  "third_party_bytes_added_to_git": false,
+  "threshold_produced": false,
+  "upstream_function_reimplemented": false,
+  "vendor_request_sent": false,
+  "why_not_complete": "match_fingerprints returns nothing. Its own docstring declares Returns: None, it contains no return statement carrying a value, and its only observable is printed text. The similarity ratio it computes is compared against a hard-coded 0.95 and discarded, so what the package publishes is a decision on somebody else's threshold rather than a raw score. Recovering the ratio would mean re-implementing the function or scraping stdout, and both make fpbench the author of the number (docs/adr/0133)"
+}

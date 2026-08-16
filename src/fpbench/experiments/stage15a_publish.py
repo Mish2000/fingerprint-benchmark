@@ -142,13 +142,19 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator t
         run_id = resolve_run_id(
             workspace=workspace, run_id=argv[1] if len(argv) > 1 else None
         )
+        from fpbench.core.errors import StorageError
         from fpbench.storage.plan_store import PlanStore
         from fpbench.storage.result_set_store import ResultSetStore
 
         plan = PlanStore(workspace).read_plan(run_id)
+        # ``read_result_set`` returns (manifest, entries); the identity lives on
+        # the manifest. Reading it off the tuple raised AttributeError, and the
+        # bare ``except Exception`` below turned that into "no result set" — so a
+        # run that had one published ``result_set_id: null``. Only a genuine
+        # absence may reach the fallback, which is why the catch is narrow now.
         try:
-            result_set_id = ResultSetStore(workspace).read_result_set(run_id).result_set_id
-        except Exception:  # noqa: BLE001 - absent before finalization
+            result_set_id = ResultSetStore(workspace).read_manifest(run_id).result_set_id
+        except StorageError:  # absent before finalization
             result_set_id = None
         integrity, report = build_integrity(
             workspace=workspace, repository_root=root, run_id=run_id

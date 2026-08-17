@@ -972,3 +972,34 @@ stage17a-documents:
 
 stage17a-publish:
 	$(STAGE17A) publish
+
+STAGE18A := python -m fpbench.experiments.stage18a_reference_run
+
+stage18a-contract:
+	pytest -m "stage18a_contract" -q
+
+stage18a-evidence:
+	pytest -m "stage18a" -q
+
+# Build the OpenAFIS raw 1:1 bridge. Needs FPBENCH_OPENAFIS_SOURCE pointing at the
+# pinned checkout; the binary lands in integrations/openafis/build/ and is ignored.
+stage18a-bridge:
+	$(MAKE) -C integrations/openafis all
+
+stage18a-status:
+	$(STAGE18A) status
+
+stage18a-extract:
+	$(STAGE18A) extract
+
+stage18a-match:
+	$(STAGE18A) match
+
+stage18a-run:
+	$(STAGE18A) run
+
+stage18a-receipt:
+	$(STAGE18A) receipt
+
+stage18a-diagnostics:
+	python -m fpbench.experiments.stage18a_diagnostics

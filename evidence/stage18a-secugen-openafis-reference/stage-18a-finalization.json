@@ -1,0 +1,91 @@
+{
+  "absolute_paths_in_evidence": false,
+  "algorithm_5_established": false,
+  "algorithm_ranking_published": false,
+  "algorithm_slot": "algorithm_5",
+  "bound_markers": [
+    {
+      "finalization_fingerprint": "1ad023093c8bdaf67e0901621b1db07d10bdf8da9b6524ea06cd9cd63a975781",
+      "outcome": "FINGERPRINTMATCHER_SCORE_CONTRACT_FAIL",
+      "stage": "17A",
+      "why": "the predecessor candidate, closed at its score-contract gate. It left Algorithm 5 open, which is why OpenAFIS was revisited"
+    },
+    {
+      "finalization_fingerprint": "3c1711e2732b81b41ccd610540295cf70dc3308332731b54b2a6e95f4d30927c",
+      "outcome": "FINGERPRINTS_MATCHING_CANONICAL500_RAW_COMPLETE",
+      "stage": "15A",
+      "why": "the algorithm whose slot is still contested. Bound and never read for its scores"
+    },
+    {
+      "finalization_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
+      "outcome": "RESEARCH_ONLY_THIRD_PARTY_POLICY_READY",
+      "stage": "8E",
+      "why": "the third-party research-use policy, reused and not reopened"
+    }
+  ],
+  "calibration_performed": false,
+  "canonical_input_pixels_identical_to_other_algorithms": false,
+  "completion_criterion": "stored == expected == 6000 and missing == 0; nothing else",
+  "created_utc": "2026-08-17T12:53:59Z",
+  "decision_profile_produced": false,
+  "evidence_content_hashes": {
+    "README.md": "62599924aa3058eb57d8911a8a398e5a04cf4ec4709c8db83c8972e7d48acfe1",
+    "openafis-identity.json": "48b1eb58c7cc9c094a9f4c266592226f1c90c2cff90cfbbec6e43c8d87f70b4f",
+    "private-run-binding.json": "ffa7e01d826c028e872d7f908249dfa3b81cd989e8116144eddbbce5c61e8ed2",
+    "route-contract.json": "cacca9cfda956954f9ee7be2bd634c2e50275b1aa63d5ded7a6deb220a54f597"
+  },
+  "expected_pair_outcomes": 6000,
+  "experiment_id": "secugen_openafis_private_reference_v1",
+  "failures_recorded_as_zero": false,
+  "forbidden_stage19_uses": [
+    "which MINDTCT quality cutoff",
+    "how many minutiae to keep",
+    "which angle conversion correlates better",
+    "which coordinate scaling produces more similar scores"
+  ],
+  "fpbench_score_transformation": "NONE",
+  "kind": "stage_18a_finalization",
+  "metrics_produced": false,
+  "minimum_coverage_criterion": null,
+  "minimum_score_count_criterion": null,
+  "missing": 0,
+  "not_requirements": [
+    "training provenance",
+    "SD300 training-overlap investigation",
+    "production adapter",
+    "registry integration",
+    "common calibration",
+    "threshold",
+    "TAR/FAR",
+    "statistical significance",
+    "cross-platform reproducibility",
+    "Linux SecuGen",
+    "performance optimization",
+    "vendor-quality documentation",
+    "score symmetry",
+    "minimum coverage criterion"
+  ],
+  "openafis_commit": "3ae1c757c6dafea977a33ef51380e37f1715e626",
+  "openafis_license": "BSD-2-Clause",
+  "openafis_repository": "neilharan/openafis",
+  "opens_common_calibration": false,
+  "outcome": "SECU_GEN_OPENAFIS_PRIVATE_RAW_COMPLETE",
+  "pair_orientation_fixed": true,
+  "production_adapter_built": false,
+  "publication_eligible": false,
+  "purpose": "PRIVATE_REFERENCE_ONLY",
+  "reference_pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "reference_preparation_set_id": "prepset_be560e047991",
+  "registry_integration": false,
+  "schema_version": "1",
+  "score_statistics_published": false,
+  "scores_in_evidence": false,
+  "stage": "18A",
+  "stage18a_source_fingerprint": "bb93ad42cddc24ea4e599d3fb18e2d425d43919c0072978cb7c224694bbde7a8",
+  "stage_18a_finalization_fingerprint": "3dc872147b57469cb42204e87674ae2cf3853400f92255e2e97077f90e6f2737",
+  "stored_pair_outcomes": 6000,
+  "threshold_applied": false,
+  "vendor_binaries_in_git": false,
+  "why_input_pixels_differ": "the frozen route resizes every image to 300x400 without preserving the aspect ratio, because that is the sensor geometry upstream's helper declares. SourceAFIS, NBIS, flx and VeriFinger all consumed the canonical 500 ppi images at their native dimensions. The pair manifest, its ordering, the probe side, the raw-integer storage and the failure/score split are identical; the pixels are not",
+  "zero_is_a_valid_raw_score": true
+}

@@ -1,0 +1,106 @@
+{
+  "algorithm_5_established": false,
+  "created_utc": "2026-08-17T12:35:16Z",
+  "diagnostics_forbidden": [
+    "TAR",
+    "FAR",
+    "FMR",
+    "EER",
+    "best threshold"
+  ],
+  "diagnostics_permitted": [
+    "template extraction coverage",
+    "score-bearing comparisons",
+    "score histogram 0..100",
+    "SELF distribution",
+    "PLAIN-ROLL mated distribution",
+    "same-subject/different-finger sanity distribution",
+    "score uniqueness / quantization",
+    "median / p95 extraction time",
+    "median / p95 OpenAFIS match time",
+    "A->B versus B->A differences"
+  ],
+  "experiment_id": "secugen_openafis_private_reference_v1",
+  "extraction": {
+    "coverage": 1.0,
+    "extraction_failures": 0,
+    "images_attempted": 3000,
+    "templates_produced": 3000,
+    "wall_seconds": null
+  },
+  "extractor_usage_authorization": {
+    "accepted_by": "the repository owner, explicitly and on the record, 2026-08-17",
+    "authorization_obtained_from_vendor": false,
+    "clause_3a": "prohibits using the SDK to process fingerprint images obtained from devices other than SecuGen devices",
+    "clause_3e": "prohibits competitive benchmarking",
+    "consequence": "this is the primary reason publication_eligible is false. These numbers must not appear in the supervisor comparison table or in any published result; Stage 19A (MINDTCT + OpenAFIS) carries no vendor terms and is the publishable route",
+    "eula_shipped_with_the_package": false,
+    "no_licence_or_protection_measure_was_circumvented": true,
+    "research_or_evaluation_exemption_found": false,
+    "sd300_capture_devices_are_secugen": false,
+    "status": "OWNER_RISK_ACCEPTED",
+    "vendor_terms_reviewed": "SecuGen SDK License Agreement, secugen.com/sdk-license-agreement, read 2026-08-17",
+    "why_it_was_accepted": "the run is a private reference that will not be published, and waiting for a vendor response was judged incompatible with the project's schedule"
+  },
+  "forbidden_stage19_uses": [
+    "which MINDTCT quality cutoff",
+    "how many minutiae to keep",
+    "which angle conversion correlates better",
+    "which coordinate scaling produces more similar scores"
+  ],
+  "inputs": {
+    "cohort_id": "sd300_50_subjects_test_22f8d52a7478",
+    "dataset_id": "sd300",
+    "image_count": 3000,
+    "pair_count": 6000,
+    "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+    "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+    "preparation_set_id": "prepset_be560e047991",
+    "protocol_id": "sd300_50_subjects",
+    "transform_profile_fingerprint": "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373",
+    "transform_profile_id": "canonical_gray8_500ppi_lanczos3_v1"
+  },
+  "kind": "stage_18a_private_run_binding",
+  "matching": {
+    "expected_pair_outcomes": 6000,
+    "missing": 0,
+    "status_counts": {
+      "OK": 6000
+    },
+    "stored_pair_outcomes": 6000,
+    "wall_seconds": null
+  },
+  "opens_common_calibration": false,
+  "orientation_probe": {
+    "identical": 2996,
+    "identical_fraction": 0.998667,
+    "is_a_blocker": false,
+    "max_abs_difference": 1,
+    "mean_abs_difference": 0.001333,
+    "note": "section 7C records symmetry and section 19 excludes it from the stage's requirements",
+    "reversed_pairs": 3000,
+    "self_pairs_excluded": true
+  },
+  "private_root_env_var": "FPBENCH_PRIVATE_ROOT",
+  "private_subdirectories": [
+    "sdk",
+    "templates",
+    "results",
+    "failures",
+    "timings"
+  ],
+  "publication_eligible": false,
+  "purpose": "PRIVATE_REFERENCE_ONLY",
+  "scores_are_not_published_here": true,
+  "stage": "18A",
+  "timings_ms": {
+    "extraction": {
+      "median": 28.5335,
+      "p95": 32.788
+    },
+    "match": {
+      "median": 0.122,
+      "p95": 0.568
+    }
+  }
+}

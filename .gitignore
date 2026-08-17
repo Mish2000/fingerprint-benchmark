@@ -37,3 +37,7 @@ integrations/*/target/
 # Stage 13A FingerCell bridge build output (links vendor libraries from the
 # local artifact store; the binary is a build artifact and never committed).
 integrations/fingercell-cpp/build/
+
+# Stage 18A OpenAFIS bridge build output (compiles the pinned upstream tree from
+# the local artifact store; the binary is a build artifact and never committed).
+integrations/openafis/build/

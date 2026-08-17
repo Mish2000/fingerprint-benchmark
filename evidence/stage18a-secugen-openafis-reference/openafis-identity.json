@@ -1,0 +1,62 @@
+{
+  "build": {
+    "compiler": "g++ 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1)",
+    "deviations_from_upstream_cmake": [
+      {
+        "dropped": "-Werror",
+        "why": "upstream pairs it with -Wall -Wextra -Wshadow -pedantic-errors and a 2021 tree does not compile clean under gcc 13; the stage is execution-first"
+      },
+      {
+        "dropped": "-fno-exceptions",
+        "why": "delaunator-cpp throws on degenerate minutiae; with exceptions off one bad template aborts the process and takes the rest of the run with it"
+      }
+    ],
+    "flags": "-std=c++17 -O3 -march=native -mtune=native -fstrict-aliasing",
+    "nothing_that_could_move_a_score_was_changed": true
+  },
+  "commit": "3ae1c757c6dafea977a33ef51380e37f1715e626",
+  "contract_files": {
+    "README.md": "b2c82af85ada49c7955ae24fc9e045d029224b9e9750f7c854a04b1931b0f687",
+    "data/extract.py": "3df2fc318bca2e2d2faf24e08484d25a7d4e98097712899f70013a510c76bb01",
+    "lib/Match.cpp": "46f254c24393112cc07b7fa452346e873edfc8a8971f9608197613f9694aa533",
+    "lib/Match.h": "0a5421178cce46a08ba80962ed4aeb4e51ec2198c9adb35255870dc830aac7a5",
+    "lib/Param.h": "058dca6dd906c8c21d93b43e0be614beca2580bfb01e6134387801e7a083b1c5",
+    "lib/Template.cpp": "c815a69b995aaa444a6b00be4e5827ab708874fbac18ca6003d337f6aea6acfa",
+    "lib/Template.h": "62a1aa0e408c32acfa8a07e01c9a5dcfa9ba63f5ece67a24c3b52735f43ee665",
+    "lib/TemplateCSV.cpp": "f1cf1752de526bcd178a5996e4b90b2fbcd0fd13978926ef82038307a23af1b5",
+    "lib/TemplateCSV.h": "b3f794391c39344e178013e6220a67d82013d3f0e6725c8a23258897d6db84ca",
+    "lib/TemplateISO19794_2_2005.cpp": "f1dc41b1e1d63b58ea3c8a03b4cbb7a3bd4e2380ea4cbf7dffba0f65d21fcb09",
+    "lib/TemplateISO19794_2_2005.h": "33724433966af079cd826ac838d0fa3003164bf1d6e89275cb37fd164939c5ca"
+  },
+  "kind": "stage_18a_openafis_identity",
+  "license": "BSD-2-Clause",
+  "license_sha256": "34bc04061cf0e76ec91a87d03f819fa6b3319b59fb5081f737a745ee5301596b",
+  "load_limits": {
+    "maximum_minutiae": 128,
+    "minimum_minutiae": 2,
+    "why_it_matters": "a template outside these bounds fails to load and is a documented per-pair status, not a score"
+  },
+  "repository": "neilharan/openafis",
+  "score_contract": {
+    "assigned_only_when": "maxMatched > Param::MinimumMinutiae (4)",
+    "direction": "HIGHER_MORE_SIMILAR",
+    "formula": "100 * maxMatched^2 / (probe_minutiae_count * candidate_minutiae_count)",
+    "formula_source": "lib/Match.cpp, read from the pinned tree and not from the README",
+    "native_type": "uint8_t",
+    "observed_maximum_exceeds_100": true,
+    "threshold": "NONE",
+    "transform": "NONE",
+    "why_maximum_exceeds_100": "the formula is an unclamped integer ratio, so a comparison whose matched structure exceeds the product of the two minutiae counts can land above 100. Observed in this run. Left exactly as upstream computes it",
+    "zero_is_a_valid_score": true
+  },
+  "stage": "18A",
+  "template_formats": {
+    "csv_layout": [
+      "line 1: width,height",
+      "each minutia: type,x,y,angle_in_radians"
+    ],
+    "fallback": "CSV (upstream calls it debug-only and instantiates it for no id type)",
+    "primary": "ISO/IEC 19794-2:2005"
+  },
+  "tree": "6d822f7744b4e522b03872e74f583c1897b1f63e"
+}

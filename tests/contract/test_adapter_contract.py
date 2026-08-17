@@ -75,6 +75,13 @@ _EXTERNAL_TOOLING = {
         (pytest.mark.nbis_upstream, pytest.mark.upstream, pytest.mark.openafis_artifact),
         "FPBENCH_REQUIRE_OPENAFIS",
     ),
+    # The Stage 19B variant, which needs a *separately built* bridge — the same
+    # source against a patched OpenAFIS tree. It takes part in this suite on the
+    # machine that has that build, and skips everywhere else.
+    "nbis_mindtct_openafis_capacity_extended_subprocess": (
+        (pytest.mark.nbis_upstream, pytest.mark.upstream, pytest.mark.openafis_artifact),
+        "FPBENCH_REQUIRE_OPENAFIS_19B",
+    ),
 }
 
 ADAPTER_PARAMS = [

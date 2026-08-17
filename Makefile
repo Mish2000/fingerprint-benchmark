@@ -1039,3 +1039,44 @@ stage19a-documents:
 	python -m fpbench.experiments.stage19a_finalization \
 	  --diagnostics $(FPBENCH_STAGE19A_ROOT)/diagnostic-report.json \
 	  --stored 6000 --missing 0
+
+# --------------------------------------------------------------------- Stage 19B
+#
+# The capacity extension: one disabled refusal in OpenAFIS, and proof it is the
+# only change. Gate A must pass before the run — if it fails there is no second
+# patch.
+
+stage19b-contract:
+	pytest -m "stage19b_contract" -q
+
+stage19b-evidence:
+	pytest -m "stage19b" -q
+
+# Patch the pinned tree and build the capacity-extended bridge.
+stage19b-build:
+	bash integrations/openafis/build_capacity_extended.sh
+
+# The 1,583-pair exact inertness test. Must pass before anything else runs.
+stage19b-gate-a:
+	python scripts/stage19b_gate_a.py
+
+stage19b-run:
+	python scripts/stage19b_canonical_run.py
+
+stage19b-determinism:
+	python scripts/stage19b_determinism.py
+
+stage19b-diagnostics:
+	python -m fpbench.experiments.stage19b_diagnostics \
+	  --outcomes $(FPBENCH_STAGE19B_ROOT)/pair-outcomes.jsonl \
+	  --stage19a-outcomes $(FPBENCH_STAGE19A_ROOT)/pair-outcomes.jsonl \
+	  --algorithm2-results workspace/results/run_f0468f28ffba/raw \
+	  --output $(FPBENCH_STAGE19B_ROOT)/diagnostic-report.json
+
+stage19b-documents:
+	python -m fpbench.experiments.stage19b_finalization \
+	  --gate-a $(FPBENCH_STAGE19B_ROOT)/gate-a.json \
+	  --diagnostics $(FPBENCH_STAGE19B_ROOT)/diagnostic-report.json \
+	  --patch $(FPBENCH_STAGE19B_ROOT)/patch-provenance.json \
+	  --translator-inertness $(FPBENCH_STAGE19B_ROOT)/translator-inertness.json \
+	  --stored 6000 --missing 0

@@ -158,6 +158,21 @@ def _ensure_builtin_adapters() -> None:
 
         register_adapter("nbis_mindtct_openafis_subprocess", OpenAfisAdapter.from_config)
 
+    if "nbis_mindtct_openafis_capacity_extended_subprocess" not in ADAPTERS:
+        # Stage 19B. The same route against an OpenAFIS build whose upper
+        # minutiae bound is disabled, and therefore a *different identity*: a
+        # score from a modified build must not be attributed to upstream
+        # (docs/adr/0136). Registered separately rather than as a setting of the
+        # one above, for the same reason the two NBIS routes are separate.
+        from fpbench.adapters.openafis.capacity_extended import (
+            OpenAfisCapacityExtendedAdapter,
+        )
+
+        register_adapter(
+            "nbis_mindtct_openafis_capacity_extended_subprocess",
+            OpenAfisCapacityExtendedAdapter.from_config,
+        )
+
     if "verifinger_java_subprocess" not in ADAPTERS:
         # Registering it requires neither Java, nor a licence, nor 4.7 GB of
         # vendor SDK. The adapter reports its own environment as UNAVAILABLE

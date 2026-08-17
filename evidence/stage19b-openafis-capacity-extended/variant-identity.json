@@ -1,0 +1,39 @@
+{
+  "adapter_id": "nbis_mindtct_openafis_capacity_extended_subprocess",
+  "algorithm_id": "nbis_mindtct_openafis_capacity_extended",
+  "algorithm_slot": "algorithm_5",
+  "base_openafis_commit": "3ae1c757c6dafea977a33ef51380e37f1715e626",
+  "compare_inherited_unchanged": true,
+  "display_name": "NBIS MINDTCT + OpenAFIS (capacity-extended)",
+  "is_an_independent_fifth_system": false,
+  "kind": "stage_19b_variant_identity",
+  "modification": "disable_template_upper_minutiae_rejection_for_stage19b_csv_route",
+  "overridden_methods": [
+    "__init__",
+    "from_config",
+    "_translate",
+    "validate_environment"
+  ],
+  "score_affecting_fields_identical_to_base_route": {
+    "angle_conversion": true,
+    "coordinate_scaling": true,
+    "dpi_policy": true,
+    "extractor_id": true,
+    "input_mode": true,
+    "mindtct_contrast_boost": true,
+    "mindtct_m1": true,
+    "minutia_type_policy": true,
+    "minutiae_filtering": true,
+    "minutiae_ordering": true,
+    "minutiae_quality_transferred": true,
+    "openafis_score_transform": true,
+    "openafis_threshold": true,
+    "probe_side": true,
+    "template_cache": true
+  },
+  "shares_extractor_with": "nbis_mindtct_bozorth3",
+  "stage": "19B",
+  "supervisor_disclosure": "NBIS MINDTCT + OpenAFIS (capacity-extended variant) — composition defined by the project. It shares the MINDTCT extractor with the NBIS/BOZORTH3 method and differs primarily in the matcher. The OpenAFIS source was minimally modified to permit CSV templates containing more than the upstream limit of 128 minutiae; the original behavior was verified unchanged on all 1,583 previously accepted comparisons.",
+  "upstream_modified": true,
+  "why_a_new_identity": "the score now comes from a build that does not behave like upstream; calling it nbis_mindtct_openafis would attribute our modification to OpenAFIS"
+}

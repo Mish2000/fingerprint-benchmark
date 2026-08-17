@@ -1,0 +1,227 @@
+{
+  "algorithm2_comparison": {
+    "algorithm_2": "nbis_mindtct_bozorth3",
+    "algorithm_2_score_bearing": 6000,
+    "algorithm_5": "nbis_mindtct_openafis",
+    "algorithm_5_score_bearing": 6000,
+    "both_score_bearing": 6000,
+    "differs_only_in": "the matcher",
+    "shared_extractor": "mindtct 5.0.0, same certified build",
+    "spearman_is_over_a_self_selected_subset": true,
+    "spearman_rank_correlation_on_common": 0.786532,
+    "why_no_better_or_worse": "the two scales are unrelated and no common operating point has been chosen; a comparison of accuracy needs calibration, which is a later stage"
+  },
+  "algorithm_id": "nbis_mindtct_openafis_capacity_extended",
+  "by_protocol_stage": [
+    {
+      "comparisons": 1500,
+      "distinct_values": 8,
+      "histogram": {
+        "0": 1293,
+        "1": 177,
+        "10": 1,
+        "2": 14,
+        "3": 7,
+        "4": 2,
+        "5": 2,
+        "6": 4
+      },
+      "label": "plain_roll_mated",
+      "max": 10,
+      "median": 0.0,
+      "min": 0,
+      "p95": 1.0,
+      "score_bearing": 1500,
+      "score_bearing_fraction": 1.0,
+      "zeros": 1293
+    },
+    {
+      "comparisons": 1500,
+      "distinct_values": 2,
+      "histogram": {
+        "0": 1459,
+        "1": 41
+      },
+      "label": "plain_roll_non_mated",
+      "max": 1,
+      "median": 0.0,
+      "min": 0,
+      "p95": 0.0,
+      "score_bearing": 1500,
+      "score_bearing_fraction": 1.0,
+      "zeros": 1459
+    },
+    {
+      "comparisons": 1500,
+      "distinct_values": 30,
+      "histogram": {
+        "100": 1072,
+        "101": 37,
+        "102": 41,
+        "103": 31,
+        "104": 9,
+        "105": 9,
+        "106": 3,
+        "107": 6,
+        "108": 1,
+        "109": 1,
+        "110": 1,
+        "78": 1,
+        "79": 1,
+        "83": 1,
+        "84": 1,
+        "85": 3,
+        "86": 2,
+        "87": 1,
+        "88": 4,
+        "89": 1,
+        "90": 9,
+        "91": 11,
+        "92": 7,
+        "93": 17,
+        "94": 24,
+        "95": 34,
+        "96": 64,
+        "97": 63,
+        "98": 44,
+        "99": 1
+      },
+      "label": "plain_self",
+      "max": 110,
+      "median": 100.0,
+      "min": 78,
+      "p95": 102.0,
+      "score_bearing": 1500,
+      "score_bearing_fraction": 1.0,
+      "zeros": 0
+    },
+    {
+      "comparisons": 1500,
+      "distinct_values": 26,
+      "histogram": {
+        "100": 256,
+        "101": 118,
+        "102": 64,
+        "103": 38,
+        "104": 21,
+        "105": 5,
+        "106": 2,
+        "107": 2,
+        "108": 1,
+        "81": 3,
+        "83": 1,
+        "85": 3,
+        "86": 12,
+        "87": 6,
+        "88": 8,
+        "89": 18,
+        "90": 27,
+        "91": 34,
+        "92": 53,
+        "93": 68,
+        "94": 76,
+        "95": 107,
+        "96": 154,
+        "97": 142,
+        "98": 193,
+        "99": 88
+      },
+      "label": "roll_self",
+      "max": 108,
+      "median": 98.0,
+      "min": 81,
+      "p95": 102.0,
+      "score_bearing": 1500,
+      "score_bearing_fraction": 1.0,
+      "zeros": 0
+    }
+  ],
+  "capacity_failures_remaining": 0,
+  "expected_outcomes": 6000,
+  "failure_reasons": {},
+  "kind": "stage_19b_canonical_run_binding",
+  "minutiae_counts": {
+    "above_openafis_maximum_128": 6232,
+    "below_openafis_minimum_2": 0,
+    "max": 373,
+    "median": 137.0,
+    "min": 9,
+    "note": "counted per side of a pair, so an image participating in several pairs is counted several times",
+    "observations": 12000,
+    "p95": 275.0
+  },
+  "missing": 0,
+  "nbis_build_id": "658f9f54a8f2",
+  "outcome_counts": {
+    "OK": 6000
+  },
+  "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "preparation_set_id": "prepset_be560e047991",
+  "score_bearing": 6000,
+  "score_bearing_fraction": 1.0,
+  "score_transform": "NONE",
+  "stage": "19B",
+  "stage19a_comparison": {
+    "first_changed": [],
+    "first_lost": [],
+    "inertness_holds_on_retained": true,
+    "lost": 0,
+    "newly_admitted": 4417,
+    "newly_admitted_by_protocol_stage": {
+      "plain_roll_mated": {
+        "newly_admitted": 1427
+      },
+      "plain_roll_non_mated": {
+        "newly_admitted": 1432
+      },
+      "plain_self": {
+        "newly_admitted": 131
+      },
+      "roll_self": {
+        "newly_admitted": 1427
+      }
+    },
+    "retained": 1583,
+    "retained_with_changed_score": 0,
+    "stage19a_score_bearing": 1583,
+    "stage19b_score_bearing": 6000
+  },
+  "stored_outcomes": 6000,
+  "threshold_applied": null,
+  "timings_ms": {
+    "mindtct_left": {
+      "median": 68.8374,
+      "p95": 119.7263
+    },
+    "mindtct_right": {
+      "median": 118.4532,
+      "p95": 121.2043
+    },
+    "openafis_match": {
+      "median": 0.283,
+      "p95": 2.621
+    },
+    "openafis_template_left": {
+      "median": 7.6346,
+      "p95": 9.6293
+    },
+    "openafis_template_right": {
+      "median": 5.2423,
+      "p95": 7.2272
+    },
+    "total_comparison": {
+      "median": 200.3276,
+      "p95": 255.89
+    }
+  },
+  "uint8_headroom_audit": {
+    "headroom_to_wrap": 146,
+    "max_implied_matched_over_smaller_side": 1.0488,
+    "note": "section 12 withdrew this gate on the premise that the score cannot exceed 100; Stage 19A observed 109, so the premise is false and the headroom is reported rather than assumed. A pair is counted as wrap-reachable only if score+256 implies a matched count still within the smaller template",
+    "observed_max_score": 110,
+    "pairs_where_a_wrap_is_arithmetically_reachable": 0,
+    "scored_pairs": 6000,
+    "scores_above_100": 390,
+    "uint8_wrap_threshold": 256
+  }
+}

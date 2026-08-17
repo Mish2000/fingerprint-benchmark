@@ -90,7 +90,11 @@ def registry_configuration(adapter_id: str) -> dict[str, object]:
         # store resolver — the pinned environment. An absent environment is an
         # UNAVAILABLE report, not a construction error.
         return {"repository_root": str(Path(__file__).resolve().parents[1])}
-    if adapter_id not in {"nbis_mindtct_bozorth3_subprocess", "nbis_mindtct_openafis_subprocess"}:
+    openafis_ids = {
+        "nbis_mindtct_openafis_subprocess",
+        "nbis_mindtct_openafis_capacity_extended_subprocess",
+    }
+    if adapter_id not in {"nbis_mindtct_bozorth3_subprocess", *openafis_ids}:
         return {}
     from nbisworld import certified_build_directory
 
@@ -110,11 +114,20 @@ def registry_configuration(adapter_id: str) -> dict[str, object]:
     # so — like the NBIS executables — there is no default and no PATH lookup. An
     # absent bridge is answered with a path that does not exist, which the adapter
     # reports as UNAVAILABLE rather than raising.
+    #
+    # The capacity-extended variant takes its own variable, because it is a
+    # *different build* of the same source: pointing both at one binary would let
+    # a run be attributed to the wrong one (docs/adr/0136).
     import os
 
-    bridge = os.environ.get("FPBENCH_OPENAFIS_BRIDGE", "").strip()
+    variable = (
+        "FPBENCH_OPENAFIS_BRIDGE_19B"
+        if adapter_id == "nbis_mindtct_openafis_capacity_extended_subprocess"
+        else "FPBENCH_OPENAFIS_BRIDGE"
+    )
+    bridge = os.environ.get(variable, "").strip()
     configuration["openafis_bridge"] = bridge or str(
-        Path.home().resolve() / ".fpbench-no-such-openafis-bridge"
+        Path.home().resolve() / f".fpbench-no-such-openafis-bridge-{variable.lower()}"
     )
     return configuration
 

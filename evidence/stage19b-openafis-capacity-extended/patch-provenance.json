@@ -1,0 +1,34 @@
+{
+  "algorithmic_change": "templates above 128 minutiae: REJECT -> ALLOW",
+  "audit_of_every_maximum_minutiae_use": {
+    "lib/Template.cpp: the refusal": "disabled — the one intended change",
+    "lib/Template.cpp: vector capacity hint": "untouched; std::vector grows dynamically",
+    "lib/TemplateISO19794_2_2005.cpp: reserve()": "untouched; ISO route only",
+    "lib/TemplateISO19794_2_2005.h: MaximumLength": "untouched; ISO route only"
+  },
+  "base_commit": "3ae1c757c6dafea977a33ef51380e37f1715e626",
+  "bridge_source_is_stage18a_unchanged": true,
+  "bridge_source_sha256": "9e17b79abc2c796d67e0ed8d7591f4307f097b3f9a4a6f1db853588721374c7e",
+  "build_command": "g++ -std=c++17 -O3 -march=native -mtune=native -fstrict-aliasing -Wall -Wextra -Wno-deprecated -DFPBENCH_STAGE19B_ALLOW_ABOVE_MAXIMUM_MINUTIAE <openafis lib/*.cpp> <bridge src/*.cpp> -o fpbench_openafis_bridge -lpthread",
+  "compiled_bridge_sha256": "7a16311f7034d922e3cbaad4f5dba7e0f4591b5b307dd0611050cd1ed509fd0b",
+  "compiler": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+  "constant_maximum_minutiae_changed": false,
+  "csv_instantiation_source_sha256": "31a5f887ee04a50d25db44fa59048e94407eefdfa220171eb1d3c5c3120cc8f2",
+  "define": "FPBENCH_STAGE19B_ALLOW_ABOVE_MAXIMUM_MINUTIAE",
+  "files_changed": 1,
+  "files_differing_from_pristine_tree": [
+    "lib/Template.cpp"
+  ],
+  "kind": "stage_19b_patch_provenance",
+  "lines_added": 2,
+  "lines_removed": 0,
+  "matching_algorithm_unchanged": true,
+  "minimum_minutiae_unchanged": true,
+  "modification": "disable_template_upper_minutiae_rejection_for_stage19b_csv_route",
+  "patch_file_sha256": "ff2a53b85634c6d08a9995f2d08051434842020127483d62877a4299f1302508",
+  "patch_text": "@@ -20,10 +20,12 @@\n             Log::error(\"minutiea count < MinimumMinutiae\");\n             return false;\n         }\n+#ifndef FPBENCH_STAGE19B_ALLOW_ABOVE_MAXIMUM_MINUTIAE\n         if (minutiae.size() > MaximumMinutiae) {\n             Log::error(\"minutiea count > MaximumMinutiae\");\n             return false;\n         }\n+#endif\n         thread_local static std::vector<double> coords(MaximumMinutiae * 2);\n         coords.clear();\n         for (const auto& m : minutiae) {\n",
+  "patched_template_cpp_sha256": "ce6c59070742e449ccc50e6d1eefad84bf5eb9c9050942493c44a9ef880aa77b",
+  "pristine_template_cpp_sha256": "c815a69b995aaa444a6b00be4e5827ab708874fbac18ca6003d337f6aea6acfa",
+  "stage": "19B",
+  "why_the_constant_was_not_raised": "MaximumMinutiae also sizes the ISO parser's reserve and its MaximumLength; Stage 19B has no business altering the ISO route. The CSV reader loads all its minutiae before Template::load is reached, so disabling the refusal is the whole change for this route"
+}

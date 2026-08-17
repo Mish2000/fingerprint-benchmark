@@ -1,0 +1,87 @@
+{
+  "absolute_paths_in_evidence": false,
+  "adapter_id": "nbis_mindtct_openafis_capacity_extended_subprocess",
+  "algorithm_5_conditions": {
+    "canonical_run_complete": true,
+    "gate_a_baseline_scores_identical": true,
+    "no_capacity_failure_remains": true,
+    "no_secugen_based_tuning": true,
+    "no_systemic_implementation_defect": true,
+    "translation_contract_unchanged": true
+  },
+  "algorithm_5_established": true,
+  "algorithm_id": "nbis_mindtct_openafis_capacity_extended",
+  "algorithm_ranking_published": false,
+  "algorithm_slot": "algorithm_5",
+  "base_openafis_commit": "3ae1c757c6dafea977a33ef51380e37f1715e626",
+  "baseline_inertness": {
+    "comparisons": 1583,
+    "exact_score_matches": 1583,
+    "mismatches": 0,
+    "status_regressions": 0,
+    "what_it_does_not_prove": "that behaviour above 128 minutiae is upstream-validated; upstream refuses that region, so there is no upstream behaviour to agree with"
+  },
+  "bound_markers": [
+    {
+      "finalization_fingerprint": "76a554d6b6028cafce84de65865609d9fa2ab2465578c4f4f45263942bb459f9",
+      "outcome": "MINDTCT_OPENAFIS_CANONICAL500_RAW_COMPLETE",
+      "stage": "19A",
+      "why": "the unmodified route this stage extends, and the source of Gate A's 1,583 baseline scores"
+    },
+    {
+      "finalization_fingerprint": "3dc872147b57469cb42204e87674ae2cf3853400f92255e2e97077f90e6f2737",
+      "outcome": "SECU_GEN_OPENAFIS_PRIVATE_RAW_COMPLETE",
+      "stage": "18A",
+      "why": "the private reference that produced the OpenAFIS build and the raw 1:1 bridge this stage patched"
+    },
+    {
+      "finalization_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
+      "outcome": "RESEARCH_ONLY_THIRD_PARTY_POLICY_READY",
+      "stage": "8E",
+      "why": "the third-party research-use policy, under which a modified upstream is recorded rather than hidden"
+    }
+  ],
+  "calibration_performed": false,
+  "capacity_failures_remaining": 0,
+  "created_utc": "2026-08-17T19:09:03Z",
+  "decision_profile_produced": false,
+  "evidence_content_hashes": {
+    "README.md": "97fd54fa6b0cbbf7ee0d5144eb7e9d531b9621765fdf19dbd45d48cda0de2ce1",
+    "canonical-run-binding.json": "0e8d67f5cb95f1534ff14e68295c17d34283e1fa2d2465671a63ef64756a0539",
+    "gate-a-inertness.json": "874e6e1201270f33c5bd193b3ec9455b103eb4793cad1fdcc20800063c305e94",
+    "patch-provenance.json": "83957b1ced43523d2244aaf0f4c6bf1cc8dccc31d7e62da30647a3daf9a0f89f",
+    "variant-identity.json": "c6fc70791eb8b1c564bcc60a47ca7abfbce1f39372e7a7a38c29da76d3b979d4"
+  },
+  "expected_outcomes": 6000,
+  "failures_recorded_as_zero": false,
+  "is_independent_fifth_system": false,
+  "kind": "stage_19b_finalization",
+  "metrics_produced": false,
+  "missing": 0,
+  "modification": "disable_template_upper_minutiae_rejection_for_stage19b_csv_route",
+  "nbis_build_id": "658f9f54a8f2",
+  "opens_common_calibration": true,
+  "outcome": "MINDTCT_OPENAFIS_CAPACITY_EXTENDED_CANONICAL_RAW_COMPLETE",
+  "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "preparation_set_id": "prepset_be560e047991",
+  "publication_eligible": true,
+  "schema_version": "1",
+  "score_bearing": 6000,
+  "score_bearing_fraction": 1.0,
+  "score_direction": "HIGHER_MORE_SIMILAR",
+  "score_transform": "NONE",
+  "secugen_reference_used_for_parameter_selection": false,
+  "shares_extractor_with": "nbis_mindtct_bozorth3",
+  "stage": "19B",
+  "stage19b_source_fingerprint": "1040b8b031e57f5eb9e75269ebdf3f898a16855ab18b840b2dc58b54a660fcba",
+  "stage_19b_finalization_fingerprint": "361cfcef77a9bcc73e1365bcdaef2241887663ac8684f09666e9c57e106fb44b",
+  "stored_outcomes": 6000,
+  "supervisor_disclosure": "NBIS MINDTCT + OpenAFIS (capacity-extended variant) — composition defined by the project. It shares the MINDTCT extractor with the NBIS/BOZORTH3 method and differs primarily in the matcher. The OpenAFIS source was minimally modified to permit CSV templates containing more than the upstream limit of 128 minutiae; the original behavior was verified unchanged on all 1,583 previously accepted comparisons.",
+  "threshold": null,
+  "translator_inertness": {
+    "byte_identical": 127,
+    "counts_compared": 127,
+    "mismatches": 0
+  },
+  "upstream_modified": true
+}

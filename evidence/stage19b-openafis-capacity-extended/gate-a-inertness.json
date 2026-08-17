@@ -1,0 +1,29 @@
+{
+  "baseline_scored_pairs": 1583,
+  "exact_score_matches": 1583,
+  "first_inertness_mismatches": [],
+  "first_reproduction_mismatches": [],
+  "first_status_regressions": [],
+  "gate": "CAPACITY_EXTENSION_INERTNESS",
+  "kind": "stage_19b_gate_a",
+  "outcome": "CAPACITY_EXTENSION_INERTNESS_PASS",
+  "patched_ok": 1583,
+  "reproduction_mismatches": 0,
+  "score_mismatches": 0,
+  "status_regressions": 0,
+  "translator_inertness": {
+    "byte_identical": 127,
+    "counts_compared": 127,
+    "counts_tested": [
+      2,
+      128
+    ],
+    "difference": "the upper-bound check, and nothing else",
+    "kind": "stage_19b_translator_inertness",
+    "lower_bound_still_enforced": true,
+    "mismatches": 0,
+    "why": "removing OpenAFIS's C++ refusal is only half the change; fpbench's own translator enforced the same 128 ceiling, so the patched build would never have been asked the question. The uncapped sibling must be inert below 128 for Gate A's conclusion to carry through the adapter as well as the bridge"
+  },
+  "wall_seconds": 50.3,
+  "what_this_does_not_prove": "that behaviour above 128 minutiae is upstream-validated; upstream refuses that region, so there is no upstream behaviour to agree with"
+}

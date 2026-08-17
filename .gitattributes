@@ -16,3 +16,4 @@ evidence/stage16a-fingerflow/** text eol=lf
 evidence/stage17a-fingerprintmatcher/** text eol=lf
 evidence/stage18a-secugen-openafis-reference/** text eol=lf
 evidence/stage19a-mindtct-openafis/** text eol=lf
+evidence/stage19b-openafis-capacity-extended/** text eol=lf

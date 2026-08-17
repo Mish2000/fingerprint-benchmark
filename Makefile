@@ -1003,3 +1003,39 @@ stage18a-receipt:
 
 stage18a-diagnostics:
 	python -m fpbench.experiments.stage18a_diagnostics
+
+# --------------------------------------------------------------------- Stage 19A
+#
+# Algorithm 5: MINDTCT -> OpenAFIS. The extractor and the matcher are both Linux
+# binaries, so the run happens inside the NBIS build distro; the targets below are
+# the Windows-side entry points and delegate there.
+
+stage19a-contract:
+	pytest -m "stage19a_contract" -q
+
+stage19a-evidence:
+	pytest -m "stage19a" -q
+
+# The four checks section 12 asks for, before the full run and no more.
+stage19a-smoke:
+	python scripts/stage19a_smoke.py
+
+# MINDTCT over all 3,000 canonical images, recording minutiae counts only. A
+# measurement, not a pilot: it produces no score and cannot change the route.
+stage19a-survey:
+	python scripts/stage19a_minutiae_survey.py
+
+# The 6,000 canonical comparisons, driven only through the adapter contract.
+stage19a-run:
+	python scripts/stage19a_canonical_run.py
+
+stage19a-diagnostics:
+	python -m fpbench.experiments.stage19a_diagnostics \
+	  --outcomes $(FPBENCH_STAGE19A_ROOT)/pair-outcomes.jsonl \
+	  --algorithm2-results workspace/results/run_f0468f28ffba/raw \
+	  --output $(FPBENCH_STAGE19A_ROOT)/diagnostic-report.json
+
+stage19a-documents:
+	python -m fpbench.experiments.stage19a_finalization \
+	  --diagnostics $(FPBENCH_STAGE19A_ROOT)/diagnostic-report.json \
+	  --stored 6000 --missing 0

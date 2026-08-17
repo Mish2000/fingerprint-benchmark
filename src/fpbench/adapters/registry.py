@@ -148,6 +148,16 @@ def _ensure_builtin_adapters() -> None:
 
         register_adapter("nbis_mindtct_bozorth3_subprocess", NbisAdapter.from_config)
 
+    if "nbis_mindtct_openafis_subprocess" not in ADAPTERS:
+        # Algorithm 5. Shares the NBIS route's extractor and its build manifest,
+        # and differs from it only in the matcher — which is exactly why both are
+        # registered separately rather than one growing a "matcher" setting: a
+        # setting that changes which matcher produced a score would let two
+        # different algorithms share one identity (docs/adr/0135).
+        from fpbench.adapters.openafis.adapter import OpenAfisAdapter
+
+        register_adapter("nbis_mindtct_openafis_subprocess", OpenAfisAdapter.from_config)
+
     if "verifinger_java_subprocess" not in ADAPTERS:
         # Registering it requires neither Java, nor a licence, nor 4.7 GB of
         # vendor SDK. The adapter reports its own environment as UNAVAILABLE

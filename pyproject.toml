@@ -93,4 +93,7 @@ markers = [
     "stage18a: the committed Stage 18A SecuGen→OpenAFIS private reference evidence gate (no dataset, no runtime and no prior-result workspace)",
     "stage18a_private_run: the Stage 18A private reference run — 3,000 SecuGen templates and the 6,000 canonical comparisons under OpenAFIS (needs the official FDx SDK Pro package, a built OpenAFIS bridge and the prepared image set); never runs in CI",
     "openafis_artifact: needs the pinned OpenAFIS checkout and a built raw 1:1 bridge in the local third-party store (set FPBENCH_OPENAFIS_SOURCE); never runs in public CI",
+    "stage19a_contract: the frozen Stage 19A MINDTCT→OpenAFIS translation contract — the angle convention derived from NBIS xytreps.c and OpenAFIS TripletScalar.cpp with no inversion and no rotation, exact unscaled coordinates against a header carrying the real raster size, the constant non-score-bearing minutia type, quality dropped rather than used to filter, MINDTCT ordering preserved with no sort or dedup, OpenAFIS's own 2..128 bounds enforced as refusals and never as a top-N truncation, and section 17's closed failure vocabulary (pure Python, no NBIS build, no OpenAFIS binary and no dataset)",
+    "stage19a: the committed Stage 19A MINDTCT→OpenAFIS evidence gate (no dataset, no runtime and no prior-result workspace)",
+    "stage19a_full_run: the Stage 19A workspace — the canonical 6,000 comparisons under MINDTCT→OpenAFIS (needs the certified NBIS build, a built OpenAFIS bridge and the prepared image set); never runs in CI",
 ]

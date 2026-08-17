@@ -67,6 +67,14 @@ _EXTERNAL_TOOLING = {
         (pytest.mark.fingerprints_matching_artifact,),
         "FPBENCH_REQUIRE_FINGERPRINTS_MATCHING",
     ),
+    # Algorithm 5 needs everything the NBIS route needs *and* a compiled OpenAFIS
+    # bridge, which is built from a pinned upstream checkout on the machine that
+    # runs it. CI has neither, so this row is what lets the composition take part
+    # in exactly this suite while the ordinary run skips it.
+    "nbis_mindtct_openafis_subprocess": (
+        (pytest.mark.nbis_upstream, pytest.mark.upstream, pytest.mark.openafis_artifact),
+        "FPBENCH_REQUIRE_OPENAFIS",
+    ),
 }
 
 ADAPTER_PARAMS = [

@@ -1,0 +1,18 @@
+{
+  "comparison": {
+    "algorithm_2": "nbis_mindtct_bozorth3",
+    "algorithm_2_score_bearing": 6000,
+    "algorithm_5": "nbis_mindtct_openafis",
+    "algorithm_5_score_bearing": 1583,
+    "both_score_bearing": 1583,
+    "differs_only_in": "the matcher",
+    "shared_extractor": "mindtct 5.0.0, same certified build",
+    "spearman_is_over_a_self_selected_subset": true,
+    "spearman_rank_correlation_on_common": 0.263558,
+    "why_no_better_or_worse": "the two scales are unrelated and no common operating point has been chosen; a comparison of accuracy needs calibration, which is a later stage"
+  },
+  "kind": "stage_19a_matcher_comparison",
+  "stage": "19A",
+  "what_this_is": "the same MINDTCT minutiae fed to two different matchers over the same 6,000 pairs — a controlled matcher comparison",
+  "what_this_is_not": "a statement that either matcher is better. The two scales are unrelated, no common operating point has been chosen, and no threshold is applied anywhere"
+}

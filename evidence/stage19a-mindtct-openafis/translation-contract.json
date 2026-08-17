@@ -1,0 +1,44 @@
+{
+  "angle": {
+    "inversion": "none",
+    "mindtct_authority": "NBIS 5.0.0 mindtct/src/lib/mindtct/xytreps.c — XYT without -m1 is NIST internal representation: origin bottom-left, degrees 0..360, 0 pointing east, increasing counter clockwise; results.c selects NIST_INTERNAL_XYT_REP when -m1 is absent",
+    "openafis_authority": "lib/TripletScalar.cpp relates a minutia's angle to rotateAngle(angle, atan2(dy, dx)) over the stored coordinates, so it requires counter-clockwise from +x in the same plane as the stored y — which MINDTCT's representation already is",
+    "rotation": "none",
+    "rule": "radians = degrees * pi / 180; no inversion, no rotation",
+    "verification": "decoding an OpenAFIS ISO template the way its own ISO parser does, including its 360-minus-angle step, and re-emitting it through this CSV path reproduces the ISO route's score exactly on twelve pairs"
+  },
+  "bounds": {
+    "authority": "lib/Template.h; Template::load refuses anything outside them",
+    "classification": "ALGORITHMIC, not BLOCKING — a real limit of a real matcher meeting a real property of real rolled prints",
+    "maximum": 128,
+    "minimum": 2,
+    "over_maximum_policy": "record_template_failure_never_truncate",
+    "top_n_rule_refused": true,
+    "why_refused": "choosing which minutiae survive is a selection rule neither upstream project publishes, and the resulting score would be fpbench's rather than what MINDTCT and OpenAFIS produce between them"
+  },
+  "coordinates": {
+    "csv_header": "the prepared image's real width and height",
+    "rule": "carried over exactly, never scaled",
+    "why": "OpenAFIS's MinutiaPoint normalises by 256/width and 256/height itself, so any normalisation here would be applied twice"
+  },
+  "kind": "stage_19a_translation_contract",
+  "minutia_type": {
+    "policy": "constant_placeholder_non_score_bearing",
+    "proved_by": "scoring the same minutiae all-RidgeEnding and all-RidgeBifurcation and requiring the identical result",
+    "value": 1,
+    "why": "OpenAFIS's MinutiaPoint is built from x, y and angle only and the triplets are built from MinutiaPoint, so the type never reaches the similarity computation"
+  },
+  "ordering": {
+    "deduplication": "none",
+    "rule": "MINDTCT order preserved",
+    "sorting": "none"
+  },
+  "quality": {
+    "transferred": false,
+    "used_to_filter": false,
+    "why": "OpenAFIS has nowhere to put it, and filtering on it would be a minutiae-selection rule fpbench invented"
+  },
+  "secugen_reference_used_for_parameter_selection": false,
+  "settled_from": "upstream sources only",
+  "stage": "19A"
+}

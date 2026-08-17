@@ -1,0 +1,119 @@
+# NBIS MINDTCT into OpenAFIS — Algorithm 5, as one algorithm identity.
+#
+# The name describes the whole route. MINDTCT decides what a minutia is, where it
+# is and which way it points; OpenAFIS only compares the two lists it is handed.
+#
+# THIS ROUTE SHARES ITS EXTRACTOR WITH ALGORITHM 2, AND THAT MUST BE SAID.
+#
+# `nbis_mindtct_bozorth3` and `nbis_mindtct_openafis` run the same MINDTCT binary,
+# from the same certified build, over the same canonical images, with the same
+# flags — none. They differ in the matcher and in nothing else. That makes the
+# pair a controlled matcher comparison, which is interesting in its own right, but
+# it also means Algorithm 5 is not an independent fifth system and must never be
+# presented as one (docs/adr/0135).
+#
+# THE COMPOSITION IS OURS, NOT UPSTREAM'S.
+#
+# OpenAFIS's README says plainly that the library does not extract minutiae, and
+# the extractor its author demonstrated is a SecuGen one. Pairing it with MINDTCT
+# is fpbench's own composition. Neither project publishes this route.
+#
+# There is no threshold in this file and there will not be one.
+
+algorithm:
+  id: nbis_mindtct_openafis
+  display_name: NBIS MINDTCT + OpenAFIS
+  adapter_id: nbis_mindtct_openafis_subprocess
+
+  # For reference only.
+  implementation_version: "nbis-5.0.0+openafis-3ae1c757"
+  upstream_artifact: NIST NBIS Release 5.0.0 + neilharan/openafis @ 3ae1c757c6dafea977a33ef51380e37f1715e626
+  license: NBIS public domain (NIST) + OpenAFIS BSD-2-Clause
+  score_direction: higher_is_better
+
+pipeline:
+  family_id: nbis_mindtct_openafis
+  pipeline_kind: extract_then_match
+
+  extractor_id: mindtct
+  extractor_version: "5.0.0"
+
+  matcher_id: openafis
+  matcher_version: "3ae1c757c6dafea977a33ef51380e37f1715e626"
+
+  implementation_language: c_and_cpp
+  integration_mode: subprocess_per_stage
+
+  # Identical to Algorithm 2: the prepared PNG is copied byte for byte and handed
+  # to MINDTCT unchanged. No re-encoding, no resize, no crop, no contrast change,
+  # and emphatically no return to Stage 18A's 300x400 (docs/adr/0134).
+  input_mode: direct_gray8_png_byte_copy
+  dpi_policy: png_ppi_undefined_nbis_default_500
+
+  probe_side: left
+
+  template_cache: disabled
+  template_persistence: disabled
+  seed_usage: ignored_algorithm_has_no_seed
+
+# The four translation rules, each settled from an upstream source and none from
+# an experiment. Changing any of them is a different algorithm (docs/adr/0135).
+translation:
+  # NBIS xytreps.c: XYT without -m1 is NIST internal representation — origin
+  # bottom-left, degrees 0..360, 0 pointing east, increasing counter-clockwise.
+  # OpenAFIS TripletScalar.cpp relates a minutia's angle to atan2(dy, dx) over the
+  # stored coordinates, so it requires exactly that handedness. Hence no flip.
+  angle_conversion: radians_equals_degrees_times_pi_over_180
+  angle_inversion: none
+  angle_rotation: none
+
+  # OpenAFIS normalises coordinates itself, by x * 256 / width and
+  # y * 256 / height, so the CSV carries the real raster size and raw pixels.
+  coordinate_scaling: none
+  csv_dimensions: prepared_image_actual
+
+  # OpenAFIS's MinutiaPoint is built from x, y and angle only; the type never
+  # reaches the similarity computation. Proved by test, not asserted.
+  minutia_type_policy: constant_placeholder_non_score_bearing
+  minutia_type_value: ridge_ending
+
+  # XYT carries a quality per minutia and OpenAFIS has nowhere to put it.
+  # Dropped, never used to filter.
+  minutiae_quality_transferred: false
+  minutiae_filtering: none
+  minutiae_ordering: mindtct_order_preserved
+  minutiae_deduplication: none
+
+# The options this route does not pass, and the bounds it does not work around.
+tool_options:
+  mindtct_contrast_boost: disabled     # no -b
+  mindtct_m1: disabled                 # no -m1
+  mindtct_quality_cutoff: none
+
+  openafis_threshold: none
+  openafis_score_transform: none
+  openafis_template_format: csv
+
+  # OpenAFIS's own declared limits, from lib/Template.h. A template outside them
+  # is refused and recorded as a template failure on the side that broke it.
+  # There is deliberately no top-N rule: choosing which minutiae survive would be
+  # a selection fpbench invented (docs/adr/0135).
+  openafis_minimum_minutiae: 2
+  openafis_maximum_minutiae: 128
+  openafis_over_maximum_policy: record_template_failure_never_truncate
+
+  score_type: nonnegative_integer_similarity
+  input_effective_ppi: 500
+
+# Nothing about this route was chosen by looking at Stage 18A's SecuGen scores.
+provenance:
+  secugen_reference_used_for_parameter_selection: false
+
+adapter:
+  runtime_asset_roles:
+    - nbis_mindtct_executable
+    - nbis_build_manifest
+    - openafis_match_bridge
+  primary_runtime_asset_role: nbis_mindtct_executable
+  supported_targets:
+    - linux/x86_64

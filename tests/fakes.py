@@ -90,18 +90,33 @@ def registry_configuration(adapter_id: str) -> dict[str, object]:
         # store resolver — the pinned environment. An absent environment is an
         # UNAVAILABLE report, not a construction error.
         return {"repository_root": str(Path(__file__).resolve().parents[1])}
-    if adapter_id != "nbis_mindtct_bozorth3_subprocess":
+    if adapter_id not in {"nbis_mindtct_bozorth3_subprocess", "nbis_mindtct_openafis_subprocess"}:
         return {}
     from nbisworld import certified_build_directory
 
     build = certified_build_directory()
     if build is None:
         build = Path.home().resolve() / ".fpbench-no-such-nbis-build"
-    return {
+    configuration = {
         "mindtct_executable": str(build / "bin" / "mindtct"),
         "bozorth3_executable": str(build / "bin" / "bozorth3"),
         "build_manifest": str(build / "nbis-build-manifest.json"),
     }
+    if adapter_id == "nbis_mindtct_bozorth3_subprocess":
+        return configuration
+
+    # Algorithm 5 needs the same certified build plus a compiled OpenAFIS bridge.
+    # The bridge is built from a pinned upstream tree on the machine that runs it,
+    # so — like the NBIS executables — there is no default and no PATH lookup. An
+    # absent bridge is answered with a path that does not exist, which the adapter
+    # reports as UNAVAILABLE rather than raising.
+    import os
+
+    bridge = os.environ.get("FPBENCH_OPENAFIS_BRIDGE", "").strip()
+    configuration["openafis_bridge"] = bridge or str(
+        Path.home().resolve() / ".fpbench-no-such-openafis-bridge"
+    )
+    return configuration
 
 
 def sha256_of(payload: bytes | str) -> str:

@@ -1,0 +1,84 @@
+{
+  "absolute_paths_in_evidence": false,
+  "adapter_id": "nbis_mindtct_openafis_subprocess",
+  "algorithm_5_conditions": {
+    "failures_are_upstream_limits_not_the_bridge": true,
+    "no_systemic_implementation_defect": true,
+    "substantial_cross_impression_score_bearing": null,
+    "translation_settled_from_sources_not_tuning": true
+  },
+  "algorithm_5_established": null,
+  "algorithm_id": "nbis_mindtct_openafis",
+  "algorithm_ranking_published": false,
+  "algorithm_slot": "algorithm_5",
+  "bound_markers": [
+    {
+      "finalization_fingerprint": "3dc872147b57469cb42204e87674ae2cf3853400f92255e2e97077f90e6f2737",
+      "outcome": "SECU_GEN_OPENAFIS_PRIVATE_RAW_COMPLETE",
+      "stage": "18A",
+      "why": "the private reference that produced the working OpenAFIS build, the raw 1:1 bridge and the proven score contract. Bound, and never read for its scores"
+    },
+    {
+      "finalization_fingerprint": "1ad023093c8bdaf67e0901621b1db07d10bdf8da9b6524ea06cd9cd63a975781",
+      "outcome": "FINGERPRINTMATCHER_SCORE_CONTRACT_FAIL",
+      "stage": "17A",
+      "why": "the predecessor candidate, closed at its score-contract gate, which left Algorithm 5 open"
+    },
+    {
+      "finalization_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
+      "outcome": "RESEARCH_ONLY_THIRD_PARTY_POLICY_READY",
+      "stage": "8E",
+      "why": "the third-party research-use policy, reused and not reopened"
+    }
+  ],
+  "calibration_performed": false,
+  "canonical_run_executed": true,
+  "created_utc": "2026-08-17T16:15:28Z",
+  "cross_impression": {
+    "plain_roll_mated": {
+      "comparisons": 1500,
+      "score_bearing": 73,
+      "score_bearing_fraction": 0.048667
+    },
+    "plain_roll_non_mated": {
+      "comparisons": 1500,
+      "score_bearing": 68,
+      "score_bearing_fraction": 0.045333
+    }
+  },
+  "cross_impression_sufficiency": "UNDETERMINED",
+  "cross_impression_sufficiency_is_a_human_determination": true,
+  "decision_profile_produced": false,
+  "evidence_content_hashes": {
+    "README.md": "4db7074a3220a28a39b475e604f8b8232e426b1e14bf8609916663f73bd26727",
+    "algorithm-identity.json": "2b3489bfae12c19effc1e7268665a7363b5b3f64e3b3452a76d76c840bea0ccf",
+    "canonical-run-binding.json": "1377f61e791bf0f2358c95f306708f3b404276654628f60f94a0879b9fb88219",
+    "matcher-comparison.json": "782e2fe2432639efa6fa2c727a1e8f715f944b28f4b2a5c8a570108c8381793f",
+    "translation-contract.json": "171fd3869c9e936c0b66943f159c2efe79284aa3bc7d52b48d6c7e0281157854"
+  },
+  "expected_outcomes": 6000,
+  "failures_recorded_as_zero": false,
+  "is_an_independent_fifth_system": false,
+  "kind": "stage_19a_finalization",
+  "metrics_produced": false,
+  "missing": 0,
+  "nbis_build_id": "658f9f54a8f2",
+  "openafis_commit": "3ae1c757c6dafea977a33ef51380e37f1715e626",
+  "opens_common_calibration": false,
+  "outcome": "MINDTCT_OPENAFIS_CANONICAL500_RAW_COMPLETE",
+  "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "preparation_set_id": "prepset_be560e047991",
+  "publication_eligible": false,
+  "schema_version": "1",
+  "score_bearing": 1583,
+  "score_bearing_fraction": 0.263833,
+  "score_direction": "HIGHER_MORE_SIMILAR",
+  "score_transform": "NONE",
+  "secugen_reference_used_for_parameter_selection": false,
+  "shares_extractor_with": "nbis_mindtct_bozorth3",
+  "stage": "19A",
+  "stage19a_source_fingerprint": "918a9a425cc03a4ee65cf13e703f46aed5b62267b71b635e77822eecd824ff10",
+  "stage_19a_finalization_fingerprint": "76a554d6b6028cafce84de65865609d9fa2ab2465578c4f4f45263942bb459f9",
+  "stored_outcomes": 6000,
+  "threshold": null
+}

@@ -1,0 +1,54 @@
+{
+  "all_scores_finite": true,
+  "all_scores_in_documented_range": true,
+  "api_executes": true,
+  "compiled_probe_committed": false,
+  "compiled_probe_sha256": "04eb9dcbcf92d2102e6a7043a01b770bd9db578656e516a05391f5d687864d33",
+  "compiled_probe_size": 16896,
+  "failure_behavior_observations": {
+    "invalid_text_template": {
+      "detail": "System.FormatException",
+      "outcome": "THREW"
+    },
+    "null_left_template": {
+      "detail": "System.NullReferenceException",
+      "outcome": "THREW"
+    },
+    "zero_is_never_used_as_an_exception_sentinel": true
+  },
+  "hidden_threshold_required": false,
+  "match_api": "System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.MatchMccTemplates(System.Object,System.Object)",
+  "native_defaults_used": true,
+  "pair_order_exactly_symmetric_on_smoke": true,
+  "parameter_setters_called": false,
+  "probe_kind": "SMALL_CSHARP_QUALIFICATION_PROBE",
+  "probe_source": "integrations/mcc-sdk-v2-probe/Program.cs",
+  "probe_source_sha256": "5e135acaee60b83d552504470ad5a3a9c52304bd9939aa26c01958314d7778b5",
+  "production_adapter": false,
+  "production_route_template_api": "System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.CreateMccTemplate(System.Int32,System.Int32,System.Int32,BioLab.Biometrics.Mcc.Sdk.Minutia[])",
+  "sample_authority": "SDK_PROVIDED_SAMPLE_MINUTIAE",
+  "sample_bytes_committed": false,
+  "sample_files": [
+    "1_1.txt",
+    "1_2.txt",
+    "2_1.txt"
+  ],
+  "sample_template_api": "System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.CreateMccTemplateFromTextTemplate(System.String)",
+  "scalar_exists": true,
+  "schema": "stage_20a_runtime_smoke_v1",
+  "score_values_used_to_change_route_or_configuration": false,
+  "scores": {
+    "related_forward": 0.18989714373119645,
+    "related_reverse": 0.18989714373119645,
+    "self": 0.6463866269440767,
+    "unrelated_forward": 0.10158917843359545,
+    "unrelated_reverse": 0.10158917843359545
+  },
+  "sd300_images_used": 0,
+  "sd300_used_for_parameter_selection": false,
+  "sd300_used_for_performance_selection": false,
+  "sd300_used_for_route_selection": false,
+  "self_templates_constructed_independently": true,
+  "status": "PASS",
+  "vendor_dll_committed": false
+}

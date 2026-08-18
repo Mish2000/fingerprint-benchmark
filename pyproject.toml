@@ -99,4 +99,7 @@ markers = [
     "stage19b_contract: the frozen Stage 19B capacity extension — the single disabled upper-bound refusal, the uncapped translator proved byte-identical to the original for all 127 counts the original accepts, the retained lower bound, the separate identity that never claims upstream's, and the requirement that no score-affecting field differs from the base route (pure Python, no NBIS build, no OpenAFIS binary and no dataset)",
     "stage19b: the committed Stage 19B capacity-extended evidence gate (no dataset, no runtime and no prior-result workspace)",
     "stage19b_full_run: the Stage 19B workspace — the canonical 6,000 comparisons under the capacity-extended variant (needs the certified NBIS build, a patched OpenAFIS bridge and the prepared image set); never runs in CI",
+    "stage20a_contract: the frozen Stage 20A MINDTCT-to-MCC representation contract — the official Minutia fields, exact bottom-left-to-upper-left y subtraction, degrees-to-radians direction conversion, canonical 500 ppi metadata, quality omission, full-order preservation and absence of every caller-side filter or parameter choice (pure Python, no MCC SDK, no NBIS build and no dataset)",
+    "stage20a: the committed Stage 20A MCC SDK v2.0 artifact, runtime, input-route, raw-score and non-SD300 smoke evidence gate (no vendor byte, runtime, network or dataset)",
+    "mcc_sdk_v2_artifact: needs the official MCC SDK v2.0 archive in the local third-party store and Windows .NET Framework 4.x; never runs in public CI",
 ]

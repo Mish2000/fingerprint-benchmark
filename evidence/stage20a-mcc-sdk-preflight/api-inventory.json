@@ -1,0 +1,436 @@
+{
+  "audit_sources": [
+    "MccSdk Documentation v2.0.pdf (all 40 pages)",
+    "Sdk/MccSdk.XML",
+    "reflection over Sdk/MccSdk.dll",
+    "all ten bundled C# Program.cs samples",
+    "all eleven bundled MATLAB samples",
+    "MccSdkSimpleApplication/Data configuration"
+  ],
+  "exported_type_count": 16,
+  "exported_types": [
+    {
+      "constructors": [],
+      "enum_values": [
+        "None",
+        "LSS",
+        "LSA",
+        "LGS",
+        "LMS",
+        "LSS_R",
+        "LSA_R",
+        "LGS_R",
+        "LMS_R",
+        "LSS_DTR",
+        "LSA_DTR",
+        "LGS_DTR",
+        "LMS_DTR"
+      ],
+      "full_name": "BioLab.Biometrics.Fingerprint.GlobalScoreMethod",
+      "kind": "enum",
+      "methods": [],
+      "properties": []
+    },
+    {
+      "constructors": [],
+      "enum_values": [
+        "Bit",
+        "Double",
+        "BitCuboid",
+        "DoubleCuboid",
+        "CompressedBitCuboid",
+        "CompressedDoubleCuboid",
+        "BitVector"
+      ],
+      "full_name": "BioLab.Biometrics.Fingerprint.Mcc.CylinderType",
+      "kind": "enum",
+      "methods": [],
+      "properties": []
+    },
+    {
+      "constructors": [
+        "BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters()"
+      ],
+      "enum_values": [],
+      "full_name": "BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters",
+      "kind": "class",
+      "methods": [
+        "System.Boolean BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters.SaveToFile(System.String path)",
+        "System.Boolean BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters.SaveToStream(System.IO.Stream stream)",
+        "System.Boolean BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters.SaveToStream(System.IO.Stream stream,\u0006.\u0007 encodingMode)",
+        "System.Object BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters.Clone()",
+        "System.Void BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters.CopyFrom(BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters parameters)",
+        "static BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters.LoadFromFile(System.String path)",
+        "static BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters.LoadFromStream(System.IO.Stream stream)",
+        "static BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters.LoadFromStream(System.IO.Stream stream,\u0006.\u0007 encodingMode)"
+      ],
+      "properties": [
+        "BioLab.Biometrics.Fingerprint.Mcc.CylinderType CylinderType { get; set; }",
+        "BioLab.DimensionalityReduction.DimensionalityReductionTrasform CompressionFunction { get; set; }",
+        "System.Double MinVC { get; set; }",
+        "System.Double MuPsi { get; set; }",
+        "System.Double SigmaD { get; set; }",
+        "System.Double SigmaS { get; set; }",
+        "System.Double TauPsi { get; set; }",
+        "System.Int32 CylinderBaseCellCount { get; }",
+        "System.Int32 MinM { get; set; }",
+        "System.Int32 ND { get; set; }",
+        "System.Int32 NS { get; set; }",
+        "System.Int32 Omega { get; set; }",
+        "System.Int32 R { get; set; }",
+        "static BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters IcarCV2010PaperEnrollParameters { get; }",
+        "static BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters MccOptimalEnrollParameters { get; }",
+        "static BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters MccPalmprintEnrollParameters { get; }",
+        "static BioLab.Biometrics.Fingerprint.Mcc.MccEnrollParameters MccPaperEnrollParameters { get; }"
+      ]
+    },
+    {
+      "constructors": [
+        "BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters()"
+      ],
+      "enum_values": [],
+      "full_name": "BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters",
+      "kind": "class",
+      "methods": [
+        "System.Boolean BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters.SaveToFile(System.String path)",
+        "System.Boolean BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters.SaveToStream(System.IO.Stream stream)",
+        "System.Boolean BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters.SaveToStream(System.IO.Stream stream,\u0006.\u0007 encodingMode)",
+        "System.Object BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters.Clone()",
+        "System.Void BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters.CopyFrom(BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters parameters)",
+        "static BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters.LoadFromFile(System.String path)",
+        "static BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters.LoadFromStream(System.IO.Stream stream)",
+        "static BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters.LoadFromStream(System.IO.Stream stream,\u0006.\u0007 encodingMode)"
+      ],
+      "properties": [
+        "BioLab.Biometrics.Fingerprint.GlobalScoreMethod GlobalScoreMethod { get; set; }",
+        "System.Boolean NormalizeLocalSimilarityMatrix { get; set; }",
+        "System.Double DeltaTheta { get; set; }",
+        "System.Double MinME { get; set; }",
+        "System.Double MuP { get; set; }",
+        "System.Double MuRho1 { get; set; }",
+        "System.Double MuRho2 { get; set; }",
+        "System.Double MuRho3 { get; set; }",
+        "System.Double TauP { get; set; }",
+        "System.Double TauRho1 { get; set; }",
+        "System.Double TauRho2 { get; set; }",
+        "System.Double TauRho3 { get; set; }",
+        "System.Double WR { get; set; }",
+        "System.Int32 MaxNP { get; set; }",
+        "System.Int32 MaxNR { get; set; }",
+        "System.Int32 MinNP { get; set; }",
+        "System.Int32 NRel { get; set; }",
+        "static BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters IcarCV2010PaperMatchParameters { get; }",
+        "static BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters MccOptimalMatchParameters { get; }",
+        "static BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters MccPalmprintMatchParameters { get; }",
+        "static BioLab.Biometrics.Fingerprint.Mcc.MccMatchParameters MccPaperMatchParameters { get; }"
+      ]
+    },
+    {
+      "constructors": [
+        "BioLab.Biometrics.Fingerprint.Mcc.OptimizedMccEnrollParameters()"
+      ],
+      "enum_values": [],
+      "full_name": "BioLab.Biometrics.Fingerprint.Mcc.OptimizedMccEnrollParameters",
+      "kind": "class",
+      "methods": [],
+      "properties": [
+        "System.Boolean OptimizedBitLayout { get; set; }",
+        "System.Int32 MaxCylinderCount { get; set; }"
+      ]
+    },
+    {
+      "constructors": [
+        "BioLab.Biometrics.Fingerprint.Mcc.OptimizedMccMatchParameters()"
+      ],
+      "enum_values": [],
+      "full_name": "BioLab.Biometrics.Fingerprint.Mcc.OptimizedMccMatchParameters",
+      "kind": "class",
+      "methods": [],
+      "properties": [
+        "System.Boolean UseLssHash { get; set; }",
+        "System.Boolean UseNorm1 { get; set; }",
+        "System.Boolean UsePopCntInstr { get; set; }"
+      ]
+    },
+    {
+      "constructors": [],
+      "enum_values": [
+        "Other",
+        "RidgeBifurcation",
+        "RidgeEnding"
+      ],
+      "full_name": "BioLab.Biometrics.Fingerprint.MinutiaType",
+      "kind": "enum",
+      "methods": [],
+      "properties": []
+    },
+    {
+      "constructors": [],
+      "enum_values": [
+        "Loop",
+        "Delta",
+        "Whorl",
+        "Core"
+      ],
+      "full_name": "BioLab.Biometrics.Fingerprint.SingularityType",
+      "kind": "enum",
+      "methods": [],
+      "properties": []
+    },
+    {
+      "constructors": [
+        "BioLab.Biometrics.Fingerprint.Standards.IsoMinutiaeFormatException()",
+        "BioLab.Biometrics.Fingerprint.Standards.IsoMinutiaeFormatException(System.String )"
+      ],
+      "enum_values": [],
+      "full_name": "BioLab.Biometrics.Fingerprint.Standards.IsoMinutiaeFormatException",
+      "kind": "class",
+      "methods": [],
+      "properties": []
+    },
+    {
+      "constructors": [],
+      "enum_values": [],
+      "full_name": "BioLab.Biometrics.Mcc.Sdk.MccSdk",
+      "kind": "class",
+      "methods": [
+        "static System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.Match2PMccTemplates(System.Object template1,System.Object template2)",
+        "static System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.Match2PMccTemplates(System.Object template1,System.Object template2,System.Double[,] localSimilarities)",
+        "static System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.Match2PMccTemplates(System.Object template1,System.Object template2,System.Double[,] localSimilarities,out System.Double[,] normalizedLocalSimilarities,out System.Int32[] selectedMinutiaeTemplate1,out System.Int32[] selectedMinutiaeTemplate2)",
+        "static System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.Match2PMccTemplates(System.Object template1,System.Object template2,out System.Double[,] localSimilarities,out System.Double[,] normalizedLocalSimilarities,out System.Int32[] selectedMinutiaeTemplate1,out System.Int32[] selectedMinutiaeTemplate2)",
+        "static System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.MatchMccTemplates(System.Object template1,System.Object template2)",
+        "static System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.MatchMccTemplates(System.Object template1,System.Object template2,System.Double[,] localSimilarities)",
+        "static System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.MatchMccTemplates(System.Object template1,System.Object template2,System.Double[,] localSimilarities,out System.Double[,] normalizedLocalSimilarities,out System.Double[,] relaxedLocalSimilarities,out System.Double[,] efficiencies,out System.Int32[] preSelectedMinutiaeTemplate1,out System.Int32[] preSelectedMinutiaeTemplate2,out System.Int32[] selectedMinutiaeTemplate1,out System.Int32[] selectedMinutiaeTemplate2)",
+        "static System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.MatchMccTemplates(System.Object template1,System.Object template2,out System.Double[,] localSimilarities,out System.Double[,] normalizedLocalSimilarities,out System.Double[,] relaxedLocalSimilarities,out System.Double[,] efficiencies,out System.Int32[] preSelectedMinutiaeTemplate1,out System.Int32[] preSelectedMinutiaeTemplate2,out System.Int32[] selectedMinutiaeTemplate1,out System.Int32[] selectedMinutiaeTemplate2)",
+        "static System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.MatchPMccTemplates(System.Object template1,System.Object template2)",
+        "static System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.MatchPMccTemplates(System.Object template1,System.Object template2,System.Double[,] localSimilarities)",
+        "static System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.MatchPMccTemplates(System.Object template1,System.Object template2,System.Double[,] localSimilarities,out System.Double[,] normalizedLocalSimilarities,out System.Int32[] selectedMinutiaeTemplate1,out System.Int32[] selectedMinutiaeTemplate2)",
+        "static System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.MatchPMccTemplates(System.Object template1,System.Object template2,out System.Double[,] localSimilarities,out System.Double[,] normalizedLocalSimilarities,out System.Int32[] selectedMinutiaeTemplate1,out System.Int32[] selectedMinutiaeTemplate2)",
+        "static System.Int64[] BioLab.Biometrics.Mcc.Sdk.MccSdk.SearchIsoTemplateIntoMccIndex(System.String filePath,System.Boolean useReductionCriterion,out System.Single[] sortedScores)",
+        "static System.Int64[] BioLab.Biometrics.Mcc.Sdk.MccSdk.SearchTemplateIntoMccIndex(System.Int32 imageWidth,System.Int32 imageHeight,System.Int32 imageResolution,BioLab.Biometrics.Mcc.Sdk.Minutia[] minutiae,System.Boolean useReductionCriterion,out System.Single[] sortedScores)",
+        "static System.Int64[] BioLab.Biometrics.Mcc.Sdk.MccSdk.SearchTextTemplateIntoMccIndex(System.String filePath,System.Boolean useReductionCriterion,out System.Single[] sortedScores)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.Create2PMccTemplate(System.Int32 imageWidth,System.Int32 imageHeight,System.Int32 imageResolution,BioLab.Biometrics.Mcc.Sdk.Minutia[] minutiae,System.Int32 s)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.Create2PMccTemplateFromIsoTemplate(System.String filePath,System.Int32 s)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.Create2PMccTemplateFromTextTemplate(System.String filePath,System.Int32 s)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.CreateMccTemplate(System.Int32 imageWidth,System.Int32 imageHeight,System.Int32 imageResolution,BioLab.Biometrics.Mcc.Sdk.Minutia[] minutiae)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.CreateMccTemplateFromIsoTemplate(System.String filePath)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.CreateMccTemplateFromTextTemplate(System.String filePath)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.CreatePMccTemplate(System.Int32 imageWidth,System.Int32 imageHeight,System.Int32 imageResolution,BioLab.Biometrics.Mcc.Sdk.Minutia[] minutiae)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.CreatePMccTemplateFromIsoTemplate(System.String filePath)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.CreatePMccTemplateFromTextTemplate(System.String filePath)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.Load2PMccTemplateFromBinaryFile(System.String filePath)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.Load2PMccTemplateFromTextFile(System.String filePath)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.LoadMccTemplateFromBinaryFile(System.String filePath)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.LoadMccTemplateFromTextFile(System.String filePath)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.LoadPMccTemplateFromBinaryFile(System.String filePath)",
+        "static System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.LoadPMccTemplateFromTextFile(System.String filePath)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.AddIsoTemplateToMccIndex(System.String filePath,System.Int64 id)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.AddTemplateToMccIndex(System.Int32 imageWidth,System.Int32 imageHeight,System.Int32 imageResolution,BioLab.Biometrics.Mcc.Sdk.Minutia[] minutiae,System.Int64 id)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.AddTextTemplateToMccIndex(System.String filePath,System.Int64 id)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.CreateMccIndex(System.Int32 ns,System.Int32 nd,System.Int32 h,System.Int32 l,System.Double p,System.Int32 minPC,System.Double deltaTheta,System.Int32 deltaXY,System.Int32 randomSeed)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.DeleteMccIndex()",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.LoadMccIndexFromFile(System.String filePath)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.Save2PMccTemplateToBinaryFile(System.Object template,System.String filePath)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.Save2PMccTemplateToTextFile(System.Object template,System.String filePath)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.SaveMccIndexToFile(System.String filePath)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.SaveMccTemplateToBinaryFile(System.Object template,System.String filePath)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.SaveMccTemplateToTextFile(System.Object template,System.String filePath)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.SavePMccTemplateToBinaryFile(System.Object template,System.String filePath)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.SavePMccTemplateToTextFile(System.Object template,System.String filePath)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.Set2PMccEnrollParameters(System.String filePath,System.String klTransformFilePath,System.Int32 c,System.Boolean randomShuffleBitVector)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.Set2PMccMatchParameters(System.String filePath)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.SetMccEnrollParameters(System.String filePath)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.SetMccMatchParameters(System.String filePath)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.SetPMccEnrollParameters(System.String filePath,System.String klTransformFilePath)",
+        "static System.Void BioLab.Biometrics.Mcc.Sdk.MccSdk.SetPMccMatchParameters(System.String filePath)"
+      ],
+      "properties": []
+    },
+    {
+      "constructors": [],
+      "enum_values": [],
+      "full_name": "BioLab.Biometrics.Mcc.Sdk.Minutia",
+      "kind": "struct",
+      "methods": [],
+      "properties": [
+        "System.Double Direction { get; set; }",
+        "System.Int32 X { get; set; }",
+        "System.Int32 Y { get; set; }"
+      ]
+    },
+    {
+      "constructors": [],
+      "enum_values": [],
+      "full_name": "BioLab.DimensionalityReduction.DimensionalityReductionTrasform",
+      "kind": "class",
+      "methods": [
+        "\u0012.\u0003 BioLab.DimensionalityReduction.DimensionalityReductionTrasform.\u0001(\u0012.\u0003 )"
+      ],
+      "properties": []
+    },
+    {
+      "constructors": [
+        "SmartAssembly.Attributes.PoweredByAttribute(System.String )"
+      ],
+      "enum_values": [],
+      "full_name": "SmartAssembly.Attributes.PoweredByAttribute",
+      "kind": "class",
+      "methods": [],
+      "properties": []
+    },
+    {
+      "constructors": [
+        "SmartAssembly.Delegates.GetString(System.Object object,System.IntPtr method)"
+      ],
+      "enum_values": [],
+      "full_name": "SmartAssembly.Delegates.GetString",
+      "kind": "class",
+      "methods": [
+        "System.IAsyncResult SmartAssembly.Delegates.GetString.BeginInvoke(System.Int32 i,System.AsyncCallback callback,System.Object object)",
+        "System.String SmartAssembly.Delegates.GetString.EndInvoke(System.IAsyncResult result)",
+        "System.String SmartAssembly.Delegates.GetString.Invoke(System.Int32 i)"
+      ],
+      "properties": []
+    },
+    {
+      "constructors": [],
+      "enum_values": [],
+      "full_name": "SmartAssembly.HouseOfCards.MemberRefsProxy",
+      "kind": "class",
+      "methods": [
+        "static System.Void SmartAssembly.HouseOfCards.MemberRefsProxy.CreateMemberRefsDelegates(System.Int32 typeID)"
+      ],
+      "properties": []
+    },
+    {
+      "constructors": [],
+      "enum_values": [],
+      "full_name": "SmartAssembly.HouseOfCards.Strings",
+      "kind": "class",
+      "methods": [
+        "static System.Void SmartAssembly.HouseOfCards.Strings.CreateGetStringDelegate(System.Type ownerType)"
+      ],
+      "properties": []
+    }
+  ],
+  "gui": {
+    "binary_present": true,
+    "configuration_present": true,
+    "optional_same-basename_images_are_display_only": true,
+    "source_present": false,
+    "uses_minutiae_templates_not_raster_extraction": true
+  },
+  "mccsdk_public_method_count": 49,
+  "minutia_struct": {
+    "consumed_fields": [
+      "X",
+      "Y",
+      "Direction"
+    ],
+    "full_name": "BioLab.Biometrics.Mcc.Sdk.Minutia",
+    "properties": [
+      "System.Double Direction { get; set; }",
+      "System.Int32 X { get; set; }",
+      "System.Int32 Y { get; set; }"
+    ]
+  },
+  "native_defaults": {
+    "authority": "public SDK optimal-parameter properties",
+    "baseline_variant": "MCC",
+    "enroll": {
+      "CompressionFunction": null,
+      "CylinderBaseCellCount": 208,
+      "CylinderType": "Bit",
+      "MinM": 1,
+      "MinVC": 0.3,
+      "MuPsi": 0.002,
+      "ND": 5,
+      "NS": 16,
+      "Omega": 15,
+      "R": 70,
+      "SigmaD": 0.5235987755982988,
+      "SigmaS": 7,
+      "TauPsi": 400
+    },
+    "match": {
+      "DeltaTheta": 2.356194490192345,
+      "GlobalScoreMethod": "LGS_DTR",
+      "MaxNP": 10,
+      "MaxNR": 50,
+      "MinME": 0.3,
+      "MinNP": 4,
+      "MuP": 32,
+      "MuRho1": 0.041666666666666664,
+      "MuRho2": 0.7853981633974483,
+      "MuRho3": 0.20943951023931953,
+      "NRel": 2,
+      "NormalizeLocalSimilarityMatrix": true,
+      "TauP": 0.25,
+      "TauRho1": -50,
+      "TauRho2": -15,
+      "TauRho3": -28,
+      "WR": 0.5
+    },
+    "selection": "SDK_OPTIMAL_DEFAULTS"
+  },
+  "official_minutiae_inputs": [
+    {
+      "api": "System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.CreateMccTemplate(System.Int32,System.Int32,System.Int32,BioLab.Biometrics.Mcc.Sdk.Minutia[])",
+      "kind": "IN_MEMORY",
+      "selected_for_stage20b": true
+    },
+    {
+      "api": "CreateMccTemplateFromIsoTemplate(string filePath)",
+      "kind": "ISO_IEC_19794_2_2011_FILE",
+      "selected_for_stage20b": false
+    },
+    {
+      "api": "CreateMccTemplateFromTextTemplate(string filePath)",
+      "kind": "SDK_TEXT_MINUTIAE_FILE",
+      "selected_for_stage20b": false
+    }
+  ],
+  "raster_image_api": {
+    "finding": "no exported template-construction method accepts Image, Bitmap, byte[], BMP, PNG, WSQ, or raster bytes; imageWidth and imageHeight are scalar metadata beside Minutia[]",
+    "image_decoder": false,
+    "image_to_mcc_template": false,
+    "minutiae_extractor": false,
+    "present": false
+  },
+  "raw_match_api": "System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.MatchMccTemplates(System.Object,System.Object)",
+  "sample_source": {
+    "csharp_programs": [
+      "2P-MccEnroller/Program.cs",
+      "2P-MccMatcher/Program.cs",
+      "MccEnroller/Program.cs",
+      "MccIndexer/Program.cs",
+      "MccIsoMatcher/Program.cs",
+      "MccLocalSimilarityCalculator/Program.cs",
+      "MccMatcher/Program.cs",
+      "MccMatcherUsingExternalLocalSimilarities/Program.cs",
+      "P-MccEnroller/Program.cs",
+      "P-MccMatcher/Program.cs"
+    ],
+    "matlab_sources": [
+      "Example.m",
+      "MccEnroller.m",
+      "MccIndexer.m",
+      "MccIsoMatcher.m",
+      "MccLocalSimilarityCalculator.m",
+      "MccMatcher.m",
+      "MccMatcherUsingExternalLocalSimilarities.m",
+      "PMccEnroller.m",
+      "PMccMatcher.m",
+      "TwoPMccEnroller.m",
+      "TwoPMccMatcher.m"
+    ],
+    "verification_example_without_parameter_setters": "SourceCode/C#/MccIsoMatcher/Program.cs"
+  },
+  "schema": "stage_20a_api_inventory_v1",
+  "selected_variant": "MCC",
+  "variants_present": [
+    "MCC",
+    "P-MCC",
+    "2P-MCC"
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "additional_managed_dlls_in_package": [],
+  "assembly": {
+    "full_name": "MccSdk, Version=2.0.0.0, Culture=neutral, PublicKeyToken=494f31afeacaf3f4",
+    "image_file_machine": "I386",
+    "image_runtime_version": "v4.0.30319",
+    "name": "MccSdk",
+    "portable_executable_kinds": "ILOnly",
+    "referenced_assemblies": [
+      {
+        "name": "System",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "System.Core",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "System.Drawing",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "System.Xml",
+        "version": "4.0.0.0"
+      },
+      {
+        "name": "mscorlib",
+        "version": "4.0.0.0"
+      }
+    ],
+    "version": "2.0.0.0"
+  },
+  "assembly_file": {
+    "filename": "Sdk/MccSdk.dll",
+    "sha256": "7267ea9f2ea4c32bdeef30a49e648a516381941b531c59960517a87e5cd2eb01",
+    "size": 171008
+  },
+  "documented_requirement": ".NET Framework 4.0",
+  "linux_qualification_required": false,
+  "linux_qualified": false,
+  "managed_dependencies": [
+    {
+      "name": "System",
+      "version": "4.0.0.0"
+    },
+    {
+      "name": "System.Core",
+      "version": "4.0.0.0"
+    },
+    {
+      "name": "System.Drawing",
+      "version": "4.0.0.0"
+    },
+    {
+      "name": "System.Xml",
+      "version": "4.0.0.0"
+    },
+    {
+      "name": "mscorlib",
+      "version": "4.0.0.0"
+    }
+  ],
+  "modern_dotnet_qualified": false,
+  "native_dll_dependencies_in_package": [],
+  "qualified_environment": {
+    "clr_version": "4.0.30319.42000",
+    "installed_dotnet_framework_release": 533509,
+    "installed_dotnet_framework_version": "4.8.09221",
+    "machine_64bit": true,
+    "os": "Windows 11 x64",
+    "os_build": "10.0.26200",
+    "process_64bit": true
+  },
+  "runtime_loads": true,
+  "schema": "stage_20a_runtime_identity_v1",
+  "target": {
+    "any_cpu": true,
+    "any_cpu_evidence": [
+      "assembly PE kind is ILOnly without Required32Bit",
+      "all ten bundled C# projects declare PlatformTarget AnyCPU"
+    ],
+    "clr_metadata": "v4.0.30319",
+    "managed_il_only": true,
+    "required_32_bit": false
+  },
+  "windows_x64_qualified": true
+}

@@ -1,0 +1,34 @@
+{
+  "artifact_source": "OFFICIAL_AUTHOR_LAB",
+  "copyright_holder": "Cappelli R., Ferrara M., Maltoni D. and Maio D.",
+  "copyright_year": 2015,
+  "fpbench_use": "local non-commercial research qualification",
+  "license_source": {
+    "filename": "MccSdk License v2.0.pdf",
+    "pages": 1,
+    "sha256": "cf5d1bb0149c442bb77d9eab3e8cfb2de98201e915bad2e512b789a5ca40f735"
+  },
+  "published_terms": {
+    "as_is_disclaimer": true,
+    "citations_required": [
+      "[1]",
+      "[2]",
+      "[3]",
+      "[4]"
+    ],
+    "conditional_redistribution_clause_present": true,
+    "endorsement_by_university_or_contributors_forbidden_without_permission": true,
+    "paper_citation_required": true,
+    "redistribution_conditions_include_notice_terms_and_disclaimer": true,
+    "research_purposes_only": true
+  },
+  "redistributed_by_fpbench": false,
+  "redistribution": "NOT_ASSUMED_ALLOWED",
+  "research_use": "ALLOWED_BY_PUBLISHED_TERMS",
+  "sample_source_header_observation": "the bundled C# and MATLAB sample headers state that sample source cannot be distributed; fpbench therefore publishes no vendor source",
+  "schema": "stage_20a_license_use_record_v1",
+  "vendor_archive_committed": false,
+  "vendor_dll_committed": false,
+  "vendor_documentation_bytes_committed": false,
+  "vendor_sample_bytes_committed": false
+}

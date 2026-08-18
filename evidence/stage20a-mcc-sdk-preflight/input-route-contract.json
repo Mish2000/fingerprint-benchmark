@@ -1,0 +1,133 @@
+{
+  "candidate": "nbis_mindtct_mcc_sdk_v2",
+  "candidate_identity": "nbis_mindtct_mcc_sdk_v2",
+  "configuration": {
+    "authority": "manual states omitted setters use SDK optimal parameters; MccIsoMatcher verification sample omits both setters",
+    "enroll": {
+      "CompressionFunction": null,
+      "CylinderBaseCellCount": 208,
+      "CylinderType": "Bit",
+      "MinM": 1,
+      "MinVC": 0.3,
+      "MuPsi": 0.002,
+      "ND": 5,
+      "NS": 16,
+      "Omega": 15,
+      "R": 70,
+      "SigmaD": 0.5235987755982988,
+      "SigmaS": 7,
+      "TauPsi": 400
+    },
+    "match": {
+      "DeltaTheta": 2.356194490192345,
+      "GlobalScoreMethod": "LGS_DTR",
+      "MaxNP": 10,
+      "MaxNR": 50,
+      "MinME": 0.3,
+      "MinNP": 4,
+      "MuP": 32,
+      "MuRho1": 0.041666666666666664,
+      "MuRho2": 0.7853981633974483,
+      "MuRho3": 0.20943951023931953,
+      "NRel": 2,
+      "NormalizeLocalSimilarityMatrix": true,
+      "TauP": 0.25,
+      "TauRho1": -50,
+      "TauRho2": -15,
+      "TauRho3": -28,
+      "WR": 0.5
+    },
+    "parameter_setters_called": false,
+    "selection": "SDK_OPTIMAL_DEFAULTS",
+    "variant": "baseline MCC"
+  },
+  "exact_mcc_input": {
+    "api": "System.Object BioLab.Biometrics.Mcc.Sdk.MccSdk.CreateMccTemplate(System.Int32,System.Int32,System.Int32,BioLab.Biometrics.Mcc.Sdk.Minutia[])",
+    "image_height": "canonical raster height (DIRECT)",
+    "image_resolution": 500,
+    "image_width": "canonical raster width (DIRECT)",
+    "minutia_fields": [
+      "X:System.Int32",
+      "Y:System.Int32",
+      "Direction:System.Double"
+    ]
+  },
+  "field_contract": {
+    "finger_position": "IGNORED_BY_MCC",
+    "height": "DIRECT",
+    "minutia_type": "IGNORED_BY_MCC",
+    "quality": "IGNORED_BY_MCC",
+    "resolution": "DIRECT",
+    "theta": "DERIVED_MECHANICALLY",
+    "width": "DIRECT",
+    "x": "DIRECT",
+    "y": "DERIVED_MECHANICALLY"
+  },
+  "forbidden_route_operations": [
+    "best-N selection",
+    "central-minutiae selection",
+    "crop",
+    "deduplication",
+    "enhancement",
+    "quality cutoff",
+    "resize",
+    "rotation optimization",
+    "sorting"
+  ],
+  "fpbench_preprocessing_added": false,
+  "image_extractor_in_mcc_sdk": false,
+  "input_route": "MINDTCT_MINUTIAE_TO_MCC",
+  "mindtct": {
+    "contrast_boost_flag": false,
+    "crop": null,
+    "image_enhancement": null,
+    "m1_flag": false,
+    "quality_cutoff": null,
+    "resize": null,
+    "rotation": null,
+    "top_n": null,
+    "version": "5.0.0"
+  },
+  "project_choice_fields": [],
+  "route": [
+    "canonical gray8 500 ppi image",
+    "NBIS MINDTCT 5.0.0 with no flags",
+    "mechanical XYT to MccSdk.Minutia[] representation",
+    "official baseline MCC SDK v2.0 template construction",
+    "official baseline MCC SDK v2.0 matching",
+    "raw System.Double similarity"
+  ],
+  "route_closed": true,
+  "route_requires_score_affecting_fpbench_choice": false,
+  "schema": "stage_20a_input_route_contract_v1",
+  "sd300_used_for_parameter_selection": false,
+  "sd300_used_for_performance_selection": false,
+  "sd300_used_for_route_selection": false,
+  "sdk_fixed_dpi_requirement": "NOT_DOCUMENTED",
+  "sdk_grayscale_requirement": "NOT_APPLICABLE_NO_RASTER_INPUT",
+  "sdk_image_dimension_restrictions": "NOT_DOCUMENTED",
+  "sdk_internal_selection": {
+    "allowed_as_algorithm_behavior": true,
+    "default_enroll_MinM": 1,
+    "default_match_MaxNP": 10,
+    "default_match_MaxNR": 50,
+    "default_match_MinNP": 4
+  },
+  "shares_extractor_with": "nbis_mindtct_bozorth3",
+  "shares_extractor_with_nbis": true,
+  "stage20b_self_contract": {
+    "mcc_template_constructions": 2,
+    "mindtct_extractions": 2,
+    "mindtct_extractions_independent": true,
+    "ordinary_match_invocation": true,
+    "same_path_shortcut": false
+  },
+  "translation": {
+    "direction": "direction_mcc = theta_xyt_degrees * pi / 180",
+    "minutiae_count": "all MINDTCT minutiae passed; no caller limit",
+    "order": "MINDTCT order preserved",
+    "quality": "ignored because MccSdk.Minutia has no quality field",
+    "x": "x_mcc = x_xyt",
+    "y": "y_mcc = image_height - y_xyt"
+  }
+}

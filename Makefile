@@ -132,6 +132,12 @@ help:
 	@echo "stage14a-artifacts      run the checks that need a delivered Griaule package locally"
 	@echo "stage14a-documents      write the eight derivable evidence documents (commit them, then publish)"
 	@echo "stage14a-publish        write the final marker too; refuses a non-final outcome"
+	@echo "stage20a-contract       verify the mechanical MINDTCT-to-MCC representation contract"
+	@echo "stage20a-evidence       verify the committed MCC SDK v2.0 preflight evidence"
+	@echo "stage20a-acquire        fetch and pin the official BioLab MCC SDK v2.0 archive outside Git"
+	@echo "stage20a-probe          compile and run the small C# qualification probe on SDK samples"
+	@echo "stage20a-publish        derive the Stage 20A evidence and PASS marker"
+	@echo "stage20a-verify         re-derive evidence hashes and the Stage 20A source fingerprint"
 	@echo "stage15a-contract       the fingerprints-matching qualification: six gates, the route contract, the failure split"
 	@echo "stage15a-evidence       verify the committed Stage 15A evidence"
 	@echo "stage15a-acquire        fetch the two published PyPI artifacts and check both digests"
@@ -1080,3 +1086,28 @@ stage19b-documents:
 	  --patch $(FPBENCH_STAGE19B_ROOT)/patch-provenance.json \
 	  --translator-inertness $(FPBENCH_STAGE19B_ROOT)/translator-inertness.json \
 	  --stored 6000 --missing 0
+
+# --------------------------------------------------------------------- Stage 20A
+#
+# Official University of Bologna MCC SDK v2.0 preflight. Vendor bytes, probe
+# binaries and full probe output remain in the local third-party store. This
+# stage uses the SDK's sample minutiae only and never reads SD300.
+
+stage20a-contract:
+	pytest -m "stage20a_contract" -q
+
+stage20a-evidence:
+	pytest -m "stage20a" -q
+
+stage20a-acquire:
+	python scripts/stage20a_mcc_sdk_preflight.py acquire
+	python scripts/stage20a_mcc_sdk_preflight.py extract
+
+stage20a-probe:
+	python scripts/stage20a_mcc_sdk_preflight.py probe
+
+stage20a-publish:
+	python scripts/stage20a_mcc_sdk_preflight.py publish
+
+stage20a-verify:
+	python scripts/stage20a_mcc_sdk_preflight.py verify

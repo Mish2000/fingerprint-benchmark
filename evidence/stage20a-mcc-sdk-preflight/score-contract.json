@@ -1,0 +1,54 @@
+{
+  "calibration": "NONE",
+  "candidate": "nbis_mindtct_mcc_sdk_v2",
+  "direction": "HIGHER_MORE_SIMILAR",
+  "direction_authority": "SDK documentation and executable documentation define 0 as no similarity and 1 as maximum similarity",
+  "exact_api": "System.Double BioLab.Biometrics.Mcc.Sdk.MccSdk.MatchMccTemplates(System.Object,System.Object)",
+  "failure_semantics": {
+    "BRIDGE_FAILURE": "invalid bridge payload, translation refusal, missing input, or malformed probe output",
+    "MCC_MATCH_REFUSAL": "SDK throws while matching two successfully constructed templates",
+    "MCC_RUNTIME_FAILURE": "assembly load, CLR, or process-level failure",
+    "MCC_TEMPLATE_REFUSAL": "SDK throws while constructing a template from bridge-validated minutiae",
+    "score_zero": "successful scalar result, never a failure"
+  },
+  "fpbench_threshold": null,
+  "hidden_threshold_required": false,
+  "native_decision_rule": null,
+  "native_scalar_score": true,
+  "native_type": "System.Double",
+  "observed_error_behavior": {
+    "invalid_text_template": {
+      "detail": "System.FormatException",
+      "outcome": "THREW"
+    },
+    "null_left_template": {
+      "detail": "System.NullReferenceException",
+      "outcome": "THREW"
+    },
+    "zero_is_never_used_as_an_exception_sentinel": true
+  },
+  "pair_order": {
+    "aggregation_of_both_orders": null,
+    "checked": true,
+    "symmetric": true
+  },
+  "range": {
+    "inclusive": true,
+    "maximum": 1.0,
+    "minimum": 0.0
+  },
+  "runtime_direction_check_is_confirmation_not_selection": true,
+  "schema": "stage_20a_score_contract_v1",
+  "score_transform": "NONE",
+  "self": {
+    "ordinary_invocation": true,
+    "same_path_shortcut": false,
+    "templates_constructed_independently": true
+  },
+  "zero_score": {
+    "authority": "documented inclusive [0,1] score range",
+    "failure_sentinel": false,
+    "observed_in_smoke": false,
+    "valid_similarity": true
+  }
+}

@@ -2390,6 +2390,33 @@ Also outstanding from earlier stages: a real FMR needs a cross-subject
 negative-pair design chosen for estimation — a new pair manifest and a new run,
 not a new metric over this one.
 
+## Stage 20A — official MCC SDK v2.0 preflight
+
+Stage 20A qualifies the official University of Bologna MCC SDK v2.0 before any
+production adapter or canonical run is built. The artifact was obtained by the
+lab's public self-service download, pinned by SHA-256, inspected and executed from
+the local third-party store; the ZIP, DLL, manuals, examples and generated
+templates remain outside Git.
+
+The package closes a minutiae-only route, not a native-image route. No exported
+API accepts raster bytes or an `Image`/`Bitmap`; baseline MCC constructs its
+template from ISO/IEC 19794-2:2011, the SDK's text-minutiae format, or the direct
+`CreateMccTemplate(width, height, resolution, Minutia[])` call. The direct struct
+has exactly `X`, `Y` and `Direction`, so canonical MINDTCT XYT can reach it by a
+mechanical origin change and unit conversion with no type, quality cutoff, top-N
+rule, sort or deduplication. The candidate is consequently named
+`nbis_mindtct_mcc_sdk_v2`, and it shares the frozen MINDTCT 5.0.0 extractor with
+`nbis_mindtct_bozorth3`.
+
+The official matcher returns a native `System.Double` similarity in `[0,1]`,
+higher-is-more-similar. A small Windows x64/.NET Framework smoke used only the
+SDK's sample minutiae, native SDK-optimal defaults and fresh templates on both
+sides; it returned finite scalar scores and observed exact symmetry in both pair
+orders. No threshold, calibration, SD300 image, prior score, ranking or 6,000-pair
+run entered the stage. The final outcome is
+`MINDTCT_MCC_SDK_V2_ROUTE_PASS`, which opens Stage 20B for the production adapter
+and canonical raw comparisons.
+
 ## Longer-term backlog from earlier stages
 
 1. metrics over the three views — FMR, FNMR and the conditional PLAIN–ROLL report — with

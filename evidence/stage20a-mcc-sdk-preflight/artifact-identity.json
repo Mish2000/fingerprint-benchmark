@@ -1,0 +1,126 @@
+{
+  "acquisition_utc": "2026-08-18T17:25:39Z",
+  "additional_acquisition_gate": false,
+  "archive": {
+    "entry_count": 266,
+    "file_count": 238,
+    "filename": "MCCSdk v2.0.zip",
+    "sha256": "79851f32900be641a02462a6e9ce6dad7f59963344b0394f4a1c6d26d5c021cc",
+    "size": 10404479,
+    "uncompressed_file_bytes": 21379632
+  },
+  "archive_filename": "MCCSdk v2.0.zip",
+  "archive_sha256": "79851f32900be641a02462a6e9ce6dad7f59963344b0394f4a1c6d26d5c021cc",
+  "archive_size": 10404479,
+  "artifact_source": "OFFICIAL_AUTHOR_LAB",
+  "copyright_holder": "Cappelli R., Ferrara M., Maltoni D. and Maio D.",
+  "dlls": [
+    {
+      "filename": "Executables/MccSdk.dll",
+      "sha256": "7267ea9f2ea4c32bdeef30a49e648a516381941b531c59960517a87e5cd2eb01",
+      "size": 171008
+    },
+    {
+      "filename": "Sdk/MccSdk.dll",
+      "sha256": "7267ea9f2ea4c32bdeef30a49e648a516381941b531c59960517a87e5cd2eb01",
+      "size": 171008
+    }
+  ],
+  "documentation": [
+    {
+      "filename": "MccSdk Documentation v2.0.pdf",
+      "sha256": "4a4009dc19c7b7e5c150b8b8df7ada419cfbd2c97d89de098c5201d59c722544",
+      "size": 1716699
+    },
+    {
+      "filename": "MccSdk License v2.0.pdf",
+      "sha256": "cf5d1bb0149c442bb77d9eab3e8cfb2de98201e915bad2e512b789a5ca40f735",
+      "size": 225691
+    },
+    {
+      "filename": "Sdk/MccSdk.XML",
+      "sha256": "5e70b609cfa38c82e041afd4935bc436c9b011f839ba8c6fb48782cde73f53b3",
+      "size": 37095
+    },
+    {
+      "filename": "Executables/MccSdk.XML",
+      "sha256": "5e70b609cfa38c82e041afd4935bc436c9b011f839ba8c6fb48782cde73f53b3",
+      "size": 37095
+    }
+  ],
+  "download_url": "https://biolab.csr.unibo.it/researchPages/download/MCCSdk%20v2.0.zip",
+  "included_examples": {
+    "csharp_programs": [
+      "2P-MccEnroller/Program.cs",
+      "2P-MccMatcher/Program.cs",
+      "MccEnroller/Program.cs",
+      "MccIndexer/Program.cs",
+      "MccIsoMatcher/Program.cs",
+      "MccLocalSimilarityCalculator/Program.cs",
+      "MccMatcher/Program.cs",
+      "MccMatcherUsingExternalLocalSimilarities/Program.cs",
+      "P-MccEnroller/Program.cs",
+      "P-MccMatcher/Program.cs"
+    ],
+    "csharp_projects": [
+      "2P-MccEnroller/2P-MccEnroller.csproj",
+      "2P-MccMatcher/2P-MccMatcher.csproj",
+      "MccEnroller/MccEnroller.csproj",
+      "MccIndexer/MccIndexer.csproj",
+      "MccIsoMatcher/MccIsoMatcher.csproj",
+      "MccLocalSimilarityCalculator/MccLocalSimilarityCalculator.csproj",
+      "MccMatcher/MccMatcher.csproj",
+      "MccMatcherUsingExternalLocalSimilarities/MccMatcherUsingExternalLocalSimilarities.csproj",
+      "P-MccEnroller/P-MccEnroller.csproj",
+      "P-MccMatcher/P-MccMatcher.csproj"
+    ],
+    "matlab_sources": [
+      "Example.m",
+      "MccEnroller.m",
+      "MccIndexer.m",
+      "MccIsoMatcher.m",
+      "MccLocalSimilarityCalculator.m",
+      "MccMatcher.m",
+      "MccMatcherUsingExternalLocalSimilarities.m",
+      "PMccEnroller.m",
+      "PMccMatcher.m",
+      "TwoPMccEnroller.m",
+      "TwoPMccMatcher.m"
+    ],
+    "sample_minutiae_files": 122
+  },
+  "included_gui": {
+    "configuration_files": [
+      "IcarCV2010PaperEnrollParameters.xml",
+      "IcarCV2010PaperMatchParameters.xml",
+      "MccPaperEnrollParameters.xml",
+      "MccPaperMatchParameters.xml",
+      "MccSdk1.4OptimalEnrollParameters.xml",
+      "MccSdk1.4OptimalMatchParameters.xml",
+      "PMCC128.txt",
+      "PMCC16.txt",
+      "PMCC32.txt",
+      "PMCC64.txt",
+      "PMccPaperEnrollParameters.xml",
+      "PMccPaperMatchParameters.xml"
+    ],
+    "configuration_included": true,
+    "filename": "MccSdkSimpleApplication/MccSdkSimpleApplication.exe",
+    "present": true,
+    "sha256": "6e28da3f147ff8d54e4e147999378922ab8f35979504a460b231cd18b95da87e",
+    "size": 669184,
+    "source_included": false
+  },
+  "included_matlab_examples": true,
+  "official_artifact": true,
+  "official_page_url": "https://biolab.csr.unibo.it/mccsdk.html",
+  "product_name": "MCC Software Development Kit (SDK)",
+  "redistribution": "NOT_ASSUMED_ALLOWED",
+  "research_use": "ALLOWED_BY_PUBLISHED_TERMS",
+  "schema": "stage_20a_artifact_identity_v1",
+  "self_service_download": true,
+  "stored_outside_repository": true,
+  "third_party_bytes_added_to_git": false,
+  "upstream_modified": false,
+  "version": "2.0"
+}

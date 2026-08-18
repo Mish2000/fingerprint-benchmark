@@ -105,9 +105,10 @@ def _stable_hash(value: Mapping[str, Any]) -> str:
 
 def _write_json(path: Path, value: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-        encoding="utf-8",
+    path.write_bytes(
+        (json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode(
+            "utf-8"
+        )
     )
 
 
@@ -863,7 +864,7 @@ def publish_evidence(*, repository_root: Path) -> Path:
     for name, value in documents.items():
         path = evidence / name
         if isinstance(value, str):
-            path.write_text(value, encoding="utf-8")
+            path.write_bytes(value.encode("utf-8"))
         else:
             _write_json(path, value)
 

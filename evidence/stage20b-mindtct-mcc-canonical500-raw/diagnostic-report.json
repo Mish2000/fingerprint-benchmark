@@ -1,0 +1,193 @@
+{
+  "algorithm2_comparison": {
+    "algorithm_2": "nbis_mindtct_bozorth3",
+    "algorithm_2_score_bearing": 6000,
+    "both_score_bearing": 6000,
+    "decisions_produced": 0,
+    "differs_only_in": "the matcher",
+    "shared_extractor": "mindtct 5.0.0, the same certified build, proved by Gate B",
+    "spearman_rank_correlation_on_common": 0.896507,
+    "stage_20b": "nbis_mindtct_mcc_sdk_v2",
+    "stage_20b_score_bearing": 6000,
+    "threshold_applied": null,
+    "why_no_better_or_worse": "the two scales are unrelated and no common operating point has been chosen; a comparison of accuracy needs calibration, which is a later stage"
+  },
+  "algorithm_id": "nbis_mindtct_mcc_sdk_v2",
+  "by_protocol_stage": [
+    {
+      "attempted": 1500,
+      "count": 1500,
+      "maximum": 0.7910837543731398,
+      "mean": 0.6584119912428558,
+      "median": 0.6562252965052516,
+      "minimum": 0.5749399977788766,
+      "p05": 0.6246493417176332,
+      "p95": 0.6969478743164563,
+      "protocol_stage": "plain_self",
+      "score_bearing": 1500,
+      "unique_scores": 1500,
+      "zeros": 0
+    },
+    {
+      "attempted": 1500,
+      "count": 1500,
+      "maximum": 0.7297077093827121,
+      "mean": 0.6916659408136568,
+      "median": 0.69183187355495,
+      "minimum": 0.648569886666729,
+      "p05": 0.6701925973859371,
+      "p95": 0.7129667311565598,
+      "protocol_stage": "roll_self",
+      "score_bearing": 1500,
+      "unique_scores": 1500,
+      "zeros": 0
+    },
+    {
+      "attempted": 1500,
+      "count": 1500,
+      "maximum": 0.3916488375173047,
+      "mean": 0.20640611506665152,
+      "median": 0.20662643592736787,
+      "minimum": 0.07856526218455254,
+      "p05": 0.10007844111335491,
+      "p95": 0.31521022807094756,
+      "protocol_stage": "plain_roll_mated",
+      "score_bearing": 1500,
+      "unique_scores": 1500,
+      "zeros": 0
+    },
+    {
+      "attempted": 1500,
+      "count": 1500,
+      "maximum": 0.1671190432158874,
+      "mean": 0.09471476134816824,
+      "median": 0.09383621383740987,
+      "minimum": 0.08129821681157373,
+      "p05": 0.08763929863896634,
+      "p95": 0.10498028643807289,
+      "protocol_stage": "plain_roll_non_mated",
+      "score_bearing": 1500,
+      "unique_scores": 1500,
+      "zeros": 0
+    }
+  ],
+  "by_release": [
+    {
+      "attempted": 2000,
+      "count": 2000,
+      "maximum": 0.7793911644875922,
+      "mean": 0.4127535629532496,
+      "median": 0.48329441764809067,
+      "minimum": 0.07856526218455254,
+      "p05": 0.08982188986419004,
+      "p95": 0.7042401814192886,
+      "release": "SD300A",
+      "score_bearing": 2000,
+      "unique_scores": 2000,
+      "zeros": 0
+    },
+    {
+      "attempted": 2000,
+      "count": 2000,
+      "maximum": 0.7910837543731398,
+      "mean": 0.4129115121423856,
+      "median": 0.4769445506806119,
+      "minimum": 0.08129821681157373,
+      "p05": 0.0905464973504053,
+      "p95": 0.704703386994481,
+      "release": "SD300B",
+      "score_bearing": 2000,
+      "unique_scores": 2000,
+      "zeros": 0
+    },
+    {
+      "attempted": 2000,
+      "count": 2000,
+      "maximum": 0.7563940741537296,
+      "mean": 0.4127340312578642,
+      "median": 0.4803175700960012,
+      "minimum": 0.08251365890280901,
+      "p05": 0.09049131358458366,
+      "p95": 0.704220327622229,
+      "release": "SD300C",
+      "score_bearing": 2000,
+      "unique_scores": 2000,
+      "zeros": 0
+    }
+  ],
+  "calibration_performed": false,
+  "created_utc": "2026-08-19T07:14:28Z",
+  "decisions_produced": 0,
+  "expected_outcomes": 6000,
+  "failure_count": 0,
+  "failure_reasons": {},
+  "invalid_scores_observed": [],
+  "kind": "stage_20b_diagnostic_report",
+  "metrics_produced": [],
+  "minutiae_counts": {
+    "maximum": 373,
+    "median": 137.0,
+    "minimum": 9,
+    "p95": 275,
+    "sides_above_128": 6232,
+    "sides_counted": 12000,
+    "sides_with_zero_minutiae": 0
+  },
+  "missing": 0,
+  "outcome_counts": {
+    "OK": 6000
+  },
+  "overall": {
+    "count": 6000,
+    "maximum": 0.7910837543731398,
+    "mean": 0.4127997021178331,
+    "median": 0.48329441764809067,
+    "minimum": 0.07856526218455254,
+    "p05": 0.0902920973883403,
+    "p95": 0.7044440303303843,
+    "score_bearing": 6000,
+    "score_bearing_fraction": 1.0,
+    "unique_scores": 6000,
+    "zeros": 0
+  },
+  "schema": "stage_20b_diagnostic_report_v1",
+  "score_transform": "NONE",
+  "stage": "20B",
+  "stored_outcomes": 6000,
+  "threshold": null,
+  "timings_ms": {
+    "mcc_match_ms": {
+      "median": 19.0597,
+      "p95": 25.4711
+    },
+    "mcc_template_left_ms": {
+      "median": 32.0075,
+      "p95": 39.7735
+    },
+    "mcc_template_right_ms": {
+      "median": 6.87565,
+      "p95": 12.6677
+    },
+    "mindtct_left_ms": {
+      "median": 69.906531,
+      "p95": 121.226302
+    },
+    "mindtct_right_ms": {
+      "median": 119.15189050000001,
+      "p95": 169.645369
+    },
+    "total_adapter_ms": {
+      "median": 435.15717400009635,
+      "p95": 551.5670459999455
+    },
+    "translation_left_ms": {
+      "median": 0.043832499999999996,
+      "p95": 0.141311
+    },
+    "translation_right_ms": {
+      "median": 0.07778750000000001,
+      "p95": 0.138516
+    }
+  },
+  "used_to_change_route_or_configuration": false
+}

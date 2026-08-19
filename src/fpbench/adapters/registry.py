@@ -173,6 +173,16 @@ def _ensure_builtin_adapters() -> None:
             OpenAfisCapacityExtendedAdapter.from_config,
         )
 
+    if "nbis_mindtct_mcc_sdk_v2_subprocess" not in ADAPTERS:
+        # Stage 20B. The same certified extractor again, into the official
+        # unmodified MCC SDK v2.0 rather than into BOZORTH3 or OpenAFIS.
+        # Registered separately for the third time and for the third time for
+        # the same reason: a setting that changed which matcher produced a score
+        # would let several algorithms share one identity (docs/adr/0137).
+        from fpbench.adapters.mcc.adapter import MccSdkAdapter
+
+        register_adapter("nbis_mindtct_mcc_sdk_v2_subprocess", MccSdkAdapter.from_config)
+
     if "verifinger_java_subprocess" not in ADAPTERS:
         # Registering it requires neither Java, nor a licence, nor 4.7 GB of
         # vendor SDK. The adapter reports its own environment as UNAVAILABLE

@@ -1,0 +1,24 @@
+{
+  "algorithm_id": "nbis_mindtct_mcc_sdk_v2",
+  "algorithm_ids_present": [
+    "nbis_mindtct_mcc_sdk_v2"
+  ],
+  "duplicate_pair_ids": 0,
+  "every_attempt_stored": true,
+  "expected_outcomes": 6000,
+  "failures_recorded_as_zero": 0,
+  "first_scores_outside_contract": [],
+  "invalid_scores_clamped": false,
+  "invalid_scores_observed": [],
+  "kind": "stage_20b_result_integrity",
+  "missing": 0,
+  "ordinals_are_complete": true,
+  "ordinals_are_the_manifest_order": true,
+  "score_bearing": 6000,
+  "scores_outside_contract": 0,
+  "stage": "20B",
+  "stored_outcomes": 6000,
+  "successes_recorded_without_a_score": 0,
+  "zero_is_a_valid_similarity": true,
+  "zero_scores": 0
+}

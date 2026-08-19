@@ -1,0 +1,65 @@
+{
+  "algorithm_id": "nbis_mindtct_mcc_sdk_v2",
+  "authority": "Stage 20A runtime smoke, evidence/stage20a-mcc-sdk-preflight/runtime-smoke.json",
+  "comparisons": [
+    {
+      "comparison": "self",
+      "exact": true,
+      "production_score": 0.6463866269440767,
+      "stage20a_score": 0.6463866269440767,
+      "status": "OK"
+    },
+    {
+      "comparison": "related_forward",
+      "exact": true,
+      "production_score": 0.18989714373119645,
+      "stage20a_score": 0.18989714373119645,
+      "status": "OK"
+    },
+    {
+      "comparison": "related_reverse",
+      "exact": true,
+      "production_score": 0.18989714373119645,
+      "stage20a_score": 0.18989714373119645,
+      "status": "OK"
+    },
+    {
+      "comparison": "unrelated_forward",
+      "exact": true,
+      "production_score": 0.10158917843359545,
+      "stage20a_score": 0.10158917843359545,
+      "status": "OK"
+    },
+    {
+      "comparison": "unrelated_reverse",
+      "exact": true,
+      "production_score": 0.10158917843359545,
+      "stage20a_score": 0.10158917843359545,
+      "status": "OK"
+    }
+  ],
+  "exact_matches": 5,
+  "expected_comparisons": 5,
+  "gate": "A",
+  "kind": "stage_20b_gate_a_bridge_reproduction",
+  "mismatches": 0,
+  "outcome": "MCC_PRODUCTION_BRIDGE_REPRODUCTION_PASS",
+  "parameter_setters_called": false,
+  "sample_authority": "SDK_PROVIDED_SAMPLE_MINUTIAE",
+  "sample_files": [
+    "1_1.txt",
+    "1_2.txt",
+    "2_1.txt"
+  ],
+  "sd300_images_used": 0,
+  "stage": "20B",
+  "stage20a_template_api": "CreateMccTemplateFromTextTemplate",
+  "symmetry_preserved": {
+    "related": true,
+    "unrelated": true
+  },
+  "template_api_used": "production_CreateMccTemplate_int_int_int_Minutia_array",
+  "tolerance": null,
+  "what_this_does_not_prove": "nothing about MINDTCT: these minutiae are the vendor's own and never passed through an extractor here. Gate B is what proves the extractor route",
+  "why_the_apis_may_be_compared": "Appendix A of the SDK manual defines the sample text format as image width, height, resolution and one x/y/direction row per minutia — the exact arguments the production template API takes, so the two routes carry identical input"
+}

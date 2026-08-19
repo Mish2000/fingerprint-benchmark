@@ -82,6 +82,14 @@ _EXTERNAL_TOOLING = {
         (pytest.mark.nbis_upstream, pytest.mark.upstream, pytest.mark.openafis_artifact),
         "FPBENCH_REQUIRE_OPENAFIS_19B",
     ),
+    # Stage 20B needs everything the NBIS route needs, plus a licence-restricted
+    # vendor assembly that may not be redistributed and a .NET Framework host to
+    # load it on. CI has neither, so this row is what lets the route take part in
+    # exactly this suite while the ordinary run skips it.
+    "nbis_mindtct_mcc_sdk_v2_subprocess": (
+        (pytest.mark.nbis_upstream, pytest.mark.upstream, pytest.mark.mcc_sdk_v2_artifact),
+        "FPBENCH_REQUIRE_MCC_SDK",
+    ),
 }
 
 ADAPTER_PARAMS = [

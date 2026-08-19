@@ -1,0 +1,130 @@
+{
+  "algorithm2_adapter_id": "nbis_mindtct_bozorth3_subprocess",
+  "algorithm_id": "nbis_mindtct_mcc_sdk_v2",
+  "compared": "each adapter's own staging and extraction path, not two runs of one script",
+  "expected_images": 12,
+  "filenames_compared": false,
+  "flags": [],
+  "gate": "B",
+  "identical_xyt": 12,
+  "images": [
+    {
+      "algorithm2_xyt_sha256": "9ab1fc8a0bf2efb7b5c82ba25be6bd05cd0b727c259b79d30641f7e3e8b335cf",
+      "identical": true,
+      "image_id": "sd300a_00001012_plain_f01",
+      "impression_type": "plain",
+      "minutiae_count": 72,
+      "release": "SD300A",
+      "stage20b_xyt_sha256": "9ab1fc8a0bf2efb7b5c82ba25be6bd05cd0b727c259b79d30641f7e3e8b335cf"
+    },
+    {
+      "algorithm2_xyt_sha256": "b3f5c84943c733477d90a2e60be2e4c132d22af4d42dae66287066e663ea2fae",
+      "identical": true,
+      "image_id": "sd300a_00001020_plain_f01",
+      "impression_type": "plain",
+      "minutiae_count": 152,
+      "release": "SD300A",
+      "stage20b_xyt_sha256": "b3f5c84943c733477d90a2e60be2e4c132d22af4d42dae66287066e663ea2fae"
+    },
+    {
+      "algorithm2_xyt_sha256": "003303c5954b8a5e137dba3c286ce6462c0f68b8af6015a53fa58f78f1a4d4fb",
+      "identical": true,
+      "image_id": "sd300a_00001012_roll_f01",
+      "impression_type": "roll",
+      "minutiae_count": 157,
+      "release": "SD300A",
+      "stage20b_xyt_sha256": "003303c5954b8a5e137dba3c286ce6462c0f68b8af6015a53fa58f78f1a4d4fb"
+    },
+    {
+      "algorithm2_xyt_sha256": "a6e2908cc7d7633c9c5943b83eba376823f78f8c14b3ee9dbb7db4422c7ae6a3",
+      "identical": true,
+      "image_id": "sd300a_00001020_roll_f01",
+      "impression_type": "roll",
+      "minutiae_count": 183,
+      "release": "SD300A",
+      "stage20b_xyt_sha256": "a6e2908cc7d7633c9c5943b83eba376823f78f8c14b3ee9dbb7db4422c7ae6a3"
+    },
+    {
+      "algorithm2_xyt_sha256": "034b879fbceb46aa3e3844097c5a882823f62c9370b58e9215ea415b0acaa7f6",
+      "identical": true,
+      "image_id": "sd300b_00001012_plain_f01",
+      "impression_type": "plain",
+      "minutiae_count": 83,
+      "release": "SD300B",
+      "stage20b_xyt_sha256": "034b879fbceb46aa3e3844097c5a882823f62c9370b58e9215ea415b0acaa7f6"
+    },
+    {
+      "algorithm2_xyt_sha256": "3a2de4ea82cc2659968be295ef7146c594a915223b2a56494ec79fe2b5918981",
+      "identical": true,
+      "image_id": "sd300b_00001020_plain_f01",
+      "impression_type": "plain",
+      "minutiae_count": 150,
+      "release": "SD300B",
+      "stage20b_xyt_sha256": "3a2de4ea82cc2659968be295ef7146c594a915223b2a56494ec79fe2b5918981"
+    },
+    {
+      "algorithm2_xyt_sha256": "a76aab0e12405c9edede53450516a3a242bc702dac23cc9a7ed464901c0a340b",
+      "identical": true,
+      "image_id": "sd300b_00001012_roll_f01",
+      "impression_type": "roll",
+      "minutiae_count": 156,
+      "release": "SD300B",
+      "stage20b_xyt_sha256": "a76aab0e12405c9edede53450516a3a242bc702dac23cc9a7ed464901c0a340b"
+    },
+    {
+      "algorithm2_xyt_sha256": "5d8c29efb9f20e5209b1da13209ede1c5271e8084e0fc2e1cdea148b4fb46c24",
+      "identical": true,
+      "image_id": "sd300b_00001020_roll_f01",
+      "impression_type": "roll",
+      "minutiae_count": 194,
+      "release": "SD300B",
+      "stage20b_xyt_sha256": "5d8c29efb9f20e5209b1da13209ede1c5271e8084e0fc2e1cdea148b4fb46c24"
+    },
+    {
+      "algorithm2_xyt_sha256": "01d84dc2f39d0f735899a7474de5131c58e269098a42fe088091aa725627a541",
+      "identical": true,
+      "image_id": "sd300c_00001012_plain_f01",
+      "impression_type": "plain",
+      "minutiae_count": 79,
+      "release": "SD300C",
+      "stage20b_xyt_sha256": "01d84dc2f39d0f735899a7474de5131c58e269098a42fe088091aa725627a541"
+    },
+    {
+      "algorithm2_xyt_sha256": "80debca1b89558ef4abc1a7567f0ea134dd3761bbd0ee71c145c9c90f11d1b46",
+      "identical": true,
+      "image_id": "sd300c_00001020_plain_f01",
+      "impression_type": "plain",
+      "minutiae_count": 138,
+      "release": "SD300C",
+      "stage20b_xyt_sha256": "80debca1b89558ef4abc1a7567f0ea134dd3761bbd0ee71c145c9c90f11d1b46"
+    },
+    {
+      "algorithm2_xyt_sha256": "71f61f278cf47b440ac71d30b81dce2a550958880f087c315f11fd15137bdbd9",
+      "identical": true,
+      "image_id": "sd300c_00001012_roll_f01",
+      "impression_type": "roll",
+      "minutiae_count": 168,
+      "release": "SD300C",
+      "stage20b_xyt_sha256": "71f61f278cf47b440ac71d30b81dce2a550958880f087c315f11fd15137bdbd9"
+    },
+    {
+      "algorithm2_xyt_sha256": "f3f4f4ec2c65b3979f7e46874e9399ca89abc05117897c1bead24020c5ab4218",
+      "identical": true,
+      "image_id": "sd300c_00001020_roll_f01",
+      "impression_type": "roll",
+      "minutiae_count": 184,
+      "release": "SD300C",
+      "stage20b_xyt_sha256": "f3f4f4ec2c65b3979f7e46874e9399ca89abc05117897c1bead24020c5ab4218"
+    }
+  ],
+  "kind": "stage_20b_gate_b_mindtct_parity",
+  "mindtct_sha256": "9ccbcaae35f446b35e9c94f177b9cd1d26854a0aed5ded8e8bbbdd5ce371e847",
+  "mismatches": 0,
+  "outcome": "MINDTCT_ROUTE_PARITY_PASS",
+  "same_mindtct_executable": true,
+  "scores_read": 0,
+  "sd300_used_for_selection": false,
+  "stage": "20B",
+  "stage20b_adapter_id": "nbis_mindtct_mcc_sdk_v2_subprocess",
+  "subset_frozen_before_extraction": true
+}

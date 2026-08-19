@@ -30,7 +30,9 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
         stage16a-contract stage16a-evidence stage16a-acquire stage16a-artifacts \
         stage16a-route stage16a-verify stage16a-documents stage16a-publish \
         stage17a-contract stage17a-evidence stage17a-acquire stage17a-artifacts \
-        stage17a-score stage17a-verify stage17a-documents stage17a-publish
+        stage17a-score stage17a-verify stage17a-documents stage17a-publish \
+        stage20b-contract stage20b-evidence stage20b-build stage20b-gate-a \
+        stage20b-gate-b stage20b-environment stage20b-run stage20b-publish
 
 help:
 	@echo "test                    unit + integration, no dataset, no Java, no full run"
@@ -138,6 +140,13 @@ help:
 	@echo "stage20a-probe          compile and run the small C# qualification probe on SDK samples"
 	@echo "stage20a-publish        derive the Stage 20A evidence and PASS marker"
 	@echo "stage20a-verify         re-derive evidence hashes and the Stage 20A source fingerprint"
+	@echo "stage20b-contract       verify the frozen MINDTCT-to-MCC production route rules"
+	@echo "stage20b-evidence       verify the committed Stage 20B canonical raw evidence"
+	@echo "stage20b-build          compile the production MCC bridge and record its manifest"
+	@echo "stage20b-gate-a         reproduce Stage 20A's official-sample scores exactly"
+	@echo "stage20b-gate-b         prove this route's MINDTCT is Algorithm 2's, byte for byte"
+	@echo "stage20b-run            the 6,000 canonical comparisons under MINDTCT + MCC SDK v2.0"
+	@echo "stage20b-publish        diagnostics, the eight evidence documents and the marker"
 	@echo "stage15a-contract       the fingerprints-matching qualification: six gates, the route contract, the failure split"
 	@echo "stage15a-evidence       verify the committed Stage 15A evidence"
 	@echo "stage15a-acquire        fetch the two published PyPI artifacts and check both digests"
@@ -1111,3 +1120,36 @@ stage20a-publish:
 
 stage20a-verify:
 	python scripts/stage20a_mcc_sdk_preflight.py verify
+
+# --------------------------------------------------------------------- Stage 20B
+#
+# The production route Stage 20A qualified. MINDTCT is the certified Linux build
+# Algorithm 2 runs, so the run happens inside the NBIS build distro and reaches
+# the Windows MCC bridge through WSL interop; stage20b-build and stage20b-gate-a
+# run on the Windows side, where the .NET Framework compiler is.
+#
+# Two gates and no more. If either fails, the 6,000 do not run.
+
+stage20b-contract:
+	pytest -m "stage20b_contract" -q
+
+stage20b-evidence:
+	pytest -m "stage20b" -q
+
+stage20b-build:
+	python scripts/stage20b_gate_a.py --build
+
+stage20b-gate-a:
+	python scripts/stage20b_gate_a.py
+
+stage20b-gate-b:
+	python scripts/stage20b_gate_b.py
+
+stage20b-environment:
+	python scripts/stage20b_environment.py
+
+stage20b-run:
+	python scripts/stage20b_canonical_run.py
+
+stage20b-publish:
+	python scripts/stage20b_publish.py

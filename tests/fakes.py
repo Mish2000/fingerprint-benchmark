@@ -94,7 +94,8 @@ def registry_configuration(adapter_id: str) -> dict[str, object]:
         "nbis_mindtct_openafis_subprocess",
         "nbis_mindtct_openafis_capacity_extended_subprocess",
     }
-    if adapter_id not in {"nbis_mindtct_bozorth3_subprocess", *openafis_ids}:
+    mcc_id = "nbis_mindtct_mcc_sdk_v2_subprocess"
+    if adapter_id not in {"nbis_mindtct_bozorth3_subprocess", mcc_id, *openafis_ids}:
         return {}
     from nbisworld import certified_build_directory
 
@@ -107,6 +108,25 @@ def registry_configuration(adapter_id: str) -> dict[str, object]:
         "build_manifest": str(build / "nbis-build-manifest.json"),
     }
     if adapter_id == "nbis_mindtct_bozorth3_subprocess":
+        return configuration
+
+    if adapter_id == mcc_id:
+        # Stage 20B needs the same certified build plus a compiled MCC bridge and
+        # the vendor assembly beside it. Neither is discoverable and neither has a
+        # default: the SDK is licence-restricted and lives in the local artifact
+        # store, so an absent one is answered with paths that do not exist and the
+        # adapter reports UNAVAILABLE.
+        import os
+
+        bridge = os.environ.get("FPBENCH_MCC_BRIDGE", "").strip()
+        dll = os.environ.get("FPBENCH_MCC_SDK_DLL", "").strip()
+        home = Path.home().resolve()
+        manifest = os.environ.get("FPBENCH_MCC_BRIDGE_MANIFEST", "").strip()
+        configuration["mcc_bridge"] = bridge or str(home / ".fpbench-no-such-mcc-bridge")
+        configuration["mcc_bridge_manifest"] = manifest or str(
+            home / ".fpbench-no-such-mcc-bridge-manifest"
+        )
+        configuration["mcc_sdk_dll"] = dll or str(home / ".fpbench-no-such-mcc-sdk-dll")
         return configuration
 
     # Algorithm 5 needs the same certified build plus a compiled OpenAFIS bridge.

@@ -692,9 +692,11 @@ def _match_from_report(adapter: mcc_adapter.MccSdkAdapter, report: dict[str, str
 
     original_run = adapter._run
     original_write = mcc_adapter.render_bridge_payload
+    original_windows_path = mcc_adapter.windows_path
     try:
         adapter._run = _fake_run  # type: ignore[method-assign]
         mcc_adapter.render_bridge_payload = lambda left, right: ""
+        mcc_adapter.windows_path = lambda path: str(path)
         workspace.work_path = lambda name: _Sink()  # type: ignore[attr-defined]
         return adapter._match(
             left=None, right=None, workspace=workspace,
@@ -703,6 +705,7 @@ def _match_from_report(adapter: mcc_adapter.MccSdkAdapter, report: dict[str, str
     finally:
         adapter._run = original_run  # type: ignore[method-assign]
         mcc_adapter.render_bridge_payload = original_write
+        mcc_adapter.windows_path = original_windows_path
 
 
 class _Sink(Path):

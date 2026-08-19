@@ -62,8 +62,8 @@
   "sd300_route_selection": false,
   "shares_extractor_with": "nbis_mindtct_bozorth3",
   "source_commit": "5ef288f7668de16bcce759459c48302c023dd8e8",
-  "stage20a_source_fingerprint": "b2c8c1ed0db9f1d89177fe96582ad60bdf24d51a87135c5ca1ac2303385a796d",
-  "stage_20a_finalization_fingerprint": "9b5888059ee6c173165816b34c2ddc830d1408b852d43fa04151746117107d61",
+  "stage20a_source_fingerprint": "4a8e7824cc9c42c12654287b704e2720038872a099675c5446a792d838180583",
+  "stage_20a_finalization_fingerprint": "f100349a03986406052cd3d0e22248e7fe9309da51c82f89300dc264a1523a95",
   "third_party_bytes_added_to_git": false,
   "threshold_selected_by_fpbench": false,
   "upstream_modified": false

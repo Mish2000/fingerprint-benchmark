@@ -4,7 +4,7 @@
   "algorithm_ranking_published": false,
   "bound_markers": [
     {
-      "finalization_fingerprint": "9b5888059ee6c173165816b34c2ddc830d1408b852d43fa04151746117107d61",
+      "finalization_fingerprint": "f100349a03986406052cd3d0e22248e7fe9309da51c82f89300dc264a1523a95",
       "outcome": "MINDTCT_MCC_SDK_V2_ROUTE_PASS",
       "stage": "20A",
       "why": "the stage that qualified this SDK, closed the route and fixed the score contract; its runtime smoke is what Gate A reproduces"
@@ -34,14 +34,14 @@
     "no_threshold_selection": true,
     "route_unchanged": true
   },
-  "created_utc": "2026-08-19T07:14:28Z",
+  "created_utc": "2026-08-19T07:24:31Z",
   "decision_profile_produced": false,
   "display_name": "NBIS MINDTCT + MCC SDK v2.0",
   "evidence_content_hashes": {
     "README.md": "4f3f6e08b38bd1e0a495fd4225ed6beaf34fd2137d7074082c8a8f99d7377a62",
     "algorithm-identity.json": "c48e6199e091263479f2aaf1c2280bb19f8404121718ea245f534348cfb780bb",
     "canonical-run-binding.json": "99bc947645bba4c118c2f9ff37889b68dbe73f199129d9776dfbd565eca30114",
-    "diagnostic-report.json": "76716cab87e5877f74771cbb56d8a85127c5326f93aac10a5cbf7632f04d03be",
+    "diagnostic-report.json": "fbae665ae6810019a16bed43cf11719b4fd4bb42d3151ca03d34a0db3405b6b3",
     "gate-a-bridge-reproduction.json": "f365aad7e541961e2c2a81296bda9c2a80c640c02097fc181d622ebe02ec30b2",
     "gate-b-mindtct-parity.json": "3ca90bbd79ff70dffccce350fb0ee7d18a4dc7b9cbed29c5cbdd25af18ab93c9",
     "result-integrity.json": "d619671d567b282a85ea90365ca2fb0cac9487f7d70047e4a00a7fc14f796579",
@@ -85,8 +85,8 @@
   "selection_based_on_sd300_accuracy": false,
   "shares_extractor_with": "nbis_mindtct_bozorth3",
   "stage": "20B",
-  "stage20b_source_fingerprint": "4dc3d03828d9ed431c03e9cf00b3b4148c9506bf7543e61e93de72b6eaf35d58",
-  "stage_20b_finalization_fingerprint": "a4a46ec7692526a85f888e2f5ecfda14b07d7302ec9db915fbaaf532cd780af3",
+  "stage20b_source_fingerprint": "40d43eb4168d08243c3fda0a423589c0e3084d27c71680ab73d0630944925766",
+  "stage_20b_finalization_fingerprint": "c562ca79b6207c6635cd086dbda0afd35c677f8d4bd0dcc81b6c6d3daa58774d",
   "stored_outcomes": 6000,
   "supervisor_disclosure": "NBIS MINDTCT + MCC SDK v2.0 — a composition defined by this project. It shares the MINDTCT extractor with the NBIS/BOZORTH3 method and differs in the matcher: minutiae are passed to the official Minutia Cylinder-Code SDK v2.0 published by the University of Bologna, unmodified and at its own optimal parameters. The SDK contains no image extractor, which is why the extractor is named in the method. Scores are the SDK's raw similarity in [0,1]; no threshold, calibration or decision was applied.",
   "third_party_bytes_added_to_git": false,

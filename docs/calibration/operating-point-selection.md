@@ -21,8 +21,8 @@ the chosen boundary does to it.
 ## Step by step
 
 1. Refuse the inputs, if they are refusable — role first, then protected
-   identities, then the binding's agreement with the results, then the required
-   populations. All of this happens before a score is read.
+   identities (both before a score is read), then the exact labelled-body hash,
+   pair-id and ground-truth agreement, then the required populations.
 2. Build every candidate boundary the observed scores can express.
 3. Count, for each, how many impostor comparisons it would call a match.
 4. Discard every candidate whose rate exceeds the target.
@@ -212,7 +212,9 @@ identity.
 Two kinds of disagreement are kept apart:
 
 * the documents **do not belong together** — a different protocol, a different
-  source binding — which raises, because there is nothing to verify against;
+  source binding, or labelled results whose score/status/pair/truth content does
+  not match the hash and lists bound into both artifacts — which raises, because
+  there is nothing to verify against;
 * the documents **disagree** — re-derivation produced a different answer — which
   is returned as a report with findings, because a qualification needs to say
   what disagreed.

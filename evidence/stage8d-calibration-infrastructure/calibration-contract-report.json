@@ -1,8 +1,8 @@
 {
   "schema_version": "1",
   "statement": "The structural facts the Stage 8D contract suite enforces. Everything here is a property of the source, not a measurement.",
-  "calibration_model_fingerprint": "64beaea8f2af3dbc2e26217225f3afa7cb86dde4d1e7da153f619e9ba268e57c",
-  "selection_engine_fingerprint": "56f52f28e1cb3dc19f2aa82d142a8733546c8bcc04e3d217e59fe648c3ea4f8a",
+  "calibration_model_fingerprint": "5eb9e7c62b8fd45a6fdfcb3168ae895cd6e183e1d9d01c6a18007c6c3b7c3aac",
+  "selection_engine_fingerprint": "4a723c92bd8a2903e750c29ab36e98a6b45d3291ff95fba84e2546847d9d0cfe",
   "calibration_package": {
     "modules": [
       "__init__.py",
@@ -11,16 +11,18 @@
       "selection.py",
       "validation.py",
       "profiles.py",
+      "source.py",
       "verify.py"
     ],
     "module_sha256": {
-      "__init__.py": "9a0ca4b82c47ec299bf14792c108bfd0ce28b45846319af3755c78f3139b7075",
-      "models.py": "0734dec417fe69b977d20ca264f345591b9c5dddd4542135236ca4c8548982df",
-      "protocol.py": "54777ed65fe4d3d8688640cea17840282f712ddd538ef059014d6755c7a55dbc",
-      "selection.py": "ee42ac8923fc5f4e93b4f2f6551008ca073c77493a52d4a8a4be36c4eb7f0b83",
-      "validation.py": "d7be3053116f067357004e2153775d59ce450c929275061c03b64f3acbb5418c",
+      "__init__.py": "0b09b4ce35d20261bc56604c89df5ee628ec6e4236f240fd0f1c9b738236c844",
+      "models.py": "5359b793c4f12a3f8c994d6706c28389860fb94e2883d8122c38aa874487d7b5",
+      "protocol.py": "f226ff1386d61adbdc624bb527fa80cdcf1f393a40afcdea530bd62fb313da30",
+      "selection.py": "fd16dd4ab4c49db93571837fc8e8d3cc1213a2bcd4323ad89c01436490915f05",
+      "validation.py": "595a83fe6d32505bff23d1b89852af0871387f6dd15fbc52c5b97dfc77125972",
       "profiles.py": "ba4def0a06d0f4a4003880db8dea347aa0d22283eb1b6725716962a8c8c44561",
-      "verify.py": "28130ea8f8dd573a42eb279a975032a7fe4fb2b4f86b780d8d3c6c6794906431"
+      "source.py": "b9c534a589d8a2eaab334dd6ff05d7c36f307780780a5337e66063907b01dc4b",
+      "verify.py": "89d566f419c22f0bdb13b2c7095d3a8ac9087e4fc45d1b9172256d7ae576bd10"
     }
   },
   "enforced_absences": {
@@ -101,6 +103,8 @@
     "candidate_boundaries": "observed_score_boundaries",
     "tie_handling": "atomic_prefer_inclusive",
     "quality_filtering": false,
-    "score_normalization": "none"
+    "score_normalization": "none",
+    "calibration_artifact_schema": "2",
+    "result_body_binding": "verified_result_set plus labeled-results hash, canonical pair identity list, and aligned ground truth in both source binding and operating point"
   }
 }

@@ -55,13 +55,16 @@ __all__ = [
     "ProtectedEvaluationIdentity",
     "ProtectedEvaluationRegistry",
     "VerificationReport",
+    "VerifiedCalibrationResults",
+    "verify_result_set_for_calibration",
+    "build_calibration_source_binding",
     "select_operating_point",
     "verify_operating_point",
 ]
 
 #: The calibration schema generation. Bumped when the meaning of a stored
 #: calibration artifact changes, never when a field is spelled differently.
-CALIBRATION_SCHEMA_VERSION = "1"
+CALIBRATION_SCHEMA_VERSION = "2"
 
 #: The names of the algorithms integrated so far, assembled from fragments rather
 #: than written out. The structural test that enforces the rules below reads this
@@ -131,6 +134,11 @@ from fpbench.calibration.models import (  # noqa: E402
     ProtectedEvaluationRegistry,
 )
 from fpbench.calibration.selection import select_operating_point  # noqa: E402
+from fpbench.calibration.source import (  # noqa: E402
+    VerifiedCalibrationResults,
+    build_calibration_source_binding,
+    verify_result_set_for_calibration,
+)
 from fpbench.calibration.verify import (  # noqa: E402
     VerificationReport,
     verify_operating_point,

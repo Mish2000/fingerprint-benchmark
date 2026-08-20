@@ -298,6 +298,9 @@ def select_operating_point(
     return build_calibration_operating_point(
         calibration_protocol_fingerprint_value=protocol.protocol_fingerprint,
         source_binding_fingerprint=source_binding.source_binding_fingerprint,
+        labeled_results_hash=source_binding.labeled_results_hash,
+        pair_ids=source_binding.pair_ids,
+        ground_truth=source_binding.ground_truth,
         algorithm_id=source_binding.algorithm_id,
         algorithm_fingerprint=source_binding.algorithm_fingerprint,
         threshold=boundary.threshold,

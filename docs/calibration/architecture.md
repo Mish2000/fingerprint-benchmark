@@ -113,6 +113,24 @@ not carry a sentence about where they came from. So the enforcement is now doubl
 Running with no registry loaded is refused too, because that would look exactly
 like running with one and finding nothing.
 
+## A result-set name is not enough
+
+A source binding cannot merely repeat a `result_set_fingerprint` beside an
+unrelated body of scores. `verify_result_set_for_calibration` re-derives the
+result-set fingerprint from its ordered entries, re-hashes every
+`RawResultRecord`, requires exact job and pair coverage, and joins an exact
+ground-truth mapping by `pair_id`. Only that verifier can construct
+`VerifiedCalibrationResults`, which is the input accepted by the public source-
+binding builder.
+
+The binding then carries three descriptions of the labelled body: its
+`labeled_results_hash`, the canonical `pair_ids` list, and the positionally
+aligned `ground_truth` list. The operating point copies all three into its own
+fingerprint. Selection and verification require both artifacts and the supplied
+`LabeledResults` to agree exactly. Changing one score, status, failure code,
+pair id, or truth label therefore makes the body a different source; it cannot
+be calibrated or verified under the old binding.
+
 ## The packages
 
 ```
@@ -120,6 +138,7 @@ src/fpbench/calibration/
 ├── __init__.py      the dependency rule, and what may not exist here
 ├── models.py        the containers, and the only strict reader
 ├── protocol.py      sealing an artifact around its own fingerprint
+├── source.py        re-hashing a ResultSet and deriving its labelled body
 ├── selection.py     candidate boundaries, and the one selection rule
 ├── validation.py    what must be true before a score is read
 ├── profiles.py      the bridge to DecisionProfile
@@ -141,8 +160,8 @@ algorithm separately" quietly becomes five policies.
 | Artifact | What it fixes | Where it lives |
 |---|---|---|
 | `CalibrationProtocol` | the policy: target rate, selection rule, tie policy, populations | `calibration/protocols/` |
-| `CalibrationSourceBinding` | one exact body of development scores, by content-addressed identity | `calibration/source-bindings/` |
-| `CalibrationOperatingPoint` | the chosen boundary and the counts observed at it | `calibration/operating-points/` |
+| `CalibrationSourceBinding` | one verified result set and its exact labelled body hash, pair ids, and truth labels | `calibration/source-bindings/` |
+| `CalibrationOperatingPoint` | the chosen boundary, observed counts, and the same exact labelled-body identity | `calibration/operating-points/` |
 | `ProtectedEvaluationRegistry` | the identities calibration must refuse | published with the stage, not per workspace |
 
 Every one of them validates its own fingerprint on construction, so a builder
@@ -159,8 +178,9 @@ should have been determined by its inputs was not.
 ## Where the numbers are not
 
 None of these artifacts holds a raw score. The operating point holds a threshold,
-a comparator and counts; the source binding holds fingerprints; the registry holds
-identities. A calibration cites the scores it was chosen from and leaves them
-where they were written, for the same reason a `DecisionRecord` does: copying
-them would create a second place a score lives, and the first thing a reader would
-have to stop trusting (docs/adr/0003).
+a comparator, counts, and the labelled-body identity; the source binding holds
+the result-set identity, labelled-results hash, pair ids, and truth labels; the
+registry holds protected identities. A calibration cites the scores it was
+chosen from and leaves the scores where they were written, for the same reason a
+`DecisionRecord` does: copying them would create a second place a score lives,
+and the first thing a reader would have to stop trusting (docs/adr/0003).

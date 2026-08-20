@@ -26,8 +26,8 @@ from fpbench.calibration.models import (
     strict_json_document,
 )
 from fpbench.calibration.protocol import (
+    _seal_calibration_source_binding,
     build_calibration_operating_point,
-    build_calibration_source_binding,
     build_protected_evaluation_registry,
     impostor_ceiling_protocol,
 )
@@ -93,7 +93,14 @@ def a_protocol(numerator: int = 1, denominator: int = 1000):
 
 
 def a_binding(role: CohortRole = CohortRole.DEVELOPMENT, direction=HIGHER):
-    return build_calibration_source_binding(
+    labeled_results = LabeledResults(
+        score_direction=direction,
+        rows=(
+            scored("m000", MATED, "1"),
+            scored("i000", IMPOSTOR, "0"),
+        ),
+    )
+    return _seal_calibration_source_binding(
         binding_id="synthetic_binding_v1",
         algorithm_id="synthetic_matcher",
         algorithm_fingerprint="a" * 64,
@@ -111,6 +118,7 @@ def a_binding(role: CohortRole = CohortRole.DEVELOPMENT, direction=HIGHER):
         pair_manifest_id="synthetic_pairs",
         pair_manifest_fingerprint="1" * 64,
         score_direction=direction,
+        labeled_results=labeled_results,
     )
 
 
@@ -141,6 +149,23 @@ def an_operating_point(**overrides):
         created_utc="2026-08-07T12:00:00Z",
     )
     fields.update(overrides)
+    mated_attempts = fields["observed_mated_attempts"]
+    impostor_attempts = fields["observed_impostor_attempts"]
+    fields.setdefault("labeled_results_hash", "2" * 64)
+    fields.setdefault(
+        "pair_ids",
+        tuple(
+            [f"i{index:06d}" for index in range(impostor_attempts)]
+            + [f"m{index:06d}" for index in range(mated_attempts)]
+        ),
+    )
+    fields.setdefault(
+        "ground_truth",
+        tuple(
+            [IMPOSTOR] * impostor_attempts
+            + [MATED] * mated_attempts
+        ),
+    )
     return build_calibration_operating_point(**fields)
 
 
@@ -331,7 +356,7 @@ def test_a_binding_pins_content_addressed_identities_and_no_path() -> None:
 
 def test_a_binding_refuses_metadata_that_smuggles_a_path_back_in() -> None:
     with pytest.raises(CalibrationSourceError, match="not by where"):
-        build_calibration_source_binding(
+        _seal_calibration_source_binding(
             binding_id="located_v1",
             algorithm_id="synthetic_matcher",
             algorithm_fingerprint="a" * 64,
@@ -349,6 +374,13 @@ def test_a_binding_refuses_metadata_that_smuggles_a_path_back_in() -> None:
             pair_manifest_id="synthetic_pairs",
             pair_manifest_fingerprint="1" * 64,
             score_direction=HIGHER,
+            labeled_results=LabeledResults(
+                score_direction=HIGHER,
+                rows=(
+                    scored("m000", MATED, "1"),
+                    scored("i000", IMPOSTOR, "0"),
+                ),
+            ),
             metadata={"workspace_path": "/data/dev"},
         )
 

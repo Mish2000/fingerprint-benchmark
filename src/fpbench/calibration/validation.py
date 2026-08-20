@@ -107,7 +107,7 @@ def require_unprotected_source(
 def require_binding_describes_results(
     binding: CalibrationSourceBinding, results: Any
 ) -> None:
-    """The binding and the scores must agree about which way the scale runs.
+    """The binding must describe this exact labelled view of its result set.
 
     A binding that declared one direction over results carrying the other would
     invert every decision made under the resulting threshold, and the operating
@@ -119,6 +119,22 @@ def require_binding_describes_results(
             f"{binding.score_direction.value!r} but the labelled results run "
             f"{results.score_direction.value!r}; the two disagree about which side "
             "of a boundary is a match"
+        )
+    actual_hash = results.content_hash()
+    if binding.labeled_results_hash != actual_hash:
+        raise CalibrationSourceError(
+            f"source binding {binding.binding_id!r} binds labelled results "
+            f"{binding.labeled_results_hash[:12]}... but received "
+            f"{actual_hash[:12]}...; scores from another result set cannot be "
+            "calibrated under this binding"
+        )
+    if binding.pair_ids != results.pair_ids:
+        raise CalibrationSourceError(
+            f"source binding {binding.binding_id!r} does not bind this pair_id list"
+        )
+    if binding.ground_truth != results.ground_truth:
+        raise CalibrationSourceError(
+            f"source binding {binding.binding_id!r} does not bind these ground-truth labels"
         )
 
 

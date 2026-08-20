@@ -291,9 +291,14 @@ def synthetic_qualification_fingerprint(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class _SyntheticBindingSpec:
+    fields: Mapping[str, Any]
+    deliberately_protected: bool
+
+
 def _binding(registry: ProtectedEvaluationRegistry, **overrides):
-    """A development binding that resolves to nothing the registry protects."""
-    from fpbench.calibration.protocol import build_calibration_source_binding
+    """Describe a synthetic binding; seal it once its result rows are known."""
     from fpbench.core.enums import CohortRole, ScoreDirection
 
     fields: dict[str, Any] = dict(
@@ -320,11 +325,37 @@ def _binding(registry: ProtectedEvaluationRegistry, **overrides):
     #: refused further down.
     deliberately_protected = bool(overrides.pop("deliberately_protected", False))
     fields.update(overrides)
-    binding = build_calibration_source_binding(**fields)
+    return _SyntheticBindingSpec(
+        fields=fields, deliberately_protected=deliberately_protected
+    )
+
+
+def _materialize_binding(spec, results, registry: ProtectedEvaluationRegistry):
+    """Test-only low-level sealing for fixtures with no stored result set.
+
+    Production code cannot reach this path: the public builder requires
+    ``VerifiedCalibrationResults``.  Stage 8D deliberately has no workspace or
+    raw result set, so its synthetic qualification exercises the sealed artifact
+    while result-set verification is covered by the source-builder tests.
+    """
+    if not isinstance(spec, _SyntheticBindingSpec):
+        return spec
+    from fpbench.calibration.models import LabeledResults
+    from fpbench.calibration.protocol import _seal_calibration_source_binding
+
+    fields = dict(spec.fields)
+    bound_results = results
+    if fields["score_direction"] is not results.score_direction:
+        bound_results = LabeledResults(
+            score_direction=fields["score_direction"], rows=results.rows
+        )
+    binding = _seal_calibration_source_binding(
+        **fields, labeled_results=bound_results
+    )
     # A fixture that collided with protected material by accident would make the
     # whole qualification meaningless, so the fixtures are checked rather than
     # assumed to be clean.
-    if not deliberately_protected and registry.matches(
+    if not spec.deliberately_protected and registry.matches(
         fingerprints=binding.identity_fingerprints, identities=binding.identity_ids
     ):
         raise Stage8DFinalizationError(
@@ -392,6 +423,7 @@ def _protocol(numerator: int, denominator: int):
 def _select(protocol, binding, results, registry):
     from fpbench.calibration.selection import select_operating_point
 
+    binding = _materialize_binding(binding, results, registry)
     return select_operating_point(
         protocol,
         binding,
@@ -731,13 +763,15 @@ def run_synthetic_qualification(
 
     # The reference selection for the determinism cases below.
     reference_protocol = _protocol(1, 4)
-    reference_binding = _binding(registry)
     reference_results = _results(
         higher,
         mated=["5", "6", "7", "8"],
         impostor=["1", "2", "3", "4"],
         mated_failures=1,
         impostor_failures=2,
+    )
+    reference_binding = _materialize_binding(
+        _binding(registry), reference_results, registry
     )
     reference = _select(
         reference_protocol, reference_binding, reference_results, registry
@@ -836,6 +870,28 @@ def run_synthetic_qualification(
 
     # ------------------------------------------------------------ refusals
 
+    scaled_reference_results = _results(
+        higher,
+        mated=["50", "60", "70", "80"],
+        impostor=["10", "20", "30", "40"],
+        mated_failures=1,
+        impostor_failures=2,
+    )
+    cases.append(
+        _refusal_case(
+            "different_score_body_under_same_binding_is_refused",
+            "one binding cannot verify a second body of scores on another scale",
+            CalibrationVerificationError,
+            lambda: verify_operating_point(
+                reference,
+                reference_protocol,
+                reference_binding,
+                scaled_reference_results,
+                protected_registry=registry,
+            ),
+        )
+    )
+
     cases.append(
         _refusal_case(
             "evaluation_role_is_refused",
@@ -843,7 +899,11 @@ def run_synthetic_qualification(
             CalibrationLeakageError,
             lambda: select_operating_point(
                 _protocol(1, 4),
-                _binding(registry, cohort_role=CohortRole.EVALUATION),
+                _materialize_binding(
+                    _binding(registry, cohort_role=CohortRole.EVALUATION),
+                    reference_results,
+                    registry,
+                ),
                 reference_results,
                 protected_registry=registry,
                 created_source_commit=SYNTHETIC_COMMIT,
@@ -865,10 +925,14 @@ def run_synthetic_qualification(
             CalibrationLeakageError,
             lambda: select_operating_point(
                 _protocol(1, 4),
-                _binding(
+                _materialize_binding(
+                    _binding(
+                        registry,
+                        deliberately_protected=True,
+                        result_set_fingerprint=protected_result_set,
+                    ),
+                    reference_results,
                     registry,
-                    deliberately_protected=True,
-                    result_set_fingerprint=protected_result_set,
                 ),
                 reference_results,
                 protected_registry=registry,
@@ -891,11 +955,15 @@ def run_synthetic_qualification(
             CalibrationLeakageError,
             lambda: select_operating_point(
                 _protocol(1, 4),
-                _binding(
+                _materialize_binding(
+                    _binding(
+                        registry,
+                        deliberately_protected=True,
+                        cohort_role=CohortRole.DEVELOPMENT,
+                        cohort_fingerprint=protected_cohort,
+                    ),
+                    reference_results,
                     registry,
-                    deliberately_protected=True,
-                    cohort_role=CohortRole.DEVELOPMENT,
-                    cohort_fingerprint=protected_cohort,
                 ),
                 reference_results,
                 protected_registry=registry,
@@ -913,7 +981,9 @@ def run_synthetic_qualification(
             CalibrationLeakageError,
             lambda: validate_calibration_inputs(
                 protocol=_protocol(1, 4),
-                source_binding=_binding(registry),
+                source_binding=_materialize_binding(
+                    _binding(registry), reference_results, registry
+                ),
                 labeled_results=reference_results,
                 protected_registry=None,
             ),
@@ -927,7 +997,11 @@ def run_synthetic_qualification(
             CalibrationSourceError,
             lambda: select_operating_point(
                 _protocol(1, 4),
-                _binding(registry, score_direction=lower),
+                _materialize_binding(
+                    _binding(registry, score_direction=lower),
+                    reference_results,
+                    registry,
+                ),
                 reference_results,
                 protected_registry=registry,
                 created_source_commit=SYNTHETIC_COMMIT,
@@ -1054,7 +1128,11 @@ def run_synthetic_qualification(
             lambda: verify_operating_point(
                 reference,
                 reference_protocol,
-                _binding(registry, result_set_fingerprint="7" * 64),
+                _materialize_binding(
+                    _binding(registry, result_set_fingerprint="7" * 64),
+                    reference_results,
+                    registry,
+                ),
                 reference_results,
                 protected_registry=registry,
             ),
@@ -1069,7 +1147,11 @@ def run_synthetic_qualification(
             lambda: verify_operating_point(
                 reference,
                 reference_protocol,
-                _binding(registry, pair_manifest_fingerprint="8" * 64),
+                _materialize_binding(
+                    _binding(registry, pair_manifest_fingerprint="8" * 64),
+                    reference_results,
+                    registry,
+                ),
                 reference_results,
                 protected_registry=registry,
             ),

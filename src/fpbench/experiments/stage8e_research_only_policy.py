@@ -219,11 +219,11 @@ def require_stage8d_is_the_stage_this_follows(repository_root: Path) -> None:
     )
     fingerprint = str(document.get("stage_8d_finalization_fingerprint", "")).strip()
     outcome = str(document.get("outcome", "")).strip()
-    if fingerprint != frozen.STAGE8D_FINALIZATION_FINGERPRINT:
+    if fingerprint != frozen.STAGE8D_CURRENT_FINALIZATION_FINGERPRINT:
         raise Stage8EFinalizationError(
             "the published Stage 8D marker is not the one Stage 8E was frozen "
             f"against: {fingerprint[:12]}... vs "
-            f"{frozen.STAGE8D_FINALIZATION_FINGERPRINT[:12]}..."
+            f"{frozen.STAGE8D_CURRENT_FINALIZATION_FINGERPRINT[:12]}..."
         )
     if outcome != frozen.STAGE8D_OUTCOME:
         raise Stage8EFinalizationError(

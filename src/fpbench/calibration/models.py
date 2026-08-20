@@ -224,6 +224,16 @@ class LabeledResults:
         return sum(1 for row in self.of(truth) if not row.is_scored)
 
     @property
+    def pair_ids(self) -> tuple[str, ...]:
+        """The canonical pair-id list covered by this labelled body."""
+        return tuple(row.pair_id for row in self.rows)
+
+    @property
+    def ground_truth(self) -> tuple[CalibrationPairTruth, ...]:
+        """Ground-truth values aligned positionally with :attr:`pair_ids`."""
+        return tuple(row.truth for row in self.rows)
+
+    @property
     def distinct_scores(self) -> tuple[Decimal, ...]:
         """Every distinct score, ascending, whatever population produced it.
 

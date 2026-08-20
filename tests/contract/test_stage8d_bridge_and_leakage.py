@@ -27,7 +27,7 @@ from fpbench.calibration.profiles import (
     derive_calibrated_decision_profile,
 )
 from fpbench.calibration.protocol import (
-    build_calibration_source_binding,
+    _seal_calibration_source_binding,
     impostor_ceiling_protocol,
 )
 from fpbench.calibration.selection import select_operating_point
@@ -116,7 +116,10 @@ def synthetic_binding(**overrides):
         score_direction=HIGHER,
     )
     fields.update(overrides)
-    return build_calibration_source_binding(**fields)
+    return _seal_calibration_source_binding(
+        **fields,
+        labeled_results=synthetic_results(),
+    )
 
 
 def an_operating_point(**binding_overrides):

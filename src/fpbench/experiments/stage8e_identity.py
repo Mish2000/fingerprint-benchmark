@@ -46,6 +46,7 @@ __all__ = [
     "POLICY_CONTRACT_REPORT_NAME",
     "REQUIRED_EVIDENCE_FILES",
     "STAGE8D_FINALIZATION_FINGERPRINT",
+    "STAGE8D_CURRENT_FINALIZATION_FINGERPRINT",
     "STAGE8D_OUTCOME",
     "LegacyComponent",
     "LEGACY_COMPONENTS",
@@ -96,6 +97,14 @@ REQUIRED_EVIDENCE_FILES = (
 # refuses on disagreement. Nothing under that directory is edited.
 STAGE8D_FINALIZATION_FINGERPRINT = (
     "06265f90893fa8ba182935cfa67ac2bb159f3d92e58122fa3e7a86e109d23106"
+)
+# Stage 8E's historical marker above remains immutable.  Stage 8D was later
+# re-finalized after its calibration source binding was hardened to bind the
+# verified labelled result body.  Runtime predecessor checks use this current
+# authority; the Stage 8E marker continues to say which authority existed when
+# it was published.
+STAGE8D_CURRENT_FINALIZATION_FINGERPRINT = (
+    "9287ea7f1958bc90ffc34a6cadf4c7fbd67efd94cee5233653e08acf50cef290"
 )
 STAGE8D_OUTCOME = "CALIBRATION_INFRASTRUCTURE_READY"
 

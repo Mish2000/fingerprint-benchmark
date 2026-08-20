@@ -53,6 +53,7 @@ from fpbench.core.enums import (
     ThresholdComparator,
     ThresholdSelectionRule,
 )
+from fpbench.calibration.models import LabeledResults
 
 __all__ = [
     "build_calibration_protocol",
@@ -163,7 +164,7 @@ def impostor_ceiling_protocol(
 # -------------------------------------------------------------- source binding
 
 
-def build_calibration_source_binding(
+def _seal_calibration_source_binding(
     *,
     binding_id: str,
     algorithm_id: str,
@@ -182,6 +183,7 @@ def build_calibration_source_binding(
     pair_manifest_id: str,
     pair_manifest_fingerprint: str,
     score_direction: ScoreDirection,
+    labeled_results: LabeledResults,
     metadata: Mapping[str, str] | None = None,
 ) -> CalibrationSourceBinding:
     """Seal a binding around the identities it pins.
@@ -190,6 +192,15 @@ def build_calibration_source_binding(
     caller that knows where the scores are on disk is welcome to that knowledge;
     the artifact that a threshold cites must not depend on it (spec section 7).
     """
+    if not isinstance(labeled_results, LabeledResults):
+        raise CalibrationProtocolError(
+            "a source binding must be sealed around validated labelled results"
+        )
+    if labeled_results.score_direction is not score_direction:
+        raise CalibrationProtocolError(
+            "a source binding and its labelled results must use one score direction"
+        )
+
     fields: dict[str, Any] = {
         "schema_version": CALIBRATION_SOURCE_BINDING_SCHEMA_VERSION,
         "binding_id": str(binding_id).strip(),
@@ -201,6 +212,9 @@ def build_calibration_source_binding(
         "run_fingerprint": _digest(run_fingerprint),
         "result_set_id": str(result_set_id).strip(),
         "result_set_fingerprint": _digest(result_set_fingerprint),
+        "labeled_results_hash": labeled_results.content_hash(),
+        "pair_ids": labeled_results.pair_ids,
+        "ground_truth": labeled_results.ground_truth,
         "dataset_id": str(dataset_id).strip(),
         "dataset_fingerprint": _digest(dataset_fingerprint),
         "cohort_id": str(cohort_id).strip(),
@@ -213,6 +227,43 @@ def build_calibration_source_binding(
     }
     fingerprint = calibration_source_binding_fingerprint(fields)
     return CalibrationSourceBinding(source_binding_fingerprint=fingerprint, **fields)
+
+
+def build_calibration_source_binding(
+    *,
+    binding_id: str,
+    verified_results: Any,
+    integration_id: str,
+    integration_fingerprint: str,
+    dataset_id: str,
+    dataset_fingerprint: str,
+    cohort_fingerprint: str,
+    cohort_role: CohortRole,
+    pair_manifest_id: str,
+    metadata: Mapping[str, str] | None = None,
+) -> CalibrationSourceBinding:
+    """Build a binding only from a result set whose raw records were verified.
+
+    The verifier lives in :mod:`fpbench.calibration.source`.  Importing it here
+    lazily keeps artifact sealing independent of source verification while
+    retaining the public factory's historical import path.
+    """
+    from fpbench.calibration.source import (
+        build_calibration_source_binding as build_from_verified_results,
+    )
+
+    return build_from_verified_results(
+        binding_id=binding_id,
+        verified_results=verified_results,
+        integration_id=integration_id,
+        integration_fingerprint=integration_fingerprint,
+        dataset_id=dataset_id,
+        dataset_fingerprint=dataset_fingerprint,
+        cohort_fingerprint=cohort_fingerprint,
+        cohort_role=cohort_role,
+        pair_manifest_id=pair_manifest_id,
+        metadata=metadata,
+    )
 
 
 # -------------------------------------------------------- protected registry
@@ -262,6 +313,9 @@ def build_calibration_operating_point(
     *,
     calibration_protocol_fingerprint_value: str,
     source_binding_fingerprint: str,
+    labeled_results_hash: str,
+    pair_ids: Iterable[str],
+    ground_truth: Iterable[Any],
     algorithm_id: str,
     algorithm_fingerprint: str,
     threshold: Decimal | str,
@@ -300,6 +354,9 @@ def build_calibration_operating_point(
             calibration_protocol_fingerprint_value
         ),
         "source_binding_fingerprint": _digest(source_binding_fingerprint),
+        "labeled_results_hash": _digest(labeled_results_hash),
+        "pair_ids": tuple(str(pair_id).strip() for pair_id in pair_ids),
+        "ground_truth": tuple(ground_truth),
         "algorithm_id": str(algorithm_id).strip(),
         "algorithm_fingerprint": _digest(algorithm_fingerprint),
         "threshold": canonical_threshold(threshold),

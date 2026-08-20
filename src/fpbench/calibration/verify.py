@@ -13,9 +13,9 @@ it is a verification that cannot be attempted. That raises.
 
 **These documents disagree.** The artifacts refer to each other correctly and
 re-derivation produces something else — a different boundary, a different count,
-a different identity. That is a finding, and it is *returned*, because a caller
-publishing a qualification report needs to say what disagreed rather than catch
-an exception and reconstruct it.
+a different identity. That is a finding and is returned. A changed score body,
+pair-id list, or ground-truth list is not such a finding: those are source
+identity, so verification refuses them before re-derivation.
 """
 
 from __future__ import annotations
@@ -122,6 +122,35 @@ def verify_operating_point(
             f"from source {operating_point.source_binding_fingerprint[:12]}... and "
             f"is being verified against "
             f"{source_binding.source_binding_fingerprint[:12]}..."
+        )
+    actual_results_hash = labeled_results.content_hash()
+    if source_binding.labeled_results_hash != actual_results_hash:
+        raise CalibrationVerificationError(
+            f"source binding {source_binding.binding_id!r} binds labelled results "
+            f"{source_binding.labeled_results_hash[:12]}... but verification was "
+            f"given {actual_results_hash[:12]}..."
+        )
+    if operating_point.labeled_results_hash != actual_results_hash:
+        raise CalibrationVerificationError(
+            f"operating point {operating_point.operating_point_id} binds labelled "
+            f"results {operating_point.labeled_results_hash[:12]}... but "
+            f"verification was given {actual_results_hash[:12]}..."
+        )
+    if (
+        source_binding.pair_ids != labeled_results.pair_ids
+        or operating_point.pair_ids != labeled_results.pair_ids
+    ):
+        raise CalibrationVerificationError(
+            "the source binding, operating point and labelled results do not bind "
+            "one pair_id list"
+        )
+    if (
+        source_binding.ground_truth != labeled_results.ground_truth
+        or operating_point.ground_truth != labeled_results.ground_truth
+    ):
+        raise CalibrationVerificationError(
+            "the source binding, operating point and labelled results do not bind "
+            "one ground-truth list"
         )
 
     # The whole selection, again, from the labelled scores. The wall clock and

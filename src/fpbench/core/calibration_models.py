@@ -115,8 +115,8 @@ __all__ = [
 #: versions rather than one, because a protocol and an operating point are not
 #: obliged to evolve together.
 CALIBRATION_PROTOCOL_SCHEMA_VERSION = "1"
-CALIBRATION_SOURCE_BINDING_SCHEMA_VERSION = "1"
-CALIBRATION_OPERATING_POINT_SCHEMA_VERSION = "1"
+CALIBRATION_SOURCE_BINDING_SCHEMA_VERSION = "2"
+CALIBRATION_OPERATING_POINT_SCHEMA_VERSION = "2"
 PROTECTED_REGISTRY_SCHEMA_VERSION = "1"
 
 OPERATING_POINT_ID_LENGTH = 12
@@ -432,6 +432,13 @@ class CalibrationSourceBinding:
     result_set_id: str
     result_set_fingerprint: str
 
+    # The exact labelled view derived from that result set.  The result-set
+    # fingerprint alone identifies raw records; it does not identify which
+    # pair ids and ground-truth labels were joined to those scores.
+    labeled_results_hash: str
+    pair_ids: tuple[str, ...]
+    ground_truth: tuple[CalibrationPairTruth, ...]
+
     dataset_id: str
     dataset_fingerprint: str
 
@@ -462,6 +469,36 @@ class CalibrationSourceBinding:
             validate_id(str(getattr(self, name)))
         for name in _BINDING_FINGERPRINTS:
             object.__setattr__(self, name, require_digest(getattr(self, name), name))
+        object.__setattr__(
+            self,
+            "labeled_results_hash",
+            require_digest(self.labeled_results_hash, "labeled_results_hash"),
+        )
+
+        pair_ids = tuple(str(pair_id).strip() for pair_id in self.pair_ids)
+        if not pair_ids or any(not pair_id for pair_id in pair_ids):
+            raise CalibrationSourceError(
+                "a source binding must name every non-empty pair_id in its labelled results"
+            )
+        if len(set(pair_ids)) != len(pair_ids):
+            raise CalibrationSourceError(
+                "a source binding may bind each pair_id only once"
+            )
+        if pair_ids != tuple(sorted(pair_ids)):
+            raise CalibrationSourceError(
+                "source-binding pair_ids must be in canonical lexical order"
+            )
+        truth = tuple(self.ground_truth)
+        if len(truth) != len(pair_ids):
+            raise CalibrationSourceError(
+                "source-binding pair_ids and ground_truth must have the same length"
+            )
+        if any(not isinstance(item, CalibrationPairTruth) for item in truth):
+            raise CalibrationSourceError(
+                "every source-binding ground_truth value must be a CalibrationPairTruth"
+            )
+        object.__setattr__(self, "pair_ids", pair_ids)
+        object.__setattr__(self, "ground_truth", truth)
         object.__setattr__(
             self,
             "source_binding_fingerprint",
@@ -527,7 +564,7 @@ def calibration_source_binding_fingerprint(
     plain = dict(to_plain(binding))
     plain.pop("source_binding_fingerprint", None)
     return stable_hash(
-        {"schema": "calibration_source_binding_v1", "binding": plain}, length=64
+        {"schema": "calibration_source_binding_v2", "binding": plain}, length=64
     )
 
 
@@ -704,6 +741,10 @@ class CalibrationOperatingPoint:
     calibration_protocol_fingerprint: str
     source_binding_fingerprint: str
 
+    labeled_results_hash: str
+    pair_ids: tuple[str, ...]
+    ground_truth: tuple[CalibrationPairTruth, ...]
+
     algorithm_id: str
     algorithm_fingerprint: str
 
@@ -749,8 +790,30 @@ class CalibrationOperatingPoint:
             "calibration_protocol_fingerprint",
             "source_binding_fingerprint",
             "algorithm_fingerprint",
+            "labeled_results_hash",
         ):
             object.__setattr__(self, name, require_digest(getattr(self, name), name))
+
+        pair_ids = tuple(str(pair_id).strip() for pair_id in self.pair_ids)
+        if not pair_ids or any(not pair_id for pair_id in pair_ids):
+            raise ValueError(
+                "an operating point must bind every non-empty pair_id it was selected from"
+            )
+        if len(set(pair_ids)) != len(pair_ids):
+            raise ValueError("an operating point may bind each pair_id only once")
+        if pair_ids != tuple(sorted(pair_ids)):
+            raise ValueError("operating-point pair_ids must be in canonical lexical order")
+        truth = tuple(self.ground_truth)
+        if len(truth) != len(pair_ids):
+            raise ValueError(
+                "operating-point pair_ids and ground_truth must have the same length"
+            )
+        if any(not isinstance(item, CalibrationPairTruth) for item in truth):
+            raise ValueError(
+                "every operating-point ground_truth value must be a CalibrationPairTruth"
+            )
+        object.__setattr__(self, "pair_ids", pair_ids)
+        object.__setattr__(self, "ground_truth", truth)
 
         object.__setattr__(self, "threshold", canonical_threshold(self.threshold))
 
@@ -823,6 +886,28 @@ class CalibrationOperatingPoint:
                 "failure is neither (docs/adr/0006): "
                 f"{self.observed_mated_matches} + "
                 f"{self.observed_mated_non_matches} != {self.observed_mated_scored}"
+            )
+        total_attempts = self.observed_mated_attempts + self.observed_impostor_attempts
+        if total_attempts != len(self.pair_ids):
+            raise ValueError(
+                "the operating point's attempt counts must cover its exact pair_id list: "
+                f"{total_attempts} != {len(self.pair_ids)}"
+            )
+        mated_labels = sum(
+            1 for item in self.ground_truth if item is CalibrationPairTruth.MATED
+        )
+        impostor_labels = sum(
+            1
+            for item in self.ground_truth
+            if item is CalibrationPairTruth.CROSS_SUBJECT_IMPOSTOR
+        )
+        if mated_labels != self.observed_mated_attempts:
+            raise ValueError(
+                "observed_mated_attempts does not match the bound ground_truth list"
+            )
+        if impostor_labels != self.observed_impostor_attempts:
+            raise ValueError(
+                "observed_impostor_attempts does not match the bound ground_truth list"
             )
         if self.observed_impostor_scored <= 0:
             raise ValueError(
@@ -897,7 +982,7 @@ def calibration_operating_point_fingerprint(
     plain.pop("operating_point_id", None)
     plain.pop("created_utc", None)
     return stable_hash(
-        {"schema": "calibration_operating_point_v1", "operating_point": plain},
+        {"schema": "calibration_operating_point_v2", "operating_point": plain},
         length=64,
     )
 
@@ -1130,6 +1215,9 @@ _BINDING_KEYS = (
     "run_fingerprint",
     "result_set_id",
     "result_set_fingerprint",
+    "labeled_results_hash",
+    "pair_ids",
+    "ground_truth",
     "dataset_id",
     "dataset_fingerprint",
     "cohort_id",
@@ -1157,6 +1245,9 @@ _OPERATING_POINT_KEYS = (
     "operating_point_fingerprint",
     "calibration_protocol_fingerprint",
     "source_binding_fingerprint",
+    "labeled_results_hash",
+    "pair_ids",
+    "ground_truth",
     "algorithm_id",
     "algorithm_fingerprint",
     "threshold",
@@ -1192,6 +1283,32 @@ def _read_metadata(document: Mapping[str, Any], what: str) -> Mapping[str, str]:
                 "there would be a claim outside the schema"
             )
     return {str(key): str(item) for key, item in value.items()}
+
+
+def _read_string_array(
+    document: Mapping[str, Any], field_name: str, *, what: str
+) -> tuple[str, ...]:
+    value = document[field_name]
+    if not isinstance(value, list):
+        raise ValueError(f"{what}: {field_name} must be a JSON array")
+    result: list[str] = []
+    for index, item in enumerate(value):
+        if type(item) is not str or not item.strip():
+            raise ValueError(
+                f"{what}: {field_name}[{index}] must be a non-empty string"
+            )
+        result.append(item.strip())
+    return tuple(result)
+
+
+def _read_truth_array(
+    document: Mapping[str, Any], field_name: str, *, what: str
+) -> tuple[CalibrationPairTruth, ...]:
+    values = _read_string_array(document, field_name, what=what)
+    try:
+        return tuple(CalibrationPairTruth(value) for value in values)
+    except ValueError as exc:
+        raise ValueError(f"{what}: {field_name} contains an unknown ground truth") from exc
 
 
 def read_calibration_protocol(document: Mapping[str, Any]) -> CalibrationProtocol:
@@ -1276,6 +1393,13 @@ def read_calibration_source_binding(
             run_fingerprint=read_digest(document, "run_fingerprint"),
             result_set_id=read_str(document, "result_set_id"),
             result_set_fingerprint=read_digest(document, "result_set_fingerprint"),
+            labeled_results_hash=read_digest(document, "labeled_results_hash"),
+            pair_ids=_read_string_array(
+                document, "pair_ids", what="a calibration source binding"
+            ),
+            ground_truth=_read_truth_array(
+                document, "ground_truth", what="a calibration source binding"
+            ),
             dataset_id=read_str(document, "dataset_id"),
             dataset_fingerprint=read_digest(document, "dataset_fingerprint"),
             cohort_id=read_str(document, "cohort_id"),
@@ -1369,6 +1493,13 @@ def read_calibration_operating_point(
             ),
             source_binding_fingerprint=read_digest(
                 document, "source_binding_fingerprint"
+            ),
+            labeled_results_hash=read_digest(document, "labeled_results_hash"),
+            pair_ids=_read_string_array(
+                document, "pair_ids", what="a calibration operating point"
+            ),
+            ground_truth=_read_truth_array(
+                document, "ground_truth", what="a calibration operating point"
             ),
             algorithm_id=read_str(document, "algorithm_id"),
             algorithm_fingerprint=read_digest(document, "algorithm_fingerprint"),

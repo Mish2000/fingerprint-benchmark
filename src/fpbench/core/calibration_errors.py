@@ -47,9 +47,10 @@ class CalibrationSourceError(CalibrationError):
     """A source binding does not identify one exact body of development scores.
 
     A path where a fingerprint was required, a result set that does not belong to
-    the run it names, a pair manifest that belongs to a different cohort. A source
-    identified loosely is a source nobody can re-derive a threshold from
-    (spec section 7).
+    the run it names, a pair manifest that belongs to a different cohort, or a
+    labelled-results hash, pair-id list, or ground-truth list that does not match
+    the supplied body. A source identified loosely is a source nobody can
+    re-derive a threshold from (spec section 7).
     """
 
 
@@ -93,9 +94,10 @@ class CalibrationConflictError(StorageError):
 class CalibrationVerificationError(CalibrationError):
     """A stored operating point does not survive re-derivation.
 
-    An operating point is not evidence of itself: verification recomputes every
-    candidate boundary, every count and the selection from the labelled scores it
-    cites, and compares (spec section 29).
+    An operating point is not evidence of itself: verification first proves the
+    labelled score body is the one bound into the source and operating point,
+    then recomputes every candidate boundary, count, and selection from it
+    (spec section 29).
     """
 
 

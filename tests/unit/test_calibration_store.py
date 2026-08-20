@@ -13,15 +13,18 @@ from pathlib import Path
 
 import pytest
 
+from fpbench.calibration.models import LabeledResults, LabeledScore
 from fpbench.calibration.protocol import (
+    _seal_calibration_source_binding,
     build_calibration_operating_point,
-    build_calibration_source_binding,
     impostor_ceiling_protocol,
 )
 from fpbench.core.calibration_errors import CalibrationConflictError
 from fpbench.core.enums import (
+    CalibrationPairTruth,
     CalibrationTiePolicy,
     CohortRole,
+    ExecutionStatus,
     ScoreDirection,
     ThresholdComparator,
     ThresholdSelectionRule,
@@ -41,6 +44,23 @@ def a_protocol(numerator: int = 1, denominator: int = 1000):
 
 
 def a_binding(**overrides):
+    labeled_results = LabeledResults(
+        score_direction=HIGHER,
+        rows=(
+            LabeledScore(
+                pair_id="i000",
+                truth=CalibrationPairTruth.CROSS_SUBJECT_IMPOSTOR,
+                execution_status=ExecutionStatus.SUCCESS,
+                score=Decimal("0"),
+            ),
+            LabeledScore(
+                pair_id="m000",
+                truth=CalibrationPairTruth.MATED,
+                execution_status=ExecutionStatus.SUCCESS,
+                score=Decimal("1"),
+            ),
+        ),
+    )
     fields = dict(
         binding_id="stored_binding_v1",
         algorithm_id="synthetic_matcher",
@@ -59,15 +79,22 @@ def a_binding(**overrides):
         pair_manifest_id="stored_pairs",
         pair_manifest_fingerprint="1" * 64,
         score_direction=HIGHER,
+        labeled_results=labeled_results,
     )
     fields.update(overrides)
-    return build_calibration_source_binding(**fields)
+    return _seal_calibration_source_binding(**fields)
 
 
 def an_operating_point(threshold: str = "0.5"):
     return build_calibration_operating_point(
         calibration_protocol_fingerprint_value=a_protocol().protocol_fingerprint,
         source_binding_fingerprint=a_binding().source_binding_fingerprint,
+        labeled_results_hash="2" * 64,
+        pair_ids=("i000", "m000"),
+        ground_truth=(
+            CalibrationPairTruth.CROSS_SUBJECT_IMPOSTOR,
+            CalibrationPairTruth.MATED,
+        ),
         algorithm_id="synthetic_matcher",
         algorithm_fingerprint="a" * 64,
         threshold=Decimal(threshold),
@@ -76,13 +103,13 @@ def an_operating_point(threshold: str = "0.5"):
         target_rate_numerator=1,
         target_rate_denominator=1000,
         observed_impostor_matches=0,
-        observed_impostor_scored=1000,
-        observed_impostor_attempts=1000,
+        observed_impostor_scored=1,
+        observed_impostor_attempts=1,
         impostor_failures=0,
-        observed_mated_matches=900,
-        observed_mated_non_matches=100,
-        observed_mated_scored=1000,
-        observed_mated_attempts=1000,
+        observed_mated_matches=1,
+        observed_mated_non_matches=0,
+        observed_mated_scored=1,
+        observed_mated_attempts=1,
         mated_failures=0,
         selection_rule=ThresholdSelectionRule.MOST_PERMISSIVE_WITHIN_IMPOSTOR_CEILING,
         tie_policy=CalibrationTiePolicy.ATOMIC_TIES_PREFER_INCLUSIVE,

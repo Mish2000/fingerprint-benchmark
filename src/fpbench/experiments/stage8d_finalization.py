@@ -96,6 +96,7 @@ _MODEL_SOURCE_FILES = (
     "src/fpbench/core/calibration_errors.py",
     "src/fpbench/calibration/models.py",
     "src/fpbench/calibration/protocol.py",
+    "src/fpbench/calibration/source.py",
 )
 
 #: The source whose bytes ``selection_engine_fingerprint`` covers: everything
@@ -143,6 +144,7 @@ _ALLOWED_EXACT_CHANGES = frozenset(
         "src/fpbench/calibration/__init__.py",
         "src/fpbench/calibration/models.py",
         "src/fpbench/calibration/protocol.py",
+        "src/fpbench/calibration/source.py",
         "src/fpbench/calibration/selection.py",
         "src/fpbench/calibration/validation.py",
         "src/fpbench/calibration/verify.py",

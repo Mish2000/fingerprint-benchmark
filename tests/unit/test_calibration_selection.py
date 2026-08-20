@@ -20,7 +20,7 @@ import pytest
 
 from fpbench.calibration.models import LabeledResults, LabeledScore
 from fpbench.calibration.protocol import (
-    build_calibration_source_binding,
+    _seal_calibration_source_binding,
     build_protected_evaluation_registry,
     impostor_ceiling_protocol,
 )
@@ -116,13 +116,21 @@ def results_from(
 
 
 def binding(
-    direction: ScoreDirection = HIGHER,
+    results_or_direction: LabeledResults | ScoreDirection = HIGHER,
     role: CohortRole = CohortRole.DEVELOPMENT,
     *,
     result_set_fingerprint: str = "d" * 64,
     pair_manifest_fingerprint: str = "1" * 64,
 ):
-    return build_calibration_source_binding(
+    if isinstance(results_or_direction, LabeledResults):
+        labeled_results = results_or_direction
+        direction = labeled_results.score_direction
+    else:
+        direction = results_or_direction
+        labeled_results = results_from(
+            direction, mated=["8"], impostor=["1"]
+        )
+    return _seal_calibration_source_binding(
         binding_id="synthetic_binding_v1",
         algorithm_id="synthetic_matcher",
         algorithm_fingerprint="a" * 64,
@@ -140,6 +148,7 @@ def binding(
         pair_manifest_id="synthetic_pairs",
         pair_manifest_fingerprint=pair_manifest_fingerprint,
         score_direction=direction,
+        labeled_results=labeled_results,
     )
 
 
@@ -168,7 +177,7 @@ def choose(protocol, results, **overrides):
     )
     fields.update(overrides)
     return select_operating_point(
-        protocol, binding(results.score_direction), results, **fields
+        protocol, binding(results), results, **fields
     )
 
 
@@ -644,7 +653,7 @@ def test_a_stored_operating_point_re_derives_from_the_scores_it_cites() -> None:
     report = verify_operating_point(
         point,
         protocol,
-        binding(results.score_direction),
+        binding(results),
         results,
         protected_registry=registry(),
     )
@@ -660,7 +669,7 @@ def test_verification_refuses_a_binding_that_names_a_different_result_set() -> N
         verify_operating_point(
             point,
             protocol,
-            binding(results.score_direction, result_set_fingerprint="7" * 64),
+            binding(results, result_set_fingerprint="7" * 64),
             results,
             protected_registry=registry(),
         )
@@ -673,7 +682,7 @@ def test_verification_refuses_a_binding_that_names_a_different_pair_manifest():
         verify_operating_point(
             point,
             protocol,
-            binding(results.score_direction, pair_manifest_fingerprint="8" * 64),
+            binding(results, pair_manifest_fingerprint="8" * 64),
             results,
             protected_registry=registry(),
         )
@@ -687,18 +696,13 @@ def test_verification_refuses_a_protocol_the_point_was_not_selected_under() -> N
     )
     with pytest.raises(CalibrationVerificationError, match="selected under protocol"):
         verify_operating_point(
-            point, other, binding(results.score_direction), results,
+            point, other, binding(results), results,
             protected_registry=registry(),
         )
 
 
-def test_verification_reports_a_disagreement_rather_than_raising() -> None:
-    """A changed development score is a finding, not an exception.
-
-    The artifacts still refer to each other correctly; what has changed is the
-    evidence underneath them, and a qualification report needs to say *what*
-    disagreed.
-    """
+def test_verification_refuses_scores_outside_the_bound_result_body() -> None:
+    """A changed score body is unrelated input, not a re-derivation finding."""
     protocol, results = a_selection()
     point = choose(protocol, results)
     tampered_rows = []
@@ -717,13 +721,11 @@ def test_verification_reports_a_disagreement_rather_than_raising() -> None:
     tampered = LabeledResults(
         score_direction=results.score_direction, rows=tuple(tampered_rows)
     )
-    report = verify_operating_point(
-        point,
-        protocol,
-        binding(results.score_direction),
-        tampered,
-        protected_registry=registry(),
-    )
-    assert report.verified is False
-    assert report.findings
-    assert report.recomputed_fingerprint != point.operating_point_fingerprint
+    with pytest.raises(CalibrationVerificationError, match="binds labelled results"):
+        verify_operating_point(
+            point,
+            protocol,
+            binding(results),
+            tampered,
+            protected_registry=registry(),
+        )

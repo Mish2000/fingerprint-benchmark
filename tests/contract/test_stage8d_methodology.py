@@ -84,7 +84,7 @@ def defined_names(path: Path) -> set[str]:
 
 def test_the_calibration_package_exists_and_is_importable() -> None:
     assert CALIBRATION_ROOT.is_dir()
-    assert calibration.CALIBRATION_SCHEMA_VERSION == "1"
+    assert calibration.CALIBRATION_SCHEMA_VERSION == "2"
 
 
 @pytest.mark.parametrize("forbidden", calibration.FORBIDDEN_IMPORT_ROOTS)

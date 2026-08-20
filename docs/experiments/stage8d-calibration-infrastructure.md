@@ -32,6 +32,7 @@ believed is evidence of what was believed.
 
 ```
 src/fpbench/calibration/                 the engine
+src/fpbench/calibration/source.py        verified ResultSet-to-label binding
 src/fpbench/core/calibration_models.py   the persisted artifacts
 src/fpbench/core/calibration_errors.py   the failure vocabulary
 src/fpbench/storage/calibration_store.py append-only files
@@ -65,7 +66,7 @@ See [the architecture](../calibration/architecture.md) and
 
 ## The synthetic qualification
 
-28 fixtures, each small enough that its expected answer is worked out in the
+29 fixtures, each small enough that its expected answer is worked out in the
 case's own description. Nothing in it touches a dataset, a runtime, a checkpoint,
 a prior result set or a workspace: it is pure Python over numbers that were never
 measured.
@@ -94,7 +95,10 @@ results disagreeing about score direction; a missing impostor population; a
 missing genuine population; an impostor population that wholly failed; duplicate
 pair ids; a non-finite score; a malformed decimal; a score arriving as a binary
 float; verification against the wrong result set, the wrong pair manifest, and
-the wrong protocol.
+the wrong protocol. The catalogue also fixes the result-body regression
+explicitly: the same source binding is refused when verification is handed
+scores multiplied onto a second scale, even though the pair ids and populations
+are unchanged.
 
 ## Published evidence
 

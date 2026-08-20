@@ -111,14 +111,14 @@ def test_the_stage_this_follows_is_the_one_it_was_frozen_against() -> None:
     require_stage8d_is_the_stage_this_follows(REPOSITORY_ROOT)
 
 
-def test_stage_8d_evidence_is_untouched() -> None:
-    """The one thing Stage 8E must not have done to the stage before it."""
+def test_stage_8d_current_evidence_is_the_recognized_successor() -> None:
+    """A later security re-finalization does not rewrite Stage 8E's marker."""
     marker = REPOSITORY_ROOT / (
         "evidence/stage8d-calibration-infrastructure/stage-8d-finalization.json"
     )
     document = json.loads(marker.read_text(encoding="utf-8"))
     assert document["stage_8d_finalization_fingerprint"] == (
-        frozen.STAGE8D_FINALIZATION_FINGERPRINT
+        frozen.STAGE8D_CURRENT_FINALIZATION_FINGERPRINT
     )
     for name, digest in document["evidence_content_hashes"].items():
         assert file_sha256(marker.parent / name) == digest, name

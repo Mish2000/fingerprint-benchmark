@@ -56,7 +56,7 @@ and `stage-8c-finalization.json` was not re-derived.
 | File | What it is |
 |---|---|
 | `protected-evaluation-registry.json` | the identities a calibration must refuse — identities only, no score and no count of one |
-| `synthetic-qualification.json` | 28 fixtures, their outcomes as fingerprints and counts |
+| `synthetic-qualification.json` | 29 fixtures, their outcomes as fingerprints and counts |
 | `calibration-contract-report.json` | the structural facts: module digests, enforced absences, schema versions, the legacy identities that did not move |
 | `stage-8d-finalization.json` | the last-written authority, binding all of the above and the exact bytes of every file here |
 
@@ -79,7 +79,7 @@ pytest -m "stage8d" -q
 
 The gate re-reads Stage 8C's marker to confirm the stage this one follows, rebuilds
 the protected registry from the published documents its frozen identities were
-copied from, re-runs all 28 synthetic fixtures, recomputes the engine source
+copied from, re-runs all 29 synthetic fixtures, recomputes the engine source
 fingerprints, and re-hashes every file in this directory against the marker.
 
 Nothing in it needs a dataset, a runtime, a checkpoint, Java, or a workspace.

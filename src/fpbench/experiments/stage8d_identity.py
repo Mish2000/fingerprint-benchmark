@@ -250,6 +250,7 @@ CALIBRATION_PACKAGE_MODULES: tuple[str, ...] = (
     "selection.py",
     "validation.py",
     "profiles.py",
+    "source.py",
     "verify.py",
 )
 

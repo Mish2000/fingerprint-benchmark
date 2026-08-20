@@ -43,7 +43,7 @@ def _prepared(tmp_path: Path, image_id: str, payload: bytes = b"pixels") -> Prep
 
 
 def test_the_alias_carries_no_part_of_the_original_id(tmp_path: Path) -> None:
-    blinding = RunBlinding()
+    blinding = RunBlinding(secret=b"pinned-relatability-test")
     blinded = blinding.blind(_prepared(tmp_path, MATED_LEFT), tmp_path / "job")
     alias = str(blinded.image_id)
     for fragment in ("sd300a", "00002502", "plain", "right", "index"):
@@ -59,7 +59,7 @@ def test_two_impressions_of_one_finger_are_not_relatable_by_their_aliases(
     Before, the two ids shared the subject segment ``00002502`` and an adapter
     could read it off without doing any biometrics.
     """
-    blinding = RunBlinding()
+    blinding = RunBlinding(secret=b"pinned-relatability-test")
     job = tmp_path / "job"
     left = blinding.blind(_prepared(tmp_path, MATED_LEFT, b"a"), job)
     right = blinding.blind(_prepared(tmp_path, MATED_RIGHT, b"b"), job)
@@ -68,11 +68,16 @@ def test_two_impressions_of_one_finger_are_not_relatable_by_their_aliases(
     aliases = {str(image.image_id) for image in (left, right, other)}
     assert len(aliases) == 3
 
-    # No shared substring longer than the constant ``img_`` prefix.
-    stems = [str(image.image_id).removeprefix("img_") for image in (left, right)]
-    assert not any(
-        stems[0][index : index + 4] in stems[1] for index in range(len(stems[0]) - 3)
-    ), "the mated pair's aliases share a run of characters"
+    # Mated and non-mated inputs have the same opaque shape, and the common
+    # subject id that previously exposed the relationship is gone.  Independent
+    # HMAC outputs may coincidentally share a short substring; that is not a
+    # relationship and must not make this test probabilistic.
+    for alias in aliases:
+        stem = alias.removeprefix("img_")
+        assert alias.startswith("img_")
+        assert len(stem) == 16
+        assert all(character in "0123456789abcdef" for character in stem)
+        assert "00002502" not in alias
 
 
 def test_the_path_no_longer_names_the_subject(tmp_path: Path) -> None:

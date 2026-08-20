@@ -9,6 +9,7 @@ import pytest
 
 from fpbench.experiments.stage19_result_integrity import (
     Stage19ResultIntegrityError,
+    canonical_source_sha256,
     verify_outcome_store_integrity,
 )
 from fpbench.experiments.stage19a_finalization import (
@@ -132,3 +133,13 @@ def test_stage19_make_targets_do_not_accept_claimed_counters() -> None:
         assert "--outcomes" in recipe
         assert "--stored" not in recipe
         assert "--missing" not in recipe
+
+
+def test_source_hash_is_independent_of_checkout_line_endings(tmp_path: Path) -> None:
+    source = tmp_path / "source.py"
+    source.write_bytes(b"first line\nsecond line\n")
+    lf_hash = canonical_source_sha256(source)
+
+    source.write_bytes(b"first line\r\nsecond line\r\n")
+
+    assert canonical_source_sha256(source) == lf_hash

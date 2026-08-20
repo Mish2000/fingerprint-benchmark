@@ -20,6 +20,7 @@ from typing import Any, Mapping
 __all__ = [
     "Stage19ResultIntegrityError",
     "OutcomeStoreIntegrity",
+    "canonical_source_sha256",
     "verify_outcome_store_integrity",
 ]
 
@@ -50,6 +51,18 @@ class OutcomeStoreIntegrity:
             "missing": self.missing,
             "outcome_store_sha256": self.outcome_store_sha256,
         }
+
+
+def canonical_source_sha256(path: Path) -> str:
+    """Hash a text source identically on LF and CRLF checkouts.
+
+    Stage source fingerprints describe repository content, not the checkout's
+    platform-specific newline materialization.  Outcome-store hashes remain
+    byte-exact and deliberately do not use this helper.
+    """
+    payload = Path(path).read_bytes()
+    canonical = payload.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(canonical).hexdigest()
 
 
 def _exact_non_negative_int(value: object, field: str) -> int:

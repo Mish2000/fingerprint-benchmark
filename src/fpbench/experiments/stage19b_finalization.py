@@ -37,6 +37,7 @@ from fpbench.experiments.stage18a_inputs import REPOSITORY_ROOT
 from fpbench.experiments.stage19_result_integrity import (
     OutcomeStoreIntegrity,
     Stage19ResultIntegrityError,
+    canonical_source_sha256,
     verify_outcome_store_integrity,
 )
 
@@ -108,6 +109,7 @@ _PREDECESSOR_WHY = {
 
 
 def _file_sha256(path: Path) -> str:
+    """Hash a published evidence artifact byte-for-byte."""
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
@@ -123,7 +125,7 @@ def stage19b_source_fingerprint(repository_root: Path = REPOSITORY_ROOT) -> str:
         path = root / relative
         if not path.is_file():
             raise Stage19BFinalizationError(f"a Stage 19B source file is missing: {relative}")
-        digests[relative] = _file_sha256(path)
+        digests[relative] = canonical_source_sha256(path)
     return _stable_hash({"schema": "stage_19b_source_v1", "files": digests})
 
 

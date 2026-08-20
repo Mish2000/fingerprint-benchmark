@@ -33,7 +33,7 @@
   ],
   "calibration_performed": false,
   "canonical_run_executed": true,
-  "created_utc": "2026-08-20T09:24:44Z",
+  "created_utc": "2026-08-20T13:10:17Z",
   "cross_impression": {
     "plain_roll_mated": {
       "comparisons": 1500,
@@ -79,8 +79,8 @@
   "secugen_reference_used_for_parameter_selection": false,
   "shares_extractor_with": "nbis_mindtct_bozorth3",
   "stage": "19A",
-  "stage19a_source_fingerprint": "9a8a21b7c149958b4d4797169254c96e7bf895d7a5cece5aecc6d95d1d7f501d",
-  "stage_19a_finalization_fingerprint": "27ff6773e16e8d6d4d236c67074ad1b78ed78386550d355522f4e0a404368655",
+  "stage19a_source_fingerprint": "e2cb10d5b9e12094edf78644fe45101989bfaef4d07da601879db3bcf1700c90",
+  "stage_19a_finalization_fingerprint": "42515c4c442103fa9684d4f4471f5f2e4b19c5ca9d89b2d1fe4c066d2bcb7564",
   "stored_outcomes": 6000,
   "threshold": null,
   "unique_ordinals": 6000,

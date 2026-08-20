@@ -143,7 +143,15 @@ def test_only_translate_and_the_identity_are_overridden():
     the first."""
     # `from_config` is a classmethod, so vars() holds the descriptor rather than a
     # callable; filter by name instead of by callability.
-    ignored = {"__doc__", "__module__", "__abstractmethods__", "_abc_impl"}
+    ignored = {
+        "__doc__",
+        "__module__",
+        "__abstractmethods__",
+        "_abc_impl",
+        # Class metadata added by CPython 3.13; neither entry is an override.
+        "__firstlineno__",
+        "__static_attributes__",
+    }
     redefined = set(vars(variant.OpenAfisCapacityExtendedAdapter)) - ignored
     assert redefined == {"__init__", "from_config", "_translate", "validate_environment"}
 

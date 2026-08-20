@@ -28,8 +28,10 @@ from fpbench.core.evaluation_view_models import (
     EvaluationViewManifest,
     ordered_entries_hash,
 )
-from fpbench.core.serialization import read_json, write_json
+from fpbench.core.serialization import read_json
+from fpbench.core.json_io import write_json
 from fpbench.storage import derivation_schemas, layout
+from fpbench.storage.atomic_parquet import replace_table
 
 __all__ = ["EvaluationViewStore"]
 
@@ -201,10 +203,5 @@ class EvaluationViewStore:
             }
         )
 
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        try:
-            pq.write_table(stamped, tmp, compression="zstd")
-            tmp.replace(path)
-        finally:
-            tmp.unlink(missing_ok=True)
+        replace_table(path, stamped, what="evaluation-view entries")
         return path

@@ -2216,6 +2216,11 @@ Stage 14A   algorithm 5 candidate — Griaule GBS SDK preflight          NON-FIN
 Stage 15A   fingerprints-matching 0.1.0 — qualification and raw run    COMPLETE (6,000)
 Stage 16A   algorithm 5 candidate — FingerFlow 3.0.1 qualification    FAIL (route not closed)
 Stage 17A   algorithm 5 candidate — fingerprintMatcher 1.0.6         FAIL (returns no score)
+Stage 18A   SecuGen + OpenAFIS — private end-to-end reference        COMPLETE (6,000, private)
+Stage 19A   MINDTCT + OpenAFIS — canonical raw run                   COMPLETE (6,000; 1,583 scored)
+Stage 19B   OpenAFIS capacity extension — canonical raw run          COMPLETE (6,000) — algorithm 5 established
+Stage 20A   algorithm 5 — official MCC SDK v2.0 preflight            PASS
+Stage 20B   MINDTCT + MCC SDK v2.0 — canonical raw run               COMPLETE (6,000) — preferred final fifth
 ```
 
 The five most recent stages have no narrative section of their own above; their
@@ -2390,6 +2395,93 @@ Also outstanding from earlier stages: a real FMR needs a cross-subject
 negative-pair design chosen for estimation — a new pair manifest and a new run,
 not a new metric over this one.
 
+## Stage 18A — the SecuGen/OpenAFIS private reference
+
+Before any OpenAFIS route could be attributed a score, one question had to be
+answered privately: does this matcher work at all on fingerprints of this kind,
+end to end? Stage 18A answers it with a **private reference run** —
+`secugen_openafis_private_reference_v1` — over the same 6,000 comparisons, using a
+SecuGen extractor rather than the benchmark's own.
+
+The outcome is `SECU_GEN_OPENAFIS_PRIVATE_RAW_COMPLETE`: 6,000 stored,
+0 missing, on the completion criterion the marker states in full — *stored == expected == 6000 and missing == 0; nothing else*.
+
+**It is a reference, not a result, and the marker refuses to let it become
+one.** `purpose` is `PRIVATE_REFERENCE_ONLY`. `publication_eligible` is
+`false`, `registry_integration` is `false`,
+`production_adapter_built` is `false`, and neither the scores nor any
+statistic over them appears in evidence (`scores_in_evidence:
+false`, `score_statistics_published:
+false`). Its inputs are not even the
+benchmark's pixels: `canonical_input_pixels_identical_to_other_algorithms` is
+`false`. Nothing here is comparable
+to Algorithms 1–4, and the marker says so rather than leaving it to be inferred.
+
+OpenAFIS is pinned at `3ae1c757c6da` under BSD-2-Clause; no vendor binary
+entered Git (`vendor_binaries_in_git: false`).
+
+Evidence: [`evidence/stage18a-secugen-openafis-reference/`](evidence/stage18a-secugen-openafis-reference/).
+
+## Stage 19A — MINDTCT + OpenAFIS over the canonical 6,000
+
+Stage 19A replaces Stage 18A's SecuGen extractor with the benchmark's own frozen
+MINDTCT 5.0.0 — the same certified build Algorithm 2 uses — and runs the
+canonical 6,000. The route is `nbis_mindtct_openafis`; it is
+**not** an independent fifth system, because it shares its extractor with
+`nbis_mindtct_bozorth3`.
+
+The outcome is `MINDTCT_OPENAFIS_CANONICAL500_RAW_COMPLETE`, on all five counts agreeing:
+6,000 unique pair ids, 6,000 unique ordinals,
+6,000 diagnostic comparisons, 6,000 stored outcomes and
+6,000 expected, with 0 missing.
+
+**And only 1,583 of those 6,000 carry a score** —
+26.4% of the manifest. Upstream OpenAFIS refuses a template above 128
+minutiae, and MINDTCT routinely produces more. That is why
+`algorithm_5_established` is `null` rather than `false`: the fourth condition —
+"a substantial quantity of score-bearing comparisons between different
+impressions" — had no number attached to it, and inventing one here would have
+let the answer choose itself. `cross_impression_sufficiency` is
+`UNDETERMINED`, and
+`cross_impression_sufficiency_is_a_human_determination` is
+`true`.
+
+The Stage 18A reference was not consulted to pick any parameter
+(`secugen_reference_used_for_parameter_selection:
+false`).
+
+Evidence: [`evidence/stage19a-mindtct-openafis/`](evidence/stage19a-mindtct-openafis/).
+
+## Stage 19B — the capacity extension, and Algorithm 5
+
+Stage 19B changes exactly one thing about upstream OpenAFIS:
+`disable_template_upper_minutiae_rejection_for_stage19b_csv_route` — two added lines that disable the
+refusal above 128 minutiae, with the constant itself left alone so the ISO
+parsing route is untouched. Gate A proved the change inert on all 1,583 baseline
+scores before anything else ran.
+
+Because a modified matcher is not the matcher it was modified from, the route
+gets its own identity — `nbis_mindtct_openafis_capacity_extended` — rather than
+being reported as OpenAFIS
+([ADR 0136](docs/adr/0136-a-modified-matcher-gets-its-own-identity.md)).
+`upstream_modified` is `true` and says so in the marker.
+
+The outcome is `MINDTCT_OPENAFIS_CAPACITY_EXTENDED_CANONICAL_RAW_COMPLETE`:
+6,000 stored, 0 missing, 6,000 score-bearing —
+100% of the manifest, against Stage 19A's 26.4% — and
+`capacity_failures_remaining: 0`.
+
+**This is the stage that established Algorithm 5** (`algorithm_5_established:
+true`), on six structural conditions with no minimum score,
+no minimum median and no TAR among them. `opens_common_calibration` is
+`true`. It is still not an independent fifth *system*:
+`is_independent_fifth_system` is `false`, for the same
+shared-extractor reason as 19A. Stage 20B later took precedence as the preferred
+final fifth method, and this route is retained beside it as an additional
+experimentally evaluated method.
+
+Evidence: [`evidence/stage19b-openafis-capacity-extended/`](evidence/stage19b-openafis-capacity-extended/).
+
 ## Stage 20A — official MCC SDK v2.0 preflight
 
 Stage 20A qualifies the official University of Bologna MCC SDK v2.0 before any
@@ -2416,6 +2508,42 @@ orders. No threshold, calibration, SD300 image, prior score, ranking or 6,000-pa
 run entered the stage. The final outcome is
 `MINDTCT_MCC_SDK_V2_ROUTE_PASS`, which opens Stage 20B for the production adapter
 and canonical raw comparisons.
+
+## Stage 20B — MINDTCT + MCC SDK v2.0, canonical raw run
+
+Stage 20B builds the candidate Stage 20A qualified into a real fpbench adapter
+and runs it over the same 6,000 canonical comparisons every other algorithm in
+this benchmark was run over. Two gates ran before it: Gate A reproduced the
+bridge's own scores (`PASS`) and Gate B proved MINDTCT parity with the
+extractor Algorithm 2 uses (`PASS`).
+
+The outcome is `MINDTCT_MCC_SDK_V2_CANONICAL_RAW_COMPLETE`: 6,000 stored,
+6,000 score-bearing, 0 missing and 0 failures of any kind. Scores are the
+SDK's raw `System.Double` similarity, `HIGHER_MORE_SIMILAR`, with `score_transform: NONE`
+— no clamping, and no invalid score to clamp.
+
+**What the stage did not produce.** No `MATCH`, no `NON_MATCH`, no threshold, no
+calibration, no metrics and no ranking. The MCC SDK gave Stage 20A no native
+decision threshold, and Stage 20B does not invent one
+([ADR 0003](docs/adr/0003-decision-outside-adapter.md)).
+
+`nbis_mindtct_mcc_sdk_v2` is the **preferred final fifth method**
+(`OFFICIAL_UNMODIFIED_MATCHER_ROUTE`, on the basis
+`SECTION_33_FULL_COVERAGE_NO_SYSTEMIC_DEFECT`): the matcher is the official
+artifact, unmodified, at its own defaults. It is not an independent fifth
+*system* — it shares the frozen MINDTCT 5.0.0 extractor with
+`nbis_mindtct_bozorth3`, which is why the extractor is named in the method. The
+OpenAFIS capacity extension of Stage 19B is retained as an
+additional experimentally evaluated method
+([ADR 0136](docs/adr/0136-a-modified-matcher-gets-its-own-identity.md),
+[ADR 0137](docs/adr/0137-the-preference-is-frozen-before-the-scores-are-read.md)).
+
+No SD300 image, score or ranking took part in selecting the route
+(`sd300_parameter_selection: false`,
+`selection_based_on_sd300_accuracy: false`), and no
+third-party bytes entered Git.
+
+Evidence: [`evidence/stage20b-mindtct-mcc-canonical500-raw/`](evidence/stage20b-mindtct-mcc-canonical500-raw/).
 
 ## Longer-term backlog from earlier stages
 

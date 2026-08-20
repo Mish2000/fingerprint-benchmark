@@ -65,7 +65,8 @@ from fpbench.core.imaging_models import (
 )
 from fpbench.core.models import ImageRecord
 from fpbench.core.provenance_models import SoftwareProvenance
-from fpbench.core.serialization import read_json, require_exact_int, write_json
+from fpbench.core.serialization import read_json, require_exact_int
+from fpbench.core.json_io import write_json
 from fpbench.experiments.preparation_receipt import (
     build_preparation_finalization_marker,
     build_preparation_receipt,

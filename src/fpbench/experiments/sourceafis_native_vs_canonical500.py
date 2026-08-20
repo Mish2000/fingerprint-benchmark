@@ -58,7 +58,7 @@ from fpbench.core.provenance_models import (
     SoftwareProvenance,
     software_provenance_fingerprint,
 )
-from fpbench.core.serialization import write_json
+from fpbench.core.json_io import write_json
 from fpbench.paired import (
     align_pairs,
     build_common_eligible_view,

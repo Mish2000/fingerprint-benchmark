@@ -41,9 +41,11 @@ from fpbench.core.result_set_models import (
     result_set_fingerprint,
     result_set_id,
 )
-from fpbench.core.serialization import read_json, write_json
+from fpbench.core.serialization import read_json
+from fpbench.core.json_io import publish_json, write_json
 from fpbench.storage import layout, result_set_schemas
 from fpbench.storage.result_store import ResultStore
+from fpbench.storage.atomic_parquet import replace_table
 
 __all__ = ["ResultSetStore"]
 
@@ -107,7 +109,16 @@ class ResultSetStore:
             return manifest_path.parent
 
         self._write_entries(manifest, entries)
-        write_json(manifest_path, manifest)
+        if not publish_json(manifest_path, manifest).created:
+            stored, _ = self.read_result_set(manifest.run_id)
+            if stored.result_set_fingerprint != manifest.result_set_fingerprint:
+                raise ResultSetConflictError(
+                    f"run {manifest.run_id} was given result set "
+                    f"{stored.result_set_id} "
+                    f"({stored.result_set_fingerprint[:12]}...) by another writer "
+                    f"while this one was storing {manifest.result_set_id} "
+                    f"({manifest.result_set_fingerprint[:12]}...)"
+                )
         return manifest_path.parent
 
     # ------------------------------------------------------------------- read
@@ -312,12 +323,7 @@ class ResultSetStore:
             }
         )
 
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        try:
-            pq.write_table(stamped, tmp, compression="zstd")
-            tmp.replace(path)
-        finally:
-            tmp.unlink(missing_ok=True)
+        replace_table(path, stamped, what="result-set entries")
         return path
 
     def _read_entries(self, run_id: str) -> list[ResultSetEntry]:

@@ -30,7 +30,8 @@ from fpbench.core.result_set_models import (
     result_set_fingerprint,
     result_set_id,
 )
-from fpbench.core.serialization import read_json, to_plain, write_json
+from fpbench.core.serialization import read_json, to_plain
+from fpbench.core.json_io import write_json
 from runworld import (
     build_world,
     finalise_research_world,

@@ -24,6 +24,7 @@ import os
 from pathlib import Path
 from typing import Iterable, Mapping
 
+from fpbench.core.atomic_write import replace_bytes
 from fpbench.core.errors import (
     ImagingError,
     PreparationFinalizationError,
@@ -347,9 +348,11 @@ def write_preparation_evidence_copy(
         json.dumps(to_plain(receipt), indent=2, ensure_ascii=False, sort_keys=False)
         + "\n"
     )
-    # Match ``write_json`` on the current platform, so byte identity does not
-    # mistake a line-ending convention for different evidence.
-    payload = rendered.replace("\n", os.linesep).encode("utf-8")
+    # LF on every platform. These bytes are compared against the committed
+    # copy and, in several stages, hashed into a marker; translating them to
+    # the writer's native line ending made one document into two, depending
+    # on which machine happened to write it (docs/adr/0139).
+    payload = rendered.encode("utf-8")
     if path.is_file():
         if path.read_bytes() != payload:
             try:
@@ -367,9 +370,7 @@ def write_preparation_evidence_copy(
                 and receipt.schema_version == "3"
                 and shared_claims_match
             ):
-                tmp = path.with_suffix(path.suffix + ".tmp")
-                tmp.write_bytes(payload)
-                tmp.replace(path)
+                replace_bytes(path, payload, what="preparation receipt")
                 return path
             raise ResultConflictError(
                 f"{path} already contains a different evidence receipt; refusing to "

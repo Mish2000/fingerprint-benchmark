@@ -37,6 +37,7 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
 help:
 	@echo "test                    unit + integration, no dataset, no Java, no full run"
 	@echo "test-all                everything available on this machine"
+	@echo "publication-hygiene     what evidence, workbooks and the README claim about themselves"
 	@echo "full-run                the 6,000-job dummy protocol (minutes)"
 	@echo "adapter-contract        what a new algorithm must satisfy (no dataset, no JVM)"
 	@echo "stage7d-contract        the comparison methodology (no dataset, no algorithm)"
@@ -224,6 +225,14 @@ help:
 # What CI runs on every push.
 test:
 	pytest -m "not dataset and not sourceafis and not full_run"
+
+# The checks over what this repository *publishes*, as opposed to what it
+# computes: no absolute path in evidence, no rate label on the negative sanity
+# fraction, the README describing every published stage, and every fingerprinted
+# source pinned to LF. Fast, needs nothing, and each one exists because the
+# corresponding claim was made in a document and contradicted by a file.
+publication-hygiene:
+	pytest tests/contract/test_evidence_carries_no_absolute_paths.py 	       tests/contract/test_published_workbooks_obey_adr0030.py 	       tests/contract/test_stage_registry.py 	       tests/contract/test_source_fingerprints_are_pinned.py -q
 
 test-all:
 	pytest

@@ -28,3 +28,83 @@ src/fpbench/experiments/stage20a_mcc_*.py text eol=lf
 src/fpbench/experiments/stage20b_*.py text eol=lf
 tests/test_stage20a_*.py text eol=lf
 tests/test_stage20b_*.py text eol=lf
+
+# The whole evidence tree, not one directory at a time.
+#
+# Every entry above this line names a single stage, which is how the tree came
+# to hold 49 files in the native line ending of whichever machine published
+# them: a directory nobody remembered to add was a directory whose bytes
+# depended on the checkout. Evidence is compared byte-for-byte against what a
+# verifier re-derives, so that difference is not cosmetic.
+evidence/** text eol=lf
+
+# Every file a published stage marker hashes, pinned to LF.
+#
+# A stage's source fingerprint answers "is the code in this tree the code that
+# produced the published run?". Hashed over the checkout's raw bytes, it also
+# answers "...as this machine happens to materialise text", so the same commit
+# has one fingerprint under core.autocrlf=true and another on Linux, and a gate
+# that was green where it was published goes red everywhere else. Pinning the
+# hashed paths is what makes the question well-posed on every platform.
+#
+# Adding a path to a stage's _SOURCE_FILES means adding it here too. The
+# contract test tests/contract/test_source_fingerprints_are_pinned.py enforces
+# that, so a forgotten entry fails in CI rather than on somebody's laptop.
+configs/algorithms/nbis_mindtct_openafis_v1.yaml text eol=lf
+integrations/fingerprints-matching/bridge.py text eol=lf
+integrations/mcc-sdk-v2-probe/Program.cs text eol=lf
+integrations/mcc-sdk-v2-probe/README.md text eol=lf
+integrations/openafis/Makefile text eol=lf
+integrations/openafis/src/fpbench_openafis_bridge.cpp text eol=lf
+integrations/openafis/src/fpbench_openafis_csv_instantiation.cpp text eol=lf
+integrations/secugen/extract_batch.py text eol=lf
+scripts/stage19b_canonical_run.py text eol=lf
+scripts/stage19b_determinism.py text eol=lf
+scripts/stage19b_gate_a.py text eol=lf
+src/fpbench/adapters/fingerprints_matching/adapter.py text eol=lf
+src/fpbench/adapters/fingerprints_matching/bridge_client.py text eol=lf
+src/fpbench/adapters/fingerprints_matching/identity.py text eol=lf
+src/fpbench/adapters/fingerprints_matching/runtime.py text eol=lf
+src/fpbench/adapters/openafis/__init__.py text eol=lf
+src/fpbench/adapters/openafis/adapter.py text eol=lf
+src/fpbench/adapters/openafis/capacity_extended.py text eol=lf
+src/fpbench/adapters/openafis/config.py text eol=lf
+src/fpbench/adapters/openafis/failure_mapping.py text eol=lf
+src/fpbench/adapters/openafis/translation.py text eol=lf
+src/fpbench/core/stage15a_errors.py text eol=lf
+src/fpbench/core/stage16a_errors.py text eol=lf
+src/fpbench/core/stage17a_errors.py text eol=lf
+src/fpbench/experiments/stage15a_canonical500_full.py text eol=lf
+src/fpbench/experiments/stage15a_finalization.py text eol=lf
+src/fpbench/experiments/stage15a_identity.py text eol=lf
+src/fpbench/experiments/stage15a_qualification.py text eol=lf
+src/fpbench/experiments/stage15a_research.py text eol=lf
+src/fpbench/experiments/stage15a_route.py text eol=lf
+src/fpbench/experiments/stage15a_runtime.py text eol=lf
+src/fpbench/experiments/stage15a_validation.py text eol=lf
+src/fpbench/experiments/stage16a_acquire.py text eol=lf
+src/fpbench/experiments/stage16a_artifacts.py text eol=lf
+src/fpbench/experiments/stage16a_finalization.py text eol=lf
+src/fpbench/experiments/stage16a_identity.py text eol=lf
+src/fpbench/experiments/stage16a_route.py text eol=lf
+src/fpbench/experiments/stage17a_acquire.py text eol=lf
+src/fpbench/experiments/stage17a_finalization.py text eol=lf
+src/fpbench/experiments/stage17a_identity.py text eol=lf
+src/fpbench/experiments/stage17a_score_contract.py text eol=lf
+src/fpbench/experiments/stage18a_diagnostics.py text eol=lf
+src/fpbench/experiments/stage18a_finalization.py text eol=lf
+src/fpbench/experiments/stage18a_identity.py text eol=lf
+src/fpbench/experiments/stage18a_inputs.py text eol=lf
+src/fpbench/experiments/stage18a_reference_run.py text eol=lf
+src/fpbench/experiments/stage19_result_integrity.py text eol=lf
+src/fpbench/experiments/stage19a_diagnostics.py text eol=lf
+src/fpbench/experiments/stage19a_finalization.py text eol=lf
+src/fpbench/experiments/stage19a_identity.py text eol=lf
+src/fpbench/experiments/stage19a_research.py text eol=lf
+src/fpbench/experiments/stage19a_validation.py text eol=lf
+src/fpbench/experiments/stage19b_diagnostics.py text eol=lf
+src/fpbench/experiments/stage19b_finalization.py text eol=lf
+src/fpbench/experiments/stage20a_mcc_contract.py text eol=lf
+src/fpbench/experiments/stage20a_mcc_sdk.py text eol=lf
+tests/test_stage20a_contract.py text eol=lf
+tests/test_stage20a_evidence.py text eol=lf

@@ -288,7 +288,11 @@ def write_evidence(
         else json.dumps(to_plain(value), indent=2, ensure_ascii=False, sort_keys=False)
         + "\n"
     )
-    payload = rendered.replace("\r\n", "\n").replace("\n", os.linesep).encode("utf-8")
+    # LF on every platform. These bytes are compared against the committed
+    # copy and, in several stages, hashed into a marker; translating them to
+    # the writer's native line ending made one document into two, depending
+    # on which machine happened to write it (docs/adr/0139).
+    payload = rendered.replace("\r\n", "\n").encode("utf-8")
     path = Path(path)
     if path.is_file():
         if path.read_bytes() != payload:

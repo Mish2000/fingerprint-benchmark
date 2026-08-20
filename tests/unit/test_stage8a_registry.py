@@ -6,7 +6,7 @@ import pytest
 
 from fpbench.core.errors import CandidateRegistryError
 from fpbench.core.modern_matcher_models import CandidateTier
-from fpbench.core.serialization import write_json
+from fpbench.core.json_io import write_json
 from fpbench.modern_matchers.policy import TIE_BREAKERS, load_selection_policy
 from fpbench.modern_matchers.registry import (
     FROZEN_CANDIDATE_TIERS,

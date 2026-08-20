@@ -25,6 +25,7 @@ from typing import Mapping
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from fpbench.core.atomic_write import replace_text
 from fpbench.core.errors import PairedEvaluationConflictError, StorageError
 from fpbench.core.paired_models import (
     PAIRED_SCHEMA_VERSION,
@@ -46,8 +47,10 @@ from fpbench.core.paired_models import (
     paired_receipt_fingerprint,
 )
 from fpbench.core.provenance_models import SoftwareProvenance
-from fpbench.core.serialization import read_json, stable_hash, to_plain, write_json
+from fpbench.core.serialization import read_json, stable_hash, to_plain
+from fpbench.core.json_io import write_json
 from fpbench.storage import layout, paired_schemas
+from fpbench.storage.atomic_parquet import replace_table
 
 __all__ = ["PairedEvaluationStore", "paired_summary_content_hash", "report_content_hash"]
 
@@ -88,11 +91,14 @@ def report_content_hash(markdown: str) -> str:
 
 
 def write_text_atomically(path: Path, text: str) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    tmp.replace(path)
-    return path
+    """Write text atomically, through a uniquely named temp.
+
+    LF on every platform and no shared scratch name — the same two properties
+    ``write_json`` has since ADR 0139, and for the same reasons: these bytes are
+    compared against a committed copy, and two writers of one report must not be
+    able to corrupt each other's temp file.
+    """
+    return replace_text(Path(path), text)
 
 
 class PairedEvaluationStore:
@@ -591,10 +597,5 @@ class PairedEvaluationStore:
                 .encode(),
             }
         )
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        try:
-            pq.write_table(stamped, tmp, compression="zstd")
-            tmp.replace(path)
-        finally:
-            tmp.unlink(missing_ok=True)
+        replace_table(path, stamped, what="paired-evaluation table")
         return path

@@ -16,7 +16,8 @@ import pytest
 import fpbench.paired.sources as paired_sources
 from fpbench.core.enums import EvaluationStatus
 from fpbench.core.errors import PairedSourceMismatchError
-from fpbench.core.serialization import to_plain, write_json
+from fpbench.core.serialization import to_plain
+from fpbench.core.json_io import write_json
 from fpbench.experiments.sourceafis_evaluation import (
     SourceAfisEvaluationExperimentSpec,
 )

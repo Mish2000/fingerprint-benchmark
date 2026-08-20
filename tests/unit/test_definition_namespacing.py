@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from fpbench.core.serialization import write_json
+from fpbench.core.json_io import write_json
 from fpbench.storage.definition_store import DefinitionStore
 
 pytestmark = pytest.mark.metrics

@@ -34,9 +34,11 @@ from fpbench.core.execution_plan_models import (
     PlannedJob,
     job_manifest_hash,
 )
-from fpbench.core.serialization import read_json, write_json
+from fpbench.core.serialization import read_json
+from fpbench.core.json_io import write_json
 from fpbench.storage import plan_schemas
 from fpbench.storage.layout import run_directory
+from fpbench.storage.atomic_parquet import replace_table
 
 __all__ = ["PlanStore"]
 
@@ -118,12 +120,7 @@ class PlanStore:
             }
         )
 
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        try:
-            pq.write_table(stamped, tmp, compression="zstd")
-            tmp.replace(path)
-        finally:
-            tmp.unlink(missing_ok=True)
+        replace_table(path, stamped, what="plan table")
         return path
 
     # -------------------------------------------------------------------- read

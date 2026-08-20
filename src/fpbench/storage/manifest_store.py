@@ -39,8 +39,10 @@ from fpbench.core.models import (
     SelfEligibilityRecord,
     SubjectRecord,
 )
-from fpbench.core.serialization import read_json, stable_hash, write_json
+from fpbench.core.serialization import read_json, stable_hash
+from fpbench.core.json_io import write_json
 from fpbench.storage import schemas
+from fpbench.storage.atomic_parquet import replace_table
 
 __all__ = ["ManifestStore"]
 
@@ -373,12 +375,7 @@ class ManifestStore:
             }
         )
 
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        try:
-            pq.write_table(stamped, tmp, compression="zstd")
-            tmp.replace(path)
-        finally:
-            tmp.unlink(missing_ok=True)
+        replace_table(path, stamped, what="manifest table")
         return path
 
     def _read_table(self, path: Path) -> pa.Table:

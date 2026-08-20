@@ -33,7 +33,7 @@ from fpbench.core.evaluation_view_models import (
     MATED_UNCONDITIONAL_VIEW,
     NON_MATED_SANITY_VIEW,
 )
-from fpbench.core.serialization import write_json
+from fpbench.core.json_io import write_json
 from fpbench.storage.decision_set_store import DecisionSetStore
 from decisionworld import (
     DEFAULT_SCORES,

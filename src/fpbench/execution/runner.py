@@ -56,6 +56,7 @@ from fpbench.core.errors import (
     ProcessTreeTerminationError,
     ResultConflictError,
     RuntimeDriftError,
+    StorageError,
 )
 from fpbench.core.execution_models import (
     ComparisonContext,
@@ -69,6 +70,7 @@ from fpbench.core.execution_models import (
 from fpbench.core.identifiers import ImageId
 from fpbench.core.models import ComparisonPair, ImageRecord
 from fpbench.core.result_models import RawResultRecord, RunDefinition
+from fpbench.execution.blinding import RunBlinding
 from fpbench.execution.jobs import ComparisonJob
 from fpbench.imaging.base import ImagePreparer
 from fpbench.storage.result_store import ResultStore
@@ -127,6 +129,12 @@ class SingleJobRunner:
         self._dataset_root = Path(dataset_root).resolve()
         self._image_index = dict(image_index)
         self._workspace_root = Path(workspace_root).resolve()
+        # One blinding per run, so an image keeps one alias across all 6,000
+        # jobs while carrying nothing an adapter could decode (docs/adr/0138).
+        # Constructed here rather than injected: the secret exists to be nobody
+        # else's, and a constructor parameter for it would be one more thing a
+        # caller could get wrong (spec section 72 keeps this signature closed).
+        self._blinding = RunBlinding()
         self._preflight()
 
     @property
@@ -141,6 +149,16 @@ class SingleJobRunner:
     @property
     def result_store(self) -> ResultStore:
         return self._result_store
+
+    @property
+    def blinding(self) -> RunBlinding:
+        """The aliases this run hands its adapter.
+
+        Readable so a *harness* can invert them — a test double that scripts a
+        score per pair of images has to name those images somehow. Nothing under
+        test reads this, and nothing published records it.
+        """
+        return self._blinding
 
     # --------------------------------------------------------------- preflight
 
@@ -183,6 +201,50 @@ class SingleJobRunner:
         self._preparer.preflight()
 
         self._result_store.ensure_run(self._run)
+        self._require_preparer_matches_stored_results()
+
+
+    def _require_preparer_matches_stored_results(self) -> None:
+        """A resumed run must be resumed with the preparer that started it.
+
+        The execution profile pins ``preparer_id``, which names a *role* — "the
+        canonical-500 preparer" — and two implementations can hold that name in
+        turn. ``preparer_version`` exists precisely so a change of behaviour is
+        visible, and until now it was only ever *recorded*: every stored result
+        carried it and nothing compared it to anything.
+
+        The failure that allows is quiet and expensive. A run interrupted at
+        comparison 3,000 and resumed after the preparer changed produces one
+        result set whose two halves were prepared differently, with a single
+        ``preparation_set_id`` over both and no field that disagrees. This
+        reads the results already stored and refuses the resume instead
+        (docs/adr/0139).
+        """
+        stored = self._result_store.stored_job_ids(self._run.run_id)
+        if not stored:
+            return  # A fresh run defines the binding rather than checking it.
+        try:
+            first = self._result_store.read_raw_result(self._run.run_id, stored[0])
+        except StorageError:
+            # An unreadable stored result is a fault of the store, reported by
+            # whatever reads it next. Preflight does not diagnose it here.
+            return
+        recorded = dict(first.runner_metadata or {})
+        preparer = self._preparer
+        for key, current in (
+            ("preparer_id", preparer.preparer_id),
+            ("preparer_version", preparer.preparer_version),
+            ("runner_metadata_schema", preparer.runner_metadata_schema),
+        ):
+            previous = recorded.get(key)
+            if previous is None or previous == current:
+                continue
+            raise PreflightError(
+                f"run {self._run.run_id} already holds {len(stored)} result(s) "
+                f"produced with {key}={previous!r}, and this preparer reports "
+                f"{current!r}. Resuming would give one result set two "
+                "preparations and nothing to tell them apart"
+            )
 
     # ----------------------------------------------------------------- execute
 
@@ -209,6 +271,10 @@ class SingleJobRunner:
         artifact_directory: Path | None = None
         left: PreparedImage | None = None
         right: PreparedImage | None = None
+        # What the adapter is handed: the same artefacts under opaque names.
+        # The unblinded pair stays here, for the preparer's own provenance.
+        blinded_left: PreparedImage | None = None
+        blinded_right: PreparedImage | None = None
         context: ComparisonContext | None = None
 
         try:
@@ -252,6 +318,8 @@ class SingleJobRunner:
                 # in.
                 left = self._prepare(left_record)
                 right = self._prepare(right_record)
+                blinded_left = self._blinding.blind(left, working_directory)
+                blinded_right = self._blinding.blind(right, working_directory)
             except RuntimeDriftError:
                 # A prepared artefact changed underneath the run. Same rule as a
                 # replaced executable and for the same reason: recording it as
@@ -302,10 +370,16 @@ class SingleJobRunner:
                 )
 
         if failure is None:
-            assert left is not None and right is not None and context is not None
+            assert (
+                blinded_left is not None
+                and blinded_right is not None
+                and context is not None
+            )
             adapter_start = perf_counter_ns()
             try:
-                match_result = self._adapter.compare(left, right, context)
+                match_result = self._adapter.compare(
+                    blinded_left, blinded_right, context
+                )
                 self._validate_adapter_result(match_result)
             except (RuntimeDriftError, ProcessTreeTerminationError):
                 # Deliberately first, and deliberately re-raised. The pinned
@@ -343,6 +417,11 @@ class SingleJobRunner:
                 )
             finally:
                 adapter_ns = perf_counter_ns() - adapter_start
+                # The blinded inputs are this job's intermediates and leave with
+                # it. A run must hold no intermediate afterwards (spec section
+                # 32), and 12,000 hard links surviving a 6,000-job run would be
+                # a new kind of leftover rather than an exception to that.
+                self._blinding.discard(working_directory)
 
         if failure is not None:
             match_result = RawMatchResult.failed(

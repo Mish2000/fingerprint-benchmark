@@ -52,8 +52,11 @@ from fpbench.core.imaging_models import (
     preparation_receipt_fingerprint,
 )
 from fpbench.core.identifiers import ImageId
-from fpbench.core.serialization import read_json, stable_hash, to_plain, write_json
+from fpbench.core.serialization import read_json, stable_hash, to_plain
+from fpbench.core.json_io import publish_json, write_json
 from fpbench.storage import layout, prepared_image_schemas
+from fpbench.core.atomic_write import PublishConflictError, publish_file
+from fpbench.storage.atomic_parquet import replace_table
 
 __all__ = ["PreparedImageSetStore", "ImageWriteOutcome"]
 
@@ -273,31 +276,34 @@ class PreparedImageSetStore:
                 relative_path=relative, absolute_path=target, reused=True
             )
 
-        target.parent.mkdir(parents=True, exist_ok=True)
-        tmp = target.with_name(f"{target.name}.{os.getpid()}.tmp")
-        try:
-            with tmp.open("wb") as writer:
+        def _write(temporary: Path) -> None:
+            with temporary.open("wb") as writer:
                 writer.write(payload)
                 writer.flush()
                 os.fsync(writer.fileno())
             # Re-read the temporary file rather than trusting the write. A
             # filesystem that acknowledged bytes it did not keep is exactly the
             # failure this whole store exists to make visible.
-            written = tmp.read_bytes()
-            if hashlib.sha256(written).hexdigest() != actual:
+            if hashlib.sha256(temporary.read_bytes()).hexdigest() != actual:
                 raise StorageError(
                     f"the canonical image written for {actual[:12]}... did not "
                     "survive its own write"
                 )
-            try:
-                tmp.replace(target)
-            except FileExistsError:  # pragma: no cover - POSIX replaces silently
-                self._require_stored_blob_intact(target, actual)
-                return ImageWriteOutcome(
-                    relative_path=relative, absolute_path=target, reused=True
-                )
-        finally:
-            tmp.unlink(missing_ok=True)
+
+        # Create-if-absent, so two preparers racing on the same digest cannot
+        # both believe they filed it. The loser re-reads the winner's bytes,
+        # which under a content-addressed name must be its own.
+        try:
+            published = publish_file(target, _write, what="canonical image")
+        except PublishConflictError as exc:
+            raise PreparedImageSetConflictError(
+                f"{target} holds bytes that do not hash to its own name ({exc})"
+            ) from exc
+        if not published.created:
+            self._require_stored_blob_intact(target, actual)
+            return ImageWriteOutcome(
+                relative_path=relative, absolute_path=target, reused=True
+            )
 
         _fsync_directory(target.parent)
         _make_read_only(target)
@@ -398,7 +404,17 @@ class PreparedImageSetStore:
         self.ensure_runtime(container, runtime)
         self.ensure_definition_copy(container, definition)
         self.ensure_entries_table(manifest, entries)
-        write_json(manifest_path, manifest)
+        if not publish_json(manifest_path, manifest).created:
+            stored = self.read_manifest(set_id)
+            if (
+                stored.preparation_set_fingerprint
+                != manifest.preparation_set_fingerprint
+            ):
+                raise PreparedImageSetConflictError(
+                    f"{manifest_path} was given prepared-image set "
+                    f"{stored.preparation_set_id} by another writer while this "
+                    "one was storing its own"
+                )
         return manifest_path.parent
 
     def ensure_definition_copy(
@@ -450,12 +466,7 @@ class PreparedImageSetStore:
                 .encode(),
             }
         )
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        try:
-            pq.write_table(stamped, tmp, compression="zstd")
-            tmp.replace(path)
-        finally:
-            tmp.unlink(missing_ok=True)
+        replace_table(path, stamped, what="prepared-image entries")
         return path
 
     def ensure_summary(

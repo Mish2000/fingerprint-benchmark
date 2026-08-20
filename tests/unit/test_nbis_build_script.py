@@ -33,7 +33,7 @@ from pathlib import Path
 
 import pytest
 
-from fpbench.core.serialization import write_json
+from fpbench.core.json_io import write_json
 from nbisworld import NBIS_INTEGRATION_DIRECTORY, REPOSITORY_ROOT
 
 pytestmark = pytest.mark.nbis_contract

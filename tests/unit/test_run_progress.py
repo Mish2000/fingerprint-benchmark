@@ -7,7 +7,7 @@ from dataclasses import replace
 import pytest
 
 from fpbench.core.enums import RunState
-from fpbench.core.serialization import write_json
+from fpbench.core.json_io import write_json
 from fpbench.execution.progress import inspect_run_progress
 from fpbench.execution.runner import SingleJobRunner
 from fakes import SometimesFailingAdapter

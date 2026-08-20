@@ -6,7 +6,8 @@ import pytest
 
 from canonicalworld import build_canonical_world, publish_receipt_and_marker
 from fpbench.core.errors import ResultConflictError
-from fpbench.core.serialization import to_plain, write_json
+from fpbench.core.serialization import to_plain
+from fpbench.core.json_io import write_json
 from fpbench.experiments.preparation_receipt import write_preparation_evidence_copy
 from fpbench.imaging.verify import verify_prepared_image_set
 

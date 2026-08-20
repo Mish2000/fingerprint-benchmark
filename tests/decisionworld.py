@@ -88,8 +88,15 @@ class ScriptedAdapter(FingerprintAlgorithmAdapter):
     """Returns whatever score the test says, keyed by the pair of image ids.
 
     A real adapter is told nothing about the comparison it is performing, and
-    neither is this one: it looks the score up by image id, which is all it
-    receives (docs/adr/0010). The *test* knows which pair those ids belong to.
+    neither is this one (docs/adr/0010). Since Stage 21 it is told even less:
+    the runner hands every adapter per-run aliases rather than the catalogue's
+    ids, precisely so that no adapter can read a subject out of its input
+    (docs/adr/0138).
+
+    That is why ``unblind`` exists. It is set by the *harness* — never by
+    anything under test — and turns an alias back into the id the test wrote
+    its script against. Without it this double would be the one adapter in the
+    repository that still needs the ground truth in its inputs.
     """
 
     def __init__(
@@ -101,6 +108,9 @@ class ScriptedAdapter(FingerprintAlgorithmAdapter):
     ) -> None:
         self._scores = dict(scores)
         self._failures = dict(failures or {})
+        #: Installed by ``RunWorld.job_runner``. Identity until then, so an
+        #: unblinded call — a direct unit test of this double — still works.
+        self.unblind: Callable[[str], str | None] | None = None
         self._descriptor = AlgorithmDescriptor(
             algorithm_id=algorithm_id,
             display_name="Scripted test matcher",
@@ -124,8 +134,14 @@ class ScriptedAdapter(FingerprintAlgorithmAdapter):
             dependencies={},
         )
 
+    def _scripted_id(self, image) -> str:
+        alias = str(image.image_id)
+        if self.unblind is None:
+            return alias
+        return self.unblind(alias) or alias
+
     def compare(self, left, right, context) -> RawMatchResult:
-        key = (str(left.image_id), str(right.image_id))
+        key = (self._scripted_id(left), self._scripted_id(right))
         failure = self._failures.get(key)
         if failure is not None:
             return RawMatchResult.failed(

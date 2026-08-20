@@ -31,7 +31,7 @@ from fpbench.core.errors import (
     PairedEvaluationConflictError,
     StorageError,
 )
-from fpbench.core.serialization import write_json
+from fpbench.core.json_io import write_json
 from fpbench.decisions import load_decision_profile, require_profile_applies_to_run
 from fpbench.storage.paired_evaluation_store import PairedEvaluationStore
 from fpbench.storage.paired_schemas import (

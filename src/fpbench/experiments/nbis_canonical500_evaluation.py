@@ -36,7 +36,8 @@ from fpbench.core.errors import (
     PreflightError,
 )
 from fpbench.core.evaluation_models import EvaluationState
-from fpbench.core.serialization import to_plain, write_json
+from fpbench.core.serialization import to_plain
+from fpbench.core.json_io import write_json
 from fpbench.experiments.algorithm_evaluation import (
     AlgorithmEvaluationExperimentSpec,
     EvaluationExperimentConfig,

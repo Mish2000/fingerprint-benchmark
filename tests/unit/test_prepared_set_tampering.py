@@ -32,7 +32,7 @@ from fpbench.core.imaging_models import (
     preparation_transform_audit_fingerprint,
     prepared_image_entry_hash,
 )
-from fpbench.core.serialization import write_json
+from fpbench.core.json_io import write_json
 from fpbench.imaging.status import inspect_preparation
 from fpbench.imaging.verify import verify_prepared_image_set
 from canonicalworld import build_canonical_world, publish_receipt_and_marker

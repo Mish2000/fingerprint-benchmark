@@ -43,7 +43,8 @@ from fpbench.core.modern_matcher_models import (
     Stage8AFinalization,
     ThresholdSourceKind,
 )
-from fpbench.core.serialization import stable_hash, write_json
+from fpbench.core.serialization import stable_hash
+from fpbench.core.json_io import write_json
 from fpbench.modern_matchers.acquisition import load_acquisition_manifests
 from fpbench.modern_matchers.finalization import build_stage8a_finalization
 from fpbench.modern_matchers.policy import TIE_BREAKERS, load_selection_policy

@@ -32,7 +32,8 @@ from fpbench.core.metric_models import (
     metric_set_fingerprint,
     metric_set_id,
 )
-from fpbench.core.serialization import to_plain, write_json
+from fpbench.core.serialization import to_plain
+from fpbench.core.json_io import write_json
 from fpbench.metrics import build_evaluation_finalization_marker, verify_metric_set
 from fpbench.storage.metric_set_store import MetricSetStore
 from metricworld import (

@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from fpbench.core.errors import Stage8AFinalizationError
-from fpbench.core.serialization import write_json
+from fpbench.core.json_io import write_json
 from fpbench.modern_matchers.finalization import (
     build_stage8a_finalization,
     file_sha256,

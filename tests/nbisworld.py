@@ -54,7 +54,7 @@ from fpbench.adapters.nbis.build_manifest import (
 from fpbench.adapters.nbis.config import NbisConfig
 from fpbench.core.enums import ChecksumStatus
 from fpbench.core.execution_models import ComparisonContext, PreparedImage
-from fpbench.core.serialization import write_json
+from fpbench.core.json_io import write_json
 from synthetic_ridges import whorl_png
 
 __all__ = [

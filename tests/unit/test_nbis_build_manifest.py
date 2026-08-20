@@ -32,7 +32,7 @@ from fpbench.adapters.nbis.build_manifest import (
     verify_against_source_lock,
     verify_build_manifest,
 )
-from fpbench.core.serialization import write_json
+from fpbench.core.json_io import write_json
 from nbisworld import NBIS_INTEGRATION_DIRECTORY, build_stand_in, certify_host
 
 pytestmark = pytest.mark.nbis_contract

@@ -60,7 +60,8 @@ from fpbench.core.research_models import (
     research_receipt_fingerprint,
 )
 from fpbench.core.run_state_models import IntegrityIssue
-from fpbench.core.serialization import read_json, to_plain, write_json
+from fpbench.core.serialization import read_json, to_plain
+from fpbench.core.json_io import write_json
 from fpbench.execution.batch_runner import RunExecutionSummary
 from fpbench.experiments.algorithm_research import (
     REPOSITORY_ROOT,

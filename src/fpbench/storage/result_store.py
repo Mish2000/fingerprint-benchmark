@@ -27,6 +27,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from fpbench.core.enums import EnvironmentStatus, ScoreDirection
+from fpbench.core.atomic_write import PublishConflictError
 from fpbench.core.errors import ResultConflictError, StorageError
 from fpbench.core.execution_models import (
     AlgorithmDescriptor,
@@ -50,8 +51,10 @@ from fpbench.core.result_models import (
 )
 from fpbench.core.run_state_models import RunCompletion
 from fpbench.core.runtime_models import RunRuntimeReference
-from fpbench.core.serialization import read_json, stable_hash, to_plain, write_json
+from fpbench.core.serialization import read_json, stable_hash, to_plain
+from fpbench.core.json_io import write_json
 from fpbench.storage import layout, result_schemas
+from fpbench.storage.atomic_parquet import publish_table
 
 __all__ = ["ResultStore"]
 
@@ -364,10 +367,19 @@ class ResultStore:
         return self.raw_result_path(run_id, job_id).is_file()
 
     def write_raw_result(self, result: RawResultRecord) -> Path:
-        """Persist one result. Refuses to touch an existing file.
+        """Persist one result, exactly once. Refuses to touch an existing file.
 
         There is no override. The runner is expected to have called
         :meth:`has_raw_result` first if it intends to resume.
+
+        That existence check is advisory, and this method does not rely on it.
+        The file is created by an operation the filesystem serialises, so two
+        workers that reach the same job together cannot both succeed: one
+        creates the file and the other is refused. The distinction matters
+        because the failure it replaces was silent — under the old
+        write-temp-then-replace, the *loser* also returned normally, and a
+        caller was told its score had been stored while the bytes on disk were
+        somebody else's (docs/adr/0009).
         """
         path = self.raw_result_path(result.run_id, result.job_id)
         if path.exists():
@@ -387,13 +399,16 @@ class ResultStore:
             }
         )
 
-        path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_suffix(path.suffix + ".tmp")
         try:
-            pq.write_table(stamped, tmp, compression="zstd")
-            tmp.replace(path)
-        finally:
-            tmp.unlink(missing_ok=True)
+            publish_table(path, stamped, what=f"raw result for job {result.job_id}")
+        except PublishConflictError as exc:
+            # Lost the race. The winner's file stays; this record is not stored,
+            # and saying so is the whole point.
+            raise ResultConflictError(
+                f"{path} was written by another worker while this one was "
+                f"producing job {result.job_id}; raw results are immutable and "
+                f"this result was not stored ({exc})"
+            ) from exc
         return path
 
     def read_raw_result(self, run_id: str, job_id: str) -> RawResultRecord:

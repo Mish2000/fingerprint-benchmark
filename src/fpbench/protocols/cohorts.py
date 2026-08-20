@@ -33,6 +33,14 @@ class CohortCriteria:
     comparable across SD300A/B/C: a subject that is complete in A but missing a
     finger in C is rejected everywhere, not silently used where it happens to
     work.
+
+    The constructor refuses a criteria object that cannot describe a cohort,
+    rather than leaving it to :func:`select_cohort` to notice. ``size=0`` and
+    ``size=-1`` both used to survive the "is the pool big enough" check — every
+    pool is at least as large as a negative number — and then ``[:size]``
+    returned a short cohort or an empty one. A run over nobody would have
+    reported success, and every rate derived from it would have had a
+    denominator that came from nowhere (docs/adr/0140).
     """
 
     size: int
@@ -42,6 +50,31 @@ class CohortCriteria:
     require_all_ten_plain: bool = True
     require_all_ten_roll: bool = True
     require_common_across_releases: bool = True
+
+    def __post_init__(self) -> None:
+        if type(self.size) is not int or self.size < 1:
+            raise ProtocolError(
+                f"cohort size must be a positive integer, got {self.size!r}"
+            )
+        if type(self.seed) is not int:
+            raise ProtocolError(
+                f"cohort seed must be an exact integer, got {self.seed!r}"
+            )
+        releases = tuple(self.releases)
+        if not releases:
+            raise ProtocolError("a cohort must name at least one release")
+        if len(set(releases)) != len(releases):
+            raise ProtocolError(f"a cohort names a release twice: {releases}")
+        if not isinstance(self.role, CohortRole):
+            raise ProtocolError("cohort role must be a CohortRole")
+        for name in (
+            "require_all_ten_plain",
+            "require_all_ten_roll",
+            "require_common_across_releases",
+        ):
+            if type(getattr(self, name)) is not bool:
+                raise ProtocolError(f"{name} must be a bool")
+        object.__setattr__(self, "releases", releases)
 
     def as_criteria_map(self) -> Mapping[str, str]:
         """Flat, hashable description recorded in the cohort's provenance."""

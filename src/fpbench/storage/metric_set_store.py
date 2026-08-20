@@ -62,8 +62,11 @@ from fpbench.core.metric_models import (
     ordered_observations_hash,
     scope_sort_key,
 )
-from fpbench.core.serialization import read_json, write_json
+from fpbench.core.serialization import read_json
+from fpbench.core.json_io import write_json
 from fpbench.storage import layout, metric_schemas
+from fpbench.core.atomic_write import replace_text
+from fpbench.storage.atomic_parquet import replace_table
 
 __all__ = ["MetricSetStore", "write_text_atomically"]
 
@@ -82,16 +85,15 @@ _FINALIZATION = "evaluation-finalization.json"
 def write_text_atomically(path: Path, text: str) -> Path:
     """Write text the same way :func:`write_json` does, and as atomically.
 
-    Line endings go through Python's text-mode translation, exactly as
-    ``write_json`` does, so a report written here and its committed evidence copy
-    are byte-identical on the same platform — which is what
-    ``evidence/`` requires (spec section 84).
+    The bytes are the string's own UTF-8, with no platform newline translation,
+    exactly as :func:`write_json` now stores them. That is what lets a report
+    written here and its committed evidence copy be byte-identical on *every*
+    platform rather than only on the one that wrote it (spec section 84).
+
+    The temp file is uniquely named, so two writers of the same report cannot
+    corrupt each other's scratch copy (``fpbench.core.atomic_write``).
     """
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    tmp.replace(path)
-    return path
+    return replace_text(Path(path), text)
 
 
 class MetricSetStore:
@@ -765,12 +767,7 @@ class MetricSetStore:
             }
         )
 
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        try:
-            pq.write_table(stamped, tmp, compression="zstd")
-            tmp.replace(path)
-        finally:
-            tmp.unlink(missing_ok=True)
+        replace_table(path, stamped, what="metric table")
         return path
 
 

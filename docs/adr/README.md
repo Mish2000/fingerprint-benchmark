@@ -140,6 +140,13 @@ can be held to.
 | [0131](0131-a-refusal-and-a-crash-are-different-outcomes.md) | A refusal and a crash are different outcomes | Accepted, implemented |
 | [0132](0132-the-route-is-settled-by-authority-not-by-experiment.md) | The route is settled by authority, not by experiment | Accepted, implemented |
 | [0133](0133-a-score-the-package-does-not-return-is-not-its-score.md) | A score the package does not return is not its score | Accepted, implemented |
+| [0134](0134-a-reference-route-is-copied-not-improved.md) | A reference route is copied, not improved | Accepted, implemented |
+| [0135](0135-the-translation-is-settled-from-source-not-from-scores.md) | The MINDTCT-OpenAFIS translation is settled from source, not from scores | Accepted, implemented |
+| [0136](0136-a-modified-matcher-gets-its-own-identity.md) | A modified matcher gets its own identity, and an inertness proof | Accepted, implemented |
+| [0137](0137-the-preference-is-frozen-before-the-scores-are-read.md) | The preference between two fifth methods is frozen before either is scored | Accepted, implemented |
+| [0138](0138-the-adapter-is-handed-blinded-inputs.md) | An adapter is handed a per-run alias, not the catalogue's image id | Accepted, implemented |
+| [0139](0139-one-writer-wins-and-the-loser-is-told.md) | One writer creates a file; the loser is told, never silently replaced | Accepted, implemented |
+| [0140](0140-configuration-is-read-with-its-types.md) | Protocol configuration is read with its YAML types, and a cohort is checked | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

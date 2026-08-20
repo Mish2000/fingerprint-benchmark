@@ -15,7 +15,8 @@ import pytest
 
 from fpbench.core.errors import MetricSetConflictError, StorageError
 from fpbench.core.metric_models import metric_set_fingerprint, metric_set_id
-from fpbench.core.serialization import to_plain, write_json
+from fpbench.core.serialization import to_plain
+from fpbench.core.json_io import write_json
 from fpbench.storage.metric_set_store import MetricSetStore
 from metricworld import SPEC_EXAMPLE_SCRIPT, all_matching, build_metric_world
 

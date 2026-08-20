@@ -34,7 +34,8 @@ from pathlib import Path
 from typing import Any, Callable, Protocol
 
 from fpbench.core.errors import StorageError
-from fpbench.core.serialization import read_json, write_json
+from fpbench.core.serialization import read_json
+from fpbench.core.json_io import write_json
 from fpbench.storage import layout
 
 __all__ = ["DefinitionStore", "DefinitionLike"]

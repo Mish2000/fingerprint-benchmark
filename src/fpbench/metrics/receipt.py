@@ -254,7 +254,11 @@ def write_evaluation_evidence_copies(
 
 
 def _write_exclusively(path: Path, text: str) -> Path:
-    payload = text.replace("\n", os.linesep).encode("utf-8")
+    # LF on every platform. These bytes are compared against the committed
+    # copy and, in several stages, hashed into a marker; translating them to
+    # the writer's native line ending made one document into two, depending
+    # on which machine happened to write it (docs/adr/0139).
+    payload = text.encode("utf-8")
     if path.is_file():
         if path.read_bytes() != payload:
             raise ResultConflictError(

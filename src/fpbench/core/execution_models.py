@@ -137,6 +137,16 @@ class PreparedImage:
     against it — and nothing that would let it infer what the comparison is
     for. There is no subject, no finger, no impression and no pair here.
 
+    **That last sentence is enforced by the runner, not by this class.** An
+    ``image_id`` minted by a dataset catalogue is readable on purpose: SD300's
+    is ``<release>_<subject>_<impression>_<finger>``, and two of those would
+    answer *mated or not* without any biometrics at all. So the runner does not
+    hand an adapter the catalogue's ``PreparedImage``. It hands a blinded copy —
+    a per-run alias in place of the id, and the same bytes under a path named
+    after the alias — built by :class:`fpbench.execution.blinding.RunBlinding`
+    (docs/adr/0138). Construct one of these with a real id freely; just do not
+    pass it to ``compare()`` yourself.
+
     ``local_path`` is absolute and valid only for the lifetime of the run. It is
     deliberately never written into a stored result: a result that embeds one
     machine's paths is not portable evidence.

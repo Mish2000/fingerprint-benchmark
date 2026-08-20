@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 from fpbench.core.errors import CandidateRegistryError, Stage8AFinalizationError
-from fpbench.core.serialization import write_json
+from fpbench.core.json_io import write_json
 from fpbench.modern_matchers.verify import ensure_publishable, verify_stage8a_evidence
 from stage8aworld import build_evidence_world
 

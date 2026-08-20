@@ -27,8 +27,10 @@ from fpbench.core.eligibility_models import (
     SelfEligibilityManifest,
 )
 from fpbench.core.errors import DecisionSetConflictError, StorageError
-from fpbench.core.serialization import read_json, write_json
+from fpbench.core.serialization import read_json
+from fpbench.core.json_io import write_json
 from fpbench.storage import derivation_schemas, layout
+from fpbench.storage.atomic_parquet import replace_table
 
 __all__ = ["EligibilitySetStore"]
 
@@ -195,10 +197,5 @@ class EligibilitySetStore:
             }
         )
 
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        try:
-            pq.write_table(stamped, tmp, compression="zstd")
-            tmp.replace(path)
-        finally:
-            tmp.unlink(missing_ok=True)
+        replace_table(path, stamped, what="eligibility entries")
         return path

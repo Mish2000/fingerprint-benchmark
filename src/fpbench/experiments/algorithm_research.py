@@ -50,7 +50,8 @@ from fpbench.core.provenance_models import SoftwareProvenance
 from fpbench.core.research_models import ResearchReceipt, ResearchRunState
 from fpbench.core.result_models import RunDefinition
 from fpbench.core.runtime_models import RunRuntimeReference, RuntimeBundleDefinition
-from fpbench.core.serialization import read_json, write_json
+from fpbench.core.serialization import read_json
+from fpbench.core.json_io import write_json
 from fpbench.execution.batch_runner import RunExecutionSummary, SequentialRunExecutor
 from fpbench.execution.completion import RunCompletionService, build_run_completion
 from fpbench.execution.planner import build_execution_plan

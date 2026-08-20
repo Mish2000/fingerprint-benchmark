@@ -304,8 +304,12 @@ def write_paired_evidence_copies(
         json.dumps(to_plain(receipt), indent=2, ensure_ascii=False, sort_keys=False)
         + "\n"
     )
-    _write_once(json_path, rendered.replace("\n", os.linesep).encode("utf-8"))
-    _write_once(markdown_path, markdown.replace("\n", os.linesep).encode("utf-8"))
+    # LF on every platform. These bytes are compared against the committed
+    # copy and, in several stages, hashed into a marker; translating them to
+    # the writer's native line ending made one document into two, depending
+    # on which machine happened to write it (docs/adr/0139).
+    _write_once(json_path, rendered.encode("utf-8"))
+    _write_once(markdown_path, markdown.encode("utf-8"))
     return json_path, markdown_path
 
 

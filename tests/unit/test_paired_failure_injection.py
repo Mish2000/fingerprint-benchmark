@@ -28,7 +28,8 @@ from fpbench.core.paired_models import (
     paired_receipt_content_hash,
     paired_receipt_fingerprint,
 )
-from fpbench.core.serialization import read_json, write_json
+from fpbench.core.serialization import read_json
+from fpbench.core.json_io import write_json
 from fpbench.paired import (
     align_pairs,
     build_common_eligible_view,

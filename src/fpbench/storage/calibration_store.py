@@ -35,6 +35,7 @@ from fpbench.core.calibration_models import (
     read_calibration_source_binding,
     strict_json_document,
 )
+from fpbench.core.atomic_write import PublishConflictError, publish_bytes
 from fpbench.core.errors import StorageError
 from fpbench.core.identifiers import validate_id
 from fpbench.core.serialization import to_plain
@@ -120,11 +121,18 @@ class CalibrationStore:
                 "determined by its inputs was not — never something to resolve by "
                 "overwriting (docs/adr/0009)"
             )
-        path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = path.with_suffix(path.suffix + ".tmp")
         try:
-            temporary.write_bytes(expected)
-            temporary.replace(path)
+            publish_bytes(path, expected, what=what)
+        except PublishConflictError as exc:
+            # Another writer reached this content-addressed name first with
+            # different bytes. Byte-identical content is not an error and never
+            # reaches here: the publication reports it as already stored.
+            raise CalibrationConflictError(
+                f"a different {what} was published at {path.name} by another "
+                f"writer. Its id is derived from a digest of its own contents, "
+                f"so two different documents under one id mean something that "
+                f"should have been determined by its inputs was not ({exc})"
+            ) from exc
         except OSError as exc:
             raise StorageError(f"cannot write {what} to {path}: {exc}") from exc
         return path

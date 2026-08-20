@@ -55,7 +55,8 @@ from fpbench.core.runtime_models import (
     runtime_bundle_fingerprint,
     runtime_bundle_id,
 )
-from fpbench.core.serialization import read_json, write_json
+from fpbench.core.serialization import read_json
+from fpbench.core.json_io import write_json
 from fpbench.storage import layout
 
 __all__ = ["RuntimeBundleStore", "MEDIA_TYPES", "DEFAULT_MEDIA_TYPE", "media_type_for"]

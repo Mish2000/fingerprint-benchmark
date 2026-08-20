@@ -380,7 +380,11 @@ def write_evidence_document(path: Path, value: object) -> Path:
         json.dumps(to_plain(value), indent=2, ensure_ascii=False, sort_keys=False)
         + "\n"
     )
-    payload = rendered.replace("\n", os.linesep).encode("utf-8")
+    # LF on every platform. These bytes are compared against the committed
+    # copy and, in several stages, hashed into a marker; translating them to
+    # the writer's native line ending made one document into two, depending
+    # on which machine happened to write it (docs/adr/0139).
+    payload = rendered.encode("utf-8")
     if path.is_file():
         if path.read_bytes() != payload:
             raise ResultConflictError(

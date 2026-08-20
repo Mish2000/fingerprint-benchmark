@@ -49,8 +49,10 @@ from fpbench.core.derivation_models import (
 )
 from fpbench.core.enums import ScoreDirection
 from fpbench.core.errors import DecisionSetConflictError, StorageError
-from fpbench.core.serialization import read_json, write_json
+from fpbench.core.serialization import read_json
+from fpbench.core.json_io import publish_json, write_json
 from fpbench.storage import derivation_schemas, layout
+from fpbench.storage.atomic_parquet import replace_table
 
 __all__ = ["DecisionSetStore"]
 
@@ -146,7 +148,17 @@ class DecisionSetStore:
 
         write_json(self.profile_path(run_id, set_id), profile)
         self._write_records(manifest, records)
-        write_json(manifest_path, manifest)
+        if not publish_json(manifest_path, manifest).created:
+            # Another writer published this set while this one was writing its
+            # body. Re-apply the guard against what is actually stored.
+            stored = self.read_manifest(run_id, set_id)
+            if stored.decision_set_fingerprint != manifest.decision_set_fingerprint:
+                raise DecisionSetConflictError(
+                    f"run {run_id} was given decision set {stored.decision_set_id} "
+                    f"({stored.decision_set_fingerprint[:12]}...) by another writer "
+                    f"while this one was storing "
+                    f"{manifest.decision_set_fingerprint[:12]}..."
+                )
         return manifest_path.parent
 
     # ------------------------------------------------------------------- read
@@ -398,10 +410,5 @@ class DecisionSetStore:
             }
         )
 
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        try:
-            pq.write_table(stamped, tmp, compression="zstd")
-            tmp.replace(path)
-        finally:
-            tmp.unlink(missing_ok=True)
+        replace_table(path, stamped, what="decision records")
         return path

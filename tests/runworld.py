@@ -200,7 +200,13 @@ class RunWorld:
         return RunCompletionService(result_store=self.result_store)
 
     def job_runner(self) -> SingleJobRunner:
-        return SingleJobRunner(
+        # A test double that scripts scores by image id needs to undo the
+        # blinding to find its own script. Handing it the reverse lookup keeps
+        # the double honest about what it receives: aliases, like every adapter.
+        #
+        # The walk is because a research world wraps the adapter in a
+        # ``ResearchModeAdapter``, and the double is underneath it.
+        runner = SingleJobRunner(
             run=self.run,
             adapter=self.adapter,
             preparer=self.preparer,
@@ -209,6 +215,18 @@ class RunWorld:
             image_index=self.images,
             workspace_root=self.workspace,
         )
+        # The walk is because a research world wraps the adapter in a
+        # ``ResearchModeAdapter`` and the double is underneath it.
+        candidate = self.adapter
+        for _ in range(8):
+            if hasattr(candidate, "unblind"):
+                candidate.unblind = runner.blinding.original_of
+                break
+            delegate = getattr(candidate, "_delegate", None)
+            if delegate is None:
+                break
+            candidate = delegate
+        return runner
 
     def executor(self, **overrides):
         from fpbench.execution.batch_runner import SequentialRunExecutor

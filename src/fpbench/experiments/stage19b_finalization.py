@@ -34,6 +34,11 @@ from fpbench.adapters.openafis import capacity_extended as variant
 from fpbench.adapters.openafis.adapter import PIPELINE_METADATA as BASE_PIPELINE_METADATA
 from fpbench.core.serialization import read_json
 from fpbench.experiments.stage18a_inputs import REPOSITORY_ROOT
+from fpbench.experiments.stage19_result_integrity import (
+    OutcomeStoreIntegrity,
+    Stage19ResultIntegrityError,
+    verify_outcome_store_integrity,
+)
 
 __all__ = [
     "Stage19BFinalizationError",
@@ -81,6 +86,7 @@ _SOURCE_FILES = (
     "src/fpbench/adapters/openafis/capacity_extended.py",
     "src/fpbench/experiments/stage19b_diagnostics.py",
     "src/fpbench/experiments/stage19b_finalization.py",
+    "src/fpbench/experiments/stage19_result_integrity.py",
     "scripts/stage19b_gate_a.py",
     "scripts/stage19b_canonical_run.py",
     "scripts/stage19b_determinism.py",
@@ -201,9 +207,21 @@ def build_patch_provenance(patch: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _outcome_integrity(
+    outcomes: Path, diagnostics: Mapping[str, Any]
+) -> OutcomeStoreIntegrity:
+    try:
+        return verify_outcome_store_integrity(
+            outcomes, diagnostics, expected_outcomes=6000
+        )
+    except Stage19ResultIntegrityError as exc:
+        raise Stage19BFinalizationError(str(exc)) from None
+
+
 def build_canonical_run_binding(
-    diagnostics: Mapping[str, Any], *, stored: int, missing: int
+    diagnostics: Mapping[str, Any], *, outcomes: Path
 ) -> dict[str, Any]:
+    integrity = _outcome_integrity(outcomes, diagnostics)
     counts = diagnostics.get("outcome_counts", {})
     reasons = diagnostics.get("failure_reasons", {})
     return {
@@ -213,9 +231,7 @@ def build_canonical_run_binding(
         "preparation_set_id": "prepset_be560e047991",
         "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
         "nbis_build_id": "658f9f54a8f2",
-        "expected_outcomes": 6000,
-        "stored_outcomes": stored,
-        "missing": missing,
+        **integrity.describe(),
         "threshold_applied": None,
         "score_transform": "NONE",
         "outcome_counts": counts,
@@ -260,7 +276,14 @@ def build_stage19b_finalization(
             and gate_a.get("status_regressions") == 0
             and gate_a.get("exact_score_matches") == gate_a.get("baseline_scored_pairs")
         ),
-        "canonical_run_complete": stored == 6000 and missing == 0,
+        "canonical_run_complete": (
+            binding.get("unique_pair_ids") == 6000
+            and binding.get("unique_ordinals") == 6000
+            and binding.get("diagnostic_comparisons") == 6000
+            and stored == 6000
+            and binding.get("expected_outcomes") == 6000
+            and missing == 0
+        ),
         "no_capacity_failure_remains": capacity_failures == 0,
         "no_systemic_implementation_defect": blocking == 0,
         "translation_contract_unchanged": (
@@ -314,7 +337,11 @@ def build_stage19b_finalization(
         },
         "expected_outcomes": 6000,
         "stored_outcomes": stored,
+        "unique_pair_ids": binding["unique_pair_ids"],
+        "unique_ordinals": binding["unique_ordinals"],
+        "diagnostic_comparisons": binding["diagnostic_comparisons"],
         "missing": missing,
+        "outcome_store_sha256": binding["outcome_store_sha256"],
         "capacity_failures_remaining": capacity_failures,
         "score_bearing": binding.get("score_bearing"),
         "score_bearing_fraction": binding.get("score_bearing_fraction"),
@@ -346,8 +373,7 @@ def write_stage19b_documents(
     diagnostics: Mapping[str, Any],
     patch: Mapping[str, Any],
     translator_inertness: Mapping[str, Any],
-    stored: int,
-    missing: int,
+    outcomes: Path,
     readme: str,
 ) -> dict[str, Path]:
     directory = Path(repository_root) / EVIDENCE_DIRECTORY
@@ -362,7 +388,7 @@ def write_stage19b_documents(
     _write("variant-identity.json", build_variant_identity())
     _write("patch-provenance.json", build_patch_provenance(patch))
     _write("gate-a-inertness.json", {**dict(gate_a), "translator_inertness": dict(translator_inertness)})
-    binding = build_canonical_run_binding(diagnostics, stored=stored, missing=missing)
+    binding = build_canonical_run_binding(diagnostics, outcomes=outcomes)
     _write("canonical-run-binding.json", binding)
 
     readme_path = directory / "README.md"
@@ -388,8 +414,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--diagnostics", type=Path, required=True)
     parser.add_argument("--patch", type=Path, required=True)
     parser.add_argument("--translator-inertness", type=Path, required=True)
-    parser.add_argument("--stored", type=int, required=True)
-    parser.add_argument("--missing", type=int, required=True)
+    parser.add_argument("--outcomes", type=Path, required=True)
     args = parser.parse_args(argv)
 
     readme_path = Path(REPOSITORY_ROOT) / EVIDENCE_DIRECTORY / "README.md"
@@ -401,8 +426,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         diagnostics=read_json(args.diagnostics),
         patch=read_json(args.patch),
         translator_inertness=read_json(args.translator_inertness),
-        stored=args.stored,
-        missing=args.missing,
+        outcomes=args.outcomes,
         readme=readme_path.read_text(encoding="utf-8"),
     )
     for name, path in sorted(written.items()):

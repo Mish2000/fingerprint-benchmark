@@ -14,6 +14,7 @@
     }
   },
   "decisions_produced": false,
+  "diagnostic_comparisons": 6000,
   "expected_outcomes": 6000,
   "experiment_id": "nbis_mindtct_openafis_canonical500_full_v1",
   "failure_reasons": {
@@ -38,6 +39,7 @@
     "OPENAFIS_TEMPLATE_FAILED_LEFT": 1820,
     "OPENAFIS_TEMPLATE_FAILED_RIGHT": 2597
   },
+  "outcome_store_sha256": "6c7b415ca85007ce3fa27e18596e72f8bf560c62434c533f3f889f81f6a7279f",
   "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
   "preparation_set_id": "prepset_be560e047991",
   "score_bearing": 1583,
@@ -71,5 +73,7 @@
       "median": 148.9398,
       "p95": 248.2192
     }
-  }
+  },
+  "unique_ordinals": 6000,
+  "unique_pair_ids": 6000
 }

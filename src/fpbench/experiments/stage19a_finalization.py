@@ -34,6 +34,11 @@ from fpbench.adapters.openafis.translation import (
 from fpbench.core.serialization import read_json
 from fpbench.experiments import stage19a_identity as frozen
 from fpbench.experiments.stage18a_inputs import REPOSITORY_ROOT
+from fpbench.experiments.stage19_result_integrity import (
+    OutcomeStoreIntegrity,
+    Stage19ResultIntegrityError,
+    verify_outcome_store_integrity,
+)
 
 __all__ = [
     "Stage19AFinalizationError",
@@ -62,6 +67,7 @@ _SOURCE_FILES = (
     "src/fpbench/experiments/stage19a_validation.py",
     "src/fpbench/experiments/stage19a_diagnostics.py",
     "src/fpbench/experiments/stage19a_finalization.py",
+    "src/fpbench/experiments/stage19_result_integrity.py",
     "configs/algorithms/nbis_mindtct_openafis_v1.yaml",
 )
 
@@ -233,9 +239,23 @@ def build_translation_contract() -> dict[str, Any]:
     }
 
 
+def _outcome_integrity(
+    outcomes: Path, diagnostics: Mapping[str, Any]
+) -> OutcomeStoreIntegrity:
+    try:
+        return verify_outcome_store_integrity(
+            outcomes,
+            diagnostics,
+            expected_outcomes=frozen.EXPECTED_OUTCOMES,
+        )
+    except Stage19ResultIntegrityError as exc:
+        raise Stage19AFinalizationError(str(exc)) from None
+
+
 def build_canonical_run_binding(
-    diagnostics: Mapping[str, Any], *, stored: int, missing: int
+    diagnostics: Mapping[str, Any], *, outcomes: Path
 ) -> dict[str, Any]:
+    integrity = _outcome_integrity(outcomes, diagnostics)
     overall = diagnostics.get("overall", {})
     per_stage = {row["label"]: row for row in diagnostics.get("by_protocol_stage", [])}
     cross = {
@@ -255,9 +275,7 @@ def build_canonical_run_binding(
         "pair_manifest_hash": frozen.REFERENCE_PAIR_MANIFEST_HASH,
         "nbis_build_id": frozen.NBIS_BUILD_ID,
         "openafis_commit": frozen.OPENAFIS_COMMIT,
-        "expected_outcomes": frozen.EXPECTED_OUTCOMES,
-        "stored_outcomes": stored,
-        "missing": missing,
+        **integrity.describe(),
         "threshold_applied": None,
         "score_transform": "NONE",
         "decisions_produced": False,
@@ -304,7 +322,17 @@ def build_stage19a_finalization(
     """Assemble the marker. Refuses one the run does not support."""
     stored = binding["stored_outcomes"]
     missing = binding["missing"]
-    complete = stored == frozen.EXPECTED_OUTCOMES and missing == 0
+    count_fields = (
+        binding.get("unique_pair_ids"),
+        binding.get("unique_ordinals"),
+        binding.get("diagnostic_comparisons"),
+        stored,
+        binding.get("expected_outcomes"),
+    )
+    complete = (
+        all(value == frozen.EXPECTED_OUTCOMES for value in count_fields)
+        and missing == 0
+    )
     if not complete:
         raise Stage19AFinalizationError(
             f"the raw run completes only on {frozen.EXPECTED_OUTCOMES} stored outcomes with none "
@@ -341,7 +369,11 @@ def build_stage19a_finalization(
         "canonical_run_executed": True,
         "expected_outcomes": frozen.EXPECTED_OUTCOMES,
         "stored_outcomes": stored,
+        "unique_pair_ids": binding["unique_pair_ids"],
+        "unique_ordinals": binding["unique_ordinals"],
+        "diagnostic_comparisons": binding["diagnostic_comparisons"],
         "missing": missing,
+        "outcome_store_sha256": binding["outcome_store_sha256"],
         "score_direction": "HIGHER_MORE_SIMILAR",
         "threshold": None,
         "score_transform": "NONE",
@@ -380,8 +412,7 @@ def write_stage19a_documents(
     *,
     repository_root: Path = REPOSITORY_ROOT,
     diagnostics: Mapping[str, Any],
-    stored: int,
-    missing: int,
+    outcomes: Path,
     readme: str,
     no_systemic_defect: bool,
     failures_are_upstream_limits: bool,
@@ -397,7 +428,7 @@ def write_stage19a_documents(
 
     _write("algorithm-identity.json", build_algorithm_identity())
     _write("translation-contract.json", build_translation_contract())
-    binding = build_canonical_run_binding(diagnostics, stored=stored, missing=missing)
+    binding = build_canonical_run_binding(diagnostics, outcomes=outcomes)
     _write("canonical-run-binding.json", binding)
     _write("matcher-comparison.json", build_matcher_comparison(diagnostics))
 
@@ -425,8 +456,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(description="Stage 19A evidence publisher")
     parser.add_argument("--diagnostics", type=Path, required=True)
-    parser.add_argument("--stored", type=int, required=True)
-    parser.add_argument("--missing", type=int, required=True)
+    parser.add_argument("--outcomes", type=Path, required=True)
     args = parser.parse_args(argv)
 
     diagnostics = read_json(args.diagnostics)
@@ -438,8 +468,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     blocking = sum(v for k, v in counts.items() if k in {"OPENAFIS_MATCH_FAILED", "INFRASTRUCTURE_FAILURE"})
     written = write_stage19a_documents(
         diagnostics=diagnostics,
-        stored=args.stored,
-        missing=args.missing,
+        outcomes=args.outcomes,
         readme=readme_path.read_text(encoding="utf-8"),
         no_systemic_defect=blocking == 0,
         failures_are_upstream_limits=blocking == 0,

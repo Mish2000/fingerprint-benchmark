@@ -71,9 +71,29 @@ def test_the_translator_inertness_is_published_too(marker):
 
 def test_the_capacity_problem_is_gone(marker):
     assert marker["capacity_failures_remaining"] == 0
-    assert marker["stored_outcomes"] == 6000
+    assert (
+        marker["unique_pair_ids"]
+        == marker["unique_ordinals"]
+        == marker["diagnostic_comparisons"]
+        == marker["stored_outcomes"]
+        == marker["expected_outcomes"]
+        == 6000
+    )
     assert marker["missing"] == 0
     assert marker["score_bearing"] == 6000
+    assert len(marker["outcome_store_sha256"]) == 64
+
+    binding = _read("canonical-run-binding.json")
+    for field in (
+        "expected_outcomes",
+        "stored_outcomes",
+        "unique_pair_ids",
+        "unique_ordinals",
+        "diagnostic_comparisons",
+        "missing",
+        "outcome_store_sha256",
+    ):
+        assert binding[field] == marker[field]
 
 
 def test_all_six_structural_conditions_hold(marker):

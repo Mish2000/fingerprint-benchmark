@@ -1053,7 +1053,7 @@ stage19a-diagnostics:
 stage19a-documents:
 	python -m fpbench.experiments.stage19a_finalization \
 	  --diagnostics $(FPBENCH_STAGE19A_ROOT)/diagnostic-report.json \
-	  --stored 6000 --missing 0
+	  --outcomes $(FPBENCH_STAGE19A_ROOT)/pair-outcomes.jsonl
 
 # --------------------------------------------------------------------- Stage 19B
 #
@@ -1094,7 +1094,7 @@ stage19b-documents:
 	  --diagnostics $(FPBENCH_STAGE19B_ROOT)/diagnostic-report.json \
 	  --patch $(FPBENCH_STAGE19B_ROOT)/patch-provenance.json \
 	  --translator-inertness $(FPBENCH_STAGE19B_ROOT)/translator-inertness.json \
-	  --stored 6000 --missing 0
+	  --outcomes $(FPBENCH_STAGE19B_ROOT)/pair-outcomes.jsonl
 
 # --------------------------------------------------------------------- Stage 20A
 #

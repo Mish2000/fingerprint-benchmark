@@ -33,7 +33,7 @@
   ],
   "calibration_performed": false,
   "canonical_run_executed": true,
-  "created_utc": "2026-08-17T16:15:28Z",
+  "created_utc": "2026-08-20T09:24:44Z",
   "cross_impression": {
     "plain_roll_mated": {
       "comparisons": 1500,
@@ -49,10 +49,11 @@
   "cross_impression_sufficiency": "UNDETERMINED",
   "cross_impression_sufficiency_is_a_human_determination": true,
   "decision_profile_produced": false,
+  "diagnostic_comparisons": 6000,
   "evidence_content_hashes": {
     "README.md": "4db7074a3220a28a39b475e604f8b8232e426b1e14bf8609916663f73bd26727",
     "algorithm-identity.json": "2b3489bfae12c19effc1e7268665a7363b5b3f64e3b3452a76d76c840bea0ccf",
-    "canonical-run-binding.json": "1377f61e791bf0f2358c95f306708f3b404276654628f60f94a0879b9fb88219",
+    "canonical-run-binding.json": "5db63af501d6f75515e8e9e35d58560ab10c544433c2a574d04ea825ed9a1a4e",
     "matcher-comparison.json": "782e2fe2432639efa6fa2c727a1e8f715f944b28f4b2a5c8a570108c8381793f",
     "translation-contract.json": "171fd3869c9e936c0b66943f159c2efe79284aa3bc7d52b48d6c7e0281157854"
   },
@@ -66,6 +67,7 @@
   "openafis_commit": "3ae1c757c6dafea977a33ef51380e37f1715e626",
   "opens_common_calibration": false,
   "outcome": "MINDTCT_OPENAFIS_CANONICAL500_RAW_COMPLETE",
+  "outcome_store_sha256": "6c7b415ca85007ce3fa27e18596e72f8bf560c62434c533f3f889f81f6a7279f",
   "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
   "preparation_set_id": "prepset_be560e047991",
   "publication_eligible": false,
@@ -77,8 +79,10 @@
   "secugen_reference_used_for_parameter_selection": false,
   "shares_extractor_with": "nbis_mindtct_bozorth3",
   "stage": "19A",
-  "stage19a_source_fingerprint": "918a9a425cc03a4ee65cf13e703f46aed5b62267b71b635e77822eecd824ff10",
-  "stage_19a_finalization_fingerprint": "76a554d6b6028cafce84de65865609d9fa2ab2465578c4f4f45263942bb459f9",
+  "stage19a_source_fingerprint": "9a8a21b7c149958b4d4797169254c96e7bf895d7a5cece5aecc6d95d1d7f501d",
+  "stage_19a_finalization_fingerprint": "27ff6773e16e8d6d4d236c67074ad1b78ed78386550d355522f4e0a404368655",
   "stored_outcomes": 6000,
-  "threshold": null
+  "threshold": null,
+  "unique_ordinals": 6000,
+  "unique_pair_ids": 6000
 }

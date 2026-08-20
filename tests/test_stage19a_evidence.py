@@ -52,9 +52,28 @@ def test_the_source_fingerprint_still_describes_this_tree(marker):
 
 def test_the_raw_run_completed(marker):
     assert marker["canonical_run_executed"] is True
-    assert marker["expected_outcomes"] == 6000
-    assert marker["stored_outcomes"] == 6000
+    assert (
+        marker["unique_pair_ids"]
+        == marker["unique_ordinals"]
+        == marker["diagnostic_comparisons"]
+        == marker["stored_outcomes"]
+        == marker["expected_outcomes"]
+        == 6000
+    )
     assert marker["missing"] == 0
+    assert len(marker["outcome_store_sha256"]) == 64
+
+    binding = _read("canonical-run-binding.json")
+    for field in (
+        "expected_outcomes",
+        "stored_outcomes",
+        "unique_pair_ids",
+        "unique_ordinals",
+        "diagnostic_comparisons",
+        "missing",
+        "outcome_store_sha256",
+    ):
+        assert binding[field] == marker[field]
 
 
 def test_the_score_contract_is_raw(marker):

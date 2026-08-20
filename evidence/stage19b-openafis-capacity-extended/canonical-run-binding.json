@@ -137,6 +137,7 @@
     }
   ],
   "capacity_failures_remaining": 0,
+  "diagnostic_comparisons": 6000,
   "expected_outcomes": 6000,
   "failure_reasons": {},
   "kind": "stage_19b_canonical_run_binding",
@@ -155,6 +156,7 @@
   "outcome_counts": {
     "OK": 6000
   },
+  "outcome_store_sha256": "3e0c2c54c77bdd42745c802522c75866b64b6cc9944af72541fa706edc9de2f2",
   "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
   "preparation_set_id": "prepset_be560e047991",
   "score_bearing": 6000,
@@ -223,5 +225,7 @@
     "scored_pairs": 6000,
     "scores_above_100": 390,
     "uint8_wrap_threshold": 256
-  }
+  },
+  "unique_ordinals": 6000,
+  "unique_pair_ids": 6000
 }

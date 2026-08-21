@@ -121,7 +121,12 @@ def main() -> int:
             "bozorth3_executable": str(BUILD / "bin" / "bozorth3"),
             "build_manifest": str(BUILD / "nbis-build-manifest.json"),
             "openafis_bridge": str(BRIDGE),
-            "research_mode": False,
+            # On, so every comparison re-checks that the pinned MINDTCT and
+            # OpenAFIS bytes are still the ones preflight approved. Off, a
+            # binary replaced at comparison 3,000 produces 3,000 attributable
+            # results and 3,000 that are not, and nothing in the evidence
+            # distinguishes them (docs/adr/0018).
+            "research_mode": True,
         },
     )
     report = adapter.validate_environment()

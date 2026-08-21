@@ -114,3 +114,84 @@ def test_every_pinned_path_still_exists() -> None:
             if not (REPOSITORY_ROOT / path).exists():
                 missing.append(f"{path} (Stage {stage})")
     assert not missing, f"published verifiers pin paths that are gone: {missing}"
+
+
+# ------------------------------------------------- what is still on the old writer
+
+
+#: Files that still write JSON through the fixed-``.tmp`` writer in
+#: ``core/serialization.py``, and what closing that would cost.
+#:
+#: The reviewer asked for every store to use the shared atomic publisher. Two
+#: cannot, and the reason is worth writing down rather than rediscovering.
+#: ``core/serialization.py`` is the only place the fix could go — it is what both
+#: stores import, and editing the stores themselves is no cheaper because each is
+#: pinned in its own right. Changing it moves Stage 8A's ``verifier_source_commit``,
+#: which moves Stage 8A's fingerprint, which Stage 8B binds, whose fingerprint
+#: ``stage8c_identity`` freezes, whose fingerprint ``stage8d_identity`` freezes —
+#: four stages of published evidence and three or four commits, because Stage 8C's
+#: own verifier pins the module holding its predecessor constant.
+#:
+#: The exposure is two publication paths that run once, single-process, from a
+#: script. The remedy re-issues four stages of research evidence. That is a
+#: decision to take deliberately, not as a side effect of a refactor, so it is
+#: recorded here instead of taken.
+_ON_THE_FIXED_TEMP_WRITER = {
+    "src/fpbench/storage/modern_matcher_store.py": "8A",
+    "src/fpbench/storage/flx_store.py": "8B",
+}
+
+
+def test_the_fixed_temp_writer_has_exactly_the_known_callers() -> None:
+    """A *new* caller of the unsafe writer is a regression, not an exemption."""
+    callers = set()
+    for path in sorted((REPOSITORY_ROOT / "src").rglob("*.py")):
+        relative = path.relative_to(REPOSITORY_ROOT).as_posix()
+        if relative == "src/fpbench/core/serialization.py":
+            continue
+        text = path.read_text(encoding="utf-8")
+        for line in text.splitlines():
+            if line.startswith("from fpbench.core.serialization import") and (
+                "write_json" in line
+            ):
+                callers.add(relative)
+
+    unexpected = sorted(callers - set(_ON_THE_FIXED_TEMP_WRITER) - _ALSO_PINNED)
+    assert not unexpected, (
+        f"{unexpected} import the fixed-temp write_json from core.serialization. "
+        "New code uses fpbench.core.json_io, which writes through the shared "
+        "atomic publisher (ADR 0139)"
+    )
+
+
+#: Other pinned modules that import the same writer. They are in the same
+#: position and for the same reason; they are listed apart from the two the
+#: reviewer named so the two stay visible.
+_ALSO_PINNED = frozenset(
+    {
+        "src/fpbench/experiments/flx_canonical500_full.py",
+        "src/fpbench/experiments/stage11b_finalization.py",
+        "src/fpbench/experiments/verifinger_canonical500_full.py",
+    }
+)
+
+
+def test_the_known_callers_are_still_pinned() -> None:
+    """If one stops being pinned, it can and should be fixed."""
+    pinned: set[str] = set()
+    for _stage, module_name, _marker in _PINNED_SETS:
+        pinned.update(importlib.import_module(module_name)._VERIFIER_AUTHORITY_PATHS)
+
+    freed = sorted(
+        relative
+        for relative in _ON_THE_FIXED_TEMP_WRITER
+        if not any(
+            relative == entry or relative.startswith(entry.rstrip("/") + "/")
+            for entry in pinned
+        )
+    )
+    assert not freed, (
+        f"{freed} are no longer pinned by a published verifier, so nothing "
+        "stops them moving to fpbench.core.json_io. Move them and delete this "
+        "entry"
+    )

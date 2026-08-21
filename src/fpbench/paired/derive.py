@@ -59,6 +59,7 @@ from fpbench.core.paired_models import (
     transition_count_record_hash,
     transition_key,
 )
+from fpbench.paired.policy import PairedComparisonPolicy
 from fpbench.paired.sources import PairedSide
 
 __all__ = [
@@ -203,8 +204,20 @@ def build_paired_records(
     native: PairedSide,
     canonical: PairedSide,
     pair_ids: Sequence[str],
+    policy: PairedComparisonPolicy,
 ) -> tuple[PairedComparisonRecord, ...]:
-    """One row per pair, with both outcomes and the exact score delta."""
+    """One row per pair, with both outcomes and — if the policy keeps it — the delta.
+
+    ``policy`` is required, with no default. A default would mean the policy
+    governs whichever call sites remembered to pass one, which is the state
+    this argument exists to end.
+
+    ``retain_pair_delta`` is not read here, and cannot be: ``PairedComparisonRecord``
+    refuses a scored relation with no delta, and the control audit compares the
+    two runs' scores exactly. A policy that turned it off would describe a
+    derivation this repository has no way to perform, so ``load_paired_policy``
+    refuses the value rather than leaving a flag that reads as a choice.
+    """
     native_jobs = native.jobs_by_pair
     canonical_jobs = canonical.jobs_by_pair
     native_decisions = native.decisions_by_job
@@ -613,17 +626,22 @@ def build_transition_counts(
     common_eligible: Sequence[CommonEligibleMatedEntry],
     releases: Sequence[str],
     source_fingerprints: Mapping[str, str],
+    policy: PairedComparisonPolicy,
 ) -> tuple[TransitionCountRecord, ...]:
-    """Six matrices at four scopes each, with every cell present.
+    """The policy's families at four scopes each, with every cell present.
 
     Pooled counts are the sum of the release counts and nothing else. Averaging
     percentages across releases would weight a release by nothing in particular
     (docs/adr/0028).
+
+    Which families are built comes from ``policy.transition_families``. It used
+    to be a fixed list of six, so a policy that enabled four still got six and
+    the two it had declined were published under its own fingerprint.
     """
     scopes = [MetricScopeRef(scope_kind="release", release=name) for name in releases]
     scopes.append(MetricScopeRef(scope_kind="pooled"))
 
-    families: list[tuple[str, object]] = [
+    every_family: list[tuple[str, object]] = [
         (PLAIN_SELF_FAMILY, ProtocolStage.PLAIN_SELF),
         (ROLL_SELF_FAMILY, ProtocolStage.ROLL_SELF),
         (MATED_UNCONDITIONAL_FAMILY, ProtocolStage.PLAIN_ROLL_MATED),
@@ -631,6 +649,18 @@ def build_transition_counts(
         (NEGATIVE_SANITY_FAMILY, ProtocolStage.PLAIN_ROLL_NON_MATED),
         (ELIGIBILITY_FAMILY, None),
     ]
+    enabled = set(policy.transition_families)
+    unknown = sorted(enabled - {name for name, _ in every_family})
+    if unknown:
+        raise PairedAlignmentError(
+            f"the policy enables transition families this derivation cannot "
+            f"build: {unknown}"
+        )
+    families = [item for item in every_family if item[0] in enabled]
+    if not families:
+        raise PairedAlignmentError(
+            "the policy enables no transition family, so there is nothing to count"
+        )
 
     built: list[TransitionCountRecord] = []
     ordinal = 0

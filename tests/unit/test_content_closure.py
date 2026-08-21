@@ -118,3 +118,55 @@ def test_the_fingerprint_does_not_move_with_the_clock() -> None:
         != _binding(metadata={"run": "second"}).closure_fingerprint
     )
     assert _binding().closure_fingerprint == _binding().closure_fingerprint
+
+
+# ------------------------------------------------- consumed, not just defined
+
+
+def test_a_research_run_builds_its_closure_before_the_first_comparison(
+    tmp_path,
+) -> None:
+    """The type was defined and never constructed, which is the same as absent.
+
+    A research run now forms one at preflight. Nothing is stored — persisting it
+    would change the fingerprint of receipts describing runs nobody re-did — but
+    a run whose provenance has a hole cannot form the closure, so it stops here
+    rather than after six thousand comparisons.
+    """
+    from runworld import build_world
+
+    world = build_world(tmp_path / "world", research=True)
+    runner = world.job_runner()
+
+    closure = runner._adapter.content_closure(world.preparer)
+    assert len(closure.closure_fingerprint) == 64
+    assert closure.native_dependencies, "a research run pins runtime assets"
+    assert closure.preparer.preparer_id == world.preparer.preparer_id
+    assert closure.source_identity.commit
+
+
+def test_a_run_that_cannot_state_its_closure_does_not_start(tmp_path) -> None:
+    from runworld import build_world
+    from fpbench.core.errors import PreflightError
+
+    world = build_world(tmp_path / "world", research=True)
+
+    class _Holed:
+        """A research adapter whose provenance is missing its runtime assets."""
+
+        def __init__(self, delegate):
+            self._delegate = delegate
+            self.descriptor = delegate.descriptor
+
+        def validate_environment(self):
+            return self._delegate.validate_environment()
+
+        def compare(self, *args, **kwargs):  # pragma: no cover - never reached
+            return self._delegate.compare(*args, **kwargs)
+
+        def content_closure(self, preparer):
+            raise ContentClosureError("this bundle names no runtime asset")
+
+    world.adapter = _Holed(world.adapter)
+    with pytest.raises(PreflightError, match="cannot state the content"):
+        world.job_runner()

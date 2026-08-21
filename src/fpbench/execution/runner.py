@@ -43,6 +43,7 @@ from typing import Mapping
 
 from fpbench.adapters.base import FingerprintAlgorithmAdapter
 from fpbench.adapters.errors import AdapterContractViolation
+from fpbench.core.content_closure import ContentClosureError
 from fpbench.core.enums import (
     ExecutionStatus,
     FailureCode,
@@ -55,6 +56,7 @@ from fpbench.core.errors import (
     PreflightError,
     ProcessTreeTerminationError,
     ResultConflictError,
+    RunIntegrityError,
     RuntimeDriftError,
     StorageError,
 )
@@ -202,7 +204,32 @@ class SingleJobRunner:
 
         self._result_store.ensure_run(self._run)
         self._require_preparer_matches_stored_results()
+        self._require_content_closure()
 
+
+    def _require_content_closure(self) -> None:
+        """A research run must be able to state everything its scores rest on.
+
+        Only a research adapter can: it is the one that holds a pinned runtime
+        bundle and a source revision. A plain run has neither, and demanding a
+        closure of it would be demanding provenance that does not exist yet
+        rather than provenance somebody forgot.
+
+        Nothing is stored. The value of building it here is that
+        :class:`~fpbench.core.content_closure.ContentClosureBinding` refuses a
+        closure with a hole, so a run whose provenance has one stops before the
+        first comparison instead of after six thousand (docs/adr/0139).
+        """
+        build = getattr(self._adapter, "content_closure", None)
+        if build is None:
+            return
+        try:
+            build(self._preparer)
+        except ContentClosureError as exc:
+            raise PreflightError(
+                f"this run cannot state the content its scores would depend on: "
+                f"{exc}"
+            ) from exc
 
     def _require_preparer_matches_stored_results(self) -> None:
         """A resumed run must be resumed with the preparer that started it.
@@ -223,24 +250,61 @@ class SingleJobRunner:
         stored = self._result_store.stored_job_ids(self._run.run_id)
         if not stored:
             return  # A fresh run defines the binding rather than checking it.
-        try:
-            first = self._result_store.read_raw_result(self._run.run_id, stored[0])
-        except StorageError:
-            # An unreadable stored result is a fault of the store, reported by
-            # whatever reads it next. Preflight does not diagnose it here.
-            return
-        recorded = dict(first.runner_metadata or {})
+
         preparer = self._preparer
-        for key, current in (
-            ("preparer_id", preparer.preparer_id),
-            ("preparer_version", preparer.preparer_version),
-            ("runner_metadata_schema", preparer.runner_metadata_schema),
-        ):
+        expected = {
+            "preparer_id": preparer.preparer_id,
+            "preparer_version": preparer.preparer_version,
+            "runner_metadata_schema": preparer.runner_metadata_schema,
+        }
+
+        # *Every* stored result, not the first one. Checking result zero and
+        # stopping proves the run began with this preparer and says nothing
+        # about comparison 3,000 — which is exactly where a mid-run change
+        # would sit, and exactly the half a reader would never see. The scan
+        # reads one small parquet per stored job, once, before a run that takes
+        # hours.
+        for job_id in stored:
+            try:
+                result = self._result_store.read_raw_result(self._run.run_id, job_id)
+            except StorageError as exc:
+                # Not "somebody else's problem": a result that cannot be read
+                # cannot be shown to have come from this preparer, and resuming
+                # over it would produce a set with an unverifiable half.
+                #
+                # Reported as a run-integrity fault rather than a preflight one,
+                # because that is what it is — stored results contradicting the
+                # run — and the audit already has that vocabulary. Preflight is
+                # simply where it is noticed first now.
+                raise RunIntegrityError(
+                    f"run {self._run.run_id} holds a result for {job_id} that "
+                    f"cannot be read, so the preparer that produced it cannot be "
+                    f"established: {exc}"
+                ) from exc
+
+            recorded = dict(result.runner_metadata or {})
+            missing = sorted(key for key in expected if key not in recorded)
+            if missing:
+                raise PreflightError(
+                    f"run {self._run.run_id} holds a result for {job_id} with no "
+                    f"{missing} in its runner metadata. A result that does not "
+                    "say how its inputs were prepared cannot be resumed over"
+                )
+            self._require_preparer_fields_agree(job_id, recorded, expected)
+        return
+
+    def _require_preparer_fields_agree(
+        self,
+        job_id: str,
+        recorded: Mapping[str, str],
+        expected: Mapping[str, str],
+    ) -> None:
+        for key, current in expected.items():
             previous = recorded.get(key)
-            if previous is None or previous == current:
+            if previous == current:
                 continue
             raise PreflightError(
-                f"run {self._run.run_id} already holds {len(stored)} result(s) "
+                f"run {self._run.run_id} already holds a result for {job_id} "
                 f"produced with {key}={previous!r}, and this preparer reports "
                 f"{current!r}. Resuming would give one result set two "
                 "preparations and nothing to tell them apart"
@@ -569,17 +633,32 @@ class SingleJobRunner:
         Per-side keys are prefixed ``left_`` and ``right_``. A comparison that
         never got as far as preparing an image carries only the run-level keys,
         because there is nothing truthful to say about the two sides.
+
+        **Four keys are the runner's and cannot be supplied by a preparer.**
+        They used to be written first and then updated from ``run_metadata()``,
+        which meant a preparer could return ``{"preparer_version": "1"}`` and a
+        version-2 implementation would file every result as version 1 — and the
+        resume check, which reads exactly those fields back, would agree with
+        it. A preparer that names one is refused rather than allowed to
+        overwrite the runner's own account of what ran (docs/adr/0139).
         """
         preparer = self._preparer
-        metadata: dict[str, str] = {
+        reserved: dict[str, str] = {
             "runner": "single_job_runner",
             "preparer_id": preparer.preparer_id,
             "preparer_version": preparer.preparer_version,
             "runner_metadata_schema": preparer.runner_metadata_schema,
         }
-        metadata.update(
-            {str(key): str(value) for key, value in preparer.run_metadata().items()}
-        )
+        declared = {str(key): str(value) for key, value in preparer.run_metadata().items()}
+        overreach = sorted(set(declared) & set(reserved))
+        if overreach:
+            raise PreflightError(
+                f"preparer {preparer.preparer_id!r} returns {overreach} from "
+                "run_metadata(); those keys are the runner's record of what ran "
+                "and a preparer may not restate them"
+            )
+        metadata: dict[str, str] = dict(reserved)
+        metadata.update(declared)
         for side, prepared in (("left", left), ("right", right)):
             if prepared is None:
                 continue

@@ -133,6 +133,16 @@ def load_paired_policy(path: Path) -> PairedComparisonPolicy:
                 "cause and no population rate"
             )
 
+    if not _yaml_bool(
+        scores, "retain_pair_delta", path=path, section="scores", default=True
+    ):
+        raise ConfigurationError(
+            f"{path}: scores.retain_pair_delta may not be false. The control "
+            "audit compares SD300A's two runs score for score, and a paired "
+            "record refuses a scored relation with no delta — so nothing here "
+            "can produce the derivation that flag describes"
+        )
+
     report_distribution = _yaml_bool(
         scores, "report_distribution", path=path, section="scores", default=False
     )
@@ -187,11 +197,52 @@ def paired_policy_fingerprint(fields: Mapping[str, Any]) -> str:
     )
 
 
+#: Every key each section of a paired-comparison policy may carry.
+#:
+#: A key outside these is refused rather than ignored. ``retain_pair_dleta:
+#: false`` used to be read as "this document sets nothing", which is
+#: indistinguishable from a document that deliberately leaves the default —
+#: except that the author believed they had turned something off.
+_SECTION_KEYS: Mapping[str, frozenset[str]] = {
+    "policy": frozenset({"policy_id", "policy_version"}),
+    "pairing": frozenset(
+        {
+            "key",
+            "require_same_pair_manifest",
+            "require_same_algorithm",
+            "require_same_runtime_bundle",
+            "require_same_threshold_rule",
+        }
+    ),
+    "control": frozenset(
+        {"sd300a_exact_score_equality", "sd300a_exact_decision_equality"}
+    ),
+    "scores": frozenset(
+        {"retain_pair_delta", "report_direction_counts", "report_distribution"}
+    ),
+}
+
+
+def _reject_unknown(
+    section: Mapping[str, Any], key: str, path: Path
+) -> Mapping[str, Any]:
+    permitted = _SECTION_KEYS.get(key)
+    if permitted is None:
+        return section
+    unknown = sorted(set(section) - permitted)
+    if unknown:
+        raise ConfigurationError(
+            f"{path}: {key} carries {unknown}, which this policy does not define. "
+            f"Permitted keys are {sorted(permitted)}"
+        )
+    return section
+
+
 def _section(document: Mapping[str, Any], key: str, path: Path) -> Mapping[str, Any]:
     value = document.get(key)
     if not isinstance(value, Mapping):
         raise ConfigurationError(f"{path}: missing or malformed '{key}' section")
-    return value
+    return _reject_unknown(value, key, path)
 
 
 _MISSING = object()

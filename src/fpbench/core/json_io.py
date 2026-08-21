@@ -44,6 +44,10 @@ from fpbench.core.atomic_write import (
     publish_bytes,
     replace_bytes,
 )
+from fpbench.core.evidence_sanitisation import (
+    find_absolute_paths,
+    redact_absolute_paths,
+)
 from fpbench.core.serialization import read_json, stable_hash, to_plain
 
 __all__ = [
@@ -51,6 +55,7 @@ __all__ = [
     "PublishOutcome",
     "PublishedFile",
     "json_bytes",
+    "publish_evidence_document",
     "publish_json",
     "read_json",
     "stable_hash",
@@ -96,3 +101,34 @@ def publish_json(path: Path, value: Any) -> PublishedFile:
             path first.
     """
     return publish_bytes(Path(path), json_bytes(value), what="JSON document")
+
+
+def publish_evidence_document(path: Path, payload: Any) -> Path:
+    """Write one evidence document, with no machine's paths left in it.
+
+    Two steps, and the second is the one that matters.
+    :func:`~fpbench.core.evidence_sanitisation.redact_absolute_paths` replaces
+    the roots it recognises; the check afterwards refuses anything *still*
+    shaped like an absolute path, so a root nobody anticipated stops the
+    publication instead of being published.
+
+    This is the door a stage's documents go through. Before it existed the
+    redactor was available and uncalled, which is how
+    ``stage11a-.../runtime-identity.json`` came to publish seven module paths
+    under the author's home directory while its own marker declared there were
+    none (evidence/README.md, docs/adr/0139).
+
+    Sorted keys and LF, matching what the stage writers already emitted, so
+    routing an existing writer through this changes no byte of a clean document.
+    """
+    redacted = redact_absolute_paths(payload)
+    leaks = find_absolute_paths(redacted, path=Path(path).name)
+    if leaks:
+        location, text = leaks[0]
+        raise ValueError(
+            f"{Path(path).name} still names an absolute path after redaction: "
+            f"{location} = {text!r}. Evidence carries no machine's layout"
+        )
+    body = json.dumps(redacted, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    Path(path).write_bytes(body.encode("utf-8"))
+    return Path(path)

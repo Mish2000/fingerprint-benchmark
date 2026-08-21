@@ -38,6 +38,7 @@ help:
 	@echo "test                    unit + integration, no dataset, no Java, no full run"
 	@echo "test-all                everything available on this machine"
 	@echo "publication-hygiene     what evidence, workbooks and the README claim about themselves"
+	@echo "report-workbooks        regenerate the two supervisor workbooks from the evidence"
 	@echo "full-run                the 6,000-job dummy protocol (minutes)"
 	@echo "adapter-contract        what a new algorithm must satisfy (no dataset, no JVM)"
 	@echo "stage7d-contract        the comparison methodology (no dataset, no algorithm)"
@@ -231,6 +232,13 @@ test:
 # fraction, the README describing every published stage, and every fingerprinted
 # source pinned to LF. Fast, needs nothing, and each one exists because the
 # corresponding claim was made in a document and contradicted by a file.
+# The two supervisor workbooks, rendered from the published metric sets and
+# markers. Generated rather than authored: the hand-made version headed a column
+# `FAR` over the negative sanity set, which ADR 0030 forbids, and nothing
+# checked because nothing produced it.
+report-workbooks:
+	python -m fpbench.experiments.report_workbooks
+
 publication-hygiene:
 	pytest tests/contract/test_evidence_carries_no_absolute_paths.py 	       tests/contract/test_published_workbooks_obey_adr0030.py 	       tests/contract/test_stage_registry.py 	       tests/contract/test_source_fingerprints_are_pinned.py -q
 

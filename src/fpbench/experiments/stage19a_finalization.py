@@ -31,9 +31,15 @@ from fpbench.adapters.openafis.translation import (
     OPENAFIS_MINIMUM_MINUTIAE,
     PLACEHOLDER_MINUTIA_TYPE,
 )
+from fpbench.core.json_io import publish_evidence_document
 from fpbench.core.serialization import read_json
 from fpbench.experiments import stage19a_identity as frozen
-from fpbench.experiments.stage18a_inputs import REPOSITORY_ROOT
+from fpbench.experiments.stage18a_inputs import DEFAULT_WORKSPACE, REPOSITORY_ROOT
+from fpbench.experiments.stage19_pair_manifest import (
+    CanonicalPairManifest,
+    load_canonical_pair_manifest,
+    pairs_path_for,
+)
 from fpbench.experiments.stage19_result_integrity import (
     OutcomeStoreIntegrity,
     Stage19ResultIntegrityError,
@@ -69,6 +75,11 @@ _SOURCE_FILES = (
     "src/fpbench/experiments/stage19a_diagnostics.py",
     "src/fpbench/experiments/stage19a_finalization.py",
     "src/fpbench/experiments/stage19_result_integrity.py",
+    "src/fpbench/experiments/stage19_pair_manifest.py",
+    # The script that performed the run. Stage 19B fingerprints its own and this
+    # one did not, so the file that decided what 6,000 comparisons actually did
+    # was the one file outside the stage's source identity.
+    "scripts/stage19a_canonical_run.py",
     "configs/algorithms/nbis_mindtct_openafis_v1.yaml",
 )
 
@@ -241,13 +252,40 @@ def build_translation_contract() -> dict[str, Any]:
     }
 
 
+#: The cohort this stage ran over — the same one every other algorithm used.
+_PROTOCOL_ID = "sd300_50_subjects"
+_COHORT_ID = "sd300_50_subjects_test_22f8d52a7478"
+
+
+def _pair_manifest(workspace: Path | None) -> CanonicalPairManifest:
+    """The comparisons this stage is defined over, loaded from the cohort.
+
+    Not a constant. ``REFERENCE_PAIR_MANIFEST_HASH`` is passed in as the value
+    the artifact must *prove*, and the hash that reaches the binding is the one
+    re-derived from the artifact's own rows.
+    """
+    root = Path(workspace) if workspace is not None else DEFAULT_WORKSPACE
+    try:
+        return load_canonical_pair_manifest(
+            pairs_path_for(root, _PROTOCOL_ID, _COHORT_ID),
+            expected_pair_manifest_hash=frozen.REFERENCE_PAIR_MANIFEST_HASH,
+        )
+    except Stage19ResultIntegrityError as exc:
+        raise Stage19AFinalizationError(str(exc)) from None
+
+
 def _outcome_integrity(
-    outcomes: Path, diagnostics: Mapping[str, Any]
+    outcomes: Path,
+    diagnostics: Mapping[str, Any],
+    manifest: CanonicalPairManifest,
 ) -> OutcomeStoreIntegrity:
     try:
         return verify_outcome_store_integrity(
             outcomes,
             diagnostics,
+            manifest=manifest.pairs,
+            algorithm_id=frozen.ALGORITHM_ID,
+            pair_manifest_hash=manifest.pair_manifest_hash,
             expected_outcomes=frozen.EXPECTED_OUTCOMES,
         )
     except Stage19ResultIntegrityError as exc:
@@ -255,9 +293,13 @@ def _outcome_integrity(
 
 
 def build_canonical_run_binding(
-    diagnostics: Mapping[str, Any], *, outcomes: Path
+    diagnostics: Mapping[str, Any],
+    *,
+    outcomes: Path,
+    workspace: Path | None = None,
 ) -> dict[str, Any]:
-    integrity = _outcome_integrity(outcomes, diagnostics)
+    manifest = _pair_manifest(workspace)
+    integrity = _outcome_integrity(outcomes, diagnostics, manifest)
     overall = diagnostics.get("overall", {})
     per_stage = {row["label"]: row for row in diagnostics.get("by_protocol_stage", [])}
     cross = {
@@ -274,7 +316,9 @@ def build_canonical_run_binding(
         "algorithm_id": frozen.ALGORITHM_ID,
         "experiment_id": frozen.EXPERIMENT_ID,
         "preparation_set_id": frozen.REFERENCE_PREPARATION_SET_ID,
-        "pair_manifest_hash": frozen.REFERENCE_PAIR_MANIFEST_HASH,
+        # From ``integrity.describe()`` below, which carries the hash the
+        # artifact proved about itself. Naming the constant here would publish a
+        # claim about the manifest instead of a reading of it.
         "nbis_build_id": frozen.NBIS_BUILD_ID,
         "openafis_commit": frozen.OPENAFIS_COMMIT,
         **integrity.describe(),
@@ -424,9 +468,9 @@ def write_stage19a_documents(
     written: dict[str, Path] = {}
 
     def _write(name: str, payload: Any) -> None:
-        path = directory / name
-        path.write_bytes((json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode("utf-8"))
-        written[name] = path
+        # Through the sanitising door, so a stage document cannot publish a
+        # path that names the machine it ran on.
+        written[name] = publish_evidence_document(directory / name, payload)
 
     _write("algorithm-identity.json", build_algorithm_identity())
     _write("translation-contract.json", build_translation_contract())

@@ -69,6 +69,10 @@ class PairOutcome:
     release: str
     stage: str
     ground_truth: str
+    #: Both sides, so the stored row can be checked against the pair manifest
+    #: on *which images were compared* and not only on what it called the pair.
+    left_image_id: str
+    right_image_id: str
     raw_score: float | None
     status: str
     failure_code: str | None
@@ -97,6 +101,8 @@ def read_outcomes(path: Path) -> list[PairOutcome]:
                     release=row["release"],
                     stage=row["stage"],
                     ground_truth=row["ground_truth"],
+                    left_image_id=row["left_image_id"],
+                    right_image_id=row["right_image_id"],
                     raw_score=row["raw_score"],
                     status=row["status"],
                     failure_code=row.get("failure_code"),

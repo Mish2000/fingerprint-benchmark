@@ -27,6 +27,14 @@ import datetime as _dt
 from typing import Any, Mapping
 
 from fpbench.adapters.base import FingerprintAlgorithmAdapter
+from fpbench.core.content_closure import (
+    ContentClosureBinding,
+    NativeDependency,
+    PreparerIdentity,
+    RuntimeAssetBinding,
+    SourceIdentity,
+    current_interpreter_identity,
+)
 from fpbench.core.enums import EnvironmentStatus, ResearchRunStatus, RunState
 from fpbench.core.errors import RunIntegrityError, StorageError
 from fpbench.core.execution_models import (
@@ -78,10 +86,64 @@ class ResearchModeAdapter(FingerprintAlgorithmAdapter):
         self._runtime_bundle = runtime_bundle
         self._integration_id = integration_id
         self._integration_fingerprint = integration_fingerprint
+        self._closure: ContentClosureBinding | None = None
 
     @property
     def delegate(self) -> FingerprintAlgorithmAdapter:
         return self._delegate
+
+    def content_closure(self, preparer: object) -> ContentClosureBinding:
+        """Everything this run's scores depend on, bound in one object.
+
+        Built rather than described: :class:`ContentClosureBinding` refuses a
+        closure missing any of its six parts, so a run whose provenance has a
+        hole cannot form one at all. That is the point — the type was added and
+        never constructed, which left the hole exactly where it had been.
+
+        ``preparer`` is passed in rather than held, because this wrapper has no
+        business knowing which preparer a run uses; the runner does, and it is
+        the runner that asks.
+        """
+        assets = tuple(
+            NativeDependency(
+                role=asset.role,
+                sha256=asset.sha256,
+                version=self._software.package_version,
+            )
+            for asset in self._runtime_bundle.assets
+        )
+        closure = ContentClosureBinding(
+            subject=self._runtime_bundle.bundle_id,
+            code={
+                # The bundle's own fingerprint stands for the code closure the
+                # run executed: it is a digest over every asset's digest, and it
+                # is what ``docs/adr/0018`` made content-addressed in the first
+                # place.
+                "runtime_bundle": self._runtime_bundle.bundle_fingerprint,
+            },
+            preparer=PreparerIdentity(
+                preparer_id=str(getattr(preparer, "preparer_id", "")),
+                preparer_version=str(getattr(preparer, "preparer_version", "")),
+                runner_metadata_schema=str(
+                    getattr(preparer, "runner_metadata_schema", "")
+                ),
+            ),
+            interpreter=current_interpreter_identity(),
+            native_dependencies=assets,
+            runtime_assets=RuntimeAssetBinding(
+                assets=assets,
+                rechecked_per_comparison=bool(
+                    getattr(self._delegate, "rechecks_runtime_per_comparison", False)
+                ),
+            ),
+            source_identity=SourceIdentity(
+                commit=self._software.source_revision,
+                tree_clean=self._software.source_tree_clean,
+            ),
+            metadata={"integration_id": self._integration_id or ""},
+        )
+        self._closure = closure
+        return closure
 
     @property
     def descriptor(self) -> AlgorithmDescriptor:

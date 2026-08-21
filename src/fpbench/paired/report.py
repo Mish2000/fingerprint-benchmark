@@ -20,6 +20,7 @@ from __future__ import annotations
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Mapping, Sequence
 
+from fpbench.paired.policy import PairedComparisonPolicy
 from fpbench.core.enums import ComparabilityStatus
 from fpbench.core.paired_models import (
     ALL_TRANSITION_KEYS,
@@ -128,12 +129,19 @@ def build_paired_summary(
     observations: Sequence[PairedRateObservation],
     records: Sequence[PairedComparisonRecord],
     generated_utc: str,
+    policy: PairedComparisonPolicy,
 ) -> dict[str, object]:
-    """The machine-readable rendering. Same numbers, no prose."""
+    """The machine-readable rendering. Same numbers, no prose.
+
+    ``policy.report_direction_counts`` decides whether the direction tally is
+    here at all. It was parsed and fingerprinted and never consulted, so a
+    policy that switched it off published the counts anyway.
+    """
     directions: dict[str, int] = {}
-    for record in records:
-        key = record.score_relation.value
-        directions[key] = directions.get(key, 0) + 1
+    if policy.report_direction_counts:
+        for record in records:
+            key = record.score_relation.value
+            directions[key] = directions.get(key, 0) + 1
 
     return {
         "paired_evaluation_id": manifest.paired_evaluation_id,
@@ -151,7 +159,11 @@ def build_paired_summary(
             "equal_decisions": control.equal_decisions,
             "clean": control.is_clean,
         },
-        "score_direction_counts": dict(sorted(directions.items())),
+        "score_direction_counts": (
+            dict(sorted(directions.items()))
+            if policy.report_direction_counts
+            else None
+        ),
         "transition_counts": [
             {
                 "family": record.family,
@@ -206,6 +218,7 @@ def render_paired_report(
     common_eligible: Sequence[CommonEligibleMatedEntry],
     transitions: Sequence[SelfEligibilityTransitionRecord],
     releases: Sequence[str],
+    policy: PairedComparisonPolicy,
 ) -> str:
     """The human-readable rendering, in the fixed fourteen sections."""
     lines: list[str] = []
@@ -330,16 +343,23 @@ def render_paired_report(
     # 12
     add("## 12. Score-direction diagnostics")
     add("")
-    directions: dict[str, int] = {}
-    for record in records:
-        directions[record.score_relation.value] = (
-            directions.get(record.score_relation.value, 0) + 1
+    if not policy.report_direction_counts:
+        add(
+            "Not reported: this comparison's policy sets "
+            "`scores.report_direction_counts: false`."
         )
-    add("| Direction | Comparisons |")
-    add("| --- | ---: |")
-    for key in ("canonical_lower", "equal", "canonical_higher", "unavailable"):
-        add(f"| {key.replace('_', ' ')} | {directions.get(key, 0)} |")
-    add("")
+        add("")
+    else:
+        directions: dict[str, int] = {}
+        for record in records:
+            directions[record.score_relation.value] = (
+                directions.get(record.score_relation.value, 0) + 1
+            )
+        add("| Direction | Comparisons |")
+        add("| --- | ---: |")
+        for key in ("canonical_lower", "equal", "canonical_higher", "unavailable"):
+            add(f"| {key.replace('_', ' ')} | {directions.get(key, 0)} |")
+        add("")
     add(
         "Counts only. No mean, no median and no distribution of the per-pair "
         "deltas is computed at this stage (spec section 31)."

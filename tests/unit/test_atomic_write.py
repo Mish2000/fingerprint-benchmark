@@ -165,3 +165,109 @@ def test_publish_survives_a_filesystem_without_hard_links(
     with pytest.raises(PublishConflictError):
         publish_bytes(target, b"second")
     assert target.read_bytes() == b"first"
+
+
+# ------------------------------------------------- the no-hard-link fallback
+
+
+def _without_hard_links(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Emulate FAT, exFAT and the network mounts that have no ``os.link``."""
+
+    def refuse(*_: object, **__: object) -> None:
+        raise OSError("hard links are not supported here")
+
+    monkeypatch.setattr(os, "link", refuse)
+
+
+def test_the_fallback_never_leaves_a_partial_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The reviewer's reproduction: a failed copy left a target holding ``com``.
+
+    The old fallback created the *final* path with ``O_EXCL`` and copied into
+    it, so an interrupted copy published a prefix. Content now arrives by
+    ``os.replace``, which is atomic: the target is absent or complete.
+    """
+    _without_hard_links(monkeypatch)
+    target = tmp_path / "result.bin"
+
+    def fails_halfway(temporary: Path) -> None:
+        temporary.write_bytes(b"com")
+        raise OSError("the copy was interrupted")
+
+    with pytest.raises(OSError, match="interrupted"):
+        publish_file(target, fails_halfway)
+
+    assert not target.exists(), "a failed publication must leave no target"
+    assert list(tmp_path.iterdir()) == [], "and no scratch or claim behind"
+
+
+def test_the_fallback_refuses_to_overwrite_a_published_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``os.replace`` clobbers; the claim is what stops it doing so."""
+    _without_hard_links(monkeypatch)
+    target = tmp_path / "result.bin"
+
+    assert publish_bytes(target, b"first").created
+    with pytest.raises(PublishConflictError):
+        publish_bytes(target, b"second")
+    assert target.read_bytes() == b"first"
+
+
+def test_exactly_one_fallback_writer_wins(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _without_hard_links(monkeypatch)
+    target = tmp_path / "contended.bin"
+
+    def attempt(index: int) -> str:
+        try:
+            return publish_bytes(target, f"writer-{index}".encode()).outcome.value
+        except PublishConflictError:
+            return "refused"
+
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        outcomes = list(pool.map(attempt, range(12)))
+
+    assert outcomes.count(PublishOutcome.PUBLISHED.value) == 1, outcomes
+    assert target.read_bytes().decode().startswith("writer-")
+    assert not list(tmp_path.glob("*.publishing")), "no claim may survive"
+
+
+def test_a_stale_claim_is_reported_rather_than_resolved(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A writer that died mid-publication is a stuck store, not a free name.
+
+    Guessing — deleting somebody else's claim — is how two writers end up
+    publishing at once on the one filesystem that cannot serialise them.
+    """
+    import fpbench.core.atomic_write as atomic
+
+    _without_hard_links(monkeypatch)
+    monkeypatch.setattr(atomic, "_CLAIM_TIMEOUT_SECONDS", 0.05)
+    target = tmp_path / "result.bin"
+    atomic._claim_path(target).write_bytes(b"")
+
+    with pytest.raises(PublishConflictError, match="did not finish"):
+        publish_bytes(target, b"payload")
+    assert not target.exists()
+
+
+def test_a_claim_handed_back_by_a_failed_writer_is_reusable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The other half: a claim released without a target frees the name."""
+    _without_hard_links(monkeypatch)
+    target = tmp_path / "result.bin"
+
+    def fails(temporary: Path) -> None:
+        temporary.write_bytes(b"partial")
+        raise OSError("interrupted")
+
+    with pytest.raises(OSError):
+        publish_file(target, fails)
+
+    assert publish_bytes(target, b"complete").created
+    assert target.read_bytes() == b"complete"

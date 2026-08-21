@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from fpbench.experiments.stage19_result_integrity import (
+    CanonicalPair,
     Stage19ResultIntegrityError,
     canonical_source_sha256,
     verify_outcome_store_integrity,
@@ -37,23 +38,66 @@ def _diagnostics(comparisons: int, **counts: int) -> dict[str, object]:
     }
 
 
+ALGORITHM = "nbis_mindtct_openafis"
+MANIFEST_HASH = "e" * 64
+
+
+def _pair(ordinal: int, pair_id: str | None = None) -> CanonicalPair:
+    identifier = pair_id if pair_id is not None else f"pair_{ordinal}"
+    return CanonicalPair(
+        ordinal=ordinal,
+        pair_id=identifier,
+        release="SD300A",
+        protocol_stage="plain_self",
+        ground_truth="mated",
+        left_image_id=f"image_{ordinal}_left",
+        right_image_id=f"image_{ordinal}_right",
+    )
+
+
+def _row(pair: CanonicalPair, status: str = "OK", **overrides: object) -> dict:
+    """A store row that agrees with ``pair`` on everything but the overrides."""
+    row: dict[str, object] = {
+        "ordinal": pair.ordinal,
+        "pair_id": pair.pair_id,
+        "algorithm_id": ALGORITHM,
+        "release": pair.release,
+        "stage": pair.protocol_stage,
+        "ground_truth": pair.ground_truth,
+        "left_image_id": pair.left_image_id,
+        "right_image_id": pair.right_image_id,
+        "status": status,
+        "raw_score": 7 if status == "OK" else None,
+    }
+    row.update(overrides)
+    return row
+
+
+def _verify(path: Path, diagnostics: dict, manifest, expected: int):
+    return verify_outcome_store_integrity(
+        path,
+        diagnostics,
+        expected_outcomes=expected,
+        manifest=manifest,
+        algorithm_id=ALGORITHM,
+        pair_manifest_hash=MANIFEST_HASH,
+    )
+
+
 def test_all_five_counts_and_the_store_digest_are_derived_together(
     tmp_path: Path,
 ) -> None:
+    manifest = tuple(_pair(index) for index in range(3))
     path = _write_outcomes(
         tmp_path / "pair-outcomes.jsonl",
         [
-            {"ordinal": 0, "pair_id": "pair_0", "status": "OK"},
-            {"ordinal": 1, "pair_id": "pair_1", "status": "FAILED"},
-            {"ordinal": 2, "pair_id": "pair_2", "status": "OK"},
+            _row(manifest[0]),
+            _row(manifest[1], status="FAILED"),
+            _row(manifest[2]),
         ],
     )
 
-    audit = verify_outcome_store_integrity(
-        path,
-        _diagnostics(3, OK=2, FAILED=1),
-        expected_outcomes=3,
-    )
+    audit = _verify(path, _diagnostics(3, OK=2, FAILED=1), manifest, 3)
 
     assert (
         audit.unique_pair_ids
@@ -67,41 +111,34 @@ def test_all_five_counts_and_the_store_digest_are_derived_together(
     assert len(audit.outcome_store_sha256) == 64
 
 
-@pytest.mark.parametrize(
-    "rows, diagnostics, message",
-    [
-        (
-            [
-                {"ordinal": 0, "pair_id": "same", "status": "OK"},
-                {"ordinal": 1, "pair_id": "same", "status": "OK"},
-            ],
-            _diagnostics(2),
-            "unique pair_ids",
-        ),
-        (
-            [
-                {"ordinal": 0, "pair_id": "pair_0", "status": "OK"},
-                {"ordinal": 0, "pair_id": "pair_1", "status": "OK"},
-            ],
-            _diagnostics(2),
-            "unique ordinals",
-        ),
-        (
-            [{"ordinal": 0, "pair_id": "pair_0", "status": "OK"}],
-            _diagnostics(2, OK=1),
-            "diagnostic comparisons",
-        ),
-    ],
-)
-def test_no_independent_count_may_disagree(
+def test_a_manifest_naming_one_pair_twice_is_refused(tmp_path: Path) -> None:
+    """Two ordinals, one pair id — the manifest cannot be an authority."""
+    manifest = (_pair(0, "same"), _pair(1, "same"))
+    path = _write_outcomes(
+        tmp_path / "pair-outcomes.jsonl",
+        [_row(manifest[0]), _row(manifest[1])],
+    )
+    with pytest.raises(Stage19ResultIntegrityError, match="same pair twice"):
+        _verify(path, _diagnostics(2), manifest, 2)
+
+
+def test_a_repeated_ordinal_is_refused(tmp_path: Path) -> None:
+    manifest = tuple(_pair(index) for index in range(2))
+    path = _write_outcomes(
+        tmp_path / "pair-outcomes.jsonl",
+        [_row(manifest[0]), _row(manifest[0])],
+    )
+    with pytest.raises(Stage19ResultIntegrityError, match="already stored"):
+        _verify(path, _diagnostics(2), manifest, 2)
+
+
+def test_a_short_store_cannot_be_closed_by_agreeable_diagnostics(
     tmp_path: Path,
-    rows: list[dict[str, object]],
-    diagnostics: dict[str, object],
-    message: str,
 ) -> None:
-    path = _write_outcomes(tmp_path / "pair-outcomes.jsonl", rows)
-    with pytest.raises(Stage19ResultIntegrityError, match=message):
-        verify_outcome_store_integrity(path, diagnostics, expected_outcomes=2)
+    manifest = tuple(_pair(index) for index in range(2))
+    path = _write_outcomes(tmp_path / "pair-outcomes.jsonl", [_row(manifest[0])])
+    with pytest.raises(Stage19ResultIntegrityError, match="diagnostic comparisons"):
+        _verify(path, _diagnostics(2, OK=1), manifest, 2)
 
 
 @pytest.mark.parametrize(
@@ -118,9 +155,13 @@ def test_one_diagnostic_comparison_can_never_close_a_stage19_run(
 ) -> None:
     path = _write_outcomes(
         tmp_path / "pair-outcomes.jsonl",
-        [{"ordinal": 0, "pair_id": "pair_0", "status": "OK"}],
+        [_row(_pair(0))],
     )
-    with pytest.raises(error, match="expected outcomes=6000"):
+    # The real workspace, so the stage reaches its own pair manifest. The
+    # refusal now lands earlier and says more than it used to: a one-row store
+    # is not merely the wrong size, its row is not a comparison this stage was
+    # defined over. Either sentence is a refusal, and both must remain one.
+    with pytest.raises(error, match="canonical run|6000"):
         builder(_diagnostics(1), outcomes=path)
 
 

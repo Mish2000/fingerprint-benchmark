@@ -7,26 +7,85 @@ requires every independent description of the run's cardinality to agree.
 
 In particular, no caller supplies ``stored`` or ``missing``.  A command-line
 number is a claim about the result store, not evidence from it.
+
+**Counting is not enough, and this module used to stop at counting.** Six
+thousand rows with unique ``pair_id`` values, ordinals 0..5,999 and matching
+diagnostics satisfied every check here — whatever those pair ids actually were.
+A store of rows reading ``fabricated_0000`` upward published
+``CANONICAL_RAW_COMPLETE`` and ``algorithm_5_established: true``.  The
+cardinality was real; the run it described was not.
+
+So a store is now checked against the *authoritative pair manifest*: the
+``pairs.parquet`` the cohort published, which is the same artifact the other
+four algorithms' runs consumed.  Row *n* must be the manifest's row *n*, on
+every field that says which comparison it is — pair id, release, protocol
+stage, ground truth, and both image ids — and must name the algorithm the
+stage is publishing.  The manifest hash the binding declares is derived from
+that artifact rather than written down beside it.
+
+The manifest itself is loaded by
+:mod:`fpbench.experiments.stage19_pair_manifest`, which keeps parquet out of
+this module: everything here is standard library, so the rules can be read
+without knowing how a manifest is stored.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 __all__ = [
     "Stage19ResultIntegrityError",
+    "CanonicalPair",
     "OutcomeStoreIntegrity",
+    "bound_manifest_digest",
     "canonical_source_sha256",
     "verify_outcome_store_integrity",
 ]
 
+#: The statuses a Stage 19 row may carry that mean "this comparison produced a
+#: score". Everything else is a failure and must carry no score at all — the
+#: distinction ADR 0006 exists to keep, checked here against the stored bytes
+#: rather than trusted from the diagnostics.
+SCORE_BEARING_STATUSES: frozenset[str] = frozenset({"OK"})
+
 
 class Stage19ResultIntegrityError(RuntimeError):
     """The outcome store and the diagnostic report do not describe one run."""
+
+
+@dataclass(frozen=True, slots=True)
+class CanonicalPair:
+    """One row of the authoritative pair manifest, in protocol order.
+
+    Deliberately not the protocol's own ``ComparisonPair``: this is the subset a
+    stored outcome can be checked against, spelled the way the outcome spells
+    it, so the comparison below is a field-for-field equality and not a
+    translation nobody re-reads.
+    """
+
+    ordinal: int
+    pair_id: str
+    release: str
+    protocol_stage: str
+    ground_truth: str
+    left_image_id: str
+    right_image_id: str
+
+    def as_claims(self) -> dict[str, Any]:
+        return {
+            "ordinal": self.ordinal,
+            "pair_id": self.pair_id,
+            "release": self.release,
+            "protocol_stage": self.protocol_stage,
+            "ground_truth": self.ground_truth,
+            "left_image_id": self.left_image_id,
+            "right_image_id": self.right_image_id,
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +100,16 @@ class OutcomeStoreIntegrity:
     missing: int
     outcome_store_sha256: str
 
+    #: The hash the pair manifest artifact carries, re-derived from its own rows
+    #: by the loader rather than taken from a constant.
+    pair_manifest_hash: str
+    #: A digest over the exact manifest rows this store was checked against. Two
+    #: runs that agree on this were bound to the same comparisons in the same
+    #: order, whatever else differs.
+    bound_manifest_digest: str
+    #: How many rows carried a score, counted from the store.
+    score_bearing: int
+
     def describe(self) -> dict[str, int | str]:
         return {
             "expected_outcomes": self.expected_outcomes,
@@ -50,6 +119,9 @@ class OutcomeStoreIntegrity:
             "diagnostic_comparisons": self.diagnostic_comparisons,
             "missing": self.missing,
             "outcome_store_sha256": self.outcome_store_sha256,
+            "pair_manifest_hash": self.pair_manifest_hash,
+            "bound_manifest_digest": self.bound_manifest_digest,
+            "score_bearing_in_store": self.score_bearing,
         }
 
 
@@ -65,6 +137,26 @@ def canonical_source_sha256(path: Path) -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
+def bound_manifest_digest(manifest: Sequence[CanonicalPair]) -> str:
+    """A digest over the comparisons a run was bound to, in their order.
+
+    Independent of how the manifest is stored, so a store validated here and a
+    store validated somewhere else can be compared without both sides agreeing
+    about parquet.
+    """
+    return hashlib.sha256(
+        json.dumps(
+            {
+                "schema": "stage_19_bound_pair_manifest_v1",
+                "pairs": [pair.as_claims() for pair in manifest],
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
 def _exact_non_negative_int(value: object, field: str) -> int:
     if type(value) is not int or value < 0:
         raise Stage19ResultIntegrityError(
@@ -73,18 +165,146 @@ def _exact_non_negative_int(value: object, field: str) -> int:
     return value
 
 
+def _require_text(row: Mapping[str, Any], key: str, where: str) -> str:
+    value = row.get(key)
+    if type(value) is not str or not value.strip():
+        raise Stage19ResultIntegrityError(
+            f"{where}: {key} must be a non-empty string, got {value!r}"
+        )
+    return value.strip()
+
+
+def _require_manifest(
+    manifest: Sequence[CanonicalPair], expected: int
+) -> tuple[CanonicalPair, ...]:
+    rows = tuple(manifest)
+    if not rows:
+        raise Stage19ResultIntegrityError(
+            "a Stage 19 store can only be verified against a pair manifest, and "
+            "none was supplied. Counting rows proves cardinality, not identity"
+        )
+    if len(rows) != expected:
+        raise Stage19ResultIntegrityError(
+            f"the pair manifest holds {len(rows)} comparisons and this stage "
+            f"expects {expected}"
+        )
+    for position, pair in enumerate(rows):
+        if not isinstance(pair, CanonicalPair):
+            raise Stage19ResultIntegrityError(
+                "every manifest entry must be a CanonicalPair"
+            )
+        if pair.ordinal != position:
+            raise Stage19ResultIntegrityError(
+                f"the pair manifest is not in protocol order: entry {position} "
+                f"carries ordinal {pair.ordinal}"
+            )
+    identifiers = {pair.pair_id for pair in rows}
+    if len(identifiers) != len(rows):
+        raise Stage19ResultIntegrityError(
+            "the pair manifest names the same pair twice; it cannot be an "
+            "authority for a one-result-per-pair run"
+        )
+    return rows
+
+
+def _check_against_manifest(
+    row: Mapping[str, Any],
+    pair: CanonicalPair,
+    *,
+    where: str,
+    algorithm_id: str,
+) -> None:
+    """Every field that says *which comparison this is*, checked one by one.
+
+    Reported field by field rather than as a whole-row equality, because "row
+    3,214 does not match the manifest" sends a reader to the wrong place when
+    the real answer is "its ground truth says mated and the manifest says not".
+    """
+    for key, expected in (
+        ("pair_id", pair.pair_id),
+        ("release", pair.release),
+        ("stage", pair.protocol_stage),
+        ("ground_truth", pair.ground_truth),
+        ("left_image_id", pair.left_image_id),
+        ("right_image_id", pair.right_image_id),
+    ):
+        actual = _require_text(row, key, where)
+        if actual != expected:
+            raise Stage19ResultIntegrityError(
+                f"{where}: {key} is {actual!r} and the pair manifest's "
+                f"comparison {pair.ordinal} says {expected!r}. The store does "
+                "not describe the canonical run"
+            )
+
+    stored_algorithm = _require_text(row, "algorithm_id", where)
+    if stored_algorithm != algorithm_id:
+        raise Stage19ResultIntegrityError(
+            f"{where}: algorithm_id is {stored_algorithm!r} and this stage "
+            f"publishes {algorithm_id!r}"
+        )
+
+
+def _check_score_shape(
+    row: Mapping[str, Any],
+    status: str,
+    *,
+    where: str,
+    score_bearing_statuses: frozenset[str],
+) -> bool:
+    """A success carries a finite score; a failure carries none.
+
+    Returns whether this row was score-bearing, so the caller can count from the
+    store rather than from the report about it.
+    """
+    score = row.get("raw_score")
+    if status in score_bearing_statuses:
+        if isinstance(score, bool) or not isinstance(score, (int, float)):
+            raise Stage19ResultIntegrityError(
+                f"{where}: status {status!r} means a score was produced and "
+                f"raw_score is {score!r}"
+            )
+        if not math.isfinite(float(score)):
+            raise Stage19ResultIntegrityError(
+                f"{where}: raw_score {score!r} is not finite"
+            )
+        return True
+    if score is not None:
+        raise Stage19ResultIntegrityError(
+            f"{where}: status {status!r} is a failure and it carries "
+            f"raw_score {score!r}. A failure recorded with a score is a "
+            "non-match nobody measured (docs/adr/0006)"
+        )
+    return False
+
+
 def verify_outcome_store_integrity(
     outcomes_path: Path,
     diagnostics: Mapping[str, Any],
     *,
     expected_outcomes: int,
+    manifest: Sequence[CanonicalPair],
+    algorithm_id: str,
+    pair_manifest_hash: str,
+    score_bearing_statuses: frozenset[str] = SCORE_BEARING_STATUSES,
 ) -> OutcomeStoreIntegrity:
-    """Read the JSONL store and prove all five canonical counts are equal.
+    """Prove the store *is* the canonical run, not merely the right size.
+
+    ``manifest`` and ``algorithm_id`` are required, with no default. An optional
+    manifest would be a manifest a publisher could omit, and the failure this
+    function exists to stop is precisely a publisher whose rows were never
+    compared to anything.
 
     The stronger ordinal check matters even after the counts agree: 6,000
     distinct ordinals numbered 1..6,000 are not the canonical 0..5,999 run.
     """
     expected = _exact_non_negative_int(expected_outcomes, "expected_outcomes")
+    pairs = _require_manifest(manifest, expected)
+    if type(pair_manifest_hash) is not str or len(pair_manifest_hash.strip()) != 64:
+        raise Stage19ResultIntegrityError(
+            "pair_manifest_hash must be the manifest artifact's own 64-character "
+            "digest, re-derived from its rows"
+        )
+
     path = Path(outcomes_path)
     try:
         payload = path.read_bytes()
@@ -96,35 +316,48 @@ def verify_outcome_store_integrity(
     pair_ids: list[str] = []
     ordinals: list[int] = []
     status_counts: dict[str, int] = {}
+    seen_ordinals: dict[int, int] = {}
+    score_bearing = 0
+
     for line_number, raw_line in enumerate(payload.splitlines(), start=1):
         if not raw_line.strip():
             continue
+        where = f"{path}:{line_number}"
         try:
             row = json.loads(raw_line)
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise Stage19ResultIntegrityError(
-                f"{path}:{line_number}: unreadable JSON outcome ({exc})"
+                f"{where}: unreadable JSON outcome ({exc})"
             ) from exc
         if not isinstance(row, dict):
             raise Stage19ResultIntegrityError(
-                f"{path}:{line_number}: an outcome must be a JSON object"
+                f"{where}: an outcome must be a JSON object"
             )
 
-        pair_id = row.get("pair_id")
-        if type(pair_id) is not str or not pair_id.strip():
+        ordinal = _exact_non_negative_int(row.get("ordinal"), f"{where}: ordinal")
+        if ordinal >= expected:
             raise Stage19ResultIntegrityError(
-                f"{path}:{line_number}: pair_id must be a non-empty string"
+                f"{where}: ordinal {ordinal} is outside the manifest's "
+                f"0..{expected - 1}"
             )
-        ordinal = _exact_non_negative_int(
-            row.get("ordinal"), f"{path}:{line_number}: ordinal"
+        first_seen = seen_ordinals.get(ordinal)
+        if first_seen is not None:
+            raise Stage19ResultIntegrityError(
+                f"{where}: ordinal {ordinal} was already stored at line "
+                f"{first_seen}; a comparison has one result (docs/adr/0009)"
+            )
+        seen_ordinals[ordinal] = line_number
+
+        status = _require_text(row, "status", where)
+        _check_against_manifest(
+            row, pairs[ordinal], where=where, algorithm_id=algorithm_id
         )
-        status = row.get("status")
-        if type(status) is not str or not status.strip():
-            raise Stage19ResultIntegrityError(
-                f"{path}:{line_number}: status must be a non-empty string"
-            )
+        if _check_score_shape(
+            row, status, where=where, score_bearing_statuses=score_bearing_statuses
+        ):
+            score_bearing += 1
 
-        pair_ids.append(pair_id.strip())
+        pair_ids.append(pairs[ordinal].pair_id)
         ordinals.append(ordinal)
         status_counts[status] = status_counts.get(status, 0) + 1
 
@@ -183,6 +416,17 @@ def verify_outcome_store_integrity(
             f"diagnostics={normalized_counts}, store={status_counts}"
         )
 
+    reported_score_bearing = overall.get("score_bearing")
+    if reported_score_bearing is not None:
+        reported = _exact_non_negative_int(
+            reported_score_bearing, "diagnostics.overall.score_bearing"
+        )
+        if reported != score_bearing:
+            raise Stage19ResultIntegrityError(
+                f"the diagnostics report {reported} score-bearing comparisons "
+                f"and the store holds {score_bearing}"
+            )
+
     return OutcomeStoreIntegrity(
         expected_outcomes=expected,
         stored_outcomes=stored,
@@ -191,4 +435,7 @@ def verify_outcome_store_integrity(
         diagnostic_comparisons=diagnostic_comparisons,
         missing=expected - stored,
         outcome_store_sha256=hashlib.sha256(payload).hexdigest(),
+        pair_manifest_hash=pair_manifest_hash.strip(),
+        bound_manifest_digest=bound_manifest_digest(pairs),
+        score_bearing=score_bearing,
     )

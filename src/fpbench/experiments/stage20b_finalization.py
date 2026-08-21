@@ -36,10 +36,20 @@ from typing import Any, Mapping, Sequence
 
 from fpbench.adapters.mcc import adapter as production
 from fpbench.adapters.mcc import identity as route
+from fpbench.core.json_io import publish_evidence_document
 from fpbench.core.serialization import read_json
 from fpbench.experiments import stage20b_identity as frozen
 from fpbench.experiments.stage20b_gates import GATE_A_PASS, GATE_B_PASS
-from fpbench.experiments.stage18a_inputs import REPOSITORY_ROOT
+from fpbench.experiments.stage18a_inputs import DEFAULT_WORKSPACE, REPOSITORY_ROOT
+from fpbench.experiments.stage19_pair_manifest import (
+    CanonicalPairManifest,
+    load_canonical_pair_manifest,
+    pairs_path_for,
+)
+from fpbench.experiments.stage19_result_integrity import (
+    Stage19ResultIntegrityError,
+    bound_manifest_digest,
+)
 
 __all__ = [
     "Stage20BFinalizationError",
@@ -268,8 +278,35 @@ def build_runtime_binding(
     }
 
 
+#: The cohort Stage 20B ran over — the same one every other algorithm used.
+#: Named here rather than imported from an earlier stage's identity module,
+#: which this stage's boundary audit does not permit it to read.
+_PROTOCOL_ID = "sd300_50_subjects"
+_COHORT_ID = "sd300_50_subjects_test_22f8d52a7478"
+
+
+def _pair_manifest(workspace: Path | None) -> CanonicalPairManifest:
+    """The comparisons Stage 20B is defined over, loaded from the cohort.
+
+    ``REFERENCE_PAIR_MANIFEST_HASH`` is what the artifact must *prove*; the hash
+    that reaches the binding is re-derived from the artifact's own rows.
+    """
+    root = Path(workspace) if workspace is not None else DEFAULT_WORKSPACE
+    try:
+        return load_canonical_pair_manifest(
+            pairs_path_for(root, _PROTOCOL_ID, _COHORT_ID),
+            expected_pair_manifest_hash=frozen.REFERENCE_PAIR_MANIFEST_HASH,
+        )
+    except Stage19ResultIntegrityError as exc:
+        raise Stage20BFinalizationError(str(exc)) from None
+
+
 def build_canonical_run_binding(
-    diagnostics: Mapping[str, Any], *, stored: int, missing: int
+    diagnostics: Mapping[str, Any],
+    *,
+    stored: int,
+    missing: int,
+    manifest: CanonicalPairManifest,
 ) -> dict[str, Any]:
     """What was compared, and the arithmetic of whether all of it was."""
     return {
@@ -278,7 +315,8 @@ def build_canonical_run_binding(
         "algorithm_id": frozen.ALGORITHM_ID,
         "run_id": frozen.RUN_ID,
         "preparation_set_id": frozen.REFERENCE_PREPARATION_SET_ID,
-        "pair_manifest_hash": frozen.REFERENCE_PAIR_MANIFEST_HASH,
+        # Re-derived from the manifest artifact, not restated from a constant.
+        "pair_manifest_hash": manifest.pair_manifest_hash,
         "nbis_build_id": frozen.NBIS_BUILD_ID,
         "pairs_regenerated": False,
         "pair_order_changed": False,
@@ -307,16 +345,58 @@ def build_canonical_run_binding(
     }
 
 
+def _bind_to_manifest(
+    outcomes: Sequence[Any], manifest: CanonicalPairManifest
+) -> None:
+    """Every stored row must be the manifest's row of the same ordinal.
+
+    "Ordinals are complete and sorted" says the file has the right *shape*. It
+    says nothing about which comparisons were performed, and a store of 6,000
+    invented pair ids satisfies it exactly as well as the canonical run does.
+    """
+    if len(outcomes) != len(manifest.pairs):
+        raise Stage20BFinalizationError(
+            f"the store holds {len(outcomes)} outcomes and the pair manifest "
+            f"names {len(manifest.pairs)} comparisons"
+        )
+    for outcome in outcomes:
+        ordinal = int(outcome.ordinal)
+        if not 0 <= ordinal < len(manifest.pairs):
+            raise Stage20BFinalizationError(
+                f"ordinal {ordinal} is outside the manifest's "
+                f"0..{len(manifest.pairs) - 1}"
+            )
+        pair = manifest.pairs[ordinal]
+        for label, actual, expected in (
+            ("pair_id", outcome.pair_id, pair.pair_id),
+            ("release", outcome.release, pair.release),
+            ("stage", outcome.stage, pair.protocol_stage),
+            ("ground_truth", outcome.ground_truth, pair.ground_truth),
+            ("left_image_id", outcome.left_image_id, pair.left_image_id),
+            ("right_image_id", outcome.right_image_id, pair.right_image_id),
+        ):
+            if str(actual) != str(expected):
+                raise Stage20BFinalizationError(
+                    f"outcome {ordinal}: {label} is {actual!r} and the pair "
+                    f"manifest says {expected!r}. The store does not describe "
+                    "the canonical run"
+                )
+
+
 def build_result_integrity(
-    outcomes: Sequence[Any], diagnostics: Mapping[str, Any]
+    outcomes: Sequence[Any],
+    diagnostics: Mapping[str, Any],
+    manifest: CanonicalPairManifest,
 ) -> dict[str, Any]:
     """The checks that make the stored file trustworthy on its own terms.
 
     Not statistics: these are the properties a result file must have before any
     number in it is worth reading. Every pair appears exactly once, in the
-    manifest's order; no score sits outside the frozen contract; no failure was
-    stored as a zero and no zero was stored as a failure.
+    manifest's order, *and is the manifest's pair*; no score sits outside the
+    frozen contract; no failure was stored as a zero and no zero was stored as a
+    failure.
     """
+    _bind_to_manifest(outcomes, manifest)
     ordinals = [outcome.ordinal for outcome in outcomes]
     pair_ids = [outcome.pair_id for outcome in outcomes]
     scored = [outcome for outcome in outcomes if outcome.score_bearing]
@@ -361,6 +441,9 @@ def build_result_integrity(
         "invalid_scores_clamped": False,
         "invalid_scores_observed": diagnostics.get("invalid_scores_observed", []),
         "algorithm_ids_present": sorted({frozen.ALGORITHM_ID}),
+        "bound_to_pair_manifest": True,
+        "pair_manifest_hash": manifest.pair_manifest_hash,
+        "bound_manifest_digest": bound_manifest_digest(manifest.pairs),
     }
 
 
@@ -528,19 +611,16 @@ def write_stage20b_documents(
     environment: Mapping[str, str],
     runtime: Mapping[str, str],
     readme: str,
+    workspace: Path | None = None,
 ) -> dict[str, Path]:
     directory = Path(repository_root) / frozen.EVIDENCE_DIRECTORY
     directory.mkdir(parents=True, exist_ok=True)
     written: dict[str, Path] = {}
 
     def _write(name: str, payload: Any) -> None:
-        path = directory / name
-        path.write_bytes(
-            (json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode(
-                "utf-8"
-            )
-        )
-        written[name] = path
+        # Through the sanitising door, so a stage document cannot publish a
+        # path that names the machine it ran on.
+        written[name] = publish_evidence_document(directory / name, payload)
 
     stored = len(outcomes)
     missing = frozen.EXPECTED_OUTCOMES - stored
@@ -554,9 +634,12 @@ def write_stage20b_documents(
     )
     _write("gate-a-bridge-reproduction.json", dict(gate_a))
     _write("gate-b-mindtct-parity.json", dict(gate_b))
-    binding = build_canonical_run_binding(diagnostics, stored=stored, missing=missing)
+    manifest = _pair_manifest(workspace)
+    binding = build_canonical_run_binding(
+        diagnostics, stored=stored, missing=missing, manifest=manifest
+    )
     _write("canonical-run-binding.json", binding)
-    integrity = build_result_integrity(outcomes, diagnostics)
+    integrity = build_result_integrity(outcomes, diagnostics, manifest)
     _write("result-integrity.json", integrity)
     _write("diagnostic-report.json", dict(diagnostics))
 

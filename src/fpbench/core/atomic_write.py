@@ -35,6 +35,7 @@ import os
 import secrets
 import shutil
 import threading
+import time
 from enum import Enum
 from pathlib import Path
 from typing import Callable
@@ -60,6 +61,21 @@ _CHUNK = 1 << 20
 #: same directory: the low half of the pid, plus two random bytes so that two
 #: processes which happen to share it after a pid wrap still differ.
 _PROCESS_TOKEN = f"{os.getpid() & 0xFFFF:04x}{secrets.token_hex(2)}"
+
+#: What a fallback publisher creates to own a name while it renames content in.
+_CLAIM_SUFFIX = ".publishing"
+#: How long a writer waits for the holder of a claim to finish, and how often it
+#: looks. A publication is a rename after a local write; seconds, not minutes.
+_CLAIM_TIMEOUT_SECONDS = 30.0
+_CLAIM_POLL_SECONDS = 0.01
+#: How long a loser waits for a target it found locked mid-swap. A rename,
+#: not a copy, so this is milliseconds in practice.
+_SETTLE_SECONDS = 5.0
+#: How many times a writer may re-claim a name a failed writer handed back, or
+#: retry through a moment of contention. Bounded, because the only ways round
+#: the loop are transient; an unbounded retry would turn a stuck store into a
+#: hang instead of a message.
+_CLAIM_ATTEMPTS = 8
 
 #: Distinguishes concurrent writers *within* this process. A lock rather than
 #: ``itertools.count`` so the wrap-around stays a single atomic step.
@@ -153,14 +169,126 @@ def _fsync_dir(directory: Path) -> None:
         os.close(fd)
 
 
+def _digest_of_the_winner(target: Path) -> str:
+    """Digest the file the other writer published, once it will open.
+
+    A loser reads the target to find out whether the winner stored the same
+    bytes. On Windows that read can land inside the winner's ``os.replace``:
+    the swap is atomic in effect, but for the instant it takes, opening either
+    name returns a sharing violation — ``PermissionError``, not a missing file.
+
+    Treating that as a failure would make the loser report a conflict it never
+    observed, so it is retried for the moment the swap takes. Anything still
+    failing after that is a real fault and is raised.
+    """
+    deadline = time.monotonic() + _SETTLE_SECONDS
+    while True:
+        try:
+            return sha256_file(target)
+        except (PermissionError, FileNotFoundError):
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(_CLAIM_POLL_SECONDS)
+
+
+def _claim_path(target: Path) -> Path:
+    """The sentinel a fallback publisher creates to own ``target``'s name."""
+    return target.with_name(target.name + _CLAIM_SUFFIX)
+
+
+def _reserve_by_claim(source: Path, target: Path) -> bool:
+    """Publish without hard links, and still never show a partial target.
+
+    The obvious fallback — ``O_EXCL`` the *target*, then copy into it — claims
+    the name correctly and is wrong anyway: between the create and the last
+    byte, the final path exists and is short. A reader gets a truncated file; a
+    concurrent loser digests those bytes and reports a conflict against content
+    nobody wrote. The reviewer's reproduction ended with a target holding the
+    three characters ``com``.
+
+    So the name is claimed with a *sentinel*, and the content arrives by
+    ``os.replace`` — which is atomic, so ``target`` goes from absent to
+    complete with nothing in between:
+
+    1. ``O_EXCL`` create ``<target>.publishing``. Exactly one writer wins it.
+    2. ``os.replace(source, target)``.
+    3. remove the sentinel.
+
+    A writer that loses step 1 waits for the winner to finish rather than
+    reading whatever is on disk. If the winner died mid-publication the wait
+    times out and says so, naming the sentinel to remove — a stale claim is a
+    stuck publication, and reporting it is better than resolving it by guessing.
+    """
+    claim = _claim_path(target)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
+
+    # Bounded, because the only way round the loop is "the holder released its
+    # claim without publishing" — it failed and tidied up, and the name is free
+    # again. That can happen twice in a row; it cannot happen forever without
+    # somebody noticing a store nothing can be written to.
+    for _ in range(_CLAIM_ATTEMPTS):
+        try:
+            os.close(os.open(claim, flags, 0o644))
+        except (FileExistsError, PermissionError):
+            # ``PermissionError`` is the same event on Windows. A file another
+            # thread is deleting, or one pending deletion, refuses to be created
+            # with ERROR_ACCESS_DENIED rather than ERROR_FILE_EXISTS — so a
+            # publisher that only caught FileExistsError raised a permission
+            # fault at whichever writer happened to arrive mid-unlink.
+            if _await_publication(target, claim):
+                return False  # The winner published; the caller compares.
+            continue
+
+        try:
+            if target.exists():
+                # Somebody published before this writer took the claim. Held
+                # *under* the claim, this check is race-free against every other
+                # claim-holder — which is the whole reason the sentinel exists,
+                # and the reason ``os.replace`` below can never clobber a
+                # published artefact.
+                return False
+            os.replace(source, target)
+        finally:
+            try:
+                os.unlink(claim)
+            except OSError:  # pragma: no cover - the sentinel is ours to remove
+                pass
+        return True
+
+    raise PublishConflictError(
+        f"{target} could not be claimed after {_CLAIM_ATTEMPTS} attempts; "
+        "writers keep taking the name and failing before they publish"
+    )
+
+
+def _await_publication(target: Path, claim: Path) -> bool:
+    """Wait for the holder of ``claim``. True when it published.
+
+    False means the holder gave the name back without leaving a target — it
+    failed and cleaned up — so the caller may try to claim it itself.
+    """
+    deadline = time.monotonic() + _CLAIM_TIMEOUT_SECONDS
+    while time.monotonic() < deadline:
+        if target.exists():
+            return True
+        if not claim.exists():
+            return False
+        time.sleep(_CLAIM_POLL_SECONDS)
+    raise PublishConflictError(
+        f"{claim} has been held for over {_CLAIM_TIMEOUT_SECONDS:g}s and "
+        f"{target} has not appeared. A previous publication did not finish; "
+        "remove the claim once you know no writer still holds it"
+    )
+
+
 def _reserve(source: Path, target: Path) -> bool:
     """Create ``target`` from ``source``, only if ``target`` does not exist.
 
     Returns True when this call created it. ``os.link`` is the primitive of
     choice: the kernel resolves the race, and the winner's inode is already
     complete, so no reader ever sees a partial file. Where hard links are
-    unavailable — FAT/exFAT, some network mounts — an ``O_EXCL`` create still
-    lets exactly one writer claim the name.
+    unavailable — FAT/exFAT, some network mounts — :func:`_reserve_by_claim`
+    reproduces both properties with a sentinel and an atomic rename.
     """
     try:
         os.link(source, target)
@@ -169,18 +297,7 @@ def _reserve(source: Path, target: Path) -> bool:
         return False
     except (OSError, AttributeError, NotImplementedError):
         pass
-
-    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-    flags |= getattr(os, "O_BINARY", 0)
-    try:
-        handle = os.open(target, flags, 0o644)
-    except FileExistsError:
-        return False
-    with os.fdopen(handle, "wb") as writer, Path(source).open("rb") as reader:
-        shutil.copyfileobj(reader, writer)
-        writer.flush()
-        os.fsync(writer.fileno())
-    return True
+    return _reserve_by_claim(source, target)
 
 
 def publish_file(
@@ -211,7 +328,7 @@ def publish_file(
         if _reserve(temporary, target):
             _fsync_dir(target.parent)
             return PublishedFile(target, PublishOutcome.PUBLISHED, mine)
-        theirs = sha256_file(target)
+        theirs = _digest_of_the_winner(target)
         if theirs == mine:
             return PublishedFile(target, PublishOutcome.ALREADY_IDENTICAL, theirs)
         raise PublishConflictError(

@@ -451,3 +451,21 @@ def build_paired_world(
     return PairedWorld(
         native=native, canonical=canonical, comparisons=comparisons
     )
+
+
+#: The real policy, loaded once. Derivation now takes one — the flags it
+#: carries govern what a record keeps and which families are counted — so a
+#: test that derives without it would be testing a different configuration
+#: from the one the repository ships.
+def paired_policy():
+    from pathlib import Path as _Path
+
+    from fpbench.paired.policy import load_paired_policy
+
+    return load_paired_policy(
+        _Path(__file__).resolve().parents[1]
+        / "configs"
+        / "comparisons"
+        / "policies"
+        / "sourceafis_native_vs_canonical500_paired_v1.yaml"
+    )

@@ -425,7 +425,7 @@ def _rebuild_paired_evaluation(prepared: PreparedPairedComparison) -> _RebuiltPa
     native, canonical = prepared.native, prepared.canonical
     pair_ids = align_pairs(native=native, canonical=canonical)
     records = build_paired_records(
-        native=native, canonical=canonical, pair_ids=pair_ids
+        native=native, canonical=canonical, pair_ids=pair_ids, policy=prepared.policy
     )
     transitions = build_eligibility_transitions(native=native, canonical=canonical)
     common = build_common_eligible_view(
@@ -443,6 +443,7 @@ def _rebuild_paired_evaluation(prepared: PreparedPairedComparison) -> _RebuiltPa
         common_eligible=common,
         releases=releases,
         source_fingerprints=_source_fingerprints(native, canonical),
+        policy=prepared.policy,
     )
     observations = build_paired_observations(
         records=records,
@@ -559,6 +560,9 @@ def verify_paired_evaluation_against_sources(
             observations=rebuilt.observations,
             records=rebuilt.records,
             generated_utc=str(stored_summary.get("generated_utc") or "verified"),
+            # The same policy the rebuild used, so the fresh summary is
+            # comparable to the stored one field for field.
+            policy=prepared.policy,
         )
         if paired_summary_content_hash(stored_summary) != paired_summary_content_hash(
             expected_summary
@@ -583,6 +587,7 @@ def verify_paired_evaluation_against_sources(
             common_eligible=rebuilt.common,
             transitions=rebuilt.transitions,
             releases=rebuilt.releases,
+            policy=prepared.policy,
         )
         if store.read_report(paired_evaluation_id) != expected_report:
             raise PairedFinalizationError(
@@ -704,6 +709,7 @@ def finalize_paired_evaluation(
         observations=observations,
         records=records,
         generated_utc=_utc_now(),
+        policy=prepared.policy,
     )
     store.ensure_summary(paired_id, summary)
     stored_summary = store.read_summary(paired_id)
@@ -723,6 +729,7 @@ def finalize_paired_evaluation(
         common_eligible=common,
         transitions=transitions,
         releases=releases,
+        policy=prepared.policy,
     )
     store.ensure_report(paired_id, markdown)
     stored_markdown = store.read_report(paired_id)

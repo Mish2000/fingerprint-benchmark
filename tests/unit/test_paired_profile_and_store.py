@@ -17,6 +17,7 @@ and refuses a retyped column.
 
 from __future__ import annotations
 
+from pairedworld import paired_policy
 import copy
 import json
 from pathlib import Path
@@ -227,12 +228,15 @@ def _records(world):
 
     pair_ids = align_pairs(native=world.native, canonical=world.canonical)
     return build_paired_records(
-        native=world.native, canonical=world.canonical, pair_ids=pair_ids
+        native=world.native,
+        canonical=world.canonical,
+        pair_ids=pair_ids,
+        policy=paired_policy(),
     )
 
 
 def test_paired_records_round_trip_exactly(tmp_path):
-    from pairedworld import build_paired_world
+    from pairedworld import build_paired_world, paired_policy
 
     records = _records(build_paired_world())
     table = paired_comparisons_to_table(records)
@@ -251,7 +255,7 @@ def test_paired_records_round_trip_exactly(tmp_path):
 def test_a_retyped_column_is_refused(tmp_path):
     import pyarrow as pa
 
-    from pairedworld import build_paired_world
+    from pairedworld import build_paired_world, paired_policy
 
     table = paired_comparisons_to_table(_records(build_paired_world()))
     retyped = table.set_column(
@@ -264,7 +268,7 @@ def test_a_retyped_column_is_refused(tmp_path):
 
 
 def test_a_null_delta_survives_the_round_trip(tmp_path):
-    from pairedworld import build_paired_world
+    from pairedworld import build_paired_world, paired_policy
 
     world = build_paired_world(
         scores={

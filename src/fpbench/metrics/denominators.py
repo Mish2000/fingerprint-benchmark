@@ -132,6 +132,87 @@ NUMERATORS_FOR_FAMILY: Mapping[str, frozenset[MetricNumerator]] = {
 }
 
 
+#: Which numerators live *inside* each denominator's population.
+#:
+#: The two were checked separately and never against each other, so
+#: ``UNDECIDABLE / DECIDED_ATTEMPTS`` was accepted and returned ``1/9`` — a rate
+#: whose numerator counts the comparisons its denominator was defined to
+#: exclude. That is not a small number or an unusual choice; it is a fraction of
+#: two populations that do not nest, and every reading of it is wrong.
+#:
+#: The rule is subset, stated once here rather than inferred at each call:
+#:
+#: * ``ALL_ATTEMPTS`` and ``ALL_ELIGIBILITY_UNITS`` are the whole population, so
+#:   they admit every outcome their family defines.
+#: * ``DECIDED_ATTEMPTS`` is the comparisons a threshold could be applied to.
+#:   ``UNDECIDABLE`` is by construction not among them, and ``NON_SUCCESS`` is
+#:   ``NON_MATCH + UNDECIDABLE``, so neither nests (docs/adr/0027).
+#: * the conditional denominators are the same distinction over the rows the
+#:   selection rule kept.
+COMPATIBLE_NUMERATORS: Mapping[MetricDenominator, frozenset[MetricNumerator]] = {
+    MetricDenominator.ALL_ATTEMPTS: frozenset(
+        {
+            MetricNumerator.MATCH,
+            MetricNumerator.NON_MATCH,
+            MetricNumerator.UNDECIDABLE,
+            MetricNumerator.NON_SUCCESS,
+            MetricNumerator.INCLUDED,
+            MetricNumerator.EXCLUDED_INELIGIBLE,
+            MetricNumerator.EXCLUDED_UNDETERMINED,
+        }
+    ),
+    MetricDenominator.DECIDED_ATTEMPTS: frozenset(
+        {MetricNumerator.MATCH, MetricNumerator.NON_MATCH}
+    ),
+    MetricDenominator.ALL_ELIGIBILITY_UNITS: frozenset(
+        {
+            MetricNumerator.ELIGIBLE,
+            MetricNumerator.INELIGIBLE,
+            MetricNumerator.UNDETERMINED,
+        }
+    ),
+    MetricDenominator.INCLUDED_CONDITIONAL_ATTEMPTS: frozenset(
+        {
+            MetricNumerator.MATCH,
+            MetricNumerator.NON_MATCH,
+            MetricNumerator.UNDECIDABLE,
+            MetricNumerator.NON_SUCCESS,
+            MetricNumerator.INCLUDED,
+        }
+    ),
+    MetricDenominator.DECIDED_CONDITIONAL_ATTEMPTS: frozenset(
+        {MetricNumerator.MATCH, MetricNumerator.NON_MATCH}
+    ),
+}
+
+
+def require_compatible(definition: MetricDefinition) -> None:
+    """Refuse a metric whose numerator is not inside its denominator.
+
+    Separate from the per-side checks and applied after them, so the message
+    says *why* the pair does not nest rather than that one half is unsupported.
+
+    Raises:
+        MetricPolicyError: the two describe populations that do not nest.
+    """
+    permitted = COMPATIBLE_NUMERATORS.get(definition.denominator)
+    if permitted is None:  # pragma: no cover - every member is in the table
+        raise MetricPolicyError(
+            f"metric {definition.metric_id} names denominator "
+            f"{definition.denominator.value!r}, which has no declared population"
+        )
+    if definition.numerator in permitted:
+        return
+    raise MetricPolicyError(
+        f"metric {definition.metric_id} counts "
+        f"{definition.numerator.value!r} over {definition.denominator.value!r}. "
+        f"That denominator's population is "
+        f"{sorted(item.value for item in permitted)}, so the numerator counts "
+        "comparisons the denominator excludes and the fraction is not a rate "
+        "of anything (docs/adr/0026, docs/adr/0027)"
+    )
+
+
 def resolve(
     *, definition: MetricDefinition, record: EvaluationCountRecord
 ) -> tuple[int, int]:
@@ -141,9 +222,9 @@ def resolve(
     that re-checks them, so the two cannot disagree about what a denominator was.
 
     Raises:
-        MetricPolicyError: the record is not the family the metric reads, or the
+        MetricPolicyError: the record is not the family the metric reads, the
             metric names a numerator or denominator that population cannot
-            supply.
+            supply, or the two do not nest.
     """
     if record.count_family != definition.metric_family:
         raise MetricPolicyError(
@@ -151,6 +232,26 @@ def resolve(
             f"{definition.metric_family!r}, but was handed a "
             f"{record.count_family!r} record"
         )
+
+    # Order matters. "This family does not have that denominator at all" is a
+    # more specific answer than "the two do not nest", and a reader given the
+    # second when the first is true goes looking for the wrong mistake. Both run
+    # before any count is read.
+    _require_supported(
+        family=definition.metric_family,
+        value=definition.numerator,
+        allowed=NUMERATORS_FOR_FAMILY[definition.metric_family],
+        what="numerator",
+        metric_id=definition.metric_id,
+    )
+    _require_supported(
+        family=definition.metric_family,
+        value=definition.denominator,
+        allowed=DENOMINATORS_FOR_FAMILY[definition.metric_family],
+        what="denominator",
+        metric_id=definition.metric_id,
+    )
+    require_compatible(definition)
     return (
         resolve_numerator(definition=definition, record=record),
         resolve_denominator(definition=definition, record=record),

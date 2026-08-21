@@ -52,7 +52,7 @@ from fpbench.storage.paired_evaluation_store import (
     report_content_hash,
 )
 
-from pairedworld import build_paired_world
+from pairedworld import build_paired_world, paired_policy
 
 pytestmark = [pytest.mark.paired_evaluation]
 
@@ -89,7 +89,10 @@ def _derive(tmp_path: Path, *, finalize: bool = True) -> _Derived:
 
     pair_ids = align_pairs(native=native, canonical=canonical)
     records = build_paired_records(
-        native=native, canonical=canonical, pair_ids=pair_ids
+        native=native,
+        canonical=canonical,
+        pair_ids=pair_ids,
+        policy=paired_policy(),
     )
     transitions = build_eligibility_transitions(native=native, canonical=canonical)
     common = build_common_eligible_view(
@@ -114,6 +117,7 @@ def _derive(tmp_path: Path, *, finalize: bool = True) -> _Derived:
                 canonical.eligibility_manifest.eligibility_set_fingerprint
             ),
         },
+        policy=paired_policy(),
     )
     observations = build_paired_observations(
         records=records,
@@ -170,6 +174,7 @@ def _derive(tmp_path: Path, *, finalize: bool = True) -> _Derived:
         observations=observations,
         records=records,
         generated_utc="2026-01-01T00:00:00+00:00",
+        policy=paired_policy(),
     )
     store.ensure_summary(paired_id, summary)
 
@@ -227,6 +232,7 @@ def _render(derived: _Derived) -> str:
         common_eligible=derived.common,
         transitions=derived.transitions,
         releases=derived.releases,
+        policy=paired_policy(),
     )
 
 
@@ -354,6 +360,11 @@ def _verify_against_synthetic_sources(derived, monkeypatch):
             "policy_id": "synthetic_v1",
             "policy_fingerprint": "e" * 64,
             "document": {"policy": {"policy_id": "synthetic_v1"}},
+            # Derivation reads these now, so a stub that omits them is a stub
+            # of a policy that could not govern anything.
+            "retain_pair_delta": True,
+            "report_direction_counts": True,
+            "transition_families": paired_policy().transition_families,
         },
     )()
     config = experiment.PairedComparisonConfig(
@@ -620,6 +631,7 @@ def test_a_failed_control_may_not_be_finalised(tmp_path):
             native=moved.native,
             canonical=moved.canonical,
             pair_ids=align_pairs(native=moved.native, canonical=moved.canonical),
+            policy=paired_policy(),
         )
     )
     assert not broken.is_clean

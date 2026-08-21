@@ -46,6 +46,7 @@ import stat
 from pathlib import Path
 from typing import Mapping
 
+from fpbench.core.atomic_write import PublishConflictError, publish_file
 from fpbench.core.errors import RuntimeBundleConflictError, StorageError
 from fpbench.core.runtime_models import (
     CONTENT_ADDRESSED_COPY_V1,
@@ -337,30 +338,40 @@ class RuntimeBundleStore:
     def _copy_verified(
         self, source: Path, target: Path, *, expected: tuple[str, int]
     ) -> Path:
-        """Copy bytes, hash what was written, fsync, then replace atomically."""
-        expected_digest, expected_size = expected
-        target.parent.mkdir(parents=True, exist_ok=True)
-        tmp = target.with_name(target.name + ".tmp")
+        """Copy bytes, hash what was written, fsync, then publish exactly once.
 
-        digest = hashlib.sha256()
-        written = 0
-        try:
-            with source.open("rb") as reader, tmp.open("wb") as writer:
+        The scratch name is unique and the publication is create-if-absent, like
+        every other store since ADR 0139. A bundle asset is content-addressed
+        and read-only once placed, so a second writer arriving at the same name
+        is either storing the same bytes — reported, not silently accepted — or
+        storing different bytes under a digest that says they cannot be
+        different.
+        """
+        expected_digest, expected_size = expected
+
+        def _write(temporary: Path) -> None:
+            digest = hashlib.sha256()
+            written = 0
+            with source.open("rb") as reader, temporary.open("wb") as writer:
                 for chunk in iter(lambda: reader.read(_READ_CHUNK), b""):
                     writer.write(chunk)
                     digest.update(chunk)
                     written += len(chunk)
                 writer.flush()
                 os.fsync(writer.fileno())
-
             if digest.hexdigest() != expected_digest or written != expected_size:
                 raise StorageError(
                     f"the copy of {source.name} does not match the source it was "
                     "read from; the file changed while it was being materialised"
                 )
-            tmp.replace(target)
-        finally:
-            tmp.unlink(missing_ok=True)
+
+        try:
+            publish_file(target, _write, what=f"runtime asset {target.name}")
+        except PublishConflictError as exc:
+            raise StorageError(
+                f"{target} already holds different bytes than this bundle copy "
+                f"produced ({exc})"
+            ) from exc
 
         _preserve_executable_bits(source, target)
         _make_read_only(target)

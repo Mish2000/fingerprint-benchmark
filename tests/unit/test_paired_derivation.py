@@ -56,7 +56,7 @@ from fpbench.paired import (
     require_comparable_runs,
 )
 from fpbench.paired.derive import ALL_ELIGIBILITY_KEYS, OBSERVATION_IDS
-from pairedworld import CONTROL_RELEASE, RELEASES, build_paired_world
+from pairedworld import CONTROL_RELEASE, RELEASES, build_paired_world, paired_policy
 
 pytestmark = [pytest.mark.paired_evaluation]
 
@@ -71,7 +71,10 @@ def world():
 def _derive(world):
     pair_ids = align_pairs(native=world.native, canonical=world.canonical)
     records = build_paired_records(
-        native=world.native, canonical=world.canonical, pair_ids=pair_ids
+        native=world.native,
+        canonical=world.canonical,
+        pair_ids=pair_ids,
+        policy=paired_policy(),
     )
     transitions = build_eligibility_transitions(
         native=world.native, canonical=world.canonical
@@ -349,6 +352,7 @@ def test_every_family_is_counted_at_every_scope(world):
         common_eligible=common,
         releases=release_order(world.native),
         source_fingerprints={},
+        policy=paired_policy(),
     )
     families = {record.family for record in counts}
     assert families == {
@@ -372,6 +376,7 @@ def test_every_cell_is_present_even_when_zero(world):
         common_eligible=common,
         releases=release_order(world.native),
         source_fingerprints={},
+        policy=paired_policy(),
     )
     for record in counts:
         expected = (
@@ -391,6 +396,7 @@ def test_pooled_counts_are_the_sum_of_the_release_counts(world):
         common_eligible=common,
         releases=release_order(world.native),
         source_fingerprints={},
+        policy=paired_policy(),
     )
     by_key = {(record.family, record.scope.label): record for record in counts}
     for family in {record.family for record in counts}:
@@ -412,6 +418,7 @@ def test_every_row_lands_in_exactly_one_cell(world):
         common_eligible=common,
         releases=release_order(world.native),
         source_fingerprints={},
+        policy=paired_policy(),
     )
     for record in counts:
         assert sum(record.counts.values()) == record.total

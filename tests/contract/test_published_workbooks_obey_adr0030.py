@@ -79,6 +79,41 @@ def _shared_strings(path: Path) -> list[str]:
     ]
 
 
+def _cell_text(cell: ET.Element, strings: list[str]) -> str | None:
+    """One cell's text, however the workbook chose to store it.
+
+    Three storage forms, and reading only the first is how this test came to
+    pass over an empty header row: a shared-string index, an inline string, or a
+    plain value. A checker that silently sees nothing reports no violation,
+    which is indistinguishable from a clean workbook.
+    """
+    if cell.get("t") == "inlineStr":
+        node = cell.find(f"{MAIN}is")
+        if node is None:
+            return None
+        return "".join(part.text or "" for part in node.iter(f"{MAIN}t"))
+    value = cell.find(f"{MAIN}v")
+    if value is None or value.text is None:
+        return None
+    if cell.get("t") == "s":
+        return strings[int(value.text)]
+    return str(value.text)
+
+
+def _all_text(path: Path) -> list[str]:
+    """Every string in the sheet, whichever form it is stored in."""
+    strings = _shared_strings(path)
+    with zipfile.ZipFile(path) as archive:
+        sheet = ET.fromstring(archive.read("xl/worksheets/sheet1.xml"))
+    texts = [
+        text
+        for row in sheet.iter(f"{MAIN}row")
+        for cell in row
+        if (text := _cell_text(cell, strings)) is not None
+    ]
+    return texts + strings
+
+
 def _header_row(path: Path) -> list[str]:
     strings = _shared_strings(path)
     with zipfile.ZipFile(path) as archive:
@@ -86,14 +121,9 @@ def _header_row(path: Path) -> list[str]:
     for row in sheet.iter(f"{MAIN}row"):
         if row.get("r") != "1":
             continue
-        headers = []
-        for cell in row:
-            value = cell.find(f"{MAIN}v")
-            if value is None:
-                continue
-            headers.append(
-                strings[int(value.text)] if cell.get("t") == "s" else str(value.text)
-            )
+        headers = [
+            text for cell in row if (text := _cell_text(cell, strings)) is not None
+        ]
         return headers
     return []
 
@@ -102,9 +132,12 @@ def _header_row(path: Path) -> list[str]:
 def test_no_column_names_the_sanity_fraction_as_a_rate(workbook: Path) -> None:
     if NEGATIVE_SANITY not in workbook.stem:
         pytest.skip("ADR 0030 governs the same-subject different-finger set only")
-    offending = [
-        header for header in _header_row(workbook) if _RATE_NAME.search(header)
-    ]
+    headers = _header_row(workbook)
+    assert headers, (
+        f"{workbook.name} yielded no header row. That is a fault in this "
+        "reader, not a clean workbook — an empty scan finds no violation"
+    )
+    offending = [header for header in headers if _RATE_NAME.search(header)]
     assert not offending, (
         f"{workbook.name} heads a column {offending!r}. ADR 0030: the "
         "same-subject / different-finger sanity fraction is published as an "
@@ -116,7 +149,7 @@ def test_no_column_names_the_sanity_fraction_as_a_rate(workbook: Path) -> None:
 def test_no_comment_states_the_sanity_fraction_as_a_rate(workbook: Path) -> None:
     if NEGATIVE_SANITY not in workbook.stem:
         pytest.skip("ADR 0030 governs the same-subject different-finger set only")
-    for text in _shared_strings(workbook):
+    for text in _all_text(workbook):
         assertion = _RATE_ASSERTION.search(text)
         assert assertion is None, (
             f"{workbook.name} states {assertion.group(0)!r}: "

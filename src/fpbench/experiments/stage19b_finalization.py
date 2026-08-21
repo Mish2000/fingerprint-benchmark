@@ -32,8 +32,14 @@ from typing import Any, Mapping, Sequence
 
 from fpbench.adapters.openafis import capacity_extended as variant
 from fpbench.adapters.openafis.adapter import PIPELINE_METADATA as BASE_PIPELINE_METADATA
+from fpbench.core.json_io import publish_evidence_document
 from fpbench.core.serialization import read_json
-from fpbench.experiments.stage18a_inputs import REPOSITORY_ROOT
+from fpbench.experiments.stage18a_inputs import DEFAULT_WORKSPACE, REPOSITORY_ROOT
+from fpbench.experiments.stage19_pair_manifest import (
+    CanonicalPairManifest,
+    load_canonical_pair_manifest,
+    pairs_path_for,
+)
 from fpbench.experiments.stage19_result_integrity import (
     OutcomeStoreIntegrity,
     Stage19ResultIntegrityError,
@@ -88,6 +94,7 @@ _SOURCE_FILES = (
     "src/fpbench/experiments/stage19b_diagnostics.py",
     "src/fpbench/experiments/stage19b_finalization.py",
     "src/fpbench/experiments/stage19_result_integrity.py",
+    "src/fpbench/experiments/stage19_pair_manifest.py",
     "scripts/stage19b_gate_a.py",
     "scripts/stage19b_canonical_run.py",
     "scripts/stage19b_determinism.py",
@@ -209,21 +216,58 @@ def build_patch_provenance(patch: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+#: What Stage 19B is defined over. Read against the artifact rather than
+#: written into the binding: see ``_pair_manifest``.
+REFERENCE_PROTOCOL_ID = "sd300_50_subjects"
+REFERENCE_COHORT_ID = "sd300_50_subjects_test_22f8d52a7478"
+REFERENCE_PAIR_MANIFEST_HASH = (
+    "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b"
+)
+EXPECTED_OUTCOMES = 6000
+
+
+def _pair_manifest(workspace: Path | None) -> CanonicalPairManifest:
+    """The comparisons this stage is defined over, loaded from the cohort.
+
+    The constant above is what the artifact must *prove*; the hash that reaches
+    the binding is the one re-derived from the artifact's own rows.
+    """
+    root = Path(workspace) if workspace is not None else DEFAULT_WORKSPACE
+    try:
+        return load_canonical_pair_manifest(
+            pairs_path_for(root, REFERENCE_PROTOCOL_ID, REFERENCE_COHORT_ID),
+            expected_pair_manifest_hash=REFERENCE_PAIR_MANIFEST_HASH,
+        )
+    except Stage19ResultIntegrityError as exc:
+        raise Stage19BFinalizationError(str(exc)) from None
+
+
 def _outcome_integrity(
-    outcomes: Path, diagnostics: Mapping[str, Any]
+    outcomes: Path,
+    diagnostics: Mapping[str, Any],
+    manifest: CanonicalPairManifest,
 ) -> OutcomeStoreIntegrity:
     try:
         return verify_outcome_store_integrity(
-            outcomes, diagnostics, expected_outcomes=6000
+            outcomes,
+            diagnostics,
+            manifest=manifest.pairs,
+            algorithm_id=variant.ALGORITHM_ID,
+            pair_manifest_hash=manifest.pair_manifest_hash,
+            expected_outcomes=EXPECTED_OUTCOMES,
         )
     except Stage19ResultIntegrityError as exc:
         raise Stage19BFinalizationError(str(exc)) from None
 
 
 def build_canonical_run_binding(
-    diagnostics: Mapping[str, Any], *, outcomes: Path
+    diagnostics: Mapping[str, Any],
+    *,
+    outcomes: Path,
+    workspace: Path | None = None,
 ) -> dict[str, Any]:
-    integrity = _outcome_integrity(outcomes, diagnostics)
+    manifest = _pair_manifest(workspace)
+    integrity = _outcome_integrity(outcomes, diagnostics, manifest)
     counts = diagnostics.get("outcome_counts", {})
     reasons = diagnostics.get("failure_reasons", {})
     return {
@@ -231,7 +275,8 @@ def build_canonical_run_binding(
         "stage": "19B",
         "algorithm_id": variant.ALGORITHM_ID,
         "preparation_set_id": "prepset_be560e047991",
-        "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+        # From ``integrity.describe()`` below. The literal that used to sit here
+        # was a claim about the manifest that nothing compared to the manifest.
         "nbis_build_id": "658f9f54a8f2",
         **integrity.describe(),
         "threshold_applied": None,
@@ -383,9 +428,9 @@ def write_stage19b_documents(
     written: dict[str, Path] = {}
 
     def _write(name: str, payload: Any) -> None:
-        path = directory / name
-        path.write_bytes((json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode("utf-8"))
-        written[name] = path
+        # Through the sanitising door, so a stage document cannot publish a
+        # path that names the machine it ran on.
+        written[name] = publish_evidence_document(directory / name, payload)
 
     _write("variant-identity.json", build_variant_identity())
     _write("patch-provenance.json", build_patch_provenance(patch))

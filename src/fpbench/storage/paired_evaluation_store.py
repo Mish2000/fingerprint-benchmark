@@ -50,6 +50,7 @@ from fpbench.core.provenance_models import SoftwareProvenance
 from fpbench.core.serialization import read_json, stable_hash, to_plain
 from fpbench.core.json_io import write_json
 from fpbench.storage import layout, paired_schemas
+from fpbench.storage.immutable_publication import claim_document
 from fpbench.storage.atomic_parquet import replace_table
 
 __all__ = ["PairedEvaluationStore", "paired_summary_content_hash", "report_content_hash"]
@@ -192,14 +193,13 @@ class PairedEvaluationStore:
         self, paired_id: str, definition: PairedEvaluationDefinition
     ) -> Path:
         path = self.definition_path(paired_id)
-        if path.is_file():
+        if not claim_document(path, definition):
             stored = self.read_definition(paired_id)
             if stored.definition_fingerprint != definition.definition_fingerprint:
                 raise PairedEvaluationConflictError(
                     f"{path} already pins a different paired definition"
                 )
-            return path
-        return write_json(path, definition)
+        return path
 
     def ensure_policy(self, paired_id: str, policy: Mapping[str, object]) -> Path:
         """Store the policy beside the numbers, not merely a reference to it.
@@ -209,14 +209,13 @@ class PairedEvaluationStore:
         silently mean something different after the next edit.
         """
         path = self.policy_path(paired_id)
-        if path.is_file():
+        if not claim_document(path, dict(policy)):
             stored = self.read_policy(paired_id)
             if to_plain(stored) != to_plain(dict(policy)):
                 raise PairedEvaluationConflictError(
                     f"{path} already carries a different paired policy"
                 )
-            return path
-        return write_json(path, dict(policy))
+        return path
 
     def ensure_records(
         self, paired_id: str, records: tuple[PairedComparisonRecord, ...]
@@ -277,21 +276,20 @@ class PairedEvaluationStore:
         self, paired_id: str, audit: NativeCanonicalControlAudit
     ) -> Path:
         path = self.control_audit_path(paired_id)
-        if path.is_file():
+        if not claim_document(path, audit):
             stored = self.read_control_audit(paired_id)
             if stored.audit_fingerprint != audit.audit_fingerprint:
                 raise PairedEvaluationConflictError(
                     f"{path} already carries a different control audit"
                 )
-            return path
-        return write_json(path, audit)
+        return path
 
     def ensure_manifest(
         self, manifest: PairedEvaluationManifest
     ) -> Path:
         """The marker that says the comparison is readable. Written last of six."""
         path = self.manifest_path(manifest.paired_evaluation_id)
-        if path.is_file():
+        if not claim_document(path, manifest):
             stored = self.read_manifest(manifest.paired_evaluation_id)
             if (
                 stored.paired_evaluation_fingerprint
@@ -301,14 +299,13 @@ class PairedEvaluationStore:
                     f"{path} already holds paired comparison "
                     f"{stored.paired_evaluation_id}; refusing to replace it"
                 )
-            return path
-        return write_json(path, manifest)
+        return path
 
     def ensure_summary(
         self, paired_id: str, summary: Mapping[str, object]
     ) -> Path:
         path = self.summary_path(paired_id)
-        if path.is_file():
+        if not claim_document(path, dict(summary)):
             stored = self.read_summary(paired_id)
             if paired_summary_content_hash(stored) != paired_summary_content_hash(
                 summary
@@ -316,8 +313,7 @@ class PairedEvaluationStore:
                 raise PairedEvaluationConflictError(
                     f"{path} already carries a different paired summary"
                 )
-            return path
-        return write_json(path, dict(summary))
+        return path
 
     def ensure_report(self, paired_id: str, markdown: str) -> Path:
         path = self.report_path(paired_id)
@@ -334,7 +330,7 @@ class PairedEvaluationStore:
         self, paired_id: str, receipt: PairedEvaluationReceipt
     ) -> Path:
         path = self.receipt_path(paired_id)
-        if path.is_file():
+        if not claim_document(path, receipt):
             stored = self.read_receipt(paired_id)
             if paired_receipt_fingerprint(stored) != paired_receipt_fingerprint(
                 receipt
@@ -342,21 +338,19 @@ class PairedEvaluationStore:
                 raise PairedEvaluationConflictError(
                     f"{path} already carries a different paired receipt"
                 )
-            return path
-        return write_json(path, receipt)
+        return path
 
     def ensure_finalization(
         self, paired_id: str, marker: PairedFinalizationMarker
     ) -> Path:
         path = self.finalization_path(paired_id)
-        if path.is_file():
+        if not claim_document(path, marker):
             stored = self.read_finalization(paired_id)
             if stored.finalization_fingerprint != marker.finalization_fingerprint:
                 raise PairedEvaluationConflictError(
                     f"{path} already finalises a different paired comparison"
                 )
-            return path
-        return write_json(path, marker)
+        return path
 
     # -------------------------------------------------------------------- read
 

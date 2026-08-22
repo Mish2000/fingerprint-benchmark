@@ -56,6 +56,7 @@ from fpbench.core.serialization import read_json, stable_hash, to_plain
 from fpbench.core.json_io import publish_json, write_json
 from fpbench.storage import layout, prepared_image_schemas
 from fpbench.core.atomic_write import PublishConflictError, publish_file
+from fpbench.storage.immutable_publication import claim_document
 from fpbench.storage.atomic_parquet import replace_table
 
 __all__ = ["PreparedImageSetStore", "ImageWriteOutcome"]
@@ -203,7 +204,7 @@ class PreparedImageSetStore:
         what the pixels were actually produced under.
         """
         path = self.profile_path(Path(container))
-        if path.is_file():
+        if not claim_document(path, profile):
             stored = self.read_transform_profile(container)
             if stored.profile_fingerprint != profile.profile_fingerprint:
                 raise PreparedImageSetConflictError(
@@ -211,14 +212,13 @@ class PreparedImageSetStore:
                     f"{stored.profile_id} ({stored.profile_fingerprint[:12]}...); "
                     f"refusing to replace it with {profile.profile_fingerprint[:12]}..."
                 )
-            return path
-        return write_json(path, profile)
+        return path
 
     def ensure_runtime(
         self, container: Path, runtime: TransformRuntimeManifest
     ) -> Path:
         path = self.runtime_path(Path(container))
-        if path.is_file():
+        if not claim_document(path, runtime):
             stored = self.read_runtime(container)
             if stored.runtime_fingerprint != runtime.runtime_fingerprint:
                 raise PreparedImageSetConflictError(
@@ -226,19 +226,17 @@ class PreparedImageSetStore:
                     f"{stored.runtime_id}; refusing to replace it with "
                     f"{runtime.runtime_id}"
                 )
-            return path
-        return write_json(path, runtime)
+        return path
 
     def ensure_definition(self, definition: PreparationDefinition) -> Path:
         path = self.definition_path(self.pending_dir(definition.definition_id))
-        if path.is_file():
+        if not claim_document(path, definition):
             stored = self.read_definition(self.pending_dir(definition.definition_id))
             if stored.definition_fingerprint != definition.definition_fingerprint:
                 raise PreparedImageSetConflictError(
                     f"{path} already defines a different preparation"
                 )
-            return path
-        return write_json(path, definition)
+        return path
 
     # -------------------------------------------------------------- image bytes
 
@@ -326,7 +324,7 @@ class PreparedImageSetStore:
     def ensure_entry(self, definition_id: str, entry: PreparedImageEntry) -> Path:
         """Record one finished image, or confirm the recorded one is already it."""
         path = self.entry_path(definition_id, str(entry.image_id))
-        if path.is_file():
+        if not claim_document(path, entry):
             stored = self.read_entry_by_image_id(definition_id, entry.image_id)
             if stored.entry_hash != entry.entry_hash:
                 raise PreparedImageSetConflictError(
@@ -339,8 +337,7 @@ class PreparedImageSetStore:
                     f"{path} records {entry.image_id} at ordinal {stored.ordinal}, "
                     f"not {entry.ordinal}"
                 )
-            return path
-        return write_json(path, entry)
+        return path
 
     def read_entry_by_image_id(
         self, definition_id: str, image_id: str
@@ -421,14 +418,13 @@ class PreparedImageSetStore:
         self, container: Path, definition: PreparationDefinition
     ) -> Path:
         path = self.definition_path(Path(container))
-        if path.is_file():
+        if not claim_document(path, definition):
             stored = self.read_definition(container)
             if stored.definition_fingerprint != definition.definition_fingerprint:
                 raise PreparedImageSetConflictError(
                     f"{path} already holds a different preparation definition"
                 )
-            return path
-        return write_json(path, definition)
+        return path
 
     def ensure_entries_table(
         self,
@@ -478,7 +474,7 @@ class PreparedImageSetStore:
         verified set summarised twice is the same summary.
         """
         path = self.summary_path(preparation_set_id)
-        if path.is_file():
+        if not claim_document(path, dict(summary)):
             stored = self.read_summary(preparation_set_id)
             if preparation_summary_content_hash(
                 stored
@@ -486,19 +482,19 @@ class PreparedImageSetStore:
                 raise PreparedImageSetConflictError(
                     f"{path} already carries a different preparation summary"
                 )
-            return path
-        return write_json(path, dict(summary))
+        return path
 
     def ensure_receipt(
         self, *, preparation_set_id: str, receipt: PreparationReceipt
     ) -> Path:
         path = self.receipt_path(preparation_set_id)
-        if path.is_file():
+        if not claim_document(path, receipt):
             try:
                 stored = self.read_receipt(preparation_set_id)
             except StorageError:
                 payload = read_json(path)
                 if _is_preparation_receipt_schema_upgrade(payload, receipt):
+                    # The one replacement there is, and it keeps the old bytes.
                     _archive_preparation_publication(path)
                     return write_json(path, receipt)
                 raise
@@ -508,22 +504,20 @@ class PreparedImageSetStore:
                 raise PreparedImageSetConflictError(
                     f"{path} already carries a different preparation receipt"
                 )
-            return path
-        return write_json(path, receipt)
+        return path
 
     def ensure_transform_audit(
         self, *, preparation_set_id: str, audit: PreparationTransformAudit
     ) -> Path:
         """Write the full transform audit once, or confirm it is equivalent."""
         path = self.transform_audit_path(preparation_set_id)
-        if path.is_file():
+        if not claim_document(path, audit):
             stored = self.read_transform_audit(preparation_set_id)
             if stored.audit_fingerprint != audit.audit_fingerprint:
                 raise PreparedImageSetConflictError(
                     f"{path} already carries a different transform audit"
                 )
-            return path
-        return write_json(path, audit)
+        return path
 
     def ensure_audit_runtime(
         self,
@@ -535,7 +529,7 @@ class PreparedImageSetStore:
         path = self.audit_runtime_path(
             preparation_set_id, runtime.runtime_fingerprint
         )
-        if path.is_file():
+        if not claim_document(path, runtime):
             stored = self.read_audit_runtime(
                 preparation_set_id, runtime.runtime_fingerprint
             )
@@ -549,15 +543,14 @@ class PreparedImageSetStore:
                     raise PreparedImageSetConflictError(
                         f"{path} already carries different audit-runtime claims"
                     )
-            return path
-        return write_json(path, runtime)
+        return path
 
     def ensure_finalization(
         self, *, preparation_set_id: str, marker: PreparationFinalizationMarker
     ) -> Path:
         """Write the last file, the one that makes the rest authoritative."""
         path = self.finalization_path(preparation_set_id)
-        if path.is_file():
+        if not claim_document(path, marker):
             try:
                 stored = self.read_finalization(preparation_set_id)
             except StorageError:
@@ -570,8 +563,7 @@ class PreparedImageSetStore:
                 raise PreparedImageSetConflictError(
                     f"{path} already finalises a different preparation"
                 )
-            return path
-        return write_json(path, marker)
+        return path
 
     # --------------------------------------------------------------------- read
 

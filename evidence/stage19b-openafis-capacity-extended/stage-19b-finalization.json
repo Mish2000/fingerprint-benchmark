@@ -23,7 +23,7 @@
   },
   "bound_markers": [
     {
-      "finalization_fingerprint": "0237fbbff907b5d2c6ec245f221305dc42c51b8693444585b5bfc0891b997c4e",
+      "finalization_fingerprint": "b14bb403be07eb52cf2e8b2a54c9f36af6896a9e363cae97f20b85293d9872db",
       "outcome": "MINDTCT_OPENAFIS_CANONICAL500_RAW_COMPLETE",
       "stage": "19A",
       "why": "the unmodified route this stage extends, and the source of Gate A's 1,583 baseline scores"
@@ -75,8 +75,8 @@
   "secugen_reference_used_for_parameter_selection": false,
   "shares_extractor_with": "nbis_mindtct_bozorth3",
   "stage": "19B",
-  "stage19b_source_fingerprint": "a7b5c4df268a646b8d83f5203747dda976cc42de0c60c840d9fb13ccc0df4553",
-  "stage_19b_finalization_fingerprint": "b92c5a409270ae123b0af9f51edf62d5913b9f2f483db8069b7cc6896f09ca0a",
+  "stage19b_source_fingerprint": "3cd4d0e2fbdfc55464df310e7195d9fdd17d6e2a7d662cd542a28f559c477fdc",
+  "stage_19b_finalization_fingerprint": "67e271911ed50d1d9aa1ff3eccdd46ef1d6dc918d6cf34d9b7f4323c66f24235",
   "stored_outcomes": 6000,
   "supervisor_disclosure": "NBIS MINDTCT + OpenAFIS (capacity-extended variant) — composition defined by the project. It shares the MINDTCT extractor with the NBIS/BOZORTH3 method and differs primarily in the matcher. The OpenAFIS source was minimally modified to permit CSV templates containing more than the upstream limit of 128 minutiae; the original behavior was verified unchanged on all 1,583 previously accepted comparisons.",
   "threshold": null,

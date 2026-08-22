@@ -27,6 +27,7 @@ import datetime as _dt
 from typing import Any, Mapping
 
 from fpbench.adapters.base import FingerprintAlgorithmAdapter
+from fpbench.adapters.runtime_recheck import rechecks_runtime_per_comparison
 from fpbench.core.content_closure import (
     ContentClosureBinding,
     NativeDependency,
@@ -132,8 +133,14 @@ class ResearchModeAdapter(FingerprintAlgorithmAdapter):
             native_dependencies=assets,
             runtime_assets=RuntimeAssetBinding(
                 assets=assets,
-                rechecked_per_comparison=bool(
-                    getattr(self._delegate, "rechecks_runtime_per_comparison", False)
+                # Read off the adapter's own code. It used to be
+                # ``getattr(delegate, "rechecks_runtime_per_comparison", False)``
+                # over an attribute no adapter defines, so the closure published
+                # ``false`` for all six — every one of which calls
+                # ``check_runtime_integrity()`` inside ``compare``. A provenance
+                # claim that understates is still a claim that is wrong.
+                rechecked_per_comparison=rechecks_runtime_per_comparison(
+                    self._delegate
                 ),
             ),
             source_identity=SourceIdentity(

@@ -939,3 +939,34 @@ def test_a_run_with_an_unclassified_failure_is_not_complete() -> None:
     )
     with pytest.raises(Stage20BFinalizationError, match="no_unclassified_failure"):
         _marker_for(_clean_integrity(), binding)
+
+
+def test_a_run_that_scored_nothing_is_not_a_complete_raw_run() -> None:
+    """ADR 0128 in Stage 20B: an existence requirement, not a threshold.
+
+    A result set with no score is not a raw matcher's output, whatever else
+    about it verifies. ``mcc_full_score_coverage`` already noticed, and it only
+    decided the *preference*; the outcome and ``publication_eligible`` did not
+    read it.
+    """
+    from fpbench.experiments.stage20b_finalization import Stage20BFinalizationError
+
+    integrity = _clean_integrity(score_bearing=0)
+    binding = _clean_binding(
+        outcome_counts={"MCC_TEMPLATE_REFUSAL_LEFT": frozen.EXPECTED_OUTCOMES},
+        failure_reasons={},
+        unclassified_failures=0,
+    )
+    with pytest.raises(Stage20BFinalizationError, match="at_least_one_score"):
+        _marker_for(integrity, binding)
+
+
+def test_the_status_vocabulary_is_the_routes_own() -> None:
+    """The validator is handed the adapter's list, not a subset written here."""
+    from fpbench.adapters.mcc.failure_mapping import STAGE20B_STATUSES
+    from fpbench.experiments.stage20b_finalization import ALLOWED_STATUSES
+
+    assert ALLOWED_STATUSES == frozenset(STAGE20B_STATUSES)
+    assert "OK" in ALLOWED_STATUSES
+    # A status belonging to the other Stage 19 route is not this route's.
+    assert "OPENAFIS_MATCH_FAILED" not in ALLOWED_STATUSES

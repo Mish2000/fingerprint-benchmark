@@ -268,3 +268,57 @@ def test_the_refusal_names_the_part_that_moved(tmp_path) -> None:
         world.job_runner()
     assert "source_commit" in str(refusal.value)
     assert "closure_fingerprint" in str(refusal.value)
+
+
+def test_a_deleted_binding_cannot_rebind_a_run_that_has_results(tmp_path) -> None:
+    """Create-if-absent stops a second writer; it does not stop a deletion.
+
+    The reviewer's route: store a result under closure A, delete the sidecar,
+    resume under commit B. The new binding published without objection and the
+    result produced under A stayed where it was, with nothing left saying which
+    closure it belongs to. The results are the evidence that this run already
+    ran, and they are not deletable in the same breath as the binding.
+    """
+    from fpbench.core.errors import ResultConflictError
+    from runworld import build_world
+
+    world = build_world(tmp_path / "world", research=True)
+    runner = world.job_runner()
+    planned = world.plan.jobs[0]
+    runner.execute(planned.job, world.pair_index[planned.job.pair_id])
+
+    store = world.result_store
+    assert store.stored_job_ids(world.run.run_id), "the probe stored no result"
+    store.closure_binding_path(world.run.run_id).unlink()
+
+    world.adapter = _Moved(world.adapter, "0" * 40)
+    with pytest.raises(ResultConflictError, match="no content-closure binding"):
+        world.job_runner()
+
+
+def test_a_deleted_preparer_binding_is_refused_the_same_way(tmp_path) -> None:
+    """The sibling binding, and the same deletion."""
+    from fpbench.core.errors import ResultConflictError
+    from runworld import build_world
+
+    world = build_world(tmp_path / "world", research=True)
+    runner = world.job_runner()
+    planned = world.plan.jobs[0]
+    runner.execute(planned.job, world.pair_index[planned.job.pair_id])
+
+    store = world.result_store
+    store.preparer_binding_path(world.run.run_id).unlink()
+    with pytest.raises(ResultConflictError, match="no preparer binding"):
+        world.job_runner()
+
+
+def test_a_run_with_no_results_may_still_acquire_its_first_binding(tmp_path) -> None:
+    """The normal case must stay normal: nothing has been produced yet."""
+    from runworld import build_world
+
+    world = build_world(tmp_path / "world", research=True)
+    world.job_runner()
+    store = world.result_store
+    store.closure_binding_path(world.run.run_id).unlink()
+    world.job_runner()
+    assert store.has_closure_binding(world.run.run_id)

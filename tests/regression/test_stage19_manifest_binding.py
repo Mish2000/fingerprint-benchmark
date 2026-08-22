@@ -21,7 +21,11 @@ from fpbench.experiments.stage19_result_integrity import (
     verify_outcome_store_integrity,
 )
 
+from fpbench.adapters.openafis.failure_mapping import STAGE19_STATUSES
+
 ALGORITHM = "nbis_mindtct_openafis"
+#: The route's whole status vocabulary, from the adapter that produces it.
+STATUSES = frozenset(STAGE19_STATUSES)
 MANIFEST_HASH = "e" * 64
 
 #: The reasons this route has classified. Anything else a store carries is a
@@ -112,6 +116,7 @@ def _verify(tmp_path: Path, rows: list[dict], manifest=None):
         algorithm_id=ALGORITHM,
         pair_manifest_hash=MANIFEST_HASH,
         classified_failure_reasons=CLASSIFIED,
+        allowed_statuses=STATUSES,
     )
 
 
@@ -232,6 +237,7 @@ def test_diagnostics_that_overstate_the_scored_population_are_refused(
             algorithm_id=ALGORITHM,
             pair_manifest_hash=MANIFEST_HASH,
             classified_failure_reasons=CLASSIFIED,
+            allowed_statuses=STATUSES,
         )
 
 
@@ -283,6 +289,7 @@ def test_the_reasons_a_run_failed_are_counted_not_reported(tmp_path: Path) -> No
             algorithm_id=ALGORITHM,
             pair_manifest_hash=MANIFEST_HASH,
             classified_failure_reasons=CLASSIFIED,
+            allowed_statuses=STATUSES,
         )
 
 
@@ -307,6 +314,7 @@ def test_the_derived_reasons_are_what_the_store_holds(tmp_path: Path) -> None:
         algorithm_id=ALGORITHM,
         pair_manifest_hash=MANIFEST_HASH,
         classified_failure_reasons=CLASSIFIED,
+        allowed_statuses=STATUSES,
     )
     assert integrity.capacity_failures("minutiae_above_upstream_maximum") == 1
     assert integrity.failure_reasons == {
@@ -334,6 +342,7 @@ def test_a_stage_population_the_store_contradicts_is_refused(tmp_path: Path) -> 
             algorithm_id=ALGORITHM,
             pair_manifest_hash=MANIFEST_HASH,
             classified_failure_reasons=CLASSIFIED,
+            allowed_statuses=STATUSES,
         )
 
 
@@ -351,6 +360,7 @@ def test_a_stage_the_manifest_does_not_contain_is_refused(tmp_path: Path) -> Non
             algorithm_id=ALGORITHM,
             pair_manifest_hash=MANIFEST_HASH,
             classified_failure_reasons=CLASSIFIED,
+            allowed_statuses=STATUSES,
         )
 
 
@@ -603,3 +613,172 @@ def test_every_failure_shape_yields_a_reason(details, status, expected) -> None:
     )
 
     assert failure_reason_from_details(details, status=status) == expected
+
+
+# ------------------------------------ the status vocabulary is closed, not free
+
+
+@pytest.mark.parametrize(
+    "status",
+    ["THIS_STATUS_DOES_NOT_EXIST", "ok", "OK ", "MCC_MATCH_REFUSAL", ""],
+)
+def test_a_status_outside_the_routes_vocabulary_is_refused(
+    tmp_path: Path, status: str
+) -> None:
+    """The reviewer's third store, kept as a test.
+
+    The validator asked only for a non-empty string, and the status decided
+    nothing except whether a row was score-bearing — so an invented status fell
+    into the failure branch, carried a classified reason, agreed with its
+    diagnostics, and published. ``MCC_MATCH_REFUSAL`` is in the list because a
+    *real* status belonging to another route is the same error wearing better
+    clothes.
+    """
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    rows[0].update(
+        {
+            "status": status,
+            "raw_score": None,
+            "failure_reason": "minutiae_above_upstream_maximum",
+        }
+    )
+    with pytest.raises(Stage19ResultIntegrityError):
+        _verify(tmp_path, rows)
+
+
+def test_every_status_the_route_declares_is_accepted(tmp_path: Path) -> None:
+    """The other direction: the vocabulary is the adapter's, not a subset."""
+    from fpbench.adapters.openafis.failure_mapping import STAGE19_STATUSES
+
+    pairs = _manifest(count=len(STAGE19_STATUSES) * 3)
+    rows = [_row(pair) for pair in pairs]
+    for index, row in enumerate(rows):
+        status = STAGE19_STATUSES[index % len(STAGE19_STATUSES)]
+        row["status"] = status
+        if status != "OK":
+            row["raw_score"] = None
+            row["failure_reason"] = "minutiae_above_upstream_maximum"
+    integrity = _verify(tmp_path, rows, manifest=pairs)
+    assert integrity.stored_outcomes == len(pairs)
+    assert set(integrity.outcome_counts) == set(STAGE19_STATUSES)
+
+
+def test_a_vocabulary_that_admits_everything_is_refused(tmp_path: Path) -> None:
+    """An empty allowlist is the check switched off, and says so."""
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    with pytest.raises(Stage19ResultIntegrityError, match="admits every string"):
+        verify_outcome_store_integrity(
+            _store(tmp_path, rows),
+            _diagnostics(rows),
+            expected_outcomes=len(pairs),
+            manifest=pairs,
+            algorithm_id=ALGORITHM,
+            pair_manifest_hash=MANIFEST_HASH,
+            classified_failure_reasons=CLASSIFIED,
+            allowed_statuses=(),
+        )
+
+
+def test_a_vocabulary_without_the_scoring_status_is_refused(tmp_path: Path) -> None:
+    """A route whose scoring status is not in its own vocabulary scores nothing."""
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    with pytest.raises(Stage19ResultIntegrityError, match="could ever carry a score"):
+        verify_outcome_store_integrity(
+            _store(tmp_path, rows),
+            _diagnostics(rows),
+            expected_outcomes=len(pairs),
+            manifest=pairs,
+            algorithm_id=ALGORITHM,
+            pair_manifest_hash=MANIFEST_HASH,
+            classified_failure_reasons=CLASSIFIED,
+            allowed_statuses=("MINDTCT_FAILED_LEFT",),
+        )
+
+
+# ---------------------------- ADR 0128: no score, no matcher, no establishment
+
+
+def _stage19b_binding(**overrides) -> dict:
+    document = {
+        "expected_outcomes": 6000,
+        "stored_outcomes": 6000,
+        "unique_pair_ids": 6000,
+        "unique_ordinals": 6000,
+        "diagnostic_comparisons": 6000,
+        "missing": 0,
+        "outcome_store_sha256": "a" * 64,
+        "outcome_counts": {"OK": 6000},
+        "failure_reasons": {},
+        "unclassified_failures": 0,
+        "capacity_failures_remaining": 0,
+        "score_bearing": 6000,
+        "preparation_set_id": "prepset_be560e047991",
+        "pair_manifest_hash": "e" * 64,
+        "nbis_build_id": "658f9f54a8f2",
+    }
+    document.update(overrides)
+    return document
+
+
+def _stage19b_marker(binding: dict) -> dict:
+    from fpbench.experiments.stage19b_finalization import (
+        build_stage19b_finalization,
+    )
+
+    return build_stage19b_finalization(
+        repository_root=Path(__file__).resolve().parents[2],
+        gate_a={
+            "outcome": "CAPACITY_EXTENSION_INERTNESS_PASS",
+            "score_mismatches": 0,
+            "status_regressions": 0,
+            "exact_score_matches": 1583,
+            "baseline_scored_pairs": 1583,
+        },
+        binding=binding,
+        translator_inertness={"mismatches": 0, "lower_bound_still_enforced": True},
+        evidence_hashes={},
+    )
+
+
+def test_a_complete_scoring_run_still_establishes_algorithm_five() -> None:
+    """The positive control, so the refusal below means something."""
+    marker = _stage19b_marker(_stage19b_binding())
+    assert marker["algorithm_5_established"] is True
+    assert marker["algorithm_5_conditions"]["at_least_one_score"] is True
+
+
+def test_a_run_that_scored_nothing_establishes_nothing() -> None:
+    """ADR 0128, which nothing enforced.
+
+    Six thousand rows, every one a *classified* capacity failure: structurally
+    perfect, honestly recorded, every other condition true — and the score
+    column empty. ``algorithm_5_established`` came out true and
+    ``opens_common_calibration`` would have opened a calibration phase over
+    nothing. "At least one score" is not a performance threshold; it is what
+    makes the result set a matcher's output at all.
+    """
+    binding = _stage19b_binding(
+        score_bearing=0,
+        outcome_counts={"OPENAFIS_TEMPLATE_FAILED_LEFT": 6000},
+        failure_reasons={"invalid_raster_dimensions": 6000},
+    )
+    marker = _stage19b_marker(binding)
+    assert marker["algorithm_5_conditions"]["at_least_one_score"] is False
+    assert marker["algorithm_5_established"] is False
+    assert marker["opens_common_calibration"] is False
+    assert marker["publication_eligible"] is False
+
+
+def test_stage19a_also_requires_a_score() -> None:
+    """The same rule, in the stage the extension exists to improve on."""
+    binding = _stage19a_binding(
+        score_bearing=0, outcome_counts={"OPENAFIS_TEMPLATE_FAILED_LEFT": 6000}
+    )
+    conditions = _stage19a_marker(binding)["algorithm_5_conditions"]
+    assert conditions["at_least_one_score"] is False
+
+    scoring = _stage19a_binding(score_bearing=1)
+    assert _stage19a_marker(scoring)["algorithm_5_conditions"]["at_least_one_score"]

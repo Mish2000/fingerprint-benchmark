@@ -110,9 +110,14 @@ def derive_identity_link(
                 return IdentityLinkBasis.EVIDENCE_LOCATOR
             # A licence file inside the artifact the identity names. The
             # separator matters: ".../flx/data" must not match ".../flx/database".
+            #
+            # One direction only. The reverse — evidence at a *parent* of the
+            # upstream — reads a repository-wide LICENSE as proof of identity
+            # for every component beneath it, so a notice at ``/vendor`` would
+            # "derive" the pairing for ``/vendor/unrelated-component``. That is
+            # the mistaken pairing this function exists to detect, arrived at by
+            # string handling.
             if locator.startswith(upstream.rstrip("/") + "/"):
-                return IdentityLinkBasis.EVIDENCE_LOCATOR
-            if upstream.startswith(locator.rstrip("/") + "/"):
                 return IdentityLinkBasis.EVIDENCE_LOCATOR
 
     commit = str(identity.upstream_commit or "").strip()

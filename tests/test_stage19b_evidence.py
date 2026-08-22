@@ -246,3 +246,31 @@ def test_establishment_is_never_wider_than_the_run_it_rests_on(marker):
     assert sum(binding["failure_reasons"].values()) == (
         binding["stored_outcomes"] - binding["score_bearing"]
     )
+
+
+def test_the_published_run_satisfies_the_conditions_added_since(marker):
+    """Two conditions were added after this run was published.
+
+    ``no_unclassified_failure`` and ``at_least_one_score`` are not in the
+    marker's own ``algorithm_5_conditions`` — the publisher that wrote it did
+    not compute them. The evidence beside it does say whether they hold, and
+    they do: 6,000 comparisons, every one scored, no failure of any kind. A
+    reader should not have to take that on the marker's silence.
+    """
+    binding = _read("canonical-run-binding.json")
+    assert binding["score_bearing"] > 0, "ADR 0128: no score, no matcher"
+    assert binding["failure_reasons"] == {}
+    assert binding["outcome_counts"] == {"OK": binding["stored_outcomes"]}
+    if marker["algorithm_5_established"]:
+        assert binding["score_bearing"] == binding["stored_outcomes"]
+
+
+def test_every_published_status_is_one_the_route_declares(marker):
+    """The vocabulary the validator now closes, checked against what was run."""
+    from fpbench.experiments.stage19b_finalization import ALLOWED_STATUSES
+
+    counts = _read("canonical-run-binding.json")["outcome_counts"]
+    unknown = sorted(set(counts) - ALLOWED_STATUSES)
+    assert not unknown, (
+        f"the published run recorded {unknown}, which this route cannot produce"
+    )

@@ -40,6 +40,7 @@ from fpbench.experiments.stage19_pair_manifest import (
     load_canonical_pair_manifest,
     pairs_path_for,
 )
+from fpbench.adapters.openafis.failure_mapping import STAGE19_STATUSES
 from fpbench.experiments.stage19_result_integrity import (
     OutcomeStoreIntegrity,
     Stage19ResultIntegrityError,
@@ -66,6 +67,11 @@ __all__ = [
 #: subject. This list used to live in ``main`` as a set literal, outside
 #: everything the source fingerprint and the evidence gate can see.
 BLOCKING_STATUSES = frozenset({"OPENAFIS_MATCH_FAILED", "INFRASTRUCTURE_FAILURE"})
+
+#: The whole status vocabulary this route can produce, from the adapter
+#: that produces it. A store using anything else was not written by this
+#: stage, whatever else about it verifies.
+ALLOWED_STATUSES = frozenset(STAGE19_STATUSES)
 
 #: The failure reasons this route produces *as an answer*, rather than as a
 #: fault. They are the refusals the translation raises when a template cannot
@@ -318,6 +324,7 @@ def _outcome_integrity(
             pair_manifest_hash=manifest.pair_manifest_hash,
             expected_outcomes=frozen.EXPECTED_OUTCOMES,
             classified_failure_reasons=CLASSIFIED_FAILURE_REASONS,
+            allowed_statuses=ALLOWED_STATUSES,
         )
     except Stage19ResultIntegrityError as exc:
         raise Stage19AFinalizationError(str(exc)) from None
@@ -452,6 +459,10 @@ def build_stage19a_finalization(
         # A failure whose reason this route has never classified is not an
         # upstream limit *or* a known defect; it is a failure nobody has read.
         "no_unclassified_failure": int(binding.get("unclassified_failures", 0)) == 0,
+        # ADR 0128. Not a performance threshold — an existence requirement: a
+        # result set with no score is not a raw matcher, and calibration cannot
+        # be opened over an empty score column.
+        "at_least_one_score": int(binding.get("score_bearing", 0)) > 0,
         "substantial_cross_impression_score_bearing": (
             None if sufficiency == "UNDETERMINED" else sufficiency == "SUFFICIENT"
         ),

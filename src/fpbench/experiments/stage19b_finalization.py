@@ -40,6 +40,7 @@ from fpbench.experiments.stage19_pair_manifest import (
     load_canonical_pair_manifest,
     pairs_path_for,
 )
+from fpbench.adapters.openafis.failure_mapping import STAGE19_STATUSES
 from fpbench.experiments.stage19_result_integrity import (
     OutcomeStoreIntegrity,
     Stage19ResultIntegrityError,
@@ -91,6 +92,10 @@ SUPERVISOR_DISCLOSURE = (
 #: of these: a template above the build's capacity is the answer this variant
 #: exists to change, not a defect in the bridge.
 BLOCKING_STATUSES = frozenset({"OPENAFIS_MATCH_FAILED", "INFRASTRUCTURE_FAILURE"})
+
+#: The whole status vocabulary this route can produce. The capacity
+#: extension changes which templates load, not which outcomes exist.
+ALLOWED_STATUSES = frozenset(STAGE19_STATUSES)
 
 #: The failure reasons this route produces *as an answer*, rather than as a
 #: fault. They are the refusals the translation raises when a template cannot
@@ -290,6 +295,7 @@ def _outcome_integrity(
             pair_manifest_hash=manifest.pair_manifest_hash,
             expected_outcomes=EXPECTED_OUTCOMES,
             classified_failure_reasons=CLASSIFIED_FAILURE_REASONS,
+            allowed_statuses=ALLOWED_STATUSES,
         )
     except Stage19ResultIntegrityError as exc:
         raise Stage19BFinalizationError(str(exc)) from None
@@ -414,6 +420,11 @@ def build_stage19b_finalization(
         # A failure whose reason this route has never classified is neither an
         # upstream limit nor a known defect; it is a failure nobody has read.
         "no_unclassified_failure": int(binding.get("unclassified_failures", 0)) == 0,
+        # ADR 0128. Six thousand classified capacity failures are a complete,
+        # honest, structurally sound run that established nothing: the score
+        # column is empty, and `opens_common_calibration` would open a
+        # calibration phase over it.
+        "at_least_one_score": int(binding.get("score_bearing", 0)) > 0,
         "translation_contract_unchanged": (
             translator_inertness.get("mismatches") == 0
             and translator_inertness.get("lower_bound_still_enforced") is True

@@ -33,6 +33,7 @@ import datetime as _dt
 from pathlib import Path
 from typing import Any, Callable, Protocol
 
+from fpbench.storage.immutable_publication import claim_document
 from fpbench.core.errors import StorageError
 from fpbench.core.serialization import read_json
 from fpbench.core.json_io import write_json
@@ -164,7 +165,7 @@ class DefinitionStore:
                 return legacy
 
         path = self.definition_path(run_id, definition.definition_id)
-        if path.is_file():
+        if not claim_document(path, definition):
             stored = self._load(path)
             if stored.definition_fingerprint != definition.definition_fingerprint:
                 raise StorageError(
@@ -172,8 +173,7 @@ class DefinitionStore:
                     f"({stored.definition_fingerprint[:12]}...); refusing to "
                     f"replace it with {definition.definition_fingerprint[:12]}..."
                 )
-            return path
-        return write_json(path, definition)
+        return path
 
     # ---------------------------------------------------------------- pointer
 

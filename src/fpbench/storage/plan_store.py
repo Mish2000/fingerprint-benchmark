@@ -39,6 +39,7 @@ from fpbench.core.json_io import write_json
 from fpbench.storage import plan_schemas
 from fpbench.storage.layout import run_directory
 from fpbench.storage.atomic_parquet import replace_table
+from fpbench.storage.set_publication import publish_set
 
 __all__ = ["PlanStore"]
 
@@ -80,7 +81,22 @@ class PlanStore:
         run_id = plan.definition.run_id
         manifest_path = self.plan_manifest_path(run_id)
 
-        if manifest_path.is_file():
+        # A plan is a manifest and a jobs table, so the manifest is the claim
+        # and only its owner writes the jobs. Writing the jobs first let two
+        # writers leave one writer's manifest over the other's job list
+        # (docs/adr/0139).
+        claim = publish_set(
+            manifest_path=manifest_path,
+            manifest=plan.definition,
+            body_paths=(self.jobs_path(run_id),),
+            stored_fingerprint=lambda: self.read_plan_definition(
+                run_id
+            ).plan_fingerprint,
+            fingerprint=plan.definition.plan_fingerprint,
+        )
+        if claim.write_body:
+            self._write_jobs(plan)
+        if not claim.owned:
             stored = self.read_plan_definition(run_id)
             if stored.plan_fingerprint != plan.definition.plan_fingerprint:
                 raise PlanConflictError(
@@ -88,10 +104,6 @@ class PlanStore:
                     f"({stored.plan_fingerprint[:12]}...); refusing to replace it "
                     f"with {plan.plan_id} ({plan.definition.plan_fingerprint[:12]}...)"
                 )
-            return manifest_path.parent
-
-        self._write_jobs(plan)
-        write_json(manifest_path, plan.definition)
         return manifest_path.parent
 
     def _write_jobs(self, plan: ExecutionPlan) -> Path:

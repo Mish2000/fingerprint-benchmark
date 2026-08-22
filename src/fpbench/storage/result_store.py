@@ -183,8 +183,15 @@ class ResultStore:
         the run and not about storage.
         """
         payload = {str(key): str(value) for key, value in dict(claims).items()}
+        path = self.preparer_binding_path(run_id)
+        if not path.is_file() and self.stored_job_ids(run_id):
+            raise ResultConflictError(
+                f"run {run_id} has {len(self.stored_job_ids(run_id))} stored "
+                "results and no preparer binding. Deleting the binding is not a "
+                "way to re-prepare a run that has already produced results"
+            )
         try:
-            published = publish_json(self.preparer_binding_path(run_id), payload)
+            published = publish_json(path, payload)
         except PublishConflictError:
             # Different claims reached the name first. That is the answer this
             # method exists to give, not an error: the caller compares and says
@@ -223,10 +230,29 @@ class ResultStore:
         Returns whatever the run is bound to — this caller's closure if it got
         there first, the stored one otherwise. The comparison is the caller's,
         as with :meth:`bind_preparer`.
+
+        **A run that already has results cannot acquire its first binding
+        here.** Create-if-absent stops a second writer, and it does not stop a
+        *deletion*: remove the sidecar, resume under another commit, and a new
+        binding is published over results produced under the old one — with
+        nothing left that says so. The results are the evidence that this run
+        already ran, and they are not deletable in the same breath.
+
+        Raises:
+            ResultConflictError: results are stored and no binding is.
         """
         payload = {str(key): str(value) for key, value in dict(closure).items()}
+        path = self.closure_binding_path(run_id)
+        if not path.is_file() and self.stored_job_ids(run_id):
+            raise ResultConflictError(
+                f"run {run_id} has {len(self.stored_job_ids(run_id))} stored "
+                "results and no content-closure binding. The binding is written "
+                "before the first comparison, so its absence here means it was "
+                "removed; publishing a new one would put results produced under "
+                "one closure beneath another (docs/adr/0139)"
+            )
         try:
-            published = publish_json(self.closure_binding_path(run_id), payload)
+            published = publish_json(path, payload)
         except PublishConflictError:
             return self.read_closure_binding(run_id)
         if published.created:

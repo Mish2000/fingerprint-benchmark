@@ -419,3 +419,15 @@ def test_the_documents_agree_about_how_many_comparisons_scored(marker) -> None:
     assert marker["failure_count"] == (
         binding["stored_outcomes"] - binding["score_bearing"]
     )
+
+
+def test_the_published_run_scored_and_used_its_own_vocabulary(marker) -> None:
+    """ADR 0128 and the closed status set, checked against what was run."""
+    from fpbench.experiments.stage20b_finalization import ALLOWED_STATUSES
+
+    binding = _read("canonical-run-binding.json")
+    assert binding["score_bearing"] > 0, "ADR 0128: no score, no raw matcher"
+    unknown = sorted(set(binding["outcome_counts"]) - ALLOWED_STATUSES)
+    assert not unknown, (
+        f"the published run recorded {unknown}, which this route cannot produce"
+    )

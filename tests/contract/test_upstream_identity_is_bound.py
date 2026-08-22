@@ -326,3 +326,40 @@ def test_deriving_a_link_needs_two_real_documents() -> None:
         derive_identity_link(object(), _identity())
     with pytest.raises(ThirdPartyUsageError, match="upstream identity"):
         derive_identity_link(_component(), object())
+
+
+def test_a_parent_locator_is_not_proof_for_a_component_beneath_it() -> None:
+    """The direction I had wrong, and why it is a real failure.
+
+    A repository-wide ``LICENSE`` at ``https://host/vendor`` is evidence about
+    the repository. Treating it as proof of identity for
+    ``https://host/vendor/unrelated-component`` derives a pairing from nothing
+    but a shared prefix — which is precisely the mistaken pairing this module
+    exists to detect, arrived at by string handling instead of by a swap.
+    """
+    from fpbench.core.third_party_models import UpstreamIdentity
+    from fpbench.provenance.upstream_binding import IdentityLinkBasis
+
+    child = UpstreamIdentity(
+        upstream_name="unrelated-component",
+        upstream_locator="https://example.invalid/vendor/unrelated-component",
+        exact_version="1.0.0",
+        identity_established=True,
+    )
+    bound = _bind(_observation_at("https://example.invalid/vendor/LICENSE"), child)
+    assert bound.identity_link_basis is IdentityLinkBasis.PUBLISHER_ASSERTION
+
+
+def test_the_surviving_direction_is_still_evidence_inside_the_upstream() -> None:
+    """The one that does prove something: a notice *within* the artifact."""
+    from fpbench.core.third_party_models import UpstreamIdentity
+    from fpbench.provenance.upstream_binding import IdentityLinkBasis
+
+    identity = UpstreamIdentity(
+        upstream_name="vendor",
+        upstream_locator="https://example.invalid/vendor",
+        exact_version="1.0.0",
+        identity_established=True,
+    )
+    bound = _bind(_observation_at("https://example.invalid/vendor/LICENSE"), identity)
+    assert bound.identity_link_basis is IdentityLinkBasis.EVIDENCE_LOCATOR

@@ -66,6 +66,7 @@ from fpbench.core.serialization import read_json
 from fpbench.core.json_io import write_json
 from fpbench.storage import layout, metric_schemas
 from fpbench.core.atomic_write import replace_text
+from fpbench.storage.immutable_publication import claim_document
 from fpbench.storage.atomic_parquet import replace_table
 from fpbench.storage.set_publication import publish_set
 
@@ -248,7 +249,7 @@ class MetricSetStore:
         from fpbench.core.evaluation_models import evaluation_summary_content_hash
 
         path = self.summary_path(run_id, metric_set_id)
-        if path.is_file():
+        if not claim_document(path, summary):
             stored = self.read_summary(run_id, metric_set_id)
             if evaluation_summary_content_hash(
                 stored
@@ -256,8 +257,7 @@ class MetricSetStore:
                 raise MetricSetConflictError(
                     f"{path} already carries a different evaluation summary"
                 )
-            return path
-        return write_json(path, summary)
+        return path
 
     def ensure_report(self, *, run_id: str, metric_set_id: str, markdown: str) -> Path:
         """Write the report once, byte-identically or not at all."""
@@ -283,7 +283,7 @@ class MetricSetStore:
         marker binds, and it binds the bytes actually stored here.
         """
         path = self.receipt_path(run_id, metric_set_id)
-        if path.is_file():
+        if not claim_document(path, receipt):
             stored = self.read_receipt(run_id, metric_set_id)
             if evaluation_receipt_fingerprint(
                 stored
@@ -291,8 +291,7 @@ class MetricSetStore:
                 raise MetricSetConflictError(
                     f"{path} already carries a different evaluation receipt"
                 )
-            return path
-        return write_json(path, receipt)
+        return path
 
     def ensure_finalization(
         self,
@@ -303,14 +302,13 @@ class MetricSetStore:
     ) -> Path:
         """Write the last file, the one that makes the rest authoritative."""
         path = self.finalization_path(run_id, metric_set_id)
-        if path.is_file():
+        if not claim_document(path, marker):
             stored = self.read_finalization(run_id, metric_set_id)
             if stored.finalization_fingerprint != marker.finalization_fingerprint:
                 raise MetricSetConflictError(
                     f"{path} already finalises a different evaluation"
                 )
-            return path
-        return write_json(path, marker)
+        return path
 
     # ------------------------------------------------------------------- read
 

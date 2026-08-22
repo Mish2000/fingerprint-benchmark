@@ -241,3 +241,26 @@ def test_the_binding_counts_the_failures_the_marker_publishes(marker):
     assert binding["outcome_counts"].get("OK", 0) == binding["score_bearing"]
     assert binding["stored_outcomes"] == frozen.EXPECTED_OUTCOMES
     assert binding["missing"] == 0
+
+
+def test_the_published_run_satisfies_the_conditions_added_since(marker):
+    """``at_least_one_score`` is ADR 0128, and postdates this marker.
+
+    Stage 19A scored 1,583 of 6,000 — a hard run, and a real one. The condition
+    is an existence requirement, not a rate: the 4,417 failures are upstream
+    capacity limits and the stage is honest about them, but a run that scored
+    *nothing* would not be a matcher's output at all.
+    """
+    binding = _read("canonical-run-binding.json")
+    assert binding["score_bearing"] > 0
+    assert binding["score_bearing"] == binding["outcome_counts"]["OK"]
+
+
+def test_every_published_status_is_one_the_route_declares(marker):
+    from fpbench.experiments.stage19a_finalization import ALLOWED_STATUSES
+
+    counts = _read("canonical-run-binding.json")["outcome_counts"]
+    unknown = sorted(set(counts) - ALLOWED_STATUSES)
+    assert not unknown, (
+        f"the published run recorded {unknown}, which this route cannot produce"
+    )

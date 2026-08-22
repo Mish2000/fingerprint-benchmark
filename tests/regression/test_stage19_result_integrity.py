@@ -42,6 +42,11 @@ ALGORITHM = "nbis_mindtct_openafis"
 MANIFEST_HASH = "e" * 64
 
 #: The reasons this route has classified; see stage19a_finalization.
+from fpbench.adapters.openafis.failure_mapping import STAGE19_STATUSES
+
+#: The route's whole status vocabulary.
+STATUSES = frozenset(STAGE19_STATUSES)
+
 CLASSIFIED = frozenset(
     {
         "invalid_raster_dimensions",
@@ -91,6 +96,7 @@ def _verify(path: Path, diagnostics: dict, manifest, expected: int):
         algorithm_id=ALGORITHM,
         pair_manifest_hash=MANIFEST_HASH,
         classified_failure_reasons=CLASSIFIED,
+        allowed_statuses=STATUSES,
     )
 
 
@@ -104,14 +110,14 @@ def test_all_five_counts_and_the_store_digest_are_derived_together(
             _row(manifest[0]),
             _row(
                 manifest[1],
-                status="FAILED",
+                status="OPENAFIS_MATCH_FAILED",
                 failure_reason="minutiae_above_upstream_maximum",
             ),
             _row(manifest[2]),
         ],
     )
 
-    audit = _verify(path, _diagnostics(3, OK=2, FAILED=1), manifest, 3)
+    audit = _verify(path, _diagnostics(3, OK=2, OPENAFIS_MATCH_FAILED=1), manifest, 3)
 
     assert (
         audit.unique_pair_ids

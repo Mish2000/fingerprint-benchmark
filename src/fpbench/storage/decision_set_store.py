@@ -52,6 +52,7 @@ from fpbench.core.errors import DecisionSetConflictError, StorageError
 from fpbench.core.serialization import read_json
 from fpbench.core.json_io import publish_json, write_json
 from fpbench.storage import derivation_schemas, layout
+from fpbench.storage.immutable_publication import claim_document
 from fpbench.storage.atomic_parquet import replace_table
 from fpbench.storage.set_publication import publish_set
 
@@ -269,7 +270,7 @@ class DecisionSetStore:
         marker binds, and it binds the bytes actually stored here.
         """
         path = self.receipt_path(receipt.run_id, decision_set_id)
-        if path.is_file():
+        if not claim_document(path, receipt):
             stored = self.read_receipt(receipt.run_id, decision_set_id)
             if derivation_receipt_fingerprint(
                 stored
@@ -277,8 +278,7 @@ class DecisionSetStore:
                 raise DecisionSetConflictError(
                     f"{path} already carries a different derivation receipt"
                 )
-            return path
-        return write_json(path, receipt)
+        return path
 
     def read_receipt(
         self, run_id: str, decision_set_id: str
@@ -303,14 +303,13 @@ class DecisionSetStore:
     ) -> Path:
         """Write the last file, the one that makes the rest authoritative."""
         path = self.finalization_path(run_id, decision_set_id)
-        if path.is_file():
+        if not claim_document(path, marker):
             stored = self.read_finalization(run_id, decision_set_id)
             if stored.finalization_fingerprint != marker.finalization_fingerprint:
                 raise DecisionSetConflictError(
                     f"{path} already finalises a different derivation chain"
                 )
-            return path
-        return write_json(path, marker)
+        return path
 
     def read_finalization(
         self, run_id: str, decision_set_id: str

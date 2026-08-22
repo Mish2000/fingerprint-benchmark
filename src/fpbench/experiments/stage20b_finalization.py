@@ -46,6 +46,7 @@ from fpbench.experiments.stage19_pair_manifest import (
     load_canonical_pair_manifest,
     pairs_path_for,
 )
+from fpbench.adapters.mcc.failure_mapping import STAGE20B_STATUSES
 from fpbench.experiments.stage19_result_integrity import (
     OutcomeStoreIntegrity,
     Stage19ResultIntegrityError,
@@ -95,6 +96,10 @@ CLASSIFIED_FAILURE_REASONS = frozenset(
 _GATE_CONDITIONS = frozenset(
     {"gate_a_bridge_reproduction", "gate_b_mindtct_parity"}
 )
+
+#: The whole status vocabulary this route can produce, from the adapter
+#: that produces it.
+ALLOWED_STATUSES = frozenset(STAGE20B_STATUSES)
 
 
 class Stage20BFinalizationError(RuntimeError):
@@ -413,6 +418,7 @@ def _verified_store(
             pair_manifest_hash=manifest.pair_manifest_hash,
             expected_outcomes=frozen.EXPECTED_OUTCOMES,
             classified_failure_reasons=CLASSIFIED_FAILURE_REASONS,
+            allowed_statuses=ALLOWED_STATUSES,
         )
     except Stage19ResultIntegrityError as exc:
         raise Stage20BFinalizationError(str(exc)) from None
@@ -600,6 +606,8 @@ def build_stage20b_finalization(
         "no_systemic_bridge_defect": bridge_defects == 0 and runtime_defects == 0,
         "no_systemic_translation_defect": translation_defects == 0,
         "no_unclassified_failure": unclassified_failures == 0,
+        # ADR 0128. An existence requirement, not a performance threshold.
+        "at_least_one_score": score_bearing > 0,
         "no_parameter_selection": True,
         "no_calibration": binding["calibration_performed"] is False,
         "no_threshold_selection": binding["threshold_applied"] is None,

@@ -351,6 +351,7 @@ def verify_outcome_store_integrity(
     algorithm_id: str,
     pair_manifest_hash: str,
     classified_failure_reasons: Collection[str],
+    allowed_statuses: Collection[str],
     score_bearing_statuses: frozenset[str] = SCORE_BEARING_STATUSES,
 ) -> OutcomeStoreIntegrity:
     """Prove the store *is* the canonical run, not merely the right size.
@@ -370,6 +371,26 @@ def verify_outcome_store_integrity(
         for text in classified_failure_reasons
         if isinstance(text, str) and text.strip()
     )
+    # Closed, and required with no default. The status decided whether a row was
+    # score-bearing and nothing else, so an invented status simply fell into the
+    # failure branch: 6,000 rows of ``THIS_STATUS_DOES_NOT_EXIST`` with an
+    # agreeing diagnostics document verified, and the run published.
+    allowed = frozenset(
+        text.strip()
+        for text in allowed_statuses
+        if isinstance(text, str) and text.strip()
+    )
+    if not allowed:
+        raise Stage19ResultIntegrityError(
+            "a store can only be verified against the statuses its route "
+            "declares; an empty vocabulary admits every string"
+        )
+    missing = sorted(score_bearing_statuses - allowed)
+    if missing:
+        raise Stage19ResultIntegrityError(
+            f"the score-bearing statuses {missing} are not in the route's "
+            "vocabulary, so no row could ever carry a score"
+        )
     if type(pair_manifest_hash) is not str or len(pair_manifest_hash.strip()) != 64:
         raise Stage19ResultIntegrityError(
             "pair_manifest_hash must be the manifest artifact's own 64-character "
@@ -424,6 +445,12 @@ def verify_outcome_store_integrity(
         seen_ordinals[ordinal] = line_number
 
         status = _require_text(row, "status", where)
+        if status not in allowed:
+            raise Stage19ResultIntegrityError(
+                f"{where}: status {status!r} is not one this route can produce. "
+                f"The vocabulary is {sorted(allowed)}; a store using a status "
+                "nobody defined is a store this stage never wrote"
+            )
         _check_against_manifest(
             row, pairs[ordinal], where=where, algorithm_id=algorithm_id
         )

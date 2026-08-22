@@ -67,6 +67,7 @@ _RESEARCH_FINALIZATION = "research-finalization.json"
 #: create-if-absent before the first comparison, so two runners starting
 #: together cannot each believe they defined it.
 _PREPARER_BINDING = "preparer-binding.json"
+_CLOSURE_BINDING = "content-closure-binding.json"
 
 _PREPARATION_RECEIPT_FIELDS = frozenset(
     {
@@ -193,6 +194,45 @@ class ResultStore:
             return payload
         return self.read_preparer_binding(run_id)
 
+    def closure_binding_path(self, run_id: str) -> Path:
+        return self.run_dir(run_id) / _CLOSURE_BINDING
+
+    def has_closure_binding(self, run_id: str) -> bool:
+        return self.closure_binding_path(run_id).is_file()
+
+    def read_closure_binding(self, run_id: str) -> Mapping[str, str]:
+        path = self.closure_binding_path(run_id)
+        if not path.is_file():
+            raise StorageError(f"content closure binding not found: {path}")
+        payload = read_json(path)
+        if not isinstance(payload, Mapping):
+            raise StorageError(f"{path}: a closure binding must be a JSON object")
+        return {str(key): str(value) for key, value in payload.items()}
+
+    def bind_content_closure(
+        self, run_id: str, closure: Mapping[str, str]
+    ) -> Mapping[str, str]:
+        """Record what this run's scores depend on, exactly once.
+
+        The closure used to be *built* at preflight and thrown away, which
+        proved it had no holes on the day the run started and nothing after
+        that. A run resumed against a different interpreter, a different native
+        library or a different commit rebuilt a different closure, and every
+        result already stored went on standing under the old one.
+
+        Returns whatever the run is bound to — this caller's closure if it got
+        there first, the stored one otherwise. The comparison is the caller's,
+        as with :meth:`bind_preparer`.
+        """
+        payload = {str(key): str(value) for key, value in dict(closure).items()}
+        try:
+            published = publish_json(self.closure_binding_path(run_id), payload)
+        except PublishConflictError:
+            return self.read_closure_binding(run_id)
+        if published.created:
+            return payload
+        return self.read_closure_binding(run_id)
+
     def read_run(self, run_id: str) -> RunDefinition:
         path = self.run_manifest_path(run_id)
         if not path.is_file():
@@ -214,6 +254,24 @@ class ResultStore:
             )
         )
 
+    def _claim_marker(self, path: Path, payload: object) -> bool:
+        """Publish a run marker exactly once. True when this caller wrote it.
+
+        ``if not path.is_file(): write_json(path, ...)`` is two operations, and
+        two publishers racing between them both passed the check and the second
+        replaced the first — silently, because ``write_json`` replaces. The
+        filesystem decides now; a caller that loses compares what is stored
+        against what it holds, which is what the guards below already do.
+
+        False means somebody else's bytes are there, identical or not. It is
+        never an error on its own: whether it is a conflict depends on the
+        fingerprint, and only the caller knows how to read it.
+        """
+        try:
+            return publish_json(path, payload).created
+        except PublishConflictError:
+            return False
+
     # ------------------------------------------------------------- completion
 
     def has_completion(self, run_id: str) -> bool:
@@ -227,16 +285,16 @@ class ResultStore:
         cannot quietly be declared verified about something else.
         """
         path = self.completion_path(completion.run_id)
-        if path.is_file():
-            stored = self.read_completion(completion.run_id)
-            if stored.completion_fingerprint != completion.completion_fingerprint:
-                raise ResultConflictError(
-                    f"{path} already declares completion "
-                    f"{stored.completion_fingerprint[:12]}..., not "
-                    f"{completion.completion_fingerprint[:12]}..."
-                )
+        if self._claim_marker(path, completion):
             return path
-        return write_json(path, completion)
+        stored = self.read_completion(completion.run_id)
+        if stored.completion_fingerprint != completion.completion_fingerprint:
+            raise ResultConflictError(
+                f"{path} already declares completion "
+                f"{stored.completion_fingerprint[:12]}..., not "
+                f"{completion.completion_fingerprint[:12]}..."
+            )
+        return path
 
     def read_completion(self, run_id: str) -> RunCompletion:
         path = self.completion_path(run_id)
@@ -281,19 +339,19 @@ class ResultStore:
         (docs/adr/0018).
         """
         path = self.runtime_reference_path(reference.run_id)
-        if path.is_file():
-            stored = self.read_runtime_reference(reference.run_id)
-            if (
-                stored.runtime_reference_fingerprint
-                != reference.runtime_reference_fingerprint
-            ):
-                raise ResultConflictError(
-                    f"{path} already binds run {reference.run_id} to runtime "
-                    f"{stored.bundle_id}; refusing to rebind it to "
-                    f"{reference.bundle_id}"
-                )
+        if self._claim_marker(path, reference):
             return path
-        return write_json(path, reference)
+        stored = self.read_runtime_reference(reference.run_id)
+        if (
+            stored.runtime_reference_fingerprint
+            != reference.runtime_reference_fingerprint
+        ):
+            raise ResultConflictError(
+                f"{path} already binds run {reference.run_id} to runtime "
+                f"{stored.bundle_id}; refusing to rebind it to "
+                f"{reference.bundle_id}"
+            )
+        return path
 
     def read_runtime_reference(self, run_id: str) -> RunRuntimeReference:
         path = self.runtime_reference_path(run_id)
@@ -329,20 +387,22 @@ class ResultStore:
         from fpbench.core.research_models import research_receipt_fingerprint
 
         path = self.research_receipt_path(receipt.run_id)
-        if path.is_file():
-            stored = self.read_research_receipt(receipt.run_id)
-            if research_receipt_fingerprint(stored) != research_receipt_fingerprint(
-                receipt
-            ):
-                if _is_research_receipt_schema_upgrade(stored, receipt):
-                    _archive_publication(path)
-                    return write_json(path, receipt)
-                raise ResultConflictError(
-                    f"{path} already carries a different research receipt for run "
-                    f"{receipt.run_id}"
-                )
+        if self._claim_marker(path, receipt):
             return path
-        return write_json(path, receipt)
+        stored = self.read_research_receipt(receipt.run_id)
+        if research_receipt_fingerprint(stored) != research_receipt_fingerprint(
+            receipt
+        ):
+            if _is_research_receipt_schema_upgrade(stored, receipt):
+                # The one replacement there is, and it keeps the old bytes:
+                # the previous receipt is archived beside the new one.
+                _archive_publication(path)
+                return write_json(path, receipt)
+            raise ResultConflictError(
+                f"{path} already carries a different research receipt for run "
+                f"{receipt.run_id}"
+            )
+        return path
 
     def read_research_receipt(self, run_id: str) -> ResearchReceipt:
         path = self.research_receipt_path(run_id)
@@ -369,18 +429,18 @@ class ResultStore:
     ) -> Path:
         """Publish the immutable, last-written authority for finalization."""
         path = self.research_finalization_path(marker.run_id)
-        if path.is_file():
-            stored = self.read_research_finalization(marker.run_id)
-            if stored.finalization_fingerprint != marker.finalization_fingerprint:
-                if _is_research_finalization_schema_upgrade(stored, marker):
-                    _archive_publication(path)
-                    return write_json(path, marker)
-                raise ResultConflictError(
-                    f"{path} already commits a different research finalization "
-                    f"for run {marker.run_id}"
-                )
+        if self._claim_marker(path, marker):
             return path
-        return write_json(path, marker)
+        stored = self.read_research_finalization(marker.run_id)
+        if stored.finalization_fingerprint != marker.finalization_fingerprint:
+            if _is_research_finalization_schema_upgrade(stored, marker):
+                _archive_publication(path)
+                return write_json(path, marker)
+            raise ResultConflictError(
+                f"{path} already commits a different research finalization "
+                f"for run {marker.run_id}"
+            )
+        return path
 
     def read_research_finalization(
         self, run_id: str

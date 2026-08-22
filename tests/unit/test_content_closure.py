@@ -128,10 +128,11 @@ def test_a_research_run_builds_its_closure_before_the_first_comparison(
 ) -> None:
     """The type was defined and never constructed, which is the same as absent.
 
-    A research run now forms one at preflight. Nothing is stored — persisting it
-    would change the fingerprint of receipts describing runs nobody re-did — but
-    a run whose provenance has a hole cannot form the closure, so it stops here
-    rather than after six thousand comparisons.
+    A research run forms one at preflight, so a run whose provenance has a hole
+    stops here rather than after six thousand comparisons — and publishes it
+    against the run, so a resume has something to disagree with. Building it and
+    dropping it proved the provenance was whole on the day the run started and
+    nothing after that.
     """
     from runworld import build_world
 
@@ -170,3 +171,100 @@ def test_a_run_that_cannot_state_its_closure_does_not_start(tmp_path) -> None:
     world.adapter = _Holed(world.adapter)
     with pytest.raises(PreflightError, match="cannot state the content"):
         world.job_runner()
+
+
+# --------------------------------------------------- published, not just built
+
+
+def test_the_closure_is_published_against_the_run(tmp_path) -> None:
+    """Preflight leaves a record a resume can be checked against."""
+    from runworld import build_world
+
+    world = build_world(tmp_path / "world", research=True)
+    world.job_runner()
+
+    store = world.result_store
+    assert store.has_closure_binding(world.run.run_id)
+    bound = store.read_closure_binding(world.run.run_id)
+    closure = world.adapter.content_closure(world.preparer)
+    assert bound["closure_fingerprint"] == closure.closure_fingerprint
+    assert bound["source_commit"] == closure.source_identity.commit
+    assert bound["preparer_id"] == world.preparer.preparer_id
+
+
+def test_resuming_the_same_run_under_the_same_closure_is_allowed(tmp_path) -> None:
+    """Idempotence: a resume is the normal case and must not be a conflict."""
+    from runworld import build_world
+
+    world = build_world(tmp_path / "world", research=True)
+    world.job_runner()
+    world.job_runner()
+
+
+class _Moved:
+    """A research adapter whose closure names a different commit.
+
+    The shape of every real divergence — an interpreter upgraded, a native
+    library replaced, a commit checked out — reduced to one field, because the
+    binding compares the whole closure and any one part is enough.
+    """
+
+    def __init__(self, delegate, commit: str):
+        self._delegate = delegate
+        self._commit = commit
+        self.descriptor = delegate.descriptor
+
+    def validate_environment(self):
+        return self._delegate.validate_environment()
+
+    def compare(self, *args, **kwargs):  # pragma: no cover - never reached
+        return self._delegate.compare(*args, **kwargs)
+
+    def content_closure(self, preparer):
+        from dataclasses import replace
+
+        closure = self._delegate.content_closure(preparer)
+        return ContentClosureBinding(
+            subject=closure.subject,
+            code=closure.code,
+            preparer=closure.preparer,
+            interpreter=closure.interpreter,
+            native_dependencies=closure.native_dependencies,
+            runtime_assets=closure.runtime_assets,
+            source_identity=replace(closure.source_identity, commit=self._commit),
+            metadata=closure.metadata,
+        )
+
+
+def test_a_run_resumed_under_a_different_closure_does_not_start(tmp_path) -> None:
+    """The hole the reviewer named: the closure was built and thrown away.
+
+    It proved the provenance was whole on the day the run started. A resume
+    under a different commit built a *different* closure, which was equally
+    whole, and every result already stored went on standing under the first
+    one. Nothing compared them, because nothing kept the first.
+    """
+    from fpbench.core.errors import PreflightError
+    from runworld import build_world
+
+    world = build_world(tmp_path / "world", research=True)
+    world.job_runner()
+
+    world.adapter = _Moved(world.adapter, "0" * 40)
+    with pytest.raises(PreflightError, match="different content"):
+        world.job_runner()
+
+
+def test_the_refusal_names_the_part_that_moved(tmp_path) -> None:
+    """A reader is told the commit moved, not that two digests differ."""
+    from fpbench.core.errors import PreflightError
+    from runworld import build_world
+
+    world = build_world(tmp_path / "world", research=True)
+    world.job_runner()
+
+    world.adapter = _Moved(world.adapter, "0" * 40)
+    with pytest.raises(PreflightError) as refusal:
+        world.job_runner()
+    assert "source_commit" in str(refusal.value)
+    assert "closure_fingerprint" in str(refusal.value)

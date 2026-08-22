@@ -847,3 +847,95 @@ def test_the_run_binding_counts_its_populations_off_the_store() -> None:
         assert "integrity" in line, (
             f"{field} is not counted from the verified store: {line.strip()!r}"
         )
+
+
+@pytest.mark.parametrize(
+    "condition",
+    [
+        "route_unchanged",
+        "no_systemic_bridge_defect",
+        "no_systemic_translation_defect",
+        "no_unclassified_failure",
+        "no_calibration",
+        "no_threshold_selection",
+    ],
+)
+def test_no_unmet_condition_can_publish_a_complete_run(condition) -> None:
+    """The completion conditions decide the outcome, not just decorate it.
+
+    The reviewer's run: 6,000 unique canonical comparisons, every one a
+    ``BRIDGE_FAILURE``. Every structural check passed, the code computed
+    ``no_systemic_bridge_defect: false`` and put it in the marker — and then
+    published ``outcome: ..._COMPLETE`` with ``publication_eligible: true``,
+    because the outcome was chosen from the two gates and the row count alone.
+
+    Each parameter is one of the conditions that had no effect. The two gates
+    are excluded: they have outcomes of their own, and ``no_parameter_selection``
+    is a frozen ``True`` with no input that could move it.
+    """
+    from fpbench.experiments import stage20b_finalization as final
+
+    binding = _clean_binding()
+    integrity = _clean_integrity()
+    if condition == "route_unchanged":
+        binding["dataset_changed"] = True
+    elif condition == "no_systemic_bridge_defect":
+        binding["outcome_counts"] = {"BRIDGE_FAILURE": frozen.EXPECTED_OUTCOMES}
+    elif condition == "no_systemic_translation_defect":
+        binding["failure_reasons"] = {"invalid_raster_dimensions": 3}
+    elif condition == "no_unclassified_failure":
+        binding["unclassified_failures"] = 3
+    elif condition == "no_calibration":
+        binding["calibration_performed"] = True
+    else:
+        binding["threshold_applied"] = 40.0
+
+    with pytest.raises(final.Stage20BFinalizationError) as refusal:
+        _marker_for(integrity, binding)
+    assert condition in str(refusal.value), (
+        f"the refusal does not name {condition}: {refusal.value}"
+    )
+
+
+def test_the_gates_keep_their_own_outcomes_rather_than_refusing() -> None:
+    """A failed gate is published as a failed gate.
+
+    That is why the two gate conditions are excluded from the requirement
+    above: their result is a marker a reader can see, not a refusal to write
+    one.
+    """
+    from fpbench.experiments.stage20b_finalization import (
+        GATE_B_PASS,
+        build_stage20b_finalization,
+    )
+
+    marker = build_stage20b_finalization(
+        repository_root=Path(__file__).resolve().parents[1],
+        gate_a={"outcome": "SOMETHING_ELSE", "mismatches": 4},
+        gate_b={"outcome": GATE_B_PASS, "mismatches": 0},
+        binding=_clean_binding(),
+        integrity=_clean_integrity(),
+        diagnostics={"failure_reasons": {}},
+        evidence_hashes={},
+    )
+    assert marker["outcome"] == frozen.OUTCOME_GATE_A_FAIL
+    assert marker["publication_eligible"] is False
+
+
+def test_a_run_with_an_unclassified_failure_is_not_complete() -> None:
+    """A bridge crash is a real failure and an unread one.
+
+    ``no_unclassified_failure`` is what stops the stage calling itself complete
+    over failures nobody has named. The reasons the route *has* classified —
+    the translation refusals — are counted separately and have their own
+    condition.
+    """
+    from fpbench.experiments.stage20b_finalization import Stage20BFinalizationError
+
+    binding = _clean_binding(
+        failure_reasons={"bridge_crash_139": 2},
+        unclassified_failures=2,
+        outcome_counts={"OK": frozen.EXPECTED_OUTCOMES - 2, "MCC_MATCH_REFUSAL": 2},
+    )
+    with pytest.raises(Stage20BFinalizationError, match="no_unclassified_failure"):
+        _marker_for(_clean_integrity(), binding)

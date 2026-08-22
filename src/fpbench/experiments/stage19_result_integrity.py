@@ -36,9 +36,10 @@ import json
 import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Collection, Mapping, Sequence
 
 __all__ = [
+    "failure_reason_from_details",
     "Stage19ResultIntegrityError",
     "CanonicalPair",
     "OutcomeStoreIntegrity",
@@ -115,7 +116,14 @@ class OutcomeStoreIntegrity:
     #: ``failure_reason -> count`` over the rows that did not produce a score,
     #: counted from the store. This is the field Stage 19B's fourth condition
     #: reads, and the one a diagnostics document was previously free to invent.
+    #: Every failing row contributes: a row with no reason is refused outright,
+    #: so this total always equals ``stored_outcomes - score_bearing``.
     failure_reasons: Mapping[str, int]
+    #: The subset of the above the route does not recognise. A free-text bridge
+    #: detail lands here, and so does anything a stage has never classified.
+    #: The rows are real and the store is honest; what may not happen is a
+    #: stage publishing itself complete over failures nobody has named.
+    unclassified_failure_reasons: Mapping[str, int]
     #: One row per protocol stage: how many comparisons it holds and how many
     #: of them scored. The score statistics stay with the diagnostics — a
     #: histogram is a description — but the populations a conclusion divides by
@@ -126,6 +134,11 @@ class OutcomeStoreIntegrity:
     def score_bearing_fraction(self) -> float:
         """Score coverage, from the store's own counts."""
         return self.score_bearing / self.expected_outcomes if self.expected_outcomes else 0.0
+
+    @property
+    def unclassified_failures(self) -> int:
+        """How many failing rows carry a reason the route does not recognise."""
+        return sum(self.unclassified_failure_reasons.values())
 
     def capacity_failures(self, reason: str) -> int:
         """How many rows failed for ``reason``. Zero is an answer, not a default."""
@@ -144,6 +157,37 @@ class OutcomeStoreIntegrity:
             "bound_manifest_digest": self.bound_manifest_digest,
             "score_bearing_in_store": self.score_bearing,
         }
+
+
+def failure_reason_from_details(
+    details: Mapping[str, Any] | None, *, status: str
+) -> str:
+    """One reason string for any failure this project can record.
+
+    The run scripts used to store ``details["reason"]`` and nothing else, and
+    only ``template_refused_failure`` sets that key — so a mindtct exit code, an
+    invalid xyt, a bridge crash and a timeout were all written as
+    ``failure_reason: null``. The validator then counted them as no failure at
+    all, and a run in which every comparison failed could publish "no failure of
+    this kind remains".
+
+    The keys are tried in the order a reader would: the classified reason first,
+    then the kind of thing that went wrong, then the free-text detail. A failure
+    that carries none of them still gets a reason naming its status, because a
+    failure with no reason is the hole this closes.
+    """
+    payload = dict(details or {})
+    for key in ("reason", "kind", "detail"):
+        value = payload.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    exit_code = payload.get("exit_code")
+    if exit_code is not None:
+        return f"exit_code_{exit_code}"
+    if payload.get("observed_score") is not None:
+        return "invalid_score"
+    text = str(status or "").strip().lower()
+    return f"unclassified_{text}" if text else "unclassified"
 
 
 def canonical_source_sha256(path: Path) -> str:
@@ -306,6 +350,7 @@ def verify_outcome_store_integrity(
     manifest: Sequence[CanonicalPair],
     algorithm_id: str,
     pair_manifest_hash: str,
+    classified_failure_reasons: Collection[str],
     score_bearing_statuses: frozenset[str] = SCORE_BEARING_STATUSES,
 ) -> OutcomeStoreIntegrity:
     """Prove the store *is* the canonical run, not merely the right size.
@@ -320,6 +365,11 @@ def verify_outcome_store_integrity(
     """
     expected = _exact_non_negative_int(expected_outcomes, "expected_outcomes")
     pairs = _require_manifest(manifest, expected)
+    classified = frozenset(
+        text.strip()
+        for text in classified_failure_reasons
+        if isinstance(text, str) and text.strip()
+    )
     if type(pair_manifest_hash) is not str or len(pair_manifest_hash.strip()) != 64:
         raise Stage19ResultIntegrityError(
             "pair_manifest_hash must be the manifest artifact's own 64-character "
@@ -338,6 +388,7 @@ def verify_outcome_store_integrity(
     ordinals: list[int] = []
     status_counts: dict[str, int] = {}
     failure_reasons: dict[str, int] = {}
+    unclassified: dict[str, int] = {}
     stage_totals: dict[str, int] = {}
     stage_scored: dict[str, int] = {}
     seen_ordinals: dict[int, int] = {}
@@ -393,11 +444,25 @@ def verify_outcome_store_integrity(
         else:
             # A failure's reason is part of why the stage concluded what it
             # concluded, so it is counted here rather than read from a report.
+            #
+            # A row with no reason at all used to be skipped silently, which
+            # made "no failure of this kind remains" true of a store in which
+            # every single comparison failed and none of them said why. A
+            # failure that does not state its cause is an incomplete record,
+            # in the same way a failure carrying a score is.
             reason = row.get("failure_reason")
-            if isinstance(reason, str) and reason.strip():
-                failure_reasons[reason.strip()] = (
-                    failure_reasons.get(reason.strip(), 0) + 1
+            if not isinstance(reason, str) or not reason.strip():
+                raise Stage19ResultIntegrityError(
+                    f"{where}: status {status!r} produced no score and the row "
+                    f"gives failure_reason {reason!r}. Every failure states its "
+                    "cause; an unstated one is counted as no failure at all, "
+                    "which is how a run that scored nothing was published as "
+                    "having nothing left to fix"
                 )
+            reason = reason.strip()
+            failure_reasons[reason] = failure_reasons.get(reason, 0) + 1
+            if reason not in classified:
+                unclassified[reason] = unclassified.get(reason, 0) + 1
 
     stored = len(pair_ids)
     unique_pairs = len(set(pair_ids))
@@ -499,6 +564,7 @@ def verify_outcome_store_integrity(
         score_bearing=score_bearing,
         outcome_counts=dict(status_counts),
         failure_reasons=dict(failure_reasons),
+        unclassified_failure_reasons=dict(unclassified),
         by_protocol_stage=stages,
     )
 

@@ -140,7 +140,10 @@ class DecisionSetStore:
         claim = publish_set(
             manifest_path=manifest_path,
             manifest=manifest,
-            body_path=self.records_path(run_id, set_id),
+            body_paths=(
+                self.records_path(run_id, set_id),
+                self.profile_path(run_id, set_id),
+            ),
             stored_fingerprint=lambda: self.read_manifest(
                 run_id, set_id
             ).decision_set_fingerprint,

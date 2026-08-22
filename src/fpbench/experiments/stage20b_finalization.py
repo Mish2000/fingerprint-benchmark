@@ -67,6 +67,36 @@ __all__ = [
 ]
 
 
+#: The failure reasons this route produces *as an answer*, rather than as a
+#: fault. They are the refusals the translation raises when a template cannot
+#: be represented at all — a raster with no area, a minutia count outside the
+#: upstream bounds. Each one has been read and understood, and a run made
+#: entirely of them is still a run.
+#:
+#: Everything else a comparison can fail with — a mindtct exit code, an
+#: unreadable bridge line, a timeout, a crash, an exception name, a free-text
+#: vendor detail — is deliberately *not* here. Those failures are real and are
+#: stored honestly; what may not happen is this stage declaring itself complete
+#: over failures nobody has classified. ``no_unclassified_failure`` is that
+#: rule, and tests/contract/test_failure_reasons_are_classified.py checks this
+#: set against the reasons the route's own source can raise.
+CLASSIFIED_FAILURE_REASONS = frozenset(
+    {
+        "invalid_raster_dimensions",
+        "minutia_outside_mindtct_raster",
+        "invalid_mindtct_direction",
+    }
+)
+
+
+#: The two conditions that have an outcome of their own, so they are not
+#: also required for COMPLETE — a failed gate is published as a failed
+#: gate rather than refused.
+_GATE_CONDITIONS = frozenset(
+    {"gate_a_bridge_reproduction", "gate_b_mindtct_parity"}
+)
+
+
 class Stage20BFinalizationError(RuntimeError):
     """The evidence does not support the document being asked for."""
 
@@ -342,6 +372,8 @@ def build_canonical_run_binding(
         },
         "outcome_counts": dict(integrity.outcome_counts),
         "failure_reasons": dict(integrity.failure_reasons),
+        "unclassified_failure_reasons": dict(integrity.unclassified_failure_reasons),
+        "unclassified_failures": integrity.unclassified_failures,
         "score_bearing": integrity.score_bearing,
         "score_bearing_fraction": integrity.score_bearing_fraction,
         "score_type": "System.Double",
@@ -380,6 +412,7 @@ def _verified_store(
             algorithm_id=frozen.ALGORITHM_ID,
             pair_manifest_hash=manifest.pair_manifest_hash,
             expected_outcomes=frozen.EXPECTED_OUTCOMES,
+            classified_failure_reasons=CLASSIFIED_FAILURE_REASONS,
         )
     except Stage19ResultIntegrityError as exc:
         raise Stage20BFinalizationError(str(exc)) from None
@@ -501,14 +534,12 @@ def build_stage20b_finalization(
     translation_defects = sum(
         value
         for key, value in binding.get("failure_reasons", {}).items()
-        if key
-        in {
-            "invalid_raster_dimensions",
-            "minutia_outside_mindtct_raster",
-            "invalid_mindtct_direction",
-            "workspace_not_visible_to_windows",
-        }
+        if key in CLASSIFIED_FAILURE_REASONS
+        or key == "workspace_not_visible_to_windows"
     )
+    # A reason this route has never classified is not a translation defect and
+    # not an upstream answer; it is a failure nobody has read.
+    unclassified_failures = int(binding.get("unclassified_failures", 0))
 
     # Every structural property, not just the row count. The published
     # integrity document already said ``duplicate_pair_ids=5999`` and
@@ -568,6 +599,7 @@ def build_stage20b_finalization(
         ),
         "no_systemic_bridge_defect": bridge_defects == 0 and runtime_defects == 0,
         "no_systemic_translation_defect": translation_defects == 0,
+        "no_unclassified_failure": unclassified_failures == 0,
         "no_parameter_selection": True,
         "no_calibration": binding["calibration_performed"] is False,
         "no_threshold_selection": binding["threshold_applied"] is None,
@@ -586,6 +618,26 @@ def build_stage20b_finalization(
             f"the canonical run is not complete: {detail}"
         )
     else:
+        # Every remaining condition, not just the structural ones. They were
+        # computed, published in ``completion_conditions``, and read by nobody:
+        # a run of 6,000 unique comparisons in which every single one was a
+        # BRIDGE_FAILURE published ``no_systemic_bridge_defect: false`` and
+        # ``outcome: ..._COMPLETE`` in the same document, and
+        # ``publication_eligible`` followed the outcome.
+        #
+        # The two gates are excluded because each has its own outcome above;
+        # everything else here is a requirement for calling the run complete.
+        withheld = sorted(
+            name
+            for name, held in conditions.items()
+            if name not in _GATE_CONDITIONS and not held
+        )
+        if withheld:
+            raise Stage20BFinalizationError(
+                "the run does not meet the conditions for "
+                f"{frozen.OUTCOME_COMPLETE}: {', '.join(withheld)} "
+                f"{'are' if len(withheld) > 1 else 'is'} false"
+            )
         outcome = frozen.OUTCOME_COMPLETE
 
     complete = outcome == frozen.OUTCOME_COMPLETE

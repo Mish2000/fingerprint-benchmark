@@ -79,7 +79,7 @@ class EligibilitySetStore:
         claim = publish_set(
             manifest_path=manifest_path,
             manifest=manifest,
-            body_path=self.entries_path(manifest.run_id, decision_set_id),
+            body_paths=(self.entries_path(manifest.run_id, decision_set_id),),
             stored_fingerprint=lambda: self.read_manifest(
                 manifest.run_id, decision_set_id
             ).eligibility_set_fingerprint,

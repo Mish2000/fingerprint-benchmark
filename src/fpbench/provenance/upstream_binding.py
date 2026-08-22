@@ -34,6 +34,7 @@ shrink, rather than a silence.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 
 from fpbench.core.serialization import stable_hash
 from fpbench.core.third_party_errors import ThirdPartyUsageError
@@ -46,9 +47,79 @@ from fpbench.core.third_party_models import (
 
 __all__ = [
     "BoundUpstreamComponent",
+    "IdentityLinkBasis",
+    "derive_identity_link",
     "upstream_identity_fingerprint",
     "bind_component",
 ]
+
+
+class IdentityLinkBasis(str, Enum):
+    """How the observation was tied to the upstream identity beside it.
+
+    The point of publishing this is that a reader can tell the two apart. A
+    record whose licence was read *from the upstream's own locator* proves its
+    own pairing; a record whose licence was read from a local evidence file
+    beside an artifact fetched from a package index does not, and rests on the
+    publisher having checked. Both are legitimate; only one is self-evident, and
+    until now the record said nothing about which it was.
+    """
+
+    #: An evidence locator is the upstream locator, or sits under it. The
+    #: notices were read from the upstream artifact itself.
+    EVIDENCE_LOCATOR = "DERIVED_FROM_EVIDENCE_LOCATOR"
+    #: An evidence locator carries the upstream's exact commit. The notices were
+    #: read at the revision the identity names.
+    UPSTREAM_COMMIT = "DERIVED_FROM_UPSTREAM_COMMIT"
+    #: Nothing in the two documents links them. The publisher's assertion is all
+    #: there is, and the record says so rather than implying more.
+    PUBLISHER_ASSERTION = "ASSERTED_BY_THE_PUBLISHER"
+
+
+def _locators(observation: LicenseObservation) -> tuple[str, ...]:
+    return tuple(
+        str(item.locator).strip()
+        for item in observation.evidence
+        if str(getattr(item, "locator", "")).strip()
+    )
+
+
+def derive_identity_link(
+    observation: LicenseObservation, identity: UpstreamIdentity
+) -> IdentityLinkBasis:
+    """Read the pairing out of the two documents, where it is there to read.
+
+    Deliberately narrow. It answers "do these two documents *themselves* say
+    they are about one component", and returns
+    :attr:`IdentityLinkBasis.PUBLISHER_ASSERTION` whenever they do not — which
+    is the honest answer for a licence read from a local evidence file beside an
+    artifact fetched from a package index. Guessing from a fuzzy name match
+    would turn an unproven pairing into a proven-looking one, which is the whole
+    failure being addressed.
+    """
+    if not isinstance(observation, LicenseObservation):
+        raise ThirdPartyUsageError("deriving a link needs a recorded observation")
+    if not isinstance(identity, UpstreamIdentity):
+        raise ThirdPartyUsageError("deriving a link needs an upstream identity")
+
+    locators = _locators(observation)
+    upstream = str(identity.upstream_locator or "").strip()
+    if upstream:
+        for locator in locators:
+            if locator == upstream:
+                return IdentityLinkBasis.EVIDENCE_LOCATOR
+            # A licence file inside the artifact the identity names. The
+            # separator matters: ".../flx/data" must not match ".../flx/database".
+            if locator.startswith(upstream.rstrip("/") + "/"):
+                return IdentityLinkBasis.EVIDENCE_LOCATOR
+            if upstream.startswith(locator.rstrip("/") + "/"):
+                return IdentityLinkBasis.EVIDENCE_LOCATOR
+
+    commit = str(identity.upstream_commit or "").strip()
+    if len(commit) >= 40 and any(commit in locator for locator in locators):
+        return IdentityLinkBasis.UPSTREAM_COMMIT
+
+    return IdentityLinkBasis.PUBLISHER_ASSERTION
 
 
 def upstream_identity_fingerprint(identity: UpstreamIdentity) -> str:
@@ -95,6 +166,11 @@ class BoundUpstreamComponent:
     upstream_identity_fingerprint: str
     binding_fingerprint: str
 
+    #: How the pairing was established. Part of the binding fingerprint, so a
+    #: record cannot be re-signed as derived without the evidence that derives
+    #: it.
+    identity_link_basis: IdentityLinkBasis = IdentityLinkBasis.PUBLISHER_ASSERTION
+
 
 def bind_component(
     *,
@@ -113,9 +189,17 @@ def bind_component(
     the caller stating, in one place a reviewer can find, that the notices it
     read were the notices shipped with these bytes.
 
-    That is weaker than a derived proof and stronger than the previous
-    arrangement, which was nothing at all. A stage that cannot say ``True`` here
-    honestly has not established the pairing and should not publish the record.
+    Where the pairing *is* derivable, it is derived rather than believed:
+    :func:`derive_identity_link` reads it out of the two documents, the result
+    is published as :attr:`BoundUpstreamComponent.identity_link_basis`, and a
+    caller passing ``False`` over evidence that says otherwise is refused. Where
+    it is not derivable — a licence read from a local evidence file beside an
+    artifact fetched from a package index — the assertion stands and the record
+    says, in a field, that an assertion is what it is.
+
+    That is the honest position: derived where the evidence allows, and visibly
+    asserted where it does not. A stage that cannot say ``True`` here honestly
+    has not established the pairing and should not publish the record.
 
     Raises:
         ThirdPartyUsageError: the three do not describe one component.
@@ -142,7 +226,15 @@ def bind_component(
         raise ThirdPartyUsageError(
             "identity_is_the_observed_component must be an exact bool"
         )
+    basis = derive_identity_link(observation, upstream_identity)
     if not identity_is_the_observed_component:
+        if basis is not IdentityLinkBasis.PUBLISHER_ASSERTION:
+            raise ThirdPartyUsageError(
+                f"the caller denies that {upstream_identity.upstream_name!r} is "
+                f"the component observation {observation.observation_id!r} was "
+                f"taken over, and the two documents say otherwise ({basis.value}). "
+                "One of them is wrong, and it is not for this function to pick"
+            )
         raise ThirdPartyUsageError(
             f"the caller does not assert that {upstream_identity.upstream_name!r} "
             f"is the component observation {observation.observation_id!r} was "
@@ -158,13 +250,15 @@ def bind_component(
         observation_fingerprint=observation.observation_fingerprint,
         assessment_fingerprint=assessment.assessment_fingerprint,
         upstream_identity_fingerprint=identity_fingerprint,
+        identity_link_basis=basis,
         binding_fingerprint=stable_hash(
             {
-                "schema": "third_party_component_binding_v1",
+                "schema": "third_party_component_binding_v2",
                 "component_kind": observation.component_kind.value,
                 "observation": observation.observation_fingerprint,
                 "assessment": assessment.assessment_fingerprint,
                 "upstream_identity": identity_fingerprint,
+                "identity_link_basis": basis.value,
             },
             length=64,
         ),

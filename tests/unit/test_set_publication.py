@@ -42,7 +42,7 @@ def _claim(tmp_path: Path, manifest: _Manifest) -> SetClaim:
     return publish_set(
         manifest_path=manifest_path,
         manifest=manifest,
-        body_path=tmp_path / "entries.parquet",
+        body_paths=(tmp_path / "entries.parquet",),
         stored_fingerprint=stored,
         fingerprint=manifest.fingerprint,
     )
@@ -142,7 +142,7 @@ def test_an_already_published_manifest_is_never_re_rendered(tmp_path: Path) -> N
     claim = publish_set(
         manifest_path=manifest_path,
         manifest=_Unserialisable(),
-        body_path=tmp_path / "entries.parquet",
+        body_paths=(tmp_path / "entries.parquet",),
         stored_fingerprint=lambda: "a" * 64,
         fingerprint="b" * 64,
     )
@@ -159,3 +159,77 @@ def test_an_unreadable_stored_manifest_is_the_callers_error(tmp_path: Path) -> N
     (tmp_path / "manifest.json").write_text("not json", encoding="utf-8")
     with pytest.raises(json.JSONDecodeError):
         _claim(tmp_path, _Manifest("set_a", "a" * 64))
+
+
+# ------------------------------------------ a set is every file it is made of
+
+
+def _multi(tmp_path: Path, manifest: _Manifest, names: tuple[str, ...]) -> SetClaim:
+    manifest_path = tmp_path / "manifest.json"
+
+    def stored() -> str:
+        return str(json.loads(manifest_path.read_text(encoding="utf-8"))["fingerprint"])
+
+    return publish_set(
+        manifest_path=manifest_path,
+        manifest=manifest,
+        body_paths=tuple(tmp_path / name for name in names),
+        stored_fingerprint=stored,
+        fingerprint=manifest.fingerprint,
+    )
+
+
+#: A metric set: a definition, a policy, a report profile, the counts and the
+#: observations. Six files with the manifest, and the crash below lands between
+#: the fourth and the fifth.
+_METRIC_SET = (
+    "definition.json",
+    "policy.json",
+    "report-profile.json",
+    "counts.parquet",
+    "observations.parquet",
+)
+
+
+def test_a_crash_between_two_body_files_is_still_an_unfinished_set(
+    tmp_path: Path,
+) -> None:
+    """The reviewer's case, and the reason ``body_paths`` is plural.
+
+    ``counts.parquet`` used to stand in for the whole body. A crash after it and
+    before ``observations.parquet`` left a set whose retry reported success over
+    a set that cannot be read: the manifest is there, the counts are there, and
+    the observations the manifest describes never arrived.
+    """
+    manifest = _Manifest("ms_1", "a" * 64)
+    assert _multi(tmp_path, manifest, _METRIC_SET).write_body is True
+    for name in _METRIC_SET[:-1]:
+        (tmp_path / name).write_bytes(b"written")
+    # ...and then the process died.
+
+    resumed = _multi(tmp_path, manifest, _METRIC_SET)
+    assert resumed.write_body is True, (
+        "the set is missing observations.parquet and the retry called it finished"
+    )
+
+
+def test_a_set_whose_every_file_arrived_is_not_written_again(tmp_path: Path) -> None:
+    manifest = _Manifest("ms_1", "a" * 64)
+    assert _multi(tmp_path, manifest, _METRIC_SET).write_body is True
+    for name in _METRIC_SET:
+        (tmp_path / name).write_bytes(b"written")
+
+    resumed = _multi(tmp_path, manifest, _METRIC_SET)
+    assert resumed.write_body is False
+
+
+@pytest.mark.parametrize("missing", _METRIC_SET)
+def test_any_missing_file_makes_the_set_unfinished(tmp_path: Path, missing: str) -> None:
+    """Not just the last one: each file is the manifest's claim as much as the rest."""
+    manifest = _Manifest("ms_1", "a" * 64)
+    assert _multi(tmp_path, manifest, _METRIC_SET).write_body is True
+    for name in _METRIC_SET:
+        if name != missing:
+            (tmp_path / name).write_bytes(b"written")
+
+    assert _multi(tmp_path, manifest, _METRIC_SET).write_body is True

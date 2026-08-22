@@ -67,6 +67,27 @@ __all__ = [
 #: everything the source fingerprint and the evidence gate can see.
 BLOCKING_STATUSES = frozenset({"OPENAFIS_MATCH_FAILED", "INFRASTRUCTURE_FAILURE"})
 
+#: The failure reasons this route produces *as an answer*, rather than as a
+#: fault. They are the refusals the translation raises when a template cannot
+#: be represented at all — a raster with no area, a minutia count outside the
+#: upstream bounds. Each one has been read and understood, and a run made
+#: entirely of them is still a run.
+#:
+#: Everything else a comparison can fail with — a mindtct exit code, an
+#: unreadable bridge line, a timeout, a crash, an exception name, a free-text
+#: vendor detail — is deliberately *not* here. Those failures are real and are
+#: stored honestly; what may not happen is this stage declaring itself complete
+#: over failures nobody has classified. ``no_unclassified_failure`` is that
+#: rule, and tests/contract/test_failure_reasons_are_classified.py checks this
+#: set against the reasons the route's own source can raise.
+CLASSIFIED_FAILURE_REASONS = frozenset(
+    {
+        "invalid_raster_dimensions",
+        "minutiae_below_upstream_minimum",
+        "minutiae_above_upstream_maximum",
+    }
+)
+
 
 class Stage19AFinalizationError(RuntimeError):
     """The evidence does not support the document being asked for."""
@@ -296,6 +317,7 @@ def _outcome_integrity(
             algorithm_id=frozen.ALGORITHM_ID,
             pair_manifest_hash=manifest.pair_manifest_hash,
             expected_outcomes=frozen.EXPECTED_OUTCOMES,
+            classified_failure_reasons=CLASSIFIED_FAILURE_REASONS,
         )
     except Stage19ResultIntegrityError as exc:
         raise Stage19AFinalizationError(str(exc)) from None
@@ -339,6 +361,8 @@ def build_canonical_run_binding(
         "calibration_performed": False,
         "outcome_counts": dict(integrity.outcome_counts),
         "failure_reasons": dict(integrity.failure_reasons),
+        "unclassified_failure_reasons": dict(integrity.unclassified_failure_reasons),
+        "unclassified_failures": integrity.unclassified_failures,
         "score_bearing": integrity.score_bearing,
         "score_bearing_fraction": integrity.score_bearing_fraction,
         "cross_impression": cross,
@@ -425,6 +449,9 @@ def build_stage19a_finalization(
         "translation_settled_from_sources_not_tuning": True,
         "no_systemic_implementation_defect": blocking == 0,
         "failures_are_upstream_limits_not_the_bridge": blocking == 0,
+        # A failure whose reason this route has never classified is not an
+        # upstream limit *or* a known defect; it is a failure nobody has read.
+        "no_unclassified_failure": int(binding.get("unclassified_failures", 0)) == 0,
         "substantial_cross_impression_score_bearing": (
             None if sufficiency == "UNDETERMINED" else sufficiency == "SUFFICIENT"
         ),

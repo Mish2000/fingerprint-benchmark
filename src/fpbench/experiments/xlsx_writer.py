@@ -154,6 +154,51 @@ def _cell_xml(reference: str, value: str, column: Column | None, header: bool) -
     )
 
 
+#: One line of 11pt Calibri, in points, plus a little air. Excel's own default
+#: row is 15; wrapped lines stack at the same pitch.
+_LINE_POINTS = 15.0
+_ROW_PADDING = 6.0
+
+
+def _wrapped_lines(text: str, width: float) -> int:
+    """How many lines ``text`` occupies in a column ``width`` characters wide.
+
+    Deliberately simple: explicit newlines split, and each segment is divided by
+    the column width. Excel measures glyphs and this counts characters, so the
+    estimate is a little generous — which is the right direction for a header
+    that must not be clipped.
+    """
+    if width <= 0:
+        return 1
+    lines = 0
+    for segment in str(text).split(chr(10)):
+        words = segment.split()
+        if not words:
+            lines += 1
+            continue
+        current = 0
+        used = 1
+        for word in words:
+            need = len(word) if current == 0 else len(word) + 1
+            if current + need > width and current:
+                used += 1
+                current = len(word)
+            else:
+                current += need
+        lines += used
+    return max(lines, 1)
+
+
+def _header_height(row: Sequence[str], columns: Sequence[Column]) -> float:
+    """The height the tallest header cell needs, in points."""
+    tallest = 1
+    for index, value in enumerate(row):
+        column = columns[index] if index < len(columns) else None
+        width = column.width if column is not None else 10.0
+        tallest = max(tallest, _wrapped_lines(value, width))
+    return tallest * _LINE_POINTS + _ROW_PADDING
+
+
 def sheet_xml(
     rows: Sequence[Sequence[str]], columns: Sequence[Column] = ()
 ) -> str:
@@ -176,8 +221,10 @@ def sheet_xml(
     ]
     for row_index, row in enumerate(rows, start=1):
         header = row_index == 1
-        # Header rows carry two lines of text; give them the room.
-        height = ' ht="42" customHeight="1"' if header else ""
+        # Measured, not assumed. A fixed 42 points is two and a half lines, and
+        # the longest header here wraps to four in a twenty-character column —
+        # so the heading a reader most needs was the one cut off.
+        height = f' ht="{_header_height(row, columns):.0f}" customHeight="1"' if header else ""
         parts.append(f'<row r="{row_index}"{height}>')
         for column_index, value in enumerate(row):
             reference = f"{_column_name(column_index)}{row_index}"

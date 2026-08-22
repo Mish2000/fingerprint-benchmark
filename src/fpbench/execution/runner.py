@@ -43,7 +43,10 @@ from typing import Mapping
 
 from fpbench.adapters.base import FingerprintAlgorithmAdapter
 from fpbench.adapters.errors import AdapterContractViolation
-from fpbench.core.content_closure import ContentClosureError
+from fpbench.core.content_closure import (
+    ContentClosureBinding,
+    ContentClosureError,
+)
 from fpbench.core.enums import (
     ExecutionStatus,
     FailureCode,
@@ -70,6 +73,7 @@ from fpbench.core.execution_models import (
     environment_fingerprint,
 )
 from fpbench.core.identifiers import ImageId
+from fpbench.core.serialization import stable_hash, to_plain
 from fpbench.core.models import ComparisonPair, ImageRecord
 from fpbench.core.result_models import RawResultRecord, RunDefinition
 from fpbench.execution.blinding import RunBlinding
@@ -81,6 +85,27 @@ __all__ = ["JobDisposition", "JobExecutionOutcome", "SingleJobRunner"]
 
 _NS_PER_MS = 1_000_000
 _MAX_MESSAGE_CHARS = 500
+
+
+def _closure_claims(closure: ContentClosureBinding) -> dict[str, str]:
+    """The closure, reduced to what a resume has to agree about.
+
+    The fingerprint alone would be enough to *detect* a divergence; the parts
+    beside it are what make the refusal readable — a reader wants to be told
+    the interpreter moved, not that two digests differ.
+    """
+    return {
+        "closure_fingerprint": str(closure.closure_fingerprint),
+        "subject": str(closure.subject),
+        "code": stable_hash(dict(closure.code)),
+        "preparer_id": str(closure.preparer.preparer_id),
+        "preparer_version": str(closure.preparer.preparer_version),
+        "interpreter": stable_hash(dict(closure.interpreter)),
+        "native_dependencies": stable_hash(to_plain(closure.native_dependencies)),
+        "runtime_assets": stable_hash(to_plain(closure.runtime_assets)),
+        "source_commit": str(closure.source_identity.commit),
+        "source_tree_clean": str(bool(closure.source_identity.tree_clean)),
+    }
 
 
 class JobDisposition(str, Enum):
@@ -215,21 +240,44 @@ class SingleJobRunner:
         closure of it would be demanding provenance that does not exist yet
         rather than provenance somebody forgot.
 
-        Nothing is stored. The value of building it here is that
+        Two things happen here, and the second is the one that was missing.
         :class:`~fpbench.core.content_closure.ContentClosureBinding` refuses a
         closure with a hole, so a run whose provenance has one stops before the
-        first comparison instead of after six thousand (docs/adr/0139).
+        first comparison instead of after six thousand (docs/adr/0139). And the
+        closure it produces is *published against the run*, once, so a resume
+        has something to disagree with: building it and dropping it proved the
+        provenance was whole on the day the run started and nothing after that.
+        A run resumed under a different interpreter, native library or commit
+        builds a different closure, and every result already stored would
+        otherwise go on standing under the old one.
         """
         build = getattr(self._adapter, "content_closure", None)
         if build is None:
             return
         try:
-            build(self._preparer)
+            closure = build(self._preparer)
         except ContentClosureError as exc:
             raise PreflightError(
                 f"this run cannot state the content its scores would depend on: "
                 f"{exc}"
             ) from exc
+
+        expected = _closure_claims(closure)
+        bound = self._result_store.bind_content_closure(self._run.run_id, expected)
+        divergent = sorted(
+            key for key, value in expected.items() if bound.get(key) != value
+        )
+        if divergent:
+            detail = "; ".join(
+                f"{key}: stored {bound.get(key)!r}, this run {expected[key]!r}"
+                for key in divergent
+            )
+            raise PreflightError(
+                f"run {self._run.run_id} is bound to a different content "
+                f"closure than the one this process would run under. {detail}. "
+                "The binding is written once, before the first comparison, and "
+                "the results already stored depend on it (docs/adr/0139)"
+            )
 
     def _require_preparer_matches_stored_results(self) -> None:
         """A resumed run must be resumed with the preparer that started it.

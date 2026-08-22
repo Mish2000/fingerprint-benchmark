@@ -48,6 +48,9 @@ from fpbench.adapters.mcc.failure_mapping import STATUS_KEY  # noqa: E402
 from fpbench.adapters.registry import create_adapter  # noqa: E402
 from fpbench.core.enums import EnvironmentStatus, ExecutionStatus  # noqa: E402
 from fpbench.core.execution_models import ComparisonContext  # noqa: E402
+from fpbench.experiments.stage19_result_integrity import (
+    failure_reason_from_details,
+)
 from fpbench.experiments.stage18a_inputs import load_stage18a_inputs  # noqa: E402
 from fpbench.experiments.stage20b_identity import (  # noqa: E402
     ADAPTER_ID,
@@ -206,7 +209,11 @@ def main() -> int:
                 "raw_score": result.raw_score,
                 "status": status,
                 "failure_code": result.failure.code.value if result.failure else None,
-                "failure_reason": details.get("reason") or details.get("detail"),
+                "failure_reason": (
+                    failure_reason_from_details(details, status=status)
+                    if status != "OK"
+                    else None
+                ),
                 "observed_score": details.get("observed_score"),
                 "left_minutiae_count": (
                     int(metadata["left_minutiae_count"])

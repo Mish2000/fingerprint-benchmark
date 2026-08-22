@@ -23,16 +23,21 @@ second writer never touches the body at all.
 That inverts the old crash story, so the new one is handled explicitly. A crash
 between the manifest and the body leaves a set whose manifest is present and
 whose rows are missing. :func:`publish_set` detects exactly that — same
-fingerprint, absent body — and lets the caller finish the publication it started.
-A *different* fingerprint is still a conflict and is still never resolved by
-overwriting (docs/adr/0009).
+fingerprint, any required file absent — and lets the caller finish the
+publication it started. A *different* fingerprint is still a conflict and is
+still never resolved by overwriting (docs/adr/0009).
+
+**Every** body file counts, not a representative one. A metric set is six files;
+naming only ``counts.parquet`` meant a crash between it and
+``observations.parquet`` produced a set whose retry reported success over rows
+that were never written.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Sequence
 
 from fpbench.core.atomic_write import PublishConflictError
 from fpbench.core.json_io import publish_json
@@ -57,7 +62,7 @@ def publish_set(
     *,
     manifest_path: Path,
     manifest: object,
-    body_path: Path,
+    body_paths: Sequence[Path],
     stored_fingerprint: Callable[[], str],
     fingerprint: str,
 ) -> SetClaim:
@@ -66,9 +71,12 @@ def publish_set(
     Args:
         manifest_path: The document that says the set exists.
         manifest: What to publish there.
-        body_path: The file the manifest describes. Only its *existence* is
-            read here; writing it is the caller's job, and only when
-            :attr:`SetClaim.write_body` says so.
+        body_paths: **Every** file the manifest describes. Only their
+            *existence* is read here; writing them is the caller's job, and only
+            when :attr:`SetClaim.write_body` says so. All of them, because one
+            was standing in for the rest: a metric set is six files, and a crash
+            between ``counts.parquet`` and ``observations.parquet`` left a set
+            the retry declared finished.
         stored_fingerprint: Reads the fingerprint out of whatever manifest is
             already on disk. A callable rather than a value because it must not
             be paid for on the common path, where nothing is there.
@@ -101,8 +109,9 @@ def publish_set(
     # the previous publication stopped half way and can be finished; the rows
     # are determined by the fingerprint, so writing them is not a guess.
     same_set = stored_fingerprint() == fingerprint
+    incomplete = any(not Path(path).is_file() for path in body_paths)
     return SetClaim(
         owned=False,
-        write_body=same_set and not Path(body_path).is_file(),
+        write_body=same_set and incomplete,
         already_published=True,
     )

@@ -24,6 +24,16 @@ from fpbench.experiments.stage19_result_integrity import (
 ALGORITHM = "nbis_mindtct_openafis"
 MANIFEST_HASH = "e" * 64
 
+#: The reasons this route has classified. Anything else a store carries is a
+#: real failure the stage may not call itself complete over.
+CLASSIFIED = frozenset(
+    {
+        "invalid_raster_dimensions",
+        "minutiae_below_upstream_minimum",
+        "minutiae_above_upstream_maximum",
+    }
+)
+
 
 #: The three protocol stages a Stage 19 manifest actually mixes, and the ground
 #: truth each one carries. Written out rather than generated, so a mutation in a
@@ -101,6 +111,7 @@ def _verify(tmp_path: Path, rows: list[dict], manifest=None):
         manifest=pairs,
         algorithm_id=ALGORITHM,
         pair_manifest_hash=MANIFEST_HASH,
+        classified_failure_reasons=CLASSIFIED,
     )
 
 
@@ -203,7 +214,13 @@ def test_diagnostics_that_overstate_the_scored_population_are_refused(
 ) -> None:
     pairs = _manifest()
     rows = [_row(pair) for pair in pairs]
-    rows[0].update({"status": "INFRASTRUCTURE_FAILURE", "raw_score": None})
+    rows[0].update(
+            {
+                "status": "INFRASTRUCTURE_FAILURE",
+                "raw_score": None,
+                "failure_reason": "input_unreadable",
+            }
+        )
     diagnostics = _diagnostics(rows)
     diagnostics["overall"]["score_bearing"] = len(pairs)
     with pytest.raises(Stage19ResultIntegrityError, match="score-bearing"):
@@ -214,6 +231,7 @@ def test_diagnostics_that_overstate_the_scored_population_are_refused(
             manifest=pairs,
             algorithm_id=ALGORITHM,
             pair_manifest_hash=MANIFEST_HASH,
+            classified_failure_reasons=CLASSIFIED,
         )
 
 
@@ -264,6 +282,7 @@ def test_the_reasons_a_run_failed_are_counted_not_reported(tmp_path: Path) -> No
             manifest=pairs,
             algorithm_id=ALGORITHM,
             pair_manifest_hash=MANIFEST_HASH,
+            classified_failure_reasons=CLASSIFIED,
         )
 
 
@@ -287,6 +306,7 @@ def test_the_derived_reasons_are_what_the_store_holds(tmp_path: Path) -> None:
         manifest=pairs,
         algorithm_id=ALGORITHM,
         pair_manifest_hash=MANIFEST_HASH,
+        classified_failure_reasons=CLASSIFIED,
     )
     assert integrity.capacity_failures("minutiae_above_upstream_maximum") == 1
     assert integrity.failure_reasons == {
@@ -313,6 +333,7 @@ def test_a_stage_population_the_store_contradicts_is_refused(tmp_path: Path) -> 
             manifest=pairs,
             algorithm_id=ALGORITHM,
             pair_manifest_hash=MANIFEST_HASH,
+            classified_failure_reasons=CLASSIFIED,
         )
 
 
@@ -329,6 +350,7 @@ def test_a_stage_the_manifest_does_not_contain_is_refused(tmp_path: Path) -> Non
             manifest=pairs,
             algorithm_id=ALGORITHM,
             pair_manifest_hash=MANIFEST_HASH,
+            classified_failure_reasons=CLASSIFIED,
         )
 
 
@@ -442,3 +464,142 @@ def test_stage19a_names_the_count_that_stopped_the_publication(field, value) -> 
     assert field in str(refusal.value), (
         f"the refusal does not name {field}: {refusal.value}"
     )
+
+
+# ---------------------------- a failure that does not say why is not a failure
+
+
+def test_a_failure_with_no_reason_at_all_is_refused(tmp_path: Path) -> None:
+    """The reviewer's second store, kept as a test.
+
+    Six thousand unique ordinals, every one ``OPENAFIS_TEMPLATE_FAILED_LEFT``,
+    no score and no ``failure_reason`` key. The reason counter skipped rows
+    without a reason, so ``failure_reasons`` came out ``{}``,
+    ``capacity_failures_remaining`` came out 0, and a run that scored nothing
+    was declared to have nothing left to fix.
+    """
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    for row in rows:
+        row.update({"status": "OPENAFIS_TEMPLATE_FAILED_LEFT", "raw_score": None})
+        row.pop("failure_reason", None)
+    with pytest.raises(Stage19ResultIntegrityError, match="states its cause"):
+        _verify(tmp_path, rows)
+
+
+@pytest.mark.parametrize("reason", [None, "", "   "])
+def test_an_empty_reason_is_the_same_as_no_reason(tmp_path: Path, reason) -> None:
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    rows[0].update(
+        {
+            "status": "OPENAFIS_TEMPLATE_FAILED_LEFT",
+            "raw_score": None,
+            "failure_reason": reason,
+        }
+    )
+    with pytest.raises(Stage19ResultIntegrityError, match="states its cause"):
+        _verify(tmp_path, rows)
+
+
+def test_every_failing_row_is_counted_exactly_once(tmp_path: Path) -> None:
+    """The total is now an identity, not an estimate.
+
+    Because a row with no reason is refused, the reasons account for every
+    comparison that did not produce a score. A stage can subtract.
+    """
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    for row in rows[:4]:
+        row.update(
+            {
+                "status": "OPENAFIS_TEMPLATE_FAILED_LEFT",
+                "raw_score": None,
+                "failure_reason": "minutiae_above_upstream_maximum",
+            }
+        )
+    integrity = _verify(tmp_path, rows)
+    assert sum(integrity.failure_reasons.values()) == (
+        integrity.stored_outcomes - integrity.score_bearing
+    )
+    assert integrity.failure_reasons == {"minutiae_above_upstream_maximum": 4}
+
+
+def test_a_reason_the_route_never_classified_is_counted_as_unclassified(
+    tmp_path: Path,
+) -> None:
+    """A bridge crash is a real failure and an unread one.
+
+    It is stored honestly and it is counted honestly; what it must not do is
+    let a stage call itself complete. ``unclassified_failures`` is the field the
+    stages' ``no_unclassified_failure`` condition reads.
+    """
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    rows[0].update(
+        {
+            "status": "OPENAFIS_MATCH_FAILED",
+            "raw_score": None,
+            "failure_reason": "bridge_crash_139",
+        }
+    )
+    rows[1].update(
+        {
+            "status": "OPENAFIS_TEMPLATE_FAILED_LEFT",
+            "raw_score": None,
+            "failure_reason": "minutiae_above_upstream_maximum",
+        }
+    )
+    integrity = _verify(tmp_path, rows)
+    assert integrity.unclassified_failure_reasons == {"bridge_crash_139": 1}
+    assert integrity.unclassified_failures == 1
+    # The classified one is not swept in with it.
+    assert integrity.capacity_failures("minutiae_above_upstream_maximum") == 1
+
+
+def test_a_store_of_only_classified_reasons_has_nothing_unclassified(
+    tmp_path: Path,
+) -> None:
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    for row in rows:
+        row.update(
+            {
+                "status": "OPENAFIS_TEMPLATE_FAILED_LEFT",
+                "raw_score": None,
+                "failure_reason": "minutiae_above_upstream_maximum",
+            }
+        )
+    integrity = _verify(tmp_path, rows)
+    assert integrity.unclassified_failures == 0
+    assert integrity.score_bearing == 0
+
+
+# ------------------------------------- the reason a stored failure carries now
+
+
+@pytest.mark.parametrize(
+    "details, status, expected",
+    [
+        ({"reason": "minutiae_above_upstream_maximum"}, "X", "minutiae_above_upstream_maximum"),
+        ({"kind": "malformed_xyt"}, "INVALID_XYT_LEFT", "malformed_xyt"),
+        ({"detail": "mindtct_timeout"}, "INFRASTRUCTURE_FAILURE", "mindtct_timeout"),
+        ({"exit_code": 2, "side": "left"}, "MINDTCT_FAILED_LEFT", "exit_code_2"),
+        ({"observed_score": "nan"}, "MCC_INVALID_SCORE", "invalid_score"),
+        ({}, "BRIDGE_FAILURE", "unclassified_bridge_failure"),
+        ({"reason": "   "}, "BRIDGE_FAILURE", "unclassified_bridge_failure"),
+    ],
+)
+def test_every_failure_shape_yields_a_reason(details, status, expected) -> None:
+    """The producers only ever stored ``details["reason"]``.
+
+    Only ``template_refused_failure`` sets that key, so a mindtct exit code, an
+    invalid xyt, a timeout and a bridge crash were all written as
+    ``failure_reason: null`` — and the validator, which now refuses those rows,
+    would refuse a legitimate run. The fix is at both ends.
+    """
+    from fpbench.experiments.stage19_result_integrity import (
+        failure_reason_from_details,
+    )
+
+    assert failure_reason_from_details(details, status=status) == expected

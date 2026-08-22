@@ -86,7 +86,9 @@ class EvaluationViewStore:
         claim = publish_set(
             manifest_path=manifest_path,
             manifest=manifest,
-            body_path=self.entries_path(run_id, decision_set_id, manifest.view_kind),
+            body_paths=(
+                self.entries_path(run_id, decision_set_id, manifest.view_kind),
+            ),
             stored_fingerprint=lambda: self.read_manifest(
                 run_id, decision_set_id, manifest.view_kind
             ).view_fingerprint,

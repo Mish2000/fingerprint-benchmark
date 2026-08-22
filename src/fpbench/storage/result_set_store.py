@@ -106,7 +106,7 @@ class ResultSetStore:
         claim = publish_set(
             manifest_path=manifest_path,
             manifest=manifest,
-            body_path=self.entries_path(manifest.run_id),
+            body_paths=(self.entries_path(manifest.run_id),),
             stored_fingerprint=stored_fingerprint,
             fingerprint=manifest.result_set_fingerprint,
         )

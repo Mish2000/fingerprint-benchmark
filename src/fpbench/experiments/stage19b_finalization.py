@@ -92,6 +92,32 @@ SUPERVISOR_DISCLOSURE = (
 #: exists to change, not a defect in the bridge.
 BLOCKING_STATUSES = frozenset({"OPENAFIS_MATCH_FAILED", "INFRASTRUCTURE_FAILURE"})
 
+#: The failure reasons this route produces *as an answer*, rather than as a
+#: fault. They are the refusals the translation raises when a template cannot
+#: be represented at all — a raster with no area, a minutia count outside the
+#: upstream bounds. Each one has been read and understood, and a run made
+#: entirely of them is still a run.
+#:
+#: Everything else a comparison can fail with — a mindtct exit code, an
+#: unreadable bridge line, a timeout, a crash, an exception name, a free-text
+#: vendor detail — is deliberately *not* here. Those failures are real and are
+#: stored honestly; what may not happen is this stage declaring itself complete
+#: over failures nobody has classified. ``no_unclassified_failure`` is that
+#: rule, and tests/contract/test_failure_reasons_are_classified.py checks this
+#: set against the reasons the route's own source can raise.
+#:
+#: ``minutiae_above_upstream_maximum`` is kept although the extended
+#: variant cannot raise it: it is the reason this stage exists to drive to
+#: zero, and a store still carrying it must fail the fourth condition
+#: rather than the unclassified one.
+CLASSIFIED_FAILURE_REASONS = frozenset(
+    {
+        "invalid_raster_dimensions",
+        "minutiae_below_upstream_minimum",
+        "minutiae_above_upstream_maximum",
+    }
+)
+
 
 class Stage19BFinalizationError(RuntimeError):
     """The evidence does not support the document being asked for."""
@@ -263,6 +289,7 @@ def _outcome_integrity(
             algorithm_id=variant.ALGORITHM_ID,
             pair_manifest_hash=manifest.pair_manifest_hash,
             expected_outcomes=EXPECTED_OUTCOMES,
+            classified_failure_reasons=CLASSIFIED_FAILURE_REASONS,
         )
     except Stage19ResultIntegrityError as exc:
         raise Stage19BFinalizationError(str(exc)) from None
@@ -318,6 +345,8 @@ def build_canonical_run_binding(
         "score_transform": "NONE",
         "outcome_counts": counts,
         "failure_reasons": reasons,
+        "unclassified_failure_reasons": dict(integrity.unclassified_failure_reasons),
+        "unclassified_failures": integrity.unclassified_failures,
         "capacity_failures_remaining": integrity.capacity_failures(
             "minutiae_above_upstream_maximum"
         ),
@@ -382,6 +411,9 @@ def build_stage19b_finalization(
         "canonical_run_complete": not unmet,
         "no_capacity_failure_remains": capacity_failures == 0,
         "no_systemic_implementation_defect": blocking == 0,
+        # A failure whose reason this route has never classified is neither an
+        # upstream limit nor a known defect; it is a failure nobody has read.
+        "no_unclassified_failure": int(binding.get("unclassified_failures", 0)) == 0,
         "translation_contract_unchanged": (
             translator_inertness.get("mismatches") == 0
             and translator_inertness.get("lower_bound_still_enforced") is True

@@ -41,6 +41,15 @@ def _diagnostics(comparisons: int, **counts: int) -> dict[str, object]:
 ALGORITHM = "nbis_mindtct_openafis"
 MANIFEST_HASH = "e" * 64
 
+#: The reasons this route has classified; see stage19a_finalization.
+CLASSIFIED = frozenset(
+    {
+        "invalid_raster_dimensions",
+        "minutiae_below_upstream_minimum",
+        "minutiae_above_upstream_maximum",
+    }
+)
+
 
 def _pair(ordinal: int, pair_id: str | None = None) -> CanonicalPair:
     identifier = pair_id if pair_id is not None else f"pair_{ordinal}"
@@ -81,6 +90,7 @@ def _verify(path: Path, diagnostics: dict, manifest, expected: int):
         manifest=manifest,
         algorithm_id=ALGORITHM,
         pair_manifest_hash=MANIFEST_HASH,
+        classified_failure_reasons=CLASSIFIED,
     )
 
 
@@ -92,7 +102,11 @@ def test_all_five_counts_and_the_store_digest_are_derived_together(
         tmp_path / "pair-outcomes.jsonl",
         [
             _row(manifest[0]),
-            _row(manifest[1], status="FAILED"),
+            _row(
+                manifest[1],
+                status="FAILED",
+                failure_reason="minutiae_above_upstream_maximum",
+            ),
             _row(manifest[2]),
         ],
     )

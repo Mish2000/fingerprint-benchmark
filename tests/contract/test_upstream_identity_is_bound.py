@@ -197,3 +197,132 @@ def test_swapping_the_identity_changes_the_binding() -> None:
         ).binding_fingerprint
 
     assert bound_for("one") != bound_for("two")
+
+
+# ------------------------------------------- derived where the evidence allows
+
+
+def _bind(observation, identity, *, asserted: bool = True):
+    from fpbench.third_party import assess_research_use
+
+    return bind_component(
+        observation=observation,
+        assessment=assess_research_use(
+            observation,
+            assessment_id="probe_research_use",
+            basis="a probe used only by this test",
+        ),
+        upstream_identity=identity,
+        identity_is_the_observed_component=asserted,
+    )
+
+
+def _observation_at(locator: str):
+    from fpbench.core.third_party_models import (
+        LicenseEvidence,
+        LicenseObservation,
+        LicenseObservationStatus,
+        ThirdPartyComponentKind,
+    )
+
+    return LicenseObservation(
+        observation_id="probe_observation",
+        component_kind=ThirdPartyComponentKind.SOURCE_CODE,
+        subject="a probe used only by this test",
+        status=LicenseObservationStatus.OPEN_SOURCE_PERMISSIVE,
+        declared_license_names=("MIT",),
+        spdx_identifiers=("MIT",),
+        evidence=(LicenseEvidence(locator=locator, description="the licence"),),
+        notes=("no real upstream",),
+    )
+
+
+def test_a_licence_read_from_the_upstream_itself_derives_its_own_link() -> None:
+    """The strongest case, and the one three published records are in."""
+    from fpbench.provenance.upstream_binding import IdentityLinkBasis
+
+    identity = _identity()
+    bound = _bind(_observation_at(f"{identity.upstream_locator}/LICENSE"), identity)
+    assert bound.identity_link_basis is IdentityLinkBasis.EVIDENCE_LOCATOR
+
+
+def test_the_exact_upstream_locator_counts_as_the_licence_itself() -> None:
+    from fpbench.provenance.upstream_binding import IdentityLinkBasis
+
+    identity = _identity()
+    bound = _bind(_observation_at(identity.upstream_locator), identity)
+    assert bound.identity_link_basis is IdentityLinkBasis.EVIDENCE_LOCATOR
+
+
+def test_a_locator_carrying_the_commit_derives_the_link_too() -> None:
+    from fpbench.provenance.upstream_binding import IdentityLinkBasis
+
+    identity = _identity()
+    bound = _bind(
+        _observation_at(f"https://elsewhere.invalid/{identity.upstream_commit}/LICENSE"),
+        identity,
+    )
+    assert bound.identity_link_basis is IdentityLinkBasis.UPSTREAM_COMMIT
+
+
+def test_a_neighbouring_path_is_not_the_same_upstream() -> None:
+    """``.../flx/data`` must not match ``.../flx/database``.
+
+    A prefix test without the separator turns two different components into
+    one, which is the failure this whole module exists to stop — arrived at by
+    string handling instead of by a swap.
+    """
+    from fpbench.core.third_party_models import UpstreamIdentity
+    from fpbench.provenance.upstream_binding import IdentityLinkBasis
+
+    identity = UpstreamIdentity(
+        upstream_name="probe",
+        upstream_locator="https://example.invalid/flx/data",
+        exact_version="1.0.0",
+        identity_established=True,
+    )
+    bound = _bind(
+        _observation_at("https://example.invalid/flx/database/LICENSE"), identity
+    )
+    assert bound.identity_link_basis is IdentityLinkBasis.PUBLISHER_ASSERTION
+
+
+def test_an_unrelated_locator_is_published_as_an_assertion() -> None:
+    """Nine of the twelve published records are here, and now say so."""
+    from fpbench.provenance.upstream_binding import IdentityLinkBasis
+
+    identity = _identity()
+    bound = _bind(_observation_at("file:///home/somebody/notes/LICENSE.txt"), identity)
+    assert bound.identity_link_basis is IdentityLinkBasis.PUBLISHER_ASSERTION
+
+
+def test_the_basis_is_inside_the_binding_fingerprint() -> None:
+    """A record cannot be re-signed as derived without the evidence for it."""
+    identity = _identity()
+    derived = _bind(_observation_at(f"{identity.upstream_locator}/LICENSE"), identity)
+    asserted = _bind(_observation_at("file:///elsewhere/LICENSE"), identity)
+    assert derived.binding_fingerprint != asserted.binding_fingerprint
+
+
+def test_denying_a_pairing_the_evidence_shows_is_a_contradiction() -> None:
+    """``False`` over derivable evidence is not a refusal to vouch.
+
+    It is two documents disagreeing, and picking a winner is not this
+    function's job — the caller is told which two.
+    """
+    identity = _identity()
+    with pytest.raises(ThirdPartyUsageError, match="say otherwise"):
+        _bind(
+            _observation_at(f"{identity.upstream_locator}/LICENSE"),
+            identity,
+            asserted=False,
+        )
+
+
+def test_deriving_a_link_needs_two_real_documents() -> None:
+    from fpbench.provenance.upstream_binding import derive_identity_link
+
+    with pytest.raises(ThirdPartyUsageError, match="recorded observation"):
+        derive_identity_link(object(), _identity())
+    with pytest.raises(ThirdPartyUsageError, match="upstream identity"):
+        derive_identity_link(_component(), object())

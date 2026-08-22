@@ -38,6 +38,9 @@ sys.path.insert(0, str(REPO / "src"))
 from fpbench.adapters.registry import create_adapter  # noqa: E402
 from fpbench.core.enums import ChecksumStatus, EnvironmentStatus, ExecutionStatus  # noqa: E402
 from fpbench.core.execution_models import ComparisonContext, PreparedImage  # noqa: E402
+from fpbench.experiments.stage19_result_integrity import (
+    failure_reason_from_details,
+)
 from fpbench.experiments.stage18a_inputs import load_stage18a_inputs  # noqa: E402
 
 ADAPTER_ID = "nbis_mindtct_openafis_capacity_extended_subprocess"
@@ -192,7 +195,13 @@ def main() -> int:
                 "raw_score": int(result.raw_score) if result.raw_score is not None else None,
                 "status": status,
                 "failure_code": result.failure.code.value if result.failure else None,
-                "failure_reason": (result.failure.details or {}).get("reason") if result.failure else None,
+                "failure_reason": (
+                    failure_reason_from_details(
+                        result.failure.details, status=status
+                    )
+                    if result.failure
+                    else None
+                ),
                 "mindtct_left_ms": timings.get("mindtct_left"),
                 "mindtct_right_ms": timings.get("mindtct_right"),
                 "openafis_template_left_ms": timings.get("openafis_template_left"),

@@ -208,7 +208,13 @@ class MetricSetStore:
         claim = publish_set(
             manifest_path=manifest_path,
             manifest=manifest,
-            body_path=self.counts_path(run_id, set_id),
+            body_paths=(
+                self.definition_path(run_id, set_id),
+                self.policy_path(run_id, set_id),
+                self.report_profile_path(run_id, set_id),
+                self.counts_path(run_id, set_id),
+                self.observations_path(run_id, set_id),
+            ),
             stored_fingerprint=lambda: self.read_manifest(
                 run_id, set_id
             ).metric_set_fingerprint,

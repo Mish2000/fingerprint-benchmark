@@ -118,3 +118,70 @@ def test_the_workbook_is_a_readable_archive(name: str) -> None:
     with zipfile.ZipFile(OUTPUTS / name) as archive:
         assert archive.testzip() is None
         assert "xl/worksheets/sheet1.xml" in archive.namelist()
+
+
+# ------------------------------------------------- the header must be readable
+
+
+def _header_row_xml(path: Path) -> str:
+    import re
+    import zipfile
+
+    with zipfile.ZipFile(path) as archive:
+        sheet = archive.read("xl/worksheets/sheet1.xml").decode("utf-8")
+    match = re.search(r'<row r="1"[^>]*>', sheet)
+    assert match, f"{path.name} has no header row"
+    return match.group(0)
+
+
+@pytest.mark.parametrize("name", [MATCHED_WORKBOOK, NON_MATCHED_WORKBOOK])
+def test_the_header_row_is_tall_enough_for_the_header_it_holds(name: str) -> None:
+    """A fixed height clipped the longest heading.
+
+    The first styled version set ``ht="42"`` for every sheet — two and a half
+    lines of 11pt text. ``NonMatchedV1``'s sanity column heading is two
+    sentences in a twenty-character column and wraps to five lines, so the one
+    heading a reader most needs to see was the one cut off. The height is
+    measured from the content now.
+    """
+    from fpbench.experiments.report_workbooks import (
+        _MATCHED_COLUMNS,
+        _MATCHED_HEADERS,
+        _NON_MATCHED_COLUMNS,
+        _NON_MATCHED_HEADERS,
+    )
+    from fpbench.experiments.xlsx_writer import _header_height
+
+    headers, columns = (
+        (_MATCHED_HEADERS, _MATCHED_COLUMNS)
+        if name == MATCHED_WORKBOOK
+        else (_NON_MATCHED_HEADERS, _NON_MATCHED_COLUMNS)
+    )
+    needed = _header_height(list(headers), columns)
+    row = _header_row_xml(OUTPUTS / name)
+    stored = float(row.split('ht="', 1)[1].split('"', 1)[0])
+    assert stored >= needed, (
+        f"{name} gives its header {stored} points and the widest heading needs "
+        f"{needed}. The heading is clipped in every viewer"
+    )
+    assert 'customHeight="1"' in row
+
+
+def test_the_measured_height_grows_with_the_heading() -> None:
+    """The measurement is a measurement, not a bigger constant."""
+    from fpbench.experiments.xlsx_writer import Column, _header_height, _wrapped_lines
+
+    narrow = (Column(width=12),)
+    assert _wrapped_lines("Release", 12) == 1
+    assert _wrapped_lines("Matching decisions in the negative sanity set", 12) > 3
+    short = _header_height(["Release"], narrow)
+    long = _header_height(["Matching decisions in the negative sanity set"], narrow)
+    assert long > short
+
+
+def test_an_explicit_line_break_takes_a_line_of_its_own() -> None:
+    """Two of the headings carry a parenthetical on its own line."""
+    from fpbench.experiments.xlsx_writer import _wrapped_lines
+
+    assert _wrapped_lines("FAR\n(Not applicable)", 40) == 2
+    assert _wrapped_lines("FAR (Not applicable)", 40) == 1

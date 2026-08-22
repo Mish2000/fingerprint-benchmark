@@ -408,3 +408,37 @@ def test_an_upstream_capacity_failure_is_not_a_defect_of_ours() -> None:
     )
     conditions = _stage19a_marker(binding)["algorithm_5_conditions"]
     assert conditions["no_systemic_implementation_defect"] is True
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("unique_pair_ids", 1),
+        ("unique_ordinals", 1),
+        ("diagnostic_comparisons", 1),
+        ("stored_outcomes", 1),
+        ("missing", 1),
+    ],
+)
+def test_stage19a_names_the_count_that_stopped_the_publication(field, value) -> None:
+    """A refusal that does not say what is wrong is a refusal nobody acts on.
+
+    The old message was "this run stored 6000 with 0 missing" — true, and
+    useless when what failed was that six thousand rows carried one pair id.
+    """
+    from fpbench.experiments.stage19a_finalization import (
+        Stage19AFinalizationError,
+        build_stage19a_finalization,
+    )
+
+    binding = _stage19a_binding(**{field: value})
+    with pytest.raises(Stage19AFinalizationError) as refusal:
+        build_stage19a_finalization(
+            repository_root=Path(__file__).resolve().parents[2],
+            binding=binding,
+            diagnostics={},
+            evidence_hashes={},
+        )
+    assert field in str(refusal.value), (
+        f"the refusal does not name {field}: {refusal.value}"
+    )

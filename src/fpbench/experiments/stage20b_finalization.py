@@ -510,30 +510,57 @@ def build_stage20b_finalization(
         }
     )
 
+    # Every structural property, not just the row count. The published
+    # integrity document already said ``duplicate_pair_ids=5999`` and
+    # ``ordinals_are_complete=false`` while ``canonical_run_complete`` said the
+    # run was complete, because the condition only ever looked at ``stored``.
+    #
+    # Kept as a list of named requirements rather than one long ``and`` so the
+    # refusal can say which one failed: "stored 6000 with 0 missing" is a true
+    # sentence and a useless one when what is wrong is that all six thousand
+    # rows are the same pair.
+    structural = {
+        "stored_outcomes": (stored, frozen.EXPECTED_OUTCOMES),
+        "missing": (missing, 0),
+        "every_attempt_stored": (integrity["every_attempt_stored"], True),
+        "duplicate_pair_ids": (integrity["duplicate_pair_ids"], 0),
+        "ordinals_are_complete": (integrity["ordinals_are_complete"], True),
+        "ordinals_are_the_manifest_order": (
+            integrity["ordinals_are_the_manifest_order"],
+            True,
+        ),
+        "bound_to_pair_manifest": (integrity["bound_to_pair_manifest"], True),
+        "unique_pair_ids": (
+            integrity["unique_pair_ids"],
+            frozen.EXPECTED_OUTCOMES,
+        ),
+        "unique_ordinals": (
+            integrity["unique_ordinals"],
+            frozen.EXPECTED_OUTCOMES,
+        ),
+        "algorithm_ids_present": (
+            integrity["algorithm_ids_present"],
+            [frozen.ALGORITHM_ID],
+        ),
+        "scores_outside_contract": (integrity["scores_outside_contract"], 0),
+        "failures_recorded_as_zero": (integrity["failures_recorded_as_zero"], 0),
+        "successes_recorded_without_a_score": (
+            integrity["successes_recorded_without_a_score"],
+            0,
+        ),
+    }
+    unmet = {
+        name: (found, required)
+        for name, (found, required) in structural.items()
+        if found != required
+    }
+
     conditions = {
         "gate_a_bridge_reproduction": gate_a.get("outcome") == GATE_A_PASS
         and gate_a.get("mismatches") == 0,
         "gate_b_mindtct_parity": gate_b.get("outcome") == GATE_B_PASS
         and gate_b.get("mismatches") == 0,
-        # Every structural property, not just the row count. The published
-        # integrity document already said ``duplicate_pair_ids=5999`` and
-        # ``ordinals_are_complete=false`` while this condition said the run was
-        # complete, because it only ever looked at ``stored``.
-        "canonical_run_complete": (
-            stored == frozen.EXPECTED_OUTCOMES
-            and missing == 0
-            and integrity["every_attempt_stored"] is True
-            and integrity["duplicate_pair_ids"] == 0
-            and integrity["ordinals_are_complete"] is True
-            and integrity["ordinals_are_the_manifest_order"] is True
-            and integrity["bound_to_pair_manifest"] is True
-            and integrity["unique_pair_ids"] == frozen.EXPECTED_OUTCOMES
-            and integrity["unique_ordinals"] == frozen.EXPECTED_OUTCOMES
-            and integrity["algorithm_ids_present"] == [frozen.ALGORITHM_ID]
-            and integrity["scores_outside_contract"] == 0
-            and integrity["failures_recorded_as_zero"] == 0
-            and integrity["successes_recorded_without_a_score"] == 0
-        ),
+        "canonical_run_complete": not unmet,
         "route_unchanged": (
             binding["pairs_regenerated"] is False
             and binding["pair_order_changed"] is False
@@ -551,10 +578,12 @@ def build_stage20b_finalization(
     elif not conditions["gate_b_mindtct_parity"]:
         outcome = frozen.OUTCOME_GATE_B_FAIL
     elif not conditions["canonical_run_complete"]:
+        detail = "; ".join(
+            f"{name} is {found!r}, required {required!r}"
+            for name, (found, required) in sorted(unmet.items())
+        )
         raise Stage20BFinalizationError(
-            "the canonical run completes only on "
-            f"{frozen.EXPECTED_OUTCOMES} stored outcomes with none missing; this run "
-            f"stored {stored} with {missing} missing"
+            f"the canonical run is not complete: {detail}"
         )
     else:
         outcome = frozen.OUTCOME_COMPLETE

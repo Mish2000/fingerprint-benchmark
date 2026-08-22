@@ -357,6 +357,21 @@ def build_stage19b_finalization(
         int(value) for key, value in counts.items() if key in BLOCKING_STATUSES
     )
 
+    # Named rather than positional, so a refusal can say which count is wrong.
+    required = {
+        "unique_pair_ids": 6000,
+        "unique_ordinals": 6000,
+        "diagnostic_comparisons": 6000,
+        "stored_outcomes": 6000,
+        "expected_outcomes": 6000,
+        "missing": 0,
+    }
+    unmet = {
+        name: binding.get(name)
+        for name, value in required.items()
+        if binding.get(name) != value
+    }
+
     conditions = {
         "gate_a_baseline_scores_identical": (
             gate_a.get("outcome") == "CAPACITY_EXTENSION_INERTNESS_PASS"
@@ -364,14 +379,7 @@ def build_stage19b_finalization(
             and gate_a.get("status_regressions") == 0
             and gate_a.get("exact_score_matches") == gate_a.get("baseline_scored_pairs")
         ),
-        "canonical_run_complete": (
-            binding.get("unique_pair_ids") == 6000
-            and binding.get("unique_ordinals") == 6000
-            and binding.get("diagnostic_comparisons") == 6000
-            and stored == 6000
-            and binding.get("expected_outcomes") == 6000
-            and missing == 0
-        ),
+        "canonical_run_complete": not unmet,
         "no_capacity_failure_remains": capacity_failures == 0,
         "no_systemic_implementation_defect": blocking == 0,
         "translation_contract_unchanged": (
@@ -385,9 +393,12 @@ def build_stage19b_finalization(
     if not conditions["gate_a_baseline_scores_identical"]:
         outcome = OUTCOME_INERTNESS_FAIL
     elif not conditions["canonical_run_complete"]:
+        detail = "; ".join(
+            f"{name} is {found!r}, required {required[name]!r}"
+            for name, found in sorted(unmet.items())
+        )
         raise Stage19BFinalizationError(
-            f"the canonical run completes only on 6000 stored outcomes with none missing; "
-            f"this run stored {stored} with {missing} missing"
+            f"the canonical run is not complete: {detail}"
         )
     else:
         outcome = OUTCOME_COMPLETE

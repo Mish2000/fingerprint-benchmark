@@ -385,22 +385,28 @@ def build_stage19a_finalization(
     """
     stored = binding["stored_outcomes"]
     missing = binding["missing"]
-    count_fields = (
-        binding.get("unique_pair_ids"),
-        binding.get("unique_ordinals"),
-        binding.get("diagnostic_comparisons"),
-        stored,
-        binding.get("expected_outcomes"),
-    )
-    complete = (
-        all(value == frozen.EXPECTED_OUTCOMES for value in count_fields)
-        and missing == 0
-    )
-    if not complete:
-        raise Stage19AFinalizationError(
-            f"the raw run completes only on {frozen.EXPECTED_OUTCOMES} stored outcomes with none "
-            f"missing; this run stored {stored} with {missing} missing"
+    # Named rather than positional, so a refusal can say which count is wrong.
+    # "stored 6000 with 0 missing" is a true sentence and a useless one when
+    # what failed is that the 6,000 rows carry 1 distinct pair id.
+    required = {
+        "unique_pair_ids": frozen.EXPECTED_OUTCOMES,
+        "unique_ordinals": frozen.EXPECTED_OUTCOMES,
+        "diagnostic_comparisons": frozen.EXPECTED_OUTCOMES,
+        "stored_outcomes": frozen.EXPECTED_OUTCOMES,
+        "expected_outcomes": frozen.EXPECTED_OUTCOMES,
+        "missing": 0,
+    }
+    unmet = {
+        name: binding.get(name)
+        for name, value in required.items()
+        if binding.get(name) != value
+    }
+    if unmet:
+        detail = "; ".join(
+            f"{name} is {found!r}, required {required[name]!r}"
+            for name, found in sorted(unmet.items())
         )
+        raise Stage19AFinalizationError(f"the raw run is not complete: {detail}")
 
     sufficiency = frozen.CROSS_IMPRESSION_SUFFICIENCY
     if sufficiency not in frozen.SUFFICIENCY_STATES:

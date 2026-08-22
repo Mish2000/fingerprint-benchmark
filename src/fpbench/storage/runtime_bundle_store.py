@@ -57,7 +57,7 @@ from fpbench.core.runtime_models import (
     runtime_bundle_id,
 )
 from fpbench.core.serialization import read_json
-from fpbench.core.json_io import write_json
+from fpbench.core.json_io import publish_json, write_json
 from fpbench.storage import layout
 
 __all__ = ["RuntimeBundleStore", "MEDIA_TYPES", "DEFAULT_MEDIA_TYPE", "media_type_for"]
@@ -208,8 +208,17 @@ class RuntimeBundleStore:
             target = self.bundle_dir(bundle_id) / asset.relative_path
             self._copy_verified(source, target, expected=digests[asset.role])
 
-        # Last, and only now: the marker that the bundle is complete.
-        write_json(self.bundle_manifest_path(bundle_id), definition)
+        # Last, and only now: the marker that the bundle is complete. Published
+        # create-if-absent — a bundle id is a digest of its own assets, so a
+        # second writer arriving here has the same bytes and the same manifest,
+        # and one that does not has produced a hash collision worth stopping for.
+        try:
+            publish_json(self.bundle_manifest_path(bundle_id), definition)
+        except PublishConflictError as exc:
+            raise RuntimeBundleConflictError(
+                f"runtime bundle {bundle_id} already holds a different manifest "
+                f"({exc})"
+            ) from exc
         return definition
 
     # ------------------------------------------------------------------ read

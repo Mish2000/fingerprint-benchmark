@@ -66,6 +66,10 @@ class PairOutcome:
 
     ordinal: int
     pair_id: str
+    #: The algorithm the row says produced it. Published as
+    #: ``algorithm_ids_present``, which used to be a constant describing the
+    #: stage rather than a reading of the store.
+    algorithm_id: str
     release: str
     stage: str
     ground_truth: str
@@ -98,6 +102,7 @@ def read_outcomes(path: Path) -> list[PairOutcome]:
                 PairOutcome(
                     ordinal=int(row["ordinal"]),
                     pair_id=row["pair_id"],
+                    algorithm_id=row["algorithm_id"],
                     release=row["release"],
                     stage=row["stage"],
                     ground_truth=row["ground_truth"],

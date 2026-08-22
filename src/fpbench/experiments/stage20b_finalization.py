@@ -47,8 +47,10 @@ from fpbench.experiments.stage19_pair_manifest import (
     pairs_path_for,
 )
 from fpbench.experiments.stage19_result_integrity import (
+    OutcomeStoreIntegrity,
     Stage19ResultIntegrityError,
     bound_manifest_digest,
+    verify_outcome_store_integrity,
 )
 
 __all__ = [
@@ -307,8 +309,18 @@ def build_canonical_run_binding(
     stored: int,
     missing: int,
     manifest: CanonicalPairManifest,
+    integrity: OutcomeStoreIntegrity,
 ) -> dict[str, Any]:
-    """What was compared, and the arithmetic of whether all of it was."""
+    """What was compared, and the arithmetic of whether all of it was.
+
+    Every population here is counted off the verified store. They used to be
+    copied out of the diagnostics document, which is a *report* of the store:
+    ``outcome_counts`` decides ``no_systemic_bridge_defect``, so a report
+    saying ``{"OK": 6000}`` over six thousand ``BRIDGE_FAILURE`` rows published
+    a run with no systemic defect. The validator already refuses a diagnostics
+    document that contradicts the store, and this reads the store's own numbers
+    so that there is nothing left to contradict.
+    """
     return {
         "kind": "stage_20b_canonical_run_binding",
         "stage": "20B",
@@ -325,15 +337,13 @@ def build_canonical_run_binding(
         "stored_outcomes": stored,
         "missing": missing,
         "protocol_stages": {
-            row["protocol_stage"]: row["attempted"]
-            for row in diagnostics.get("by_protocol_stage", [])
+            str(row["label"]): int(row["comparisons"])
+            for row in integrity.by_protocol_stage
         },
-        "outcome_counts": diagnostics.get("outcome_counts", {}),
-        "failure_reasons": diagnostics.get("failure_reasons", {}),
-        "score_bearing": diagnostics.get("overall", {}).get("score_bearing"),
-        "score_bearing_fraction": diagnostics.get("overall", {}).get(
-            "score_bearing_fraction"
-        ),
+        "outcome_counts": dict(integrity.outcome_counts),
+        "failure_reasons": dict(integrity.failure_reasons),
+        "score_bearing": integrity.score_bearing,
+        "score_bearing_fraction": integrity.score_bearing_fraction,
         "score_type": "System.Double",
         "score_range": [route.SCORE_MINIMUM, route.SCORE_MAXIMUM],
         "score_direction": "HIGHER_MORE_SIMILAR",
@@ -345,48 +355,40 @@ def build_canonical_run_binding(
     }
 
 
-def _bind_to_manifest(
-    outcomes: Sequence[Any], manifest: CanonicalPairManifest
-) -> None:
-    """Every stored row must be the manifest's row of the same ordinal.
 
-    "Ordinals are complete and sorted" says the file has the right *shape*. It
-    says nothing about which comparisons were performed, and a store of 6,000
-    invented pair ids satisfies it exactly as well as the canonical run does.
+def _verified_store(
+    outcomes_path: Path | None,
+    diagnostics: Mapping[str, Any],
+    manifest: CanonicalPairManifest,
+) -> OutcomeStoreIntegrity:
+    """Stage 19's validator, over Stage 20B's store.
+
+    Required, with no path meaning "skip": the reviewer's duplicate-ordinal
+    store passed every check this stage had of its own, and a validator a
+    publisher can decline to run is not a validator.
     """
-    if len(outcomes) != len(manifest.pairs):
+    if outcomes_path is None:
         raise Stage20BFinalizationError(
-            f"the store holds {len(outcomes)} outcomes and the pair manifest "
-            f"names {len(manifest.pairs)} comparisons"
+            "Stage 20B finalization needs the outcome store itself; the parsed "
+            "outcomes are a reading of it and cannot verify it"
         )
-    for outcome in outcomes:
-        ordinal = int(outcome.ordinal)
-        if not 0 <= ordinal < len(manifest.pairs):
-            raise Stage20BFinalizationError(
-                f"ordinal {ordinal} is outside the manifest's "
-                f"0..{len(manifest.pairs) - 1}"
-            )
-        pair = manifest.pairs[ordinal]
-        for label, actual, expected in (
-            ("pair_id", outcome.pair_id, pair.pair_id),
-            ("release", outcome.release, pair.release),
-            ("stage", outcome.stage, pair.protocol_stage),
-            ("ground_truth", outcome.ground_truth, pair.ground_truth),
-            ("left_image_id", outcome.left_image_id, pair.left_image_id),
-            ("right_image_id", outcome.right_image_id, pair.right_image_id),
-        ):
-            if str(actual) != str(expected):
-                raise Stage20BFinalizationError(
-                    f"outcome {ordinal}: {label} is {actual!r} and the pair "
-                    f"manifest says {expected!r}. The store does not describe "
-                    "the canonical run"
-                )
-
+    try:
+        return verify_outcome_store_integrity(
+            Path(outcomes_path),
+            diagnostics,
+            manifest=manifest.pairs,
+            algorithm_id=frozen.ALGORITHM_ID,
+            pair_manifest_hash=manifest.pair_manifest_hash,
+            expected_outcomes=frozen.EXPECTED_OUTCOMES,
+        )
+    except Stage19ResultIntegrityError as exc:
+        raise Stage20BFinalizationError(str(exc)) from None
 
 def build_result_integrity(
     outcomes: Sequence[Any],
     diagnostics: Mapping[str, Any],
     manifest: CanonicalPairManifest,
+    integrity: OutcomeStoreIntegrity,
 ) -> dict[str, Any]:
     """The checks that make the stored file trustworthy on its own terms.
 
@@ -395,8 +397,16 @@ def build_result_integrity(
     manifest's order, *and is the manifest's pair*; no score sits outside the
     frozen contract; no failure was stored as a zero and no zero was stored as a
     failure.
+
+    ``integrity`` is the Stage 19 validator's verdict over the same store, and
+    it has already refused everything structural: a repeated ordinal, an ordinal
+    outside 0..5,999, a row that is not the manifest's row, a row naming another
+    algorithm, a failure carrying a score. This function reports what that
+    verdict found and adds the route's own score contract. It used to run a
+    weaker check of its own, which compared every row against
+    ``manifest.pairs[ordinal]`` and never asked whether one ordinal appeared
+    6,000 times.
     """
-    _bind_to_manifest(outcomes, manifest)
     ordinals = [outcome.ordinal for outcome in outcomes]
     pair_ids = [outcome.pair_id for outcome in outcomes]
     scored = [outcome for outcome in outcomes if outcome.score_bearing]
@@ -440,10 +450,23 @@ def build_result_integrity(
         "successes_recorded_without_a_score": len(successes_without_a_score),
         "invalid_scores_clamped": False,
         "invalid_scores_observed": diagnostics.get("invalid_scores_observed", []),
-        "algorithm_ids_present": sorted({frozen.ALGORITHM_ID}),
-        "bound_to_pair_manifest": True,
-        "pair_manifest_hash": manifest.pair_manifest_hash,
-        "bound_manifest_digest": bound_manifest_digest(manifest.pairs),
+        # Read off the rows, so a store carrying another algorithm's results
+        # says so here instead of being described by a constant.
+        "algorithm_ids_present": sorted(
+            {str(outcome.algorithm_id) for outcome in outcomes}
+        ),
+        # Also read off the verified store rather than asserted. The validator
+        # would have refused a store bound to other rows, but "the check ran and
+        # did not raise" is not a thing a reader can see in a published file.
+        "bound_to_pair_manifest": (
+            integrity.pair_manifest_hash == manifest.pair_manifest_hash
+            and integrity.bound_manifest_digest == bound_manifest_digest(manifest.pairs)
+        ),
+        "pair_manifest_hash": integrity.pair_manifest_hash,
+        "bound_manifest_digest": integrity.bound_manifest_digest,
+        "outcome_store_sha256": integrity.outcome_store_sha256,
+        "unique_pair_ids": integrity.unique_pair_ids,
+        "unique_ordinals": integrity.unique_ordinals,
     }
 
 
@@ -473,9 +496,11 @@ def build_stage20b_finalization(
     runtime_defects = counts.get("MCC_RUNTIME_FAILURE", 0) + counts.get(
         "INFRASTRUCTURE_FAILURE", 0
     )
+    # From the binding, which counts them off the verified store. Read from the
+    # diagnostics, this condition asked the run to report its own defects.
     translation_defects = sum(
         value
-        for key, value in diagnostics.get("failure_reasons", {}).items()
+        for key, value in binding.get("failure_reasons", {}).items()
         if key
         in {
             "invalid_raster_dimensions",
@@ -490,7 +515,25 @@ def build_stage20b_finalization(
         and gate_a.get("mismatches") == 0,
         "gate_b_mindtct_parity": gate_b.get("outcome") == GATE_B_PASS
         and gate_b.get("mismatches") == 0,
-        "canonical_run_complete": stored == frozen.EXPECTED_OUTCOMES and missing == 0,
+        # Every structural property, not just the row count. The published
+        # integrity document already said ``duplicate_pair_ids=5999`` and
+        # ``ordinals_are_complete=false`` while this condition said the run was
+        # complete, because it only ever looked at ``stored``.
+        "canonical_run_complete": (
+            stored == frozen.EXPECTED_OUTCOMES
+            and missing == 0
+            and integrity["every_attempt_stored"] is True
+            and integrity["duplicate_pair_ids"] == 0
+            and integrity["ordinals_are_complete"] is True
+            and integrity["ordinals_are_the_manifest_order"] is True
+            and integrity["bound_to_pair_manifest"] is True
+            and integrity["unique_pair_ids"] == frozen.EXPECTED_OUTCOMES
+            and integrity["unique_ordinals"] == frozen.EXPECTED_OUTCOMES
+            and integrity["algorithm_ids_present"] == [frozen.ALGORITHM_ID]
+            and integrity["scores_outside_contract"] == 0
+            and integrity["failures_recorded_as_zero"] == 0
+            and integrity["successes_recorded_without_a_score"] == 0
+        ),
         "route_unchanged": (
             binding["pairs_regenerated"] is False
             and binding["pair_order_changed"] is False
@@ -564,7 +607,7 @@ def build_stage20b_finalization(
         "missing": missing,
         "mcc_full_score_coverage": full_coverage,
         "failure_count": stored - score_bearing,
-        "failure_reasons": diagnostics.get("failure_reasons", {}),
+        "failure_reasons": binding["failure_reasons"],
         "score_type": "System.Double",
         "score_range": [route.SCORE_MINIMUM, route.SCORE_MAXIMUM],
         "score_direction": "HIGHER_MORE_SIMILAR",
@@ -611,6 +654,7 @@ def write_stage20b_documents(
     environment: Mapping[str, str],
     runtime: Mapping[str, str],
     readme: str,
+    outcomes_path: Path | None = None,
     workspace: Path | None = None,
 ) -> dict[str, Path]:
     directory = Path(repository_root) / frozen.EVIDENCE_DIRECTORY
@@ -635,11 +679,19 @@ def write_stage20b_documents(
     _write("gate-a-bridge-reproduction.json", dict(gate_a))
     _write("gate-b-mindtct-parity.json", dict(gate_b))
     manifest = _pair_manifest(workspace)
+    # Before any document derived from the run is written. The binding used to
+    # be published first, so a store the validator was about to refuse still
+    # left a canonical-run-binding.json behind in the evidence directory.
+    verified = _verified_store(outcomes_path, diagnostics, manifest)
     binding = build_canonical_run_binding(
-        diagnostics, stored=stored, missing=missing, manifest=manifest
+        diagnostics,
+        stored=stored,
+        missing=missing,
+        manifest=manifest,
+        integrity=verified,
     )
     _write("canonical-run-binding.json", binding)
-    integrity = build_result_integrity(outcomes, diagnostics, manifest)
+    integrity = build_result_integrity(outcomes, diagnostics, manifest, verified)
     _write("result-integrity.json", integrity)
     _write("diagnostic-report.json", dict(diagnostics))
 
@@ -690,6 +742,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         gate_b=read_json(args.gate_b),
         diagnostics=read_json(args.diagnostics),
         outcomes=read_outcomes(args.outcomes),
+        outcomes_path=args.outcomes,
         environment=recorded.get("runtime", {}),
         runtime=recorded.get("dependencies", {}),
         readme=readme_path.read_text(encoding="utf-8"),

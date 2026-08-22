@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 from fpbench.experiments.stage18a_inputs import REPOSITORY_ROOT
+from fpbench.experiments.xlsx_writer import Column, write_sheet
 
 __all__ = [
     "WorkbookRow",
@@ -325,6 +326,32 @@ def _sheet(headers: Sequence[str], rows: Sequence[WorkbookRow]) -> list[list[str
     return table
 
 
+#: Column presentation, in sheet order. Widths are Excel character units,
+#: chosen from the content: a release name is short, a system name is not, and
+#: the comment is prose that has to wrap in place rather than run across twenty
+#: columns.
+_COLUMNS: tuple[Column, ...] = (
+    Column(width=10),                      # Process #
+    Column(width=34, wrap=True),           # System name
+    Column(width=10),                      # Release
+    Column(width=18, wrap=True),           # attempts
+    Column(width=18, wrap=True),           # decisions
+    Column(width=18, wrap=True),           # FAR / FRR (not applicable)
+    Column(width=20, wrap=True),           # the rate or the sanity count
+    Column(width=96, wrap=True),           # Comments
+)
+
+#: Which column holds a value that is a *rate* and should read as a percentage.
+#: On the mated sheet that is FRR, in the last-but-one column; on the negative
+#: sanity sheet the same position holds a count, and ADR 0030 is the reason it
+#: must not be formatted as a rate.
+_MATCHED_COLUMNS = tuple(
+    Column(width=c.width, wrap=c.wrap, rate=(index == 6))
+    for index, c in enumerate(_COLUMNS)
+)
+_NON_MATCHED_COLUMNS = _COLUMNS
+
+
 def write_workbooks(
     *, repository_root: Path = REPOSITORY_ROOT, outputs: Path | None = None
 ) -> dict[str, Path]:
@@ -333,21 +360,28 @@ def write_workbooks(
     Deliberately regenerating rather than editing: a workbook that is patched in
     place is one somebody has to remember to patch again.
     """
-    from fpbench.experiments.xlsx_writer import write_sheet
 
     directory = Path(outputs) if outputs is not None else Path(repository_root) / "outputs"
     directory.mkdir(parents=True, exist_ok=True)
 
     written: dict[str, Path] = {}
-    for name, headers, rows in (
-        (MATCHED_WORKBOOK, _MATCHED_HEADERS, build_matched_rows(repository_root)),
+    for name, headers, rows, columns in (
+        (
+            MATCHED_WORKBOOK,
+            _MATCHED_HEADERS,
+            build_matched_rows(repository_root),
+            _MATCHED_COLUMNS,
+        ),
         (
             NON_MATCHED_WORKBOOK,
             _NON_MATCHED_HEADERS,
             build_non_matched_rows(repository_root),
+            _NON_MATCHED_COLUMNS,
         ),
     ):
-        written[name] = write_sheet(directory / name, _sheet(headers, rows))
+        written[name] = write_sheet(
+            directory / name, _sheet(headers, rows), columns
+        )
     return written
 
 

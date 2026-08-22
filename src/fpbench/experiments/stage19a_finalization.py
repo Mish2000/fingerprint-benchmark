@@ -59,6 +59,15 @@ __all__ = [
 ]
 
 
+#: The outcome statuses that mean the route itself failed, rather than the
+#: algorithm answering. ``OPENAFIS_MATCH_FAILED`` is the matcher declining to
+#: run and ``INFRASTRUCTURE_FAILURE`` is the machine; a template refused for
+#: exceeding an upstream capacity is neither, and is the second condition's
+#: subject. This list used to live in ``main`` as a set literal, outside
+#: everything the source fingerprint and the evidence gate can see.
+BLOCKING_STATUSES = frozenset({"OPENAFIS_MATCH_FAILED", "INFRASTRUCTURE_FAILURE"})
+
+
 class Stage19AFinalizationError(RuntimeError):
     """The evidence does not support the document being asked for."""
 
@@ -300,8 +309,10 @@ def build_canonical_run_binding(
 ) -> dict[str, Any]:
     manifest = _pair_manifest(workspace)
     integrity = _outcome_integrity(outcomes, diagnostics, manifest)
-    overall = diagnostics.get("overall", {})
-    per_stage = {row["label"]: row for row in diagnostics.get("by_protocol_stage", [])}
+    # Counted from the store. The diagnostics carry the same rows and the
+    # validator has already refused a report that disagrees with them, but a
+    # population a condition divides by is read where it was counted.
+    per_stage = {str(row["label"]): row for row in integrity.by_protocol_stage}
     cross = {
         stage: {
             "comparisons": per_stage.get(stage, {}).get("comparisons"),
@@ -326,10 +337,10 @@ def build_canonical_run_binding(
         "score_transform": "NONE",
         "decisions_produced": False,
         "calibration_performed": False,
-        "outcome_counts": diagnostics.get("outcome_counts", {}),
-        "failure_reasons": diagnostics.get("failure_reasons", {}),
-        "score_bearing": overall.get("score_bearing"),
-        "score_bearing_fraction": overall.get("score_bearing_fraction"),
+        "outcome_counts": dict(integrity.outcome_counts),
+        "failure_reasons": dict(integrity.failure_reasons),
+        "score_bearing": integrity.score_bearing,
+        "score_bearing_fraction": integrity.score_bearing_fraction,
         "cross_impression": cross,
         "minutiae_counts": diagnostics.get("minutiae_counts", {}),
         "timings_ms": diagnostics.get("timings_ms", {}),
@@ -362,10 +373,16 @@ def build_stage19a_finalization(
     binding: Mapping[str, Any],
     diagnostics: Mapping[str, Any],
     evidence_hashes: Mapping[str, str],
-    no_systemic_defect: bool,
-    failures_are_upstream_limits: bool,
 ) -> dict[str, Any]:
-    """Assemble the marker. Refuses one the run does not support."""
+    """Assemble the marker. Refuses one the run does not support.
+
+    ``no_systemic_implementation_defect`` and
+    ``failures_are_upstream_limits_not_the_bridge`` used to arrive as two
+    booleans from the caller, computed in ``main`` and believed here. A
+    publisher that is *told* its conditions hold is not checking them: any
+    caller could pass ``True``. They are derived below from the outcome counts
+    in the run binding, which are themselves counted off the verified store.
+    """
     stored = binding["stored_outcomes"]
     missing = binding["missing"]
     count_fields = (
@@ -389,11 +406,19 @@ def build_stage19a_finalization(
     if sufficiency not in frozen.SUFFICIENCY_STATES:
         raise Stage19AFinalizationError(f"unknown cross-impression sufficiency {sufficiency!r}")
 
+    # A failure of *ours*: the matcher refusing to run, or the machine. An
+    # upstream limit — a template this build cannot hold — is the route
+    # answering, and is what the second condition is about.
+    counts = binding.get("outcome_counts", {})
+    blocking = sum(
+        int(value) for key, value in counts.items() if key in BLOCKING_STATUSES
+    )
+
     # Three conditions the code may judge, one it may not.
     conditions = {
         "translation_settled_from_sources_not_tuning": True,
-        "no_systemic_implementation_defect": bool(no_systemic_defect),
-        "failures_are_upstream_limits_not_the_bridge": bool(failures_are_upstream_limits),
+        "no_systemic_implementation_defect": blocking == 0,
+        "failures_are_upstream_limits_not_the_bridge": blocking == 0,
         "substantial_cross_impression_score_bearing": (
             None if sufficiency == "UNDETERMINED" else sufficiency == "SUFFICIENT"
         ),
@@ -460,8 +485,6 @@ def write_stage19a_documents(
     diagnostics: Mapping[str, Any],
     outcomes: Path,
     readme: str,
-    no_systemic_defect: bool,
-    failures_are_upstream_limits: bool,
 ) -> dict[str, Path]:
     directory = Path(repository_root) / frozen.EVIDENCE_DIRECTORY
     directory.mkdir(parents=True, exist_ok=True)
@@ -488,8 +511,6 @@ def write_stage19a_documents(
         binding=binding,
         diagnostics=diagnostics,
         evidence_hashes=hashes,
-        no_systemic_defect=no_systemic_defect,
-        failures_are_upstream_limits=failures_are_upstream_limits,
     )
     marker_path = directory / frozen.STAGE_19A_FINALIZATION_NAME
     marker_path.write_bytes((json.dumps(marker, indent=2, sort_keys=True, ensure_ascii=False) + "\n").encode("utf-8"))
@@ -510,14 +531,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not readme_path.is_file():
         raise Stage19AFinalizationError(f"write the README first: {readme_path}")
 
-    counts = diagnostics.get("outcome_counts", {})
-    blocking = sum(v for k, v in counts.items() if k in {"OPENAFIS_MATCH_FAILED", "INFRASTRUCTURE_FAILURE"})
     written = write_stage19a_documents(
         diagnostics=diagnostics,
         outcomes=args.outcomes,
         readme=readme_path.read_text(encoding="utf-8"),
-        no_systemic_defect=blocking == 0,
-        failures_are_upstream_limits=blocking == 0,
     )
     for name, path in sorted(written.items()):
         print(f"  {name}  {path}")

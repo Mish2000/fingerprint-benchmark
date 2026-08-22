@@ -162,3 +162,89 @@ def test_no_comment_states_the_sanity_fraction_as_a_rate(workbook: Path) -> None
             f"({percentage.group(0)!r}). A count over a named population is the "
             "published form; the percentage is the rate ADR 0030 refuses"
         )
+
+
+# --------------------------------------------------------- the formatted form
+
+#: Excel's built-in percentage formats: ``0%`` and ``0.00%``. A custom format is
+#: caught by its format code instead.
+_BUILT_IN_PERCENT = frozenset({9, 10})
+
+
+def _percentage_styles(path: Path) -> frozenset[int]:
+    """Which cell-style indices render their value as a percentage."""
+    with zipfile.ZipFile(path) as archive:
+        if "xl/styles.xml" not in archive.namelist():
+            return frozenset()
+        root = ET.fromstring(archive.read("xl/styles.xml"))
+    custom = {
+        int(node.get("numFmtId", "0"))
+        for node in root.iter(f"{MAIN}numFmt")
+        if "%" in (node.get("formatCode") or "")
+    }
+    percentage = _BUILT_IN_PERCENT | custom
+    formats = root.find(f"{MAIN}cellXfs")
+    if formats is None:
+        return frozenset()
+    return frozenset(
+        index
+        for index, xf in enumerate(formats.findall(f"{MAIN}xf"))
+        if int(xf.get("numFmtId", "0")) in percentage
+    )
+
+
+@pytest.mark.parametrize("workbook", _workbooks(), ids=lambda p: p.name)
+def test_no_cell_is_formatted_as_a_percentage(workbook: Path) -> None:
+    """The prohibition survives the move from text to typed cells.
+
+    The workbooks used to store all 128 cells as text, where a percentage could
+    only arrive as the characters ``0%`` — which the comment test above catches.
+    Now that counts are stored as numbers, a second route opened: the *same*
+    stored ``0`` renders as ``0.00%`` if the cell carries a percentage format,
+    and no string in the file records that it happened. One column specification
+    in ``report_workbooks`` is all it would take.
+    """
+    if NEGATIVE_SANITY not in workbook.stem:
+        pytest.skip("ADR 0030 governs the same-subject different-finger set only")
+    percentage = _percentage_styles(workbook)
+    with zipfile.ZipFile(workbook) as archive:
+        sheet = ET.fromstring(archive.read("xl/worksheets/sheet1.xml"))
+    offending = [
+        cell.get("r")
+        for row in sheet.iter(f"{MAIN}row")
+        for cell in row
+        if int(cell.get("s") or "0") in percentage
+    ]
+    assert not offending, (
+        f"{workbook.name} formats {offending!r} as a percentage. ADR 0030: the "
+        "sanity fraction is published as a count over a named population — "
+        "presenting the same number as a rate is the thing the ADR refuses, "
+        "and a number format does it without changing a single character"
+    )
+
+
+@pytest.mark.parametrize("workbook", _workbooks(), ids=lambda p: p.name)
+def test_counts_are_stored_as_numbers(workbook: Path) -> None:
+    """The counts a supervisor is asked to check must be checkable.
+
+    Not an ADR 0030 rule, but the reason the typed cells exist: a column of
+    counts stored as text cannot be summed or sorted, and Excel flags every one
+    of them. Both workbooks are covered — this is about the deliverable, not
+    about the negative-sanity population.
+    """
+    with zipfile.ZipFile(workbook) as archive:
+        sheet = ET.fromstring(archive.read("xl/worksheets/sheet1.xml"))
+    ordinals = [
+        cell
+        for row in sheet.iter(f"{MAIN}row")
+        if row.get("r") != "1"
+        for cell in row
+        if (cell.get("r") or "").startswith("A")
+    ]
+    assert ordinals, f"{workbook.name} has no data rows to check"
+    text_typed = [cell.get("r") for cell in ordinals if cell.get("t") is not None]
+    assert not text_typed, (
+        f"{workbook.name} stores the process numbers {text_typed!r} as text. "
+        "A count is a number; storing it as a string is what the first, "
+        "hand-authored workbooks did"
+    )

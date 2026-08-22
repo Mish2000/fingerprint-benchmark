@@ -52,7 +52,7 @@ from fpbench.core.result_models import (
 from fpbench.core.run_state_models import RunCompletion
 from fpbench.core.runtime_models import RunRuntimeReference
 from fpbench.core.serialization import read_json, stable_hash, to_plain
-from fpbench.core.json_io import write_json
+from fpbench.core.json_io import publish_json, write_json
 from fpbench.storage import layout, result_schemas
 from fpbench.storage.atomic_parquet import publish_table
 
@@ -63,6 +63,10 @@ _COMPLETION_MANIFEST = "completion.json"
 _RUNTIME_REFERENCE = "runtime.json"
 _RESEARCH_RECEIPT = "research-receipt.json"
 _RESEARCH_FINALIZATION = "research-finalization.json"
+#: The run-level record of which preparer produced its inputs. Published
+#: create-if-absent before the first comparison, so two runners starting
+#: together cannot each believe they defined it.
+_PREPARER_BINDING = "preparer-binding.json"
 
 _PREPARATION_RECEIPT_FIELDS = frozenset(
     {
@@ -125,11 +129,27 @@ class ResultStore:
         since the id is derived from the fingerprint that should be impossible
         without a hash collision or a hand-edited file.
 
+        The manifest is *published*, not written. The old sequence — is the file
+        there, no, write it — let two processes starting the same run together
+        both pass the check and the second overwrite the first. They agree about
+        the content here, so the race was harmless; it was harmless by luck, and
+        the same three lines were not harmless in the stores that copied them
+        (docs/adr/0139).
+
         Returns:
             The run directory.
         """
         path = self.run_manifest_path(run.run_id)
-        if path.is_file():
+        try:
+            published = publish_json(path, run)
+            claimed = published.created
+        except PublishConflictError:
+            # Byte-different, which a re-derived manifest legitimately is: it
+            # carries a wall clock the fingerprint deliberately excludes. The
+            # question is whether it describes the same run, and the answer is
+            # the fingerprint's, not the bytes'.
+            claimed = False
+        if not claimed:
             existing = self.read_run(run.run_id)
             if existing.run_fingerprint != run.run_fingerprint:
                 raise ResultConflictError(
@@ -137,10 +157,41 @@ class ResultStore:
                     f"{existing.run_fingerprint[:12]}..., not "
                     f"{run.run_fingerprint[:12]}..."
                 )
-            return path.parent
-
-        write_json(path, run)
         return path.parent
+
+    # ------------------------------------------------------ preparer binding
+
+    def preparer_binding_path(self, run_id: str) -> Path:
+        return self.run_dir(run_id) / _PREPARER_BINDING
+
+    def read_preparer_binding(self, run_id: str) -> Mapping[str, str]:
+        path = self.preparer_binding_path(run_id)
+        if not path.is_file():
+            raise StorageError(f"preparer binding not found: {path}")
+        payload = read_json(path)
+        if not isinstance(payload, Mapping):
+            raise StorageError(f"{path}: a preparer binding must be a JSON object")
+        return {str(key): str(value) for key, value in payload.items()}
+
+    def bind_preparer(self, run_id: str, claims: Mapping[str, str]) -> Mapping[str, str]:
+        """Record which preparer this run uses, exactly once.
+
+        Returns whatever the run is bound to — this caller's claims if it got
+        there first, the existing binding otherwise. The caller compares; this
+        method does not, because "is that the same preparer" is a question about
+        the run and not about storage.
+        """
+        payload = {str(key): str(value) for key, value in dict(claims).items()}
+        try:
+            published = publish_json(self.preparer_binding_path(run_id), payload)
+        except PublishConflictError:
+            # Different claims reached the name first. That is the answer this
+            # method exists to give, not an error: the caller compares and says
+            # what disagrees, in its own vocabulary.
+            return self.read_preparer_binding(run_id)
+        if published.created:
+            return payload
+        return self.read_preparer_binding(run_id)
 
     def read_run(self, run_id: str) -> RunDefinition:
         path = self.run_manifest_path(run_id)

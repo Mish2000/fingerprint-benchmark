@@ -28,9 +28,9 @@ from fpbench.core.eligibility_models import (
 )
 from fpbench.core.errors import DecisionSetConflictError, StorageError
 from fpbench.core.serialization import read_json
-from fpbench.core.json_io import write_json
 from fpbench.storage import derivation_schemas, layout
 from fpbench.storage.atomic_parquet import replace_table
+from fpbench.storage.set_publication import publish_set
 
 __all__ = ["EligibilitySetStore"]
 
@@ -72,7 +72,22 @@ class EligibilitySetStore:
         self._require_coherent(manifest=manifest, records=records)
 
         manifest_path = self.manifest_path(manifest.run_id, decision_set_id)
-        if manifest_path.is_file():
+
+        # The manifest is the claim and goes first, so two writers cannot both
+        # replace the entries and leave one writer's manifest standing over the
+        # other writer's rows (docs/adr/0139).
+        claim = publish_set(
+            manifest_path=manifest_path,
+            manifest=manifest,
+            body_path=self.entries_path(manifest.run_id, decision_set_id),
+            stored_fingerprint=lambda: self.read_manifest(
+                manifest.run_id, decision_set_id
+            ).eligibility_set_fingerprint,
+            fingerprint=manifest.eligibility_set_fingerprint,
+        )
+        if claim.write_body:
+            self._write_entries(decision_set_id, manifest, records)
+        if not claim.owned:
             stored = self.read_manifest(manifest.run_id, decision_set_id)
             if (
                 stored.eligibility_set_fingerprint
@@ -83,10 +98,6 @@ class EligibilitySetStore:
                     f"{stored.eligibility_set_id}; refusing to replace it with "
                     f"{manifest.eligibility_set_id}"
                 )
-            return manifest_path.parent
-
-        self._write_entries(decision_set_id, manifest, records)
-        write_json(manifest_path, manifest)
         return manifest_path.parent
 
     # ------------------------------------------------------------------- read

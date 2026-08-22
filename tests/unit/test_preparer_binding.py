@@ -194,3 +194,62 @@ def test_a_result_with_no_preparer_metadata_is_refused(tmp_path: Path) -> None:
 
     with pytest.raises(PreflightError, match="preparer_version"):
         world.job_runner()
+
+
+# ------------------------------------------- the moment before the first result
+
+
+def test_two_runners_built_before_the_first_result_cannot_both_proceed(
+    tmp_path: Path,
+) -> None:
+    """The reviewer's race.
+
+    Checking stored results proves a *resume* used the right preparer. It can
+    prove nothing about the first moment, because there is nothing stored yet:
+    two runners built back to back, at version 1 and version 2, both looked at
+    an empty result directory and each concluded it was the one defining the
+    run.
+
+    The binding is a file now. Whoever publishes it first defines the run.
+    """
+    world = _world(tmp_path, lambda base: _VersionedPreparer(base, version="1"))
+    inner = world.preparer._delegate
+
+    world.job_runner()  # publishes the binding, writes nothing
+
+    world.preparer = _VersionedPreparer(inner, version="2")
+    with pytest.raises(PreflightError, match="bound to a preparer"):
+        world.job_runner()
+
+
+def test_the_binding_is_written_before_any_comparison(tmp_path: Path) -> None:
+    world = _world(tmp_path)
+    store = world.result_store
+    world.job_runner()
+
+    assert store.preparer_binding_path(world.run.run_id).is_file()
+    assert store.stored_job_ids(world.run.run_id) == (), "nothing has run yet"
+    bound = store.read_preparer_binding(world.run.run_id)
+    assert bound["preparer_id"] == world.preparer.preparer_id
+    assert bound["preparer_version"] == world.preparer.preparer_version
+
+
+def test_the_same_preparer_may_build_as_many_runners_as_it_likes(
+    tmp_path: Path,
+) -> None:
+    """Resuming is normal; the binding must not make it an error."""
+    world = _world(tmp_path, lambda base: _VersionedPreparer(base, version="7"))
+    for _ in range(3):
+        world.job_runner()
+    _execute_some(world, 1)
+    world.job_runner()
+
+
+def test_the_binding_survives_a_concurrent_publisher(tmp_path: Path) -> None:
+    """Whichever writer reaches the name first is the one the run is bound to."""
+    world = _world(tmp_path)
+    store = world.result_store
+    first = store.bind_preparer(world.run.run_id, {"preparer_version": "1"})
+    second = store.bind_preparer(world.run.run_id, {"preparer_version": "2"})
+    assert first == {"preparer_version": "1"}
+    assert second == {"preparer_version": "1"}, "the loser reads the winner's"

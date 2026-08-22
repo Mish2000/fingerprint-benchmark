@@ -718,3 +718,132 @@ class _Sink(Path):
 
     def write_text(self, *args, **kwargs) -> int:  # noqa: D102
         return 0
+
+
+# ------------------------------------- the conditions the marker is decided by
+
+
+def _clean_integrity(**overrides) -> dict:
+    """A ``result-integrity.json`` for a run that is genuinely complete."""
+    document = {
+        "every_attempt_stored": True,
+        "duplicate_pair_ids": 0,
+        "ordinals_are_complete": True,
+        "ordinals_are_the_manifest_order": True,
+        "bound_to_pair_manifest": True,
+        "unique_pair_ids": frozen.EXPECTED_OUTCOMES,
+        "unique_ordinals": frozen.EXPECTED_OUTCOMES,
+        "algorithm_ids_present": [frozen.ALGORITHM_ID],
+        "scores_outside_contract": 0,
+        "failures_recorded_as_zero": 0,
+        "successes_recorded_without_a_score": 0,
+        "score_bearing": frozen.EXPECTED_OUTCOMES,
+    }
+    document.update(overrides)
+    return document
+
+
+def _clean_binding(**overrides) -> dict:
+    document = {
+        "stored_outcomes": frozen.EXPECTED_OUTCOMES,
+        "missing": 0,
+        "pairs_regenerated": False,
+        "pair_order_changed": False,
+        "dataset_changed": False,
+        "calibration_performed": False,
+        "threshold_applied": None,
+        "outcome_counts": {"OK": frozen.EXPECTED_OUTCOMES},
+        "failure_reasons": {},
+    }
+    document.update(overrides)
+    return document
+
+
+def _marker_for(integrity: dict, binding: dict | None = None) -> dict:
+    from fpbench.experiments.stage20b_finalization import (
+        GATE_A_PASS,
+        GATE_B_PASS,
+        build_stage20b_finalization,
+    )
+
+    return build_stage20b_finalization(
+        repository_root=Path(__file__).resolve().parents[1],
+        gate_a={"outcome": GATE_A_PASS, "mismatches": 0},
+        gate_b={"outcome": GATE_B_PASS, "mismatches": 0},
+        binding=_clean_binding() if binding is None else binding,
+        integrity=integrity,
+        diagnostics={"failure_reasons": {}},
+        evidence_hashes={},
+    )
+
+
+def test_a_complete_run_still_publishes_complete() -> None:
+    """The positive control, so the refusals below mean something."""
+    marker = _marker_for(_clean_integrity())
+    assert marker["outcome"] == frozen.OUTCOME_COMPLETE
+    assert marker["completion_conditions"]["canonical_run_complete"] is True
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("duplicate_pair_ids", frozen.EXPECTED_OUTCOMES - 1),
+        ("ordinals_are_complete", False),
+        ("ordinals_are_the_manifest_order", False),
+        ("every_attempt_stored", False),
+        ("bound_to_pair_manifest", False),
+        ("unique_pair_ids", 1),
+        ("unique_ordinals", 1),
+        ("algorithm_ids_present", ["sourceafis"]),
+        ("scores_outside_contract", 1),
+        ("failures_recorded_as_zero", 1),
+        ("successes_recorded_without_a_score", 1),
+    ],
+)
+def test_no_structural_defect_can_publish_a_complete_run(field, value) -> None:
+    """The reviewer's store, and every neighbouring shape of it.
+
+    Six thousand rows, all of them the same pair: ``stored_outcomes`` was 6,000
+    and ``missing`` was 0, so ``canonical_run_complete`` was true — while the
+    very document the marker embedded said ``duplicate_pair_ids: 5999`` and
+    ``ordinals_are_complete: false``. The counts were computed, published, and
+    read by nobody. Each parameter below is one of those computed properties,
+    and each one on its own now stops the publication.
+    """
+    from fpbench.experiments.stage20b_finalization import Stage20BFinalizationError
+
+    with pytest.raises(Stage20BFinalizationError):
+        _marker_for(_clean_integrity(**{field: value}))
+
+
+def test_the_marker_reports_the_failures_the_binding_counted() -> None:
+    """Not the failures the diagnostics document claimed.
+
+    ``failure_reasons`` reaches the marker from the run binding, which counts
+    them off the verified store. It used to be read straight from the
+    diagnostics — a document the run produced about itself.
+    """
+    binding = _clean_binding(failure_reasons={"minutiae_above_upstream_maximum": 7})
+    marker = _marker_for(_clean_integrity(), binding)
+    assert marker["failure_reasons"] == {"minutiae_above_upstream_maximum": 7}
+
+
+def test_the_run_binding_counts_its_populations_off_the_store() -> None:
+    """``outcome_counts`` decides ``no_systemic_bridge_defect``.
+
+    A diagnostics document reporting ``{"OK": 6000}`` over a store of bridge
+    failures used to be copied into the binding verbatim, and the marker then
+    published a run with no systemic defect. The binding reads the validator's
+    own counts, so the report has nothing left to overrule.
+    """
+    from fpbench.experiments.stage20b_finalization import build_canonical_run_binding
+
+    source = inspect.getsource(build_canonical_run_binding)
+    for field in ("outcome_counts", "failure_reasons", "score_bearing"):
+        line = next(line for line in source.splitlines() if f'"{field}"' in line)
+        assert "diagnostics" not in line, (
+            f"{field} is read from the diagnostics report: {line.strip()!r}"
+        )
+        assert "integrity" in line, (
+            f"{field} is not counted from the verified store: {line.strip()!r}"
+        )

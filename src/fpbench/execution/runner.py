@@ -247,16 +247,35 @@ class SingleJobRunner:
         reads the results already stored and refuses the resume instead
         (docs/adr/0139).
         """
-        stored = self._result_store.stored_job_ids(self._run.run_id)
-        if not stored:
-            return  # A fresh run defines the binding rather than checking it.
-
         preparer = self._preparer
         expected = {
             "preparer_id": preparer.preparer_id,
             "preparer_version": preparer.preparer_version,
             "runner_metadata_schema": preparer.runner_metadata_schema,
         }
+
+        # The run-level binding first, because it is the only check that works
+        # before the first result exists. Two runners built back to back — one
+        # at version 1, one at version 2 — both used to pass here and both
+        # wrote, because each looked at an empty result directory and concluded
+        # it was the one defining the run. Whoever publishes this file first
+        # defines it; everyone else compares against what is there.
+        bound = self._result_store.bind_preparer(self._run.run_id, expected)
+        divergent = sorted(
+            key for key, value in expected.items() if bound.get(key) != value
+        )
+        if divergent:
+            raise PreflightError(
+                f"run {self._run.run_id} is bound to a preparer with "
+                + ", ".join(f"{key}={bound.get(key)!r}" for key in divergent)
+                + ", and this preparer reports "
+                + ", ".join(f"{key}={expected[key]!r}" for key in divergent)
+                + ". The binding is written once, before the first comparison"
+            )
+
+        stored = self._result_store.stored_job_ids(self._run.run_id)
+        if not stored:
+            return  # Nothing yet to check the binding against.
 
         # *Every* stored result, not the first one. Checking result zero and
         # stopping proves the run began with this preparer and says nothing

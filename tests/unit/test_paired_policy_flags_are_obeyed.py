@@ -58,6 +58,15 @@ def test_the_real_policy_still_loads() -> None:
         ("pairing", "require_same_algorithms"),
         ("control", "sd300a_exact_score_equalty"),
         ("policy", "polcy_version"),
+        # The refusal sections. Their keys name things this stage does not
+        # have; a misspelling is a statistic or a claim nobody implemented,
+        # written as though somebody had.
+        ("statistics", "bootstrp"),
+        ("statistics", "confidence_interval"),
+        ("claims", "general_far"),
+        ("claims", "resolution_superioritie"),
+        ("transitions", "plain_slf"),
+        ("transitions", "mated_common_elligible"),
     ],
 )
 def test_a_misspelled_key_is_refused(tmp_path: Path, section: str, key: str) -> None:
@@ -189,3 +198,21 @@ def test_a_policy_enabling_no_family_counts_nothing(tmp_path: Path) -> None:
             source_fingerprints={},
             policy=dataclasses.replace(policy, transition_families=()),
         )
+
+
+def test_a_new_top_level_section_is_refused(tmp_path: Path) -> None:
+    """A section nobody reads looks exactly like one that took effect."""
+    document = _base()
+    document["thresholds"] = {"score": 40}
+    with pytest.raises(ConfigurationError, match="thresholds"):
+        load_paired_policy(_written(tmp_path, document))
+
+
+def test_every_section_the_document_has_is_in_the_schema() -> None:
+    """The allowlist has to cover the real document, or it refuses reality."""
+    from fpbench.paired.policy import _SECTION_KEYS
+
+    for section, keys in _base().items():
+        assert section in _SECTION_KEYS, f"{section} has no declared schema"
+        unknown = sorted(set(keys) - _SECTION_KEYS[section])
+        assert not unknown, f"the shipped policy's {section} carries {unknown}"

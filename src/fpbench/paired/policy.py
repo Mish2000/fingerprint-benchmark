@@ -85,6 +85,13 @@ def load_paired_policy(path: Path) -> PairedComparisonPolicy:
     if not isinstance(document, Mapping):
         raise ConfigurationError(f"{path}: expected a mapping at the top level")
 
+    unknown_sections = sorted(set(document) - _TOP_LEVEL_KEYS)
+    if unknown_sections:
+        raise ConfigurationError(
+            f"{path}: the document carries {unknown_sections}, which this policy "
+            f"does not define. Permitted sections are {sorted(_TOP_LEVEL_KEYS)}"
+        )
+
     policy = _section(document, "policy", path)
     pairing = _section(document, "pairing", path)
     control = _section(document, "control", path)
@@ -220,7 +227,30 @@ _SECTION_KEYS: Mapping[str, frozenset[str]] = {
     "scores": frozenset(
         {"retain_pair_delta", "report_direction_counts", "report_distribution"}
     ),
+    # The refusal sections. Their keys are exactly the things this stage does
+    # not have and may not say, so an unrecognised one is not a new option — it
+    # is a claim or a statistic nobody implemented, spelled as though somebody
+    # had. ``statistics.bootstrp: true`` set nothing, raised nothing, and did
+    # not move the policy fingerprint.
+    "statistics": frozenset(FORBIDDEN_STATISTICS),
+    "claims": frozenset(FORBIDDEN_CLAIMS),
+    # Every transition family the derivation can build. One that is not here
+    # cannot be counted, so enabling it would be a policy nothing can obey.
+    "transitions": frozenset(
+        {
+            "plain_self",
+            "roll_self",
+            "mated_unconditional",
+            "mated_common_eligible",
+            "negative_sanity",
+            "eligibility",
+        }
+    ),
 }
+
+#: The document's own sections. A new top-level key was accepted and ignored,
+#: which reads to an author exactly like a section that took effect.
+_TOP_LEVEL_KEYS = frozenset(_SECTION_KEYS)
 
 
 def _reject_unknown(

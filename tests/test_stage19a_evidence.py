@@ -203,3 +203,41 @@ def test_the_matcher_comparison_carries_no_verdict_field():
 def test_the_adr_exists():
     adr = REPOSITORY_ROOT / "docs" / "adr" / "0135-the-translation-is-settled-from-source-not-from-scores.md"
     assert adr.is_file()
+
+
+def test_the_published_conditions_are_the_ones_the_rule_derives(marker):
+    """The marker's verdict has to follow from the marker's own evidence.
+
+    ``no_systemic_implementation_defect`` and
+    ``failures_are_upstream_limits_not_the_bridge`` were arguments to the
+    publisher: computed in ``main``, believed on arrival, and published. Nothing
+    tied the two booleans in the marker to the outcome counts in the binding
+    beside them. This re-runs the rule over the published counts.
+
+    The published run's 4,417 failures are all
+    ``OPENAFIS_TEMPLATE_FAILED_LEFT``/``_RIGHT`` — templates this build cannot
+    hold, which is the route answering and is what Stage 19B exists to address.
+    Neither is a failure of ours, so both conditions hold.
+    """
+    from fpbench.experiments.stage19a_finalization import BLOCKING_STATUSES
+
+    counts = _read("canonical-run-binding.json")["outcome_counts"]
+    blocking = sum(int(value) for key, value in counts.items() if key in BLOCKING_STATUSES)
+    conditions = marker["algorithm_5_conditions"]
+    assert conditions["no_systemic_implementation_defect"] is (blocking == 0)
+    assert conditions["failures_are_upstream_limits_not_the_bridge"] is (blocking == 0)
+
+
+def test_the_binding_counts_the_failures_the_marker_publishes(marker):
+    """One store, one set of counts, wherever they are read.
+
+    The binding's ``outcome_counts`` are counted off the outcome store by the
+    Stage 19 validator; the marker's totals are read from the binding. A run
+    whose documents disagree about how many comparisons produced a score is a
+    run whose documents were assembled from more than one reading of it.
+    """
+    binding = _read("canonical-run-binding.json")
+    assert sum(binding["outcome_counts"].values()) == binding["stored_outcomes"]
+    assert binding["outcome_counts"].get("OK", 0) == binding["score_bearing"]
+    assert binding["stored_outcomes"] == frozen.EXPECTED_OUTCOMES
+    assert binding["missing"] == 0

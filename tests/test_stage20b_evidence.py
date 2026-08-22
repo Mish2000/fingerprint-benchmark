@@ -14,6 +14,7 @@ import pytest
 from fpbench.experiments.stage18a_inputs import REPOSITORY_ROOT
 from fpbench.experiments.stage20b_finalization import stage20b_source_fingerprint
 from fpbench.experiments.stage20b_identity import (
+    ALGORITHM_ID,
     EVIDENCE_DIRECTORY,
     EVIDENCE_DOCUMENTS,
     EXPECTED_OUTCOMES,
@@ -322,3 +323,99 @@ def test_the_readme_states_what_the_stage_did_not_do() -> None:
     readme = (DIRECTORY / "README.md").read_text(encoding="utf-8")
     for phrase in ("Gate A", "Gate B", "6,000", "MINDTCT", "MCC SDK v2.0"):
         assert phrase in readme
+
+
+def test_the_published_integrity_supports_every_completion_condition() -> None:
+    """The gate reads these fields; the published run has to satisfy them.
+
+    ``canonical_run_complete`` used to be decided by two counts while the
+    integrity document computed six more properties that nothing read — a store
+    holding 6,000 copies of one pair published ``duplicate_pair_ids: 5999`` and
+    ``COMPLETE`` in the same breath. The condition now reads all of them, and
+    this pins the published run to the same list rather than to the code alone.
+
+    Fields the run's own publisher did not compute are skipped rather than
+    invented: this run's outcome store is not in the repository, so the three
+    fields added after it was published cannot be derived for it, and writing a
+    plausible value into published evidence is the one repair never available.
+    """
+    integrity = _read("result-integrity.json")
+    required: dict[str, object] = {
+        "every_attempt_stored": True,
+        "duplicate_pair_ids": 0,
+        "ordinals_are_complete": True,
+        "ordinals_are_the_manifest_order": True,
+        "bound_to_pair_manifest": True,
+        "unique_pair_ids": EXPECTED_OUTCOMES,
+        "unique_ordinals": EXPECTED_OUTCOMES,
+        "algorithm_ids_present": [ALGORITHM_ID],
+        "scores_outside_contract": 0,
+        "failures_recorded_as_zero": 0,
+        "successes_recorded_without_a_score": 0,
+        "stored_outcomes": EXPECTED_OUTCOMES,
+        "missing": 0,
+    }
+    present = {key: value for key, value in required.items() if key in integrity}
+    assert len(present) >= 9, (
+        "the published integrity document carries too few of the conditions to "
+        f"be checked against them: {sorted(present)}"
+    )
+    wrong = {
+        key: integrity[key] for key, value in present.items() if integrity[key] != value
+    }
+    assert not wrong, (
+        f"the published run does not satisfy {wrong!r}, yet its marker "
+        "publishes canonical_run_complete"
+    )
+
+
+def test_the_defect_conditions_are_the_ones_the_binding_counts(marker) -> None:
+    """The two "no systemic defect" conditions, re-derived from the counts.
+
+    Both used to be computed from the diagnostics document. ``outcome_counts``
+    decides whether the bridge failed and ``failure_reasons`` decides whether
+    the translation did, so a report of ``{"OK": 6000}`` over a store of bridge
+    failures published a run with no defect. Both now reach the marker through
+    the run binding, which counts them off the verified store.
+    """
+    binding = _read("canonical-run-binding.json")
+    counts = binding["outcome_counts"]
+    reasons = binding["failure_reasons"]
+    conditions = marker["completion_conditions"]
+
+    bridge = counts.get("BRIDGE_FAILURE", 0)
+    runtime = counts.get("MCC_RUNTIME_FAILURE", 0) + counts.get(
+        "INFRASTRUCTURE_FAILURE", 0
+    )
+    translation = sum(
+        value
+        for key, value in reasons.items()
+        if key
+        in {
+            "invalid_raster_dimensions",
+            "minutia_outside_mindtct_raster",
+            "invalid_mindtct_direction",
+            "workspace_not_visible_to_windows",
+        }
+    )
+    assert conditions["no_systemic_bridge_defect"] is (bridge == 0 and runtime == 0)
+    assert conditions["no_systemic_translation_defect"] is (translation == 0)
+    assert marker["failure_reasons"] == reasons
+
+
+def test_the_documents_agree_about_how_many_comparisons_scored(marker) -> None:
+    """One store, read once, reported everywhere.
+
+    Marker, binding and integrity each carry ``score_bearing``. They are three
+    views of one file, and a run whose three documents disagree was assembled
+    from more than one reading of it.
+    """
+    binding = _read("canonical-run-binding.json")
+    integrity = _read("result-integrity.json")
+    assert marker["score_bearing"] == binding["score_bearing"]
+    assert integrity["score_bearing"] == binding["score_bearing"]
+    assert sum(binding["outcome_counts"].values()) == binding["stored_outcomes"]
+    assert binding["outcome_counts"].get("OK", 0) == binding["score_bearing"]
+    assert marker["failure_count"] == (
+        binding["stored_outcomes"] - binding["score_bearing"]
+    )

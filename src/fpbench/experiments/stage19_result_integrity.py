@@ -110,6 +110,27 @@ class OutcomeStoreIntegrity:
     #: How many rows carried a score, counted from the store.
     score_bearing: int
 
+    #: ``status -> count``, counted from the store.
+    outcome_counts: Mapping[str, int]
+    #: ``failure_reason -> count`` over the rows that did not produce a score,
+    #: counted from the store. This is the field Stage 19B's fourth condition
+    #: reads, and the one a diagnostics document was previously free to invent.
+    failure_reasons: Mapping[str, int]
+    #: One row per protocol stage: how many comparisons it holds and how many
+    #: of them scored. The score statistics stay with the diagnostics — a
+    #: histogram is a description — but the populations a conclusion divides by
+    #: are counted here.
+    by_protocol_stage: tuple[Mapping[str, Any], ...]
+
+    @property
+    def score_bearing_fraction(self) -> float:
+        """Score coverage, from the store's own counts."""
+        return self.score_bearing / self.expected_outcomes if self.expected_outcomes else 0.0
+
+    def capacity_failures(self, reason: str) -> int:
+        """How many rows failed for ``reason``. Zero is an answer, not a default."""
+        return int(self.failure_reasons.get(reason, 0))
+
     def describe(self) -> dict[str, int | str]:
         return {
             "expected_outcomes": self.expected_outcomes,
@@ -316,6 +337,9 @@ def verify_outcome_store_integrity(
     pair_ids: list[str] = []
     ordinals: list[int] = []
     status_counts: dict[str, int] = {}
+    failure_reasons: dict[str, int] = {}
+    stage_totals: dict[str, int] = {}
+    stage_scored: dict[str, int] = {}
     seen_ordinals: dict[int, int] = {}
     score_bearing = 0
 
@@ -352,14 +376,28 @@ def verify_outcome_store_integrity(
         _check_against_manifest(
             row, pairs[ordinal], where=where, algorithm_id=algorithm_id
         )
-        if _check_score_shape(
+        scored = _check_score_shape(
             row, status, where=where, score_bearing_statuses=score_bearing_statuses
-        ):
+        )
+        if scored:
             score_bearing += 1
 
         pair_ids.append(pairs[ordinal].pair_id)
         ordinals.append(ordinal)
         status_counts[status] = status_counts.get(status, 0) + 1
+
+        stage = pairs[ordinal].protocol_stage
+        stage_totals[stage] = stage_totals.get(stage, 0) + 1
+        if scored:
+            stage_scored[stage] = stage_scored.get(stage, 0) + 1
+        else:
+            # A failure's reason is part of why the stage concluded what it
+            # concluded, so it is counted here rather than read from a report.
+            reason = row.get("failure_reason")
+            if isinstance(reason, str) and reason.strip():
+                failure_reasons[reason.strip()] = (
+                    failure_reasons.get(reason.strip(), 0) + 1
+                )
 
     stored = len(pair_ids)
     unique_pairs = len(set(pair_ids))
@@ -427,6 +465,27 @@ def verify_outcome_store_integrity(
                 f"and the store holds {score_bearing}"
             )
 
+    _require_diagnostics_agree(
+        diagnostics,
+        failure_reasons=failure_reasons,
+        stage_totals=stage_totals,
+        stage_scored=stage_scored,
+    )
+
+    stages = tuple(
+        {
+            "label": label,
+            "comparisons": stage_totals[label],
+            "score_bearing": stage_scored.get(label, 0),
+            "score_bearing_fraction": (
+                stage_scored.get(label, 0) / stage_totals[label]
+                if stage_totals[label]
+                else 0.0
+            ),
+        }
+        for label in sorted(stage_totals)
+    )
+
     return OutcomeStoreIntegrity(
         expected_outcomes=expected,
         stored_outcomes=stored,
@@ -438,4 +497,71 @@ def verify_outcome_store_integrity(
         pair_manifest_hash=pair_manifest_hash.strip(),
         bound_manifest_digest=bound_manifest_digest(pairs),
         score_bearing=score_bearing,
+        outcome_counts=dict(status_counts),
+        failure_reasons=dict(failure_reasons),
+        by_protocol_stage=stages,
     )
+
+
+def _require_diagnostics_agree(
+    diagnostics: Mapping[str, Any],
+    *,
+    failure_reasons: Mapping[str, int],
+    stage_totals: Mapping[str, int],
+    stage_scored: Mapping[str, int],
+) -> None:
+    """A diagnostics document may describe the store; it may not contradict it.
+
+    Checked rather than ignored, because a publisher reads *both*: the store for
+    the counts and the report for everything the counts do not carry. A report
+    that disagreed about the failure reasons was believed, and the disagreement
+    was the whole exploit.
+    """
+    reported_reasons = diagnostics.get("failure_reasons")
+    if reported_reasons is not None:
+        normalized = {
+            str(reason): _exact_non_negative_int(
+                count, f"diagnostics.failure_reasons[{reason!r}]"
+            )
+            for reason, count in dict(reported_reasons).items()
+            if count
+        }
+        derived = {reason: count for reason, count in failure_reasons.items() if count}
+        if normalized != derived:
+            raise Stage19ResultIntegrityError(
+                "diagnostics.failure_reasons does not describe the outcome store: "
+                f"diagnostics={normalized}, store={derived}"
+            )
+
+    reported_stages = diagnostics.get("by_protocol_stage")
+    if not reported_stages:
+        return
+    for row in reported_stages:
+        if not isinstance(row, Mapping):
+            raise Stage19ResultIntegrityError(
+                "every by_protocol_stage entry must be a mapping"
+            )
+        label = str(row.get("label", "")).strip()
+        if not label:
+            raise Stage19ResultIntegrityError(
+                "a by_protocol_stage entry names no protocol stage"
+            )
+        if label not in stage_totals:
+            raise Stage19ResultIntegrityError(
+                f"the diagnostics report protocol stage {label!r}, which the "
+                "pair manifest does not contain"
+            )
+        for key, derived in (
+            ("comparisons", stage_totals[label]),
+            ("score_bearing", stage_scored.get(label, 0)),
+        ):
+            if key not in row:
+                continue
+            reported = _exact_non_negative_int(
+                row[key], f"by_protocol_stage[{label!r}].{key}"
+            )
+            if reported != derived:
+                raise Stage19ResultIntegrityError(
+                    f"the diagnostics say protocol stage {label!r} has {key}="
+                    f"{reported} and the store holds {derived}"
+                )

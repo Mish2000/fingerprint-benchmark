@@ -67,6 +67,7 @@ from fpbench.core.json_io import write_json
 from fpbench.storage import layout, metric_schemas
 from fpbench.core.atomic_write import replace_text
 from fpbench.storage.atomic_parquet import replace_table
+from fpbench.storage.set_publication import publish_set
 
 __all__ = ["MetricSetStore", "write_text_atomically"]
 
@@ -201,7 +202,25 @@ class MetricSetStore:
         set_id = manifest.metric_set_id
         manifest_path = self.manifest_path(run_id, set_id)
 
-        if manifest_path.is_file():
+        # A metric set is six files. The manifest is published first and is the
+        # claim over all of them, so a second writer never replaces one of the
+        # five bodies underneath the first writer's manifest (docs/adr/0139).
+        claim = publish_set(
+            manifest_path=manifest_path,
+            manifest=manifest,
+            body_path=self.counts_path(run_id, set_id),
+            stored_fingerprint=lambda: self.read_manifest(
+                run_id, set_id
+            ).metric_set_fingerprint,
+            fingerprint=manifest.metric_set_fingerprint,
+        )
+        if claim.write_body:
+            write_json(self.definition_path(run_id, set_id), definition)
+            write_json(self.policy_path(run_id, set_id), policy)
+            write_json(self.report_profile_path(run_id, set_id), report_profile)
+            self._write_counts(manifest, counts)
+            self._write_observations(manifest, observations)
+        if not claim.owned:
             stored = self.read_manifest(run_id, set_id)
             if stored.metric_set_fingerprint != manifest.metric_set_fingerprint:
                 raise MetricSetConflictError(
@@ -209,14 +228,6 @@ class MetricSetStore:
                     f"({stored.metric_set_fingerprint[:12]}...); refusing to replace "
                     f"it with {manifest.metric_set_fingerprint[:12]}..."
                 )
-            return manifest_path.parent
-
-        write_json(self.definition_path(run_id, set_id), definition)
-        write_json(self.policy_path(run_id, set_id), policy)
-        write_json(self.report_profile_path(run_id, set_id), report_profile)
-        self._write_counts(manifest, counts)
-        self._write_observations(manifest, observations)
-        write_json(manifest_path, manifest)
         return manifest_path.parent
 
     def ensure_summary(

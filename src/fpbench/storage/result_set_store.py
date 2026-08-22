@@ -42,10 +42,10 @@ from fpbench.core.result_set_models import (
     result_set_id,
 )
 from fpbench.core.serialization import read_json
-from fpbench.core.json_io import publish_json, write_json
 from fpbench.storage import layout, result_set_schemas
 from fpbench.storage.result_store import ResultStore
 from fpbench.storage.atomic_parquet import replace_table
+from fpbench.storage.set_publication import publish_set
 
 __all__ = ["ResultSetStore"]
 
@@ -96,27 +96,30 @@ class ResultSetStore:
         self._require_entries_match_stored_results(manifest.run_id, entries)
 
         manifest_path = self.manifest_path(manifest.run_id)
-        if manifest_path.is_file():
-            stored, _ = self.read_result_set(manifest.run_id)
+
+        def stored_fingerprint() -> str:
+            return self.read_manifest(manifest.run_id).result_set_fingerprint
+
+        # The manifest is the claim, so the entries are only ever written by the
+        # writer that owns the set. Writing them first let two writers leave one
+        # writer's manifest over the other's rows.
+        claim = publish_set(
+            manifest_path=manifest_path,
+            manifest=manifest,
+            body_path=self.entries_path(manifest.run_id),
+            stored_fingerprint=stored_fingerprint,
+            fingerprint=manifest.result_set_fingerprint,
+        )
+        if claim.write_body:
+            self._write_entries(manifest, entries)
+        if not claim.owned:
+            stored = self.read_manifest(manifest.run_id)
             if stored.result_set_fingerprint != manifest.result_set_fingerprint:
                 raise ResultSetConflictError(
                     f"run {manifest.run_id} already holds result set "
                     f"{stored.result_set_id} "
-                    f"({stored.result_set_fingerprint[:12]}...); refusing to replace "
-                    f"it with {manifest.result_set_id} "
-                    f"({manifest.result_set_fingerprint[:12]}...)"
-                )
-            return manifest_path.parent
-
-        self._write_entries(manifest, entries)
-        if not publish_json(manifest_path, manifest).created:
-            stored, _ = self.read_result_set(manifest.run_id)
-            if stored.result_set_fingerprint != manifest.result_set_fingerprint:
-                raise ResultSetConflictError(
-                    f"run {manifest.run_id} was given result set "
-                    f"{stored.result_set_id} "
-                    f"({stored.result_set_fingerprint[:12]}...) by another writer "
-                    f"while this one was storing {manifest.result_set_id} "
+                    f"({stored.result_set_fingerprint[:12]}...); refusing to "
+                    f"replace it with {manifest.result_set_id} "
                     f"({manifest.result_set_fingerprint[:12]}...)"
                 )
         return manifest_path.parent

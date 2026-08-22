@@ -85,6 +85,14 @@ SUPERVISOR_DISCLOSURE = (
 )
 
 
+#: The statuses that mean the route failed rather than the algorithm
+#: answering, named here rather than spelled inside the condition. Stage 19B is
+#: the stage about ``OPENAFIS_TEMPLATE_FAILED_*``, which is deliberately not one
+#: of these: a template above the build's capacity is the answer this variant
+#: exists to change, not a defect in the bridge.
+BLOCKING_STATUSES = frozenset({"OPENAFIS_MATCH_FAILED", "INFRASTRUCTURE_FAILURE"})
+
+
 class Stage19BFinalizationError(RuntimeError):
     """The evidence does not support the document being asked for."""
 
@@ -260,6 +268,28 @@ def _outcome_integrity(
         raise Stage19BFinalizationError(str(exc)) from None
 
 
+
+def _merge_stage_rows(
+    derived: Sequence[Mapping[str, Any]], reported: Sequence[Mapping[str, Any]]
+) -> list[dict[str, Any]]:
+    """Per-stage rows: populations from the store, statistics from the report.
+
+    Both are wanted and only one can be counted. ``comparisons`` and
+    ``score_bearing`` decide things and come from the store; a histogram, a
+    median and a p95 describe the scores and come from the diagnostics, which
+    the validator has already required to agree about everything countable.
+    """
+    by_label = {
+        str(row.get("label")): dict(row) for row in reported if row.get("label")
+    }
+    merged: list[dict[str, Any]] = []
+    for row in derived:
+        label = str(row["label"])
+        combined = dict(by_label.get(label, {}))
+        combined.update(row)
+        merged.append(combined)
+    return merged
+
 def build_canonical_run_binding(
     diagnostics: Mapping[str, Any],
     *,
@@ -268,8 +298,13 @@ def build_canonical_run_binding(
 ) -> dict[str, Any]:
     manifest = _pair_manifest(workspace)
     integrity = _outcome_integrity(outcomes, diagnostics, manifest)
-    counts = diagnostics.get("outcome_counts", {})
-    reasons = diagnostics.get("failure_reasons", {})
+    # Counted from the store, not copied from the report about it. Section 17's
+    # third condition is "no failure remains whose reason is
+    # minutiae_above_upstream_maximum", and a diagnostics document that simply
+    # said ``{}`` used to satisfy it over 6,000 comparisons that all failed for
+    # exactly that reason.
+    counts = dict(integrity.outcome_counts)
+    reasons = dict(integrity.failure_reasons)
     return {
         "kind": "stage_19b_canonical_run_binding",
         "stage": "19B",
@@ -283,10 +318,17 @@ def build_canonical_run_binding(
         "score_transform": "NONE",
         "outcome_counts": counts,
         "failure_reasons": reasons,
-        "capacity_failures_remaining": int(reasons.get("minutiae_above_upstream_maximum", 0)),
-        "score_bearing": diagnostics.get("overall", {}).get("score_bearing"),
-        "score_bearing_fraction": diagnostics.get("overall", {}).get("score_bearing_fraction"),
-        "by_protocol_stage": diagnostics.get("by_protocol_stage", []),
+        "capacity_failures_remaining": integrity.capacity_failures(
+            "minutiae_above_upstream_maximum"
+        ),
+        "score_bearing": integrity.score_bearing,
+        "score_bearing_fraction": integrity.score_bearing_fraction,
+        # The stage populations are the store's; the score statistics beside
+        # them are the diagnostics', and the validator has already required the
+        # two to agree about the populations.
+        "by_protocol_stage": _merge_stage_rows(
+            integrity.by_protocol_stage, diagnostics.get("by_protocol_stage", [])
+        ),
         "minutiae_counts": diagnostics.get("minutiae_counts", {}),
         "timings_ms": diagnostics.get("timings_ms", {}),
         "stage19a_comparison": diagnostics.get("stage19a_comparison"),
@@ -312,8 +354,7 @@ def build_stage19b_finalization(
     capacity_failures = binding["capacity_failures_remaining"]
     counts = binding.get("outcome_counts", {})
     blocking = sum(
-        value for key, value in counts.items()
-        if key in {"OPENAFIS_MATCH_FAILED", "INFRASTRUCTURE_FAILURE"}
+        int(value) for key, value in counts.items() if key in BLOCKING_STATUSES
     )
 
     conditions = {

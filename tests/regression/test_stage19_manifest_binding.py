@@ -232,3 +232,179 @@ def test_the_bound_digest_distinguishes_two_manifests() -> None:
         right_image_id=other[0].right_image_id,
     )
     assert bound_manifest_digest(original) != bound_manifest_digest(tuple(other))
+
+
+# ------------------------------- the conclusion, not only the identity
+
+
+def test_the_reasons_a_run_failed_are_counted_not_reported(tmp_path: Path) -> None:
+    """The reviewer's second exploit.
+
+    Six thousand canonical pairs, every one failed for
+    ``minutiae_above_upstream_maximum``, and a diagnostics document saying
+    ``failure_reasons: {}``. Stage 19B's fourth condition reads that field, so
+    the run published ``capacity_failures_remaining=0`` and established an
+    algorithm on zero usable results. Binding the pair ids proved *which*
+    comparisons ran; it said nothing about what they produced.
+    """
+    pairs = _manifest()
+    rows = [
+        _row(pair, status="OPENAFIS_TEMPLATE_FAILED_LEFT", raw_score=None,
+             failure_reason="minutiae_above_upstream_maximum")
+        for pair in pairs
+    ]
+    diagnostics = _diagnostics(rows)
+    diagnostics["failure_reasons"] = {}
+
+    with pytest.raises(Stage19ResultIntegrityError, match="failure_reasons"):
+        verify_outcome_store_integrity(
+            _store(tmp_path, rows),
+            diagnostics,
+            expected_outcomes=len(pairs),
+            manifest=pairs,
+            algorithm_id=ALGORITHM,
+            pair_manifest_hash=MANIFEST_HASH,
+        )
+
+
+def test_the_derived_reasons_are_what_the_store_holds(tmp_path: Path) -> None:
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    rows[0].update({"status": "OPENAFIS_TEMPLATE_FAILED_LEFT", "raw_score": None,
+                    "failure_reason": "minutiae_above_upstream_maximum"})
+    rows[1].update({"status": "INFRASTRUCTURE_FAILURE", "raw_score": None,
+                    "failure_reason": "workspace_not_visible"})
+    diagnostics = _diagnostics(rows)
+    diagnostics["failure_reasons"] = {
+        "minutiae_above_upstream_maximum": 1,
+        "workspace_not_visible": 1,
+    }
+
+    integrity = verify_outcome_store_integrity(
+        _store(tmp_path, rows),
+        diagnostics,
+        expected_outcomes=len(pairs),
+        manifest=pairs,
+        algorithm_id=ALGORITHM,
+        pair_manifest_hash=MANIFEST_HASH,
+    )
+    assert integrity.capacity_failures("minutiae_above_upstream_maximum") == 1
+    assert integrity.failure_reasons == {
+        "minutiae_above_upstream_maximum": 1,
+        "workspace_not_visible": 1,
+    }
+    assert integrity.score_bearing == len(pairs) - 2
+    assert integrity.score_bearing_fraction == (len(pairs) - 2) / len(pairs)
+
+
+def test_a_stage_population_the_store_contradicts_is_refused(tmp_path: Path) -> None:
+    """The per-stage populations a conclusion divides by are counted, not read."""
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    diagnostics = _diagnostics(rows)
+    diagnostics["by_protocol_stage"] = [
+        {"label": "plain_self", "comparisons": 99, "score_bearing": 99}
+    ]
+    with pytest.raises(Stage19ResultIntegrityError, match="plain_self"):
+        verify_outcome_store_integrity(
+            _store(tmp_path, rows),
+            diagnostics,
+            expected_outcomes=len(pairs),
+            manifest=pairs,
+            algorithm_id=ALGORITHM,
+            pair_manifest_hash=MANIFEST_HASH,
+        )
+
+
+def test_a_stage_the_manifest_does_not_contain_is_refused(tmp_path: Path) -> None:
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    diagnostics = _diagnostics(rows)
+    diagnostics["by_protocol_stage"] = [{"label": "invented_stage", "comparisons": 1}]
+    with pytest.raises(Stage19ResultIntegrityError, match="invented_stage"):
+        verify_outcome_store_integrity(
+            _store(tmp_path, rows),
+            diagnostics,
+            expected_outcomes=len(pairs),
+            manifest=pairs,
+            algorithm_id=ALGORITHM,
+            pair_manifest_hash=MANIFEST_HASH,
+        )
+
+
+# ------------------------- conditions the publisher judges, rather than is told
+
+
+def _stage19a_binding(**overrides) -> dict:
+    from fpbench.experiments import stage19a_identity as frozen19a
+
+    document = {
+        "expected_outcomes": frozen19a.EXPECTED_OUTCOMES,
+        "stored_outcomes": frozen19a.EXPECTED_OUTCOMES,
+        "unique_pair_ids": frozen19a.EXPECTED_OUTCOMES,
+        "unique_ordinals": frozen19a.EXPECTED_OUTCOMES,
+        "diagnostic_comparisons": frozen19a.EXPECTED_OUTCOMES,
+        "missing": 0,
+        "outcome_store_sha256": "a" * 64,
+        "outcome_counts": {"OK": frozen19a.EXPECTED_OUTCOMES},
+    }
+    document.update(overrides)
+    return document
+
+
+def _stage19a_marker(binding: dict) -> dict:
+    from fpbench.experiments.stage19a_finalization import build_stage19a_finalization
+
+    return build_stage19a_finalization(
+        repository_root=Path(__file__).resolve().parents[2],
+        binding=binding,
+        diagnostics={},
+        evidence_hashes={},
+    )
+
+
+def test_a_clean_stage19a_run_still_reports_no_systemic_defect() -> None:
+    conditions = _stage19a_marker(_stage19a_binding())["algorithm_5_conditions"]
+    assert conditions["no_systemic_implementation_defect"] is True
+    assert conditions["failures_are_upstream_limits_not_the_bridge"] is True
+
+
+@pytest.mark.parametrize("status", ["OPENAFIS_MATCH_FAILED", "INFRASTRUCTURE_FAILURE"])
+def test_a_blocking_failure_is_a_systemic_defect_whatever_the_caller_says(
+    status: str,
+) -> None:
+    """These two conditions used to be arguments.
+
+    ``main`` counted the blocking statuses and passed two booleans in;
+    ``build_stage19a_finalization`` published them. Any other caller — a script,
+    a test, a future stage — could pass ``True`` over a run of nothing but
+    matcher failures, and the marker would say the implementation is sound.
+    There is no argument to pass now: the counts are in the binding, and the
+    binding counts them off the verified store.
+    """
+    from fpbench.experiments import stage19a_identity as frozen19a
+
+    binding = _stage19a_binding(
+        outcome_counts={"OK": frozen19a.EXPECTED_OUTCOMES - 4, status: 4}
+    )
+    conditions = _stage19a_marker(binding)["algorithm_5_conditions"]
+    assert conditions["no_systemic_implementation_defect"] is False
+    assert conditions["failures_are_upstream_limits_not_the_bridge"] is False
+
+
+def test_an_upstream_capacity_failure_is_not_a_defect_of_ours() -> None:
+    """The distinction the second condition exists to draw.
+
+    A template the build cannot hold is the route answering, not the bridge
+    breaking, and Stage 19B is the whole stage about that answer.
+    """
+    from fpbench.experiments import stage19a_identity as frozen19a
+
+    binding = _stage19a_binding(
+        outcome_counts={
+            "OK": frozen19a.EXPECTED_OUTCOMES - 4,
+            "OPENAFIS_TEMPLATE_FAILED_LEFT": 4,
+        }
+    )
+    conditions = _stage19a_marker(binding)["algorithm_5_conditions"]
+    assert conditions["no_systemic_implementation_defect"] is True

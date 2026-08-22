@@ -53,6 +53,7 @@ from fpbench.core.serialization import read_json
 from fpbench.core.json_io import publish_json, write_json
 from fpbench.storage import derivation_schemas, layout
 from fpbench.storage.atomic_parquet import replace_table
+from fpbench.storage.set_publication import publish_set
 
 __all__ = ["DecisionSetStore"]
 
@@ -136,28 +137,25 @@ class DecisionSetStore:
         set_id = manifest.decision_set_id
         manifest_path = self.manifest_path(run_id, set_id)
 
-        if manifest_path.is_file():
+        claim = publish_set(
+            manifest_path=manifest_path,
+            manifest=manifest,
+            body_path=self.records_path(run_id, set_id),
+            stored_fingerprint=lambda: self.read_manifest(
+                run_id, set_id
+            ).decision_set_fingerprint,
+            fingerprint=manifest.decision_set_fingerprint,
+        )
+        if claim.write_body:
+            write_json(self.profile_path(run_id, set_id), profile)
+            self._write_records(manifest, records)
+        if not claim.owned:
             stored = self.read_manifest(run_id, set_id)
             if stored.decision_set_fingerprint != manifest.decision_set_fingerprint:
                 raise DecisionSetConflictError(
                     f"run {run_id} already holds decision set {stored.decision_set_id} "
                     f"({stored.decision_set_fingerprint[:12]}...); refusing to replace "
                     f"it with {manifest.decision_set_fingerprint[:12]}..."
-                )
-            return manifest_path.parent
-
-        write_json(self.profile_path(run_id, set_id), profile)
-        self._write_records(manifest, records)
-        if not publish_json(manifest_path, manifest).created:
-            # Another writer published this set while this one was writing its
-            # body. Re-apply the guard against what is actually stored.
-            stored = self.read_manifest(run_id, set_id)
-            if stored.decision_set_fingerprint != manifest.decision_set_fingerprint:
-                raise DecisionSetConflictError(
-                    f"run {run_id} was given decision set {stored.decision_set_id} "
-                    f"({stored.decision_set_fingerprint[:12]}...) by another writer "
-                    f"while this one was storing "
-                    f"{manifest.decision_set_fingerprint[:12]}..."
                 )
         return manifest_path.parent
 

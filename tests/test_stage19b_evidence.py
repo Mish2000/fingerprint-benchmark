@@ -195,3 +195,54 @@ def test_the_bound_predecessors_still_publish_these_fingerprints(marker):
 def test_the_adr_exists():
     adr = REPOSITORY_ROOT / "docs" / "adr" / "0136-a-modified-matcher-gets-its-own-identity.md"
     assert adr.is_file()
+
+
+def test_the_published_conditions_are_the_ones_the_rule_derives(marker):
+    """Section 17's six conditions, re-derived from the documents beside them.
+
+    ``no_capacity_failure_remains`` is the one Stage 19B exists to answer, and
+    it used to be read out of a diagnostics document — a report the run wrote
+    about itself, which a store of six thousand capacity failures could
+    contradict while still publishing ``{}``. Both are now counted off the
+    verified store and land in the binding; this checks the marker agrees with
+    the binding it was assembled from.
+    """
+    from fpbench.experiments.stage19b_finalization import BLOCKING_STATUSES
+
+    binding = _read("canonical-run-binding.json")
+    counts = binding["outcome_counts"]
+    blocking = sum(int(v) for k, v in counts.items() if k in BLOCKING_STATUSES)
+    conditions = marker["algorithm_5_conditions"]
+
+    assert conditions["no_systemic_implementation_defect"] is (blocking == 0)
+    assert conditions["no_capacity_failure_remains"] is (
+        binding["capacity_failures_remaining"] == 0
+    )
+    assert conditions["canonical_run_complete"] is (
+        binding["unique_pair_ids"] == 6000
+        and binding["unique_ordinals"] == 6000
+        and binding["diagnostic_comparisons"] == 6000
+        and binding["stored_outcomes"] == 6000
+        and binding["expected_outcomes"] == 6000
+        and binding["missing"] == 0
+    )
+
+
+def test_establishment_is_never_wider_than_the_run_it_rests_on(marker):
+    """A run with no scores cannot establish an algorithm.
+
+    The reviewer's store scored nothing: 6,000 rows, every one of them
+    ``OPENAFIS_TEMPLATE_FAILED_LEFT``, ``score_bearing: 0`` — and
+    ``algorithm_5_established: true``, because the capacity count came from a
+    diagnostics document that reported ``{}``. Establishment and a scoring run
+    are now tied together in the published evidence.
+    """
+    binding = _read("canonical-run-binding.json")
+    if not marker["algorithm_5_established"]:
+        return
+    assert binding["score_bearing"] > 0
+    assert binding["score_bearing"] == binding["outcome_counts"].get("OK", 0)
+    assert binding["capacity_failures_remaining"] == 0
+    assert sum(binding["failure_reasons"].values()) == (
+        binding["stored_outcomes"] - binding["score_bearing"]
+    )

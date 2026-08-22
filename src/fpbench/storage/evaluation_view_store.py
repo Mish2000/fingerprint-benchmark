@@ -29,9 +29,9 @@ from fpbench.core.evaluation_view_models import (
     ordered_entries_hash,
 )
 from fpbench.core.serialization import read_json
-from fpbench.core.json_io import write_json
 from fpbench.storage import derivation_schemas, layout
 from fpbench.storage.atomic_parquet import replace_table
+from fpbench.storage.set_publication import publish_set
 
 __all__ = ["EvaluationViewStore"]
 
@@ -83,7 +83,18 @@ class EvaluationViewStore:
         manifest_path = self.manifest_path(
             run_id, decision_set_id, manifest.view_kind
         )
-        if manifest_path.is_file():
+        claim = publish_set(
+            manifest_path=manifest_path,
+            manifest=manifest,
+            body_path=self.entries_path(run_id, decision_set_id, manifest.view_kind),
+            stored_fingerprint=lambda: self.read_manifest(
+                run_id, decision_set_id, manifest.view_kind
+            ).view_fingerprint,
+            fingerprint=manifest.view_fingerprint,
+        )
+        if claim.write_body:
+            self._write_entries(run_id, decision_set_id, manifest, entries)
+        if not claim.owned:
             stored = self.read_manifest(run_id, decision_set_id, manifest.view_kind)
             if stored.view_fingerprint != manifest.view_fingerprint:
                 raise DecisionSetConflictError(
@@ -91,10 +102,6 @@ class EvaluationViewStore:
                     f"{stored.view_id} of kind {manifest.view_kind}; refusing to "
                     f"replace it with {manifest.view_id}"
                 )
-            return manifest_path.parent
-
-        self._write_entries(run_id, decision_set_id, manifest, entries)
-        write_json(manifest_path, manifest)
         return manifest_path.parent
 
     # ------------------------------------------------------------------- read

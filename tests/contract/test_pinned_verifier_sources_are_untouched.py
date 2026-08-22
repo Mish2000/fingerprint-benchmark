@@ -136,6 +136,13 @@ def test_every_pinned_path_still_exists() -> None:
 #: script. The remedy re-issues four stages of research evidence. That is a
 #: decision to take deliberately, not as a side effect of a refactor, so it is
 #: recorded here instead of taken.
+#:
+#: Everything reachable *without* re-issuing published evidence has been done:
+#: ``ResultStore.ensure_run``, the runtime bundle manifest, and the five
+#: manifest+body stores, which now claim the manifest before writing a body
+#: (see tests/contract/test_multi_file_stores_claim_before_they_write.py).
+#: These two are what is left, and the line between them is the published
+#: evidence — not effort, and not judgement about which race matters.
 _ON_THE_FIXED_TEMP_WRITER = {
     "src/fpbench/storage/modern_matcher_store.py": "8A",
     "src/fpbench/storage/flx_store.py": "8B",

@@ -21,11 +21,12 @@ from fpbench.experiments.stage19_result_integrity import (
     verify_outcome_store_integrity,
 )
 
-from fpbench.adapters.openafis.failure_mapping import STAGE19_STATUSES
+from fpbench.experiments.stage19a_finalization import OUTCOME_CONTRACT
 
 ALGORITHM = "nbis_mindtct_openafis"
-#: The route's whole status vocabulary, from the adapter that produces it.
-STATUSES = frozenset(STAGE19_STATUSES)
+#: The route's whole outcome contract: its status vocabulary, and what each
+#: status requires of the rest of its row.
+CONTRACT = OUTCOME_CONTRACT
 MANIFEST_HASH = "e" * 64
 
 #: The reasons this route has classified. Anything else a store carries is a
@@ -67,7 +68,44 @@ def _manifest(count: int = 9) -> tuple[CanonicalPair, ...]:
     return tuple(pairs)
 
 
+#: A coherent failure for each status the route declares: the code its factory
+#: sets, and a reason that status owns. A fixture that only names the status
+#: gets a row a real run could have produced, so a test that means to break one
+#: field breaks exactly that one.
+_COHERENT_FAILURE = {
+    "MINDTCT_FAILED_LEFT": ("template_extraction_failed", "exit_code_2"),
+    "MINDTCT_FAILED_RIGHT": ("template_extraction_failed", "exit_code_2"),
+    "MINDTCT_FAILED_BOTH": ("template_extraction_failed", "exit_code_2"),
+    "INVALID_XYT_LEFT": ("template_extraction_failed", "invalid_extractor_output"),
+    "INVALID_XYT_RIGHT": ("template_extraction_failed", "invalid_extractor_output"),
+    "OPENAFIS_TEMPLATE_FAILED_LEFT": (
+        "template_extraction_failed",
+        "minutiae_above_upstream_maximum",
+    ),
+    "OPENAFIS_TEMPLATE_FAILED_RIGHT": (
+        "template_extraction_failed",
+        "minutiae_above_upstream_maximum",
+    ),
+    "OPENAFIS_TEMPLATE_FAILED_BOTH": (
+        "template_extraction_failed",
+        "minutiae_above_upstream_maximum",
+    ),
+    "OPENAFIS_MATCH_FAILED": ("matching_failed", "exit_139"),
+    "INFRASTRUCTURE_FAILURE": ("dependency_missing", "mindtct_launch"),
+}
+
+
 def _row(pair: CanonicalPair, **overrides: object) -> dict:
+    """One stored outcome. ``status`` alone yields a coherent row for it."""
+    status = str(overrides.get("status", "OK"))
+    if status != "OK" and status in _COHERENT_FAILURE:
+        code, reason = _COHERENT_FAILURE[status]
+        overrides = {
+            "raw_score": None,
+            "failure_code": code,
+            "failure_reason": reason,
+            **overrides,
+        }
     row = {
         "ordinal": pair.ordinal,
         "pair_id": pair.pair_id,
@@ -85,9 +123,28 @@ def _row(pair: CanonicalPair, **overrides: object) -> dict:
 
 
 def _store(tmp_path: Path, rows: list[dict]) -> Path:
+    """Write the rows as a run would have written them.
+
+    A fixture that names a failure status and says nothing about
+    ``failure_code`` gets the code that status's factory sets, because that is
+    what a real store holds and the interesting part of such a test is
+    somewhere else. **Absent means "this fixture does not care"; an explicit
+    ``None`` means "this test is about the missing code"** — several below are.
+    """
+    prepared = []
+    for row in rows:
+        row = dict(row)
+        status = str(row.get("status", ""))
+        if (
+            status not in ("", "OK")
+            and status in _COHERENT_FAILURE
+            and "failure_code" not in row
+        ):
+            row["failure_code"] = _COHERENT_FAILURE[status][0]
+        prepared.append(row)
     path = tmp_path / "pair-outcomes.jsonl"
     path.write_text(
-        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in prepared),
         encoding="utf-8",
     )
     return path
@@ -116,7 +173,7 @@ def _verify(tmp_path: Path, rows: list[dict], manifest=None):
         algorithm_id=ALGORITHM,
         pair_manifest_hash=MANIFEST_HASH,
         classified_failure_reasons=CLASSIFIED,
-        allowed_statuses=STATUSES,
+        outcome_contract=CONTRACT,
     )
 
 
@@ -237,7 +294,7 @@ def test_diagnostics_that_overstate_the_scored_population_are_refused(
             algorithm_id=ALGORITHM,
             pair_manifest_hash=MANIFEST_HASH,
             classified_failure_reasons=CLASSIFIED,
-            allowed_statuses=STATUSES,
+            outcome_contract=CONTRACT,
         )
 
 
@@ -289,7 +346,7 @@ def test_the_reasons_a_run_failed_are_counted_not_reported(tmp_path: Path) -> No
             algorithm_id=ALGORITHM,
             pair_manifest_hash=MANIFEST_HASH,
             classified_failure_reasons=CLASSIFIED,
-            allowed_statuses=STATUSES,
+            outcome_contract=CONTRACT,
         )
 
 
@@ -314,7 +371,7 @@ def test_the_derived_reasons_are_what_the_store_holds(tmp_path: Path) -> None:
         algorithm_id=ALGORITHM,
         pair_manifest_hash=MANIFEST_HASH,
         classified_failure_reasons=CLASSIFIED,
-        allowed_statuses=STATUSES,
+        outcome_contract=CONTRACT,
     )
     assert integrity.capacity_failures("minutiae_above_upstream_maximum") == 1
     assert integrity.failure_reasons == {
@@ -342,7 +399,7 @@ def test_a_stage_population_the_store_contradicts_is_refused(tmp_path: Path) -> 
             algorithm_id=ALGORITHM,
             pair_manifest_hash=MANIFEST_HASH,
             classified_failure_reasons=CLASSIFIED,
-            allowed_statuses=STATUSES,
+            outcome_contract=CONTRACT,
         )
 
 
@@ -360,7 +417,7 @@ def test_a_stage_the_manifest_does_not_contain_is_refused(tmp_path: Path) -> Non
             algorithm_id=ALGORITHM,
             pair_manifest_hash=MANIFEST_HASH,
             classified_failure_reasons=CLASSIFIED,
-            allowed_statuses=STATUSES,
+            outcome_contract=CONTRACT,
         )
 
 
@@ -649,52 +706,61 @@ def test_a_status_outside_the_routes_vocabulary_is_refused(
 
 def test_every_status_the_route_declares_is_accepted(tmp_path: Path) -> None:
     """The other direction: the vocabulary is the adapter's, not a subset."""
-    from fpbench.adapters.openafis.failure_mapping import STAGE19_STATUSES
-
-    pairs = _manifest(count=len(STAGE19_STATUSES) * 3)
-    rows = [_row(pair) for pair in pairs]
-    for index, row in enumerate(rows):
-        status = STAGE19_STATUSES[index % len(STAGE19_STATUSES)]
-        row["status"] = status
-        if status != "OK":
-            row["raw_score"] = None
-            row["failure_reason"] = "minutiae_above_upstream_maximum"
+    statuses = sorted(CONTRACT)
+    pairs = _manifest(count=len(statuses) * 3)
+    rows = [
+        _row(pair, status=statuses[index % len(statuses)])
+        for index, pair in enumerate(pairs)
+    ]
     integrity = _verify(tmp_path, rows, manifest=pairs)
     assert integrity.stored_outcomes == len(pairs)
-    assert set(integrity.outcome_counts) == set(STAGE19_STATUSES)
+    assert set(integrity.outcome_counts) == set(statuses)
 
 
-def test_a_vocabulary_that_admits_everything_is_refused(tmp_path: Path) -> None:
-    """An empty allowlist is the check switched off, and says so."""
+def _verify_with(tmp_path: Path, rows: list[dict], contract) -> None:
     pairs = _manifest()
-    rows = [_row(pair) for pair in pairs]
+    verify_outcome_store_integrity(
+        _store(tmp_path, rows),
+        _diagnostics(rows),
+        expected_outcomes=len(pairs),
+        manifest=pairs,
+        algorithm_id=ALGORITHM,
+        pair_manifest_hash=MANIFEST_HASH,
+        classified_failure_reasons=CLASSIFIED,
+        outcome_contract=contract,
+    )
+
+
+def test_an_empty_contract_is_refused(tmp_path: Path) -> None:
+    """A contract that declares nothing is the check switched off."""
+    rows = [_row(pair) for pair in _manifest()]
     with pytest.raises(Stage19ResultIntegrityError, match="admits every string"):
-        verify_outcome_store_integrity(
-            _store(tmp_path, rows),
-            _diagnostics(rows),
-            expected_outcomes=len(pairs),
-            manifest=pairs,
-            algorithm_id=ALGORITHM,
-            pair_manifest_hash=MANIFEST_HASH,
-            classified_failure_reasons=CLASSIFIED,
-            allowed_statuses=(),
+        _verify_with(tmp_path, rows, {})
+
+
+def test_a_contract_with_no_scoring_status_is_refused(tmp_path: Path) -> None:
+    """A route in which no status means "a score was produced" scores nothing."""
+    from fpbench.experiments.stage19_result_integrity import OutcomeShape
+
+    rows = [_row(pair) for pair in _manifest()]
+    with pytest.raises(Stage19ResultIntegrityError, match="exactly one status"):
+        _verify_with(
+            tmp_path,
+            rows,
+            {"MINDTCT_FAILED_LEFT": OutcomeShape(codes=frozenset({"x"}))},
         )
 
 
-def test_a_vocabulary_without_the_scoring_status_is_refused(tmp_path: Path) -> None:
-    """A route whose scoring status is not in its own vocabulary scores nothing."""
-    pairs = _manifest()
-    rows = [_row(pair) for pair in pairs]
-    with pytest.raises(Stage19ResultIntegrityError, match="could ever carry a score"):
-        verify_outcome_store_integrity(
-            _store(tmp_path, rows),
-            _diagnostics(rows),
-            expected_outcomes=len(pairs),
-            manifest=pairs,
-            algorithm_id=ALGORITHM,
-            pair_manifest_hash=MANIFEST_HASH,
-            classified_failure_reasons=CLASSIFIED,
-            allowed_statuses=("MINDTCT_FAILED_LEFT",),
+def test_a_contract_with_two_scoring_statuses_is_refused(tmp_path: Path) -> None:
+    """Two ways to have scored is two ways to read the same store."""
+    from fpbench.experiments.stage19_result_integrity import OutcomeShape
+
+    rows = [_row(pair) for pair in _manifest()]
+    with pytest.raises(Stage19ResultIntegrityError, match="exactly one status"):
+        _verify_with(
+            tmp_path,
+            rows,
+            {"OK": OutcomeShape(scored=True), "ALSO_OK": OutcomeShape(scored=True)},
         )
 
 
@@ -782,3 +848,175 @@ def test_stage19a_also_requires_a_score() -> None:
 
     scoring = _stage19a_binding(score_bearing=1)
     assert _stage19a_marker(scoring)["algorithm_5_conditions"]["at_least_one_score"]
+
+
+# --------------------------- the four fields must describe one event, not four
+
+
+def test_the_acceptance_case_is_refused_in_the_validator(tmp_path: Path) -> None:
+    """One score and 5,999 extractor failures blaming the translation.
+
+    The reviewer's acceptance test for the cross-field contract, at the size it
+    was posed. Every field is individually legal: ``MINDTCT_FAILED_LEFT`` is a
+    real status, ``template_extraction_failed`` is its real code,
+    ``invalid_raster_dimensions`` is a real reason, and there is no score. The
+    *row* is impossible — the extractor failed, so the translation never ran —
+    and it must be refused here rather than reaching finalization.
+    """
+    pairs = _manifest(count=60)
+    rows = [_row(pairs[0])]
+    rows += [
+        _row(
+            pair,
+            status="MINDTCT_FAILED_LEFT",
+            raw_score=None,
+            failure_code="template_extraction_failed",
+            failure_reason="invalid_raster_dimensions",
+        )
+        for pair in pairs[1:]
+    ]
+    with pytest.raises(Stage19ResultIntegrityError) as refusal:
+        _verify(tmp_path, rows, manifest=pairs)
+    message = str(refusal.value)
+    assert "MINDTCT_FAILED_LEFT" in message
+    assert "invalid_raster_dimensions" in message
+    assert "OPENAFIS_TEMPLATE_FAILED_LEFT" in message
+
+
+def test_a_success_that_explains_itself_is_refused(tmp_path: Path) -> None:
+    """``OK`` has nothing to explain, so a code or a reason on it is a contradiction."""
+    for field, value in (
+        ("failure_code", "matching_failed"),
+        ("failure_reason", "minutiae_above_upstream_maximum"),
+    ):
+        pairs = _manifest()
+        rows = [_row(pair) for pair in pairs]
+        rows[0][field] = value
+        directory = tmp_path / field
+        directory.mkdir()
+        with pytest.raises(Stage19ResultIntegrityError, match="nothing to explain"):
+            _verify(directory, rows)
+
+
+def test_a_failure_with_no_code_is_refused(tmp_path: Path) -> None:
+    """A failure that does not say what kind of failure it was is incomplete."""
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    rows[0].update(
+        {
+            "status": "OPENAFIS_TEMPLATE_FAILED_LEFT",
+            "raw_score": None,
+            "failure_code": None,
+            "failure_reason": "minutiae_above_upstream_maximum",
+        }
+    )
+    with pytest.raises(Stage19ResultIntegrityError, match="names what kind"):
+        _verify(tmp_path, rows)
+
+
+def test_a_failure_carrying_another_statuss_code_is_refused(tmp_path: Path) -> None:
+    """The extractor failing is not the matcher failing."""
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    rows[0].update(
+        {
+            "status": "OPENAFIS_TEMPLATE_FAILED_LEFT",
+            "raw_score": None,
+            "failure_code": "matching_failed",
+            "failure_reason": "minutiae_above_upstream_maximum",
+        }
+    )
+    with pytest.raises(Stage19ResultIntegrityError, match="cannot carry failure_code"):
+        _verify(tmp_path, rows)
+
+
+@pytest.mark.parametrize(
+    "status, reason",
+    [
+        ("MINDTCT_FAILED_LEFT", "invalid_raster_dimensions"),
+        ("MINDTCT_FAILED_LEFT", "minutiae_above_upstream_maximum"),
+        ("MINDTCT_FAILED_LEFT", "invalid_extractor_output"),
+        ("INVALID_XYT_LEFT", "minutiae_below_upstream_minimum"),
+        ("INVALID_XYT_LEFT", "exit_code_2"),
+        ("OPENAFIS_TEMPLATE_FAILED_LEFT", "exit_code_2"),
+        ("OPENAFIS_TEMPLATE_FAILED_LEFT", "missing_extractor_output"),
+    ],
+)
+def test_a_reason_belonging_to_another_status_is_refused(
+    tmp_path: Path, status: str, reason: str
+) -> None:
+    """Every crossing of the three owning families, in both directions."""
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    rows[0].update(
+        {
+            "status": status,
+            "raw_score": None,
+            "failure_code": "template_extraction_failed",
+            "failure_reason": reason,
+        }
+    )
+    with pytest.raises(Stage19ResultIntegrityError, match="different events"):
+        _verify(tmp_path, rows)
+
+
+@pytest.mark.parametrize(
+    "status, reason",
+    [
+        ("MINDTCT_FAILED_LEFT", "exit_code_2"),
+        ("MINDTCT_FAILED_RIGHT", "exit_code_-1"),
+        ("INVALID_XYT_LEFT", "invalid_extractor_output"),
+        ("INVALID_XYT_RIGHT", "missing_extractor_output"),
+        ("OPENAFIS_TEMPLATE_FAILED_LEFT", "minutiae_above_upstream_maximum"),
+        ("OPENAFIS_TEMPLATE_FAILED_BOTH", "load_failed_both"),
+        ("OPENAFIS_TEMPLATE_FAILED_RIGHT", "no_fingerprint_right"),
+    ],
+)
+def test_a_reason_its_own_status_owns_is_accepted(
+    tmp_path: Path, status: str, reason: str
+) -> None:
+    """The other direction: every family accepts what it really produces."""
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    rows[0].update(
+        {
+            "status": status,
+            "raw_score": None,
+            "failure_code": "template_extraction_failed",
+            "failure_reason": reason,
+        }
+    )
+    integrity = _verify(tmp_path, rows)
+    assert integrity.failure_reasons[reason] == 1
+
+
+@pytest.mark.parametrize(
+    "status, reason",
+    [
+        ("OPENAFIS_MATCH_FAILED", "exit_139"),
+        ("OPENAFIS_MATCH_FAILED", "unreadable_bridge_output"),
+        ("INFRASTRUCTURE_FAILURE", "mindtct_timeout"),
+        ("INFRASTRUCTURE_FAILURE", "input_unreadable"),
+    ],
+)
+def test_a_status_that_owns_nothing_accepts_its_free_text(
+    tmp_path: Path, status: str, reason: str
+) -> None:
+    """A vendor detail is not a vocabulary, and must not be treated as one.
+
+    These statuses own no reason, so any text is accepted — and every one of
+    them is unclassified, which is what stops the stage publishing over them.
+    """
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    code = "matching_failed" if status == "OPENAFIS_MATCH_FAILED" else "timeout"
+    rows[0].update(
+        {
+            "status": status,
+            "raw_score": None,
+            "failure_code": code,
+            "failure_reason": reason,
+        }
+    )
+    integrity = _verify(tmp_path, rows)
+    assert integrity.unclassified_failure_reasons.get(reason) == 1

@@ -34,11 +34,13 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Collection, Mapping, Sequence
 
 __all__ = [
+    "OutcomeShape",
     "failure_reason_from_details",
     "Stage19ResultIntegrityError",
     "CanonicalPair",
@@ -188,6 +190,116 @@ def failure_reason_from_details(
         return "invalid_score"
     text = str(status or "").strip().lower()
     return f"unclassified_{text}" if text else "unclassified"
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeShape:
+    """What one status requires of the rest of the row it appears in.
+
+    The four fields of an outcome were each checked on their own and never
+    against each other, so a row could say ``MINDTCT_FAILED_LEFT`` — the
+    extractor failed — and give ``invalid_raster_dimensions`` as the reason,
+    which is a refusal only the *translation* raises. Every field is
+    individually legal and the row describes no event that can happen.
+    """
+
+    #: Does this status mean a score was produced? Exactly one status per route
+    #: does, and it is the one that must carry no failure detail at all.
+    scored: bool = False
+    #: The ``failure_code`` values this status may carry. A failure with no code
+    #: is as incomplete a record as a failure with no reason.
+    codes: frozenset[str] = frozenset()
+    #: The reasons this status *owns*. A reason owned by one status may not
+    #: appear under another — that is the cross-field check. A status with an
+    #: empty set owns nothing and accepts any reason, which is the honest answer
+    #: for a free-text vendor detail; such reasons are unclassified and block
+    #: publication through their own condition.
+    reasons: frozenset[str] = frozenset()
+    #: A shape, for reasons the route generates rather than names —
+    #: ``exit_code_2``. Matched in full.
+    reason_pattern: str | None = None
+
+    def owns(self, reason: str) -> bool:
+        if reason in self.reasons:
+            return True
+        return bool(
+            self.reason_pattern and re.fullmatch(self.reason_pattern, reason)
+        )
+
+    def may_carry(self, reason: str) -> bool:
+        """A status accepts a reason it owns, or one nobody owns."""
+        return not (self.reasons or self.reason_pattern) or self.owns(reason)
+
+
+def _require_coherent_row(
+    row: Mapping[str, Any],
+    status: str,
+    *,
+    where: str,
+    contract: Mapping[str, "OutcomeShape"],
+    scored: bool,
+) -> None:
+    """The four fields must describe one event, not four legal values.
+
+    Called after the score shape has been checked, because "did this row
+    produce a score" is the first thing the status has to agree with.
+    """
+    shape = contract[status]
+    code = row.get("failure_code")
+    reason = row.get("failure_reason")
+
+    if shape.scored:
+        if not scored:
+            raise Stage19ResultIntegrityError(
+                f"{where}: status {status!r} means a score was produced and the "
+                "row does not carry one"
+            )
+        for field, value in (("failure_code", code), ("failure_reason", reason)):
+            if value is not None and str(value).strip():
+                raise Stage19ResultIntegrityError(
+                    f"{where}: status {status!r} succeeded and the row carries "
+                    f"{field}={value!r}. A comparison that produced a score has "
+                    "nothing to explain"
+                )
+        return
+
+    if scored:
+        raise Stage19ResultIntegrityError(
+            f"{where}: status {status!r} is a failure and the row is recorded "
+            "as score-bearing"
+        )
+    if not isinstance(code, str) or not code.strip():
+        raise Stage19ResultIntegrityError(
+            f"{where}: status {status!r} is a failure and gives failure_code "
+            f"{code!r}. Every failure names what kind of failure it was"
+        )
+    if code.strip() not in shape.codes:
+        raise Stage19ResultIntegrityError(
+            f"{where}: status {status!r} cannot carry failure_code "
+            f"{code.strip()!r}; this route records it as "
+            f"{sorted(shape.codes)}"
+        )
+    # Before the ownership check, so a row with no reason is reported as the
+    # incomplete record it is rather than as a reason belonging elsewhere.
+    if not isinstance(reason, str) or not reason.strip():
+        raise Stage19ResultIntegrityError(
+            f"{where}: status {status!r} produced no score and the row gives "
+            f"failure_reason {reason!r}. Every failure states its cause; an "
+            "unstated one is counted as no failure at all, which is how a run "
+            "that scored nothing was published as having nothing left to fix"
+        )
+    text = reason.strip()
+    if not shape.may_carry(text):
+        owner = sorted(
+            other
+            for other, other_shape in contract.items()
+            if other != status and other_shape.owns(text)
+        )
+        raise Stage19ResultIntegrityError(
+            f"{where}: status {status!r} carries reason {text!r}, which belongs "
+            f"to {owner or 'another stage of this route'}. The status and the "
+            "reason describe different events, and no comparison produced both"
+        )
 
 
 def canonical_source_sha256(path: Path) -> str:
@@ -351,8 +463,7 @@ def verify_outcome_store_integrity(
     algorithm_id: str,
     pair_manifest_hash: str,
     classified_failure_reasons: Collection[str],
-    allowed_statuses: Collection[str],
-    score_bearing_statuses: frozenset[str] = SCORE_BEARING_STATUSES,
+    outcome_contract: Mapping[str, OutcomeShape],
 ) -> OutcomeStoreIntegrity:
     """Prove the store *is* the canonical run, not merely the right size.
 
@@ -371,26 +482,29 @@ def verify_outcome_store_integrity(
         for text in classified_failure_reasons
         if isinstance(text, str) and text.strip()
     )
-    # Closed, and required with no default. The status decided whether a row was
-    # score-bearing and nothing else, so an invented status simply fell into the
-    # failure branch: 6,000 rows of ``THIS_STATUS_DOES_NOT_EXIST`` with an
-    # agreeing diagnostics document verified, and the run published.
-    allowed = frozenset(
-        text.strip()
-        for text in allowed_statuses
-        if isinstance(text, str) and text.strip()
-    )
-    if not allowed:
+    # One table, not two. Its keys are the route's whole status vocabulary —
+    # the status used to decide only whether a row was score-bearing, so 6,000
+    # rows of ``THIS_STATUS_DOES_NOT_EXIST`` with an agreeing diagnostics
+    # document verified — and its values say what each status requires of the
+    # rest of its row.
+    contract = {
+        str(status).strip(): shape
+        for status, shape in dict(outcome_contract).items()
+        if str(status).strip()
+    }
+    if not contract:
         raise Stage19ResultIntegrityError(
-            "a store can only be verified against the statuses its route "
-            "declares; an empty vocabulary admits every string"
+            "a store can only be verified against the outcomes its route "
+            "declares; an empty contract admits every string"
         )
-    missing = sorted(score_bearing_statuses - allowed)
-    if missing:
+    scoring = sorted(status for status, shape in contract.items() if shape.scored)
+    if len(scoring) != 1:
         raise Stage19ResultIntegrityError(
-            f"the score-bearing statuses {missing} are not in the route's "
-            "vocabulary, so no row could ever carry a score"
+            "a route has exactly one status that means a score was produced; "
+            f"this contract names {scoring}"
         )
+    score_bearing_statuses = frozenset(scoring)
+    allowed = frozenset(contract)
     if type(pair_manifest_hash) is not str or len(pair_manifest_hash.strip()) != 64:
         raise Stage19ResultIntegrityError(
             "pair_manifest_hash must be the manifest artifact's own 64-character "
@@ -457,6 +571,9 @@ def verify_outcome_store_integrity(
         scored = _check_score_shape(
             row, status, where=where, score_bearing_statuses=score_bearing_statuses
         )
+        _require_coherent_row(
+            row, status, where=where, contract=contract, scored=scored
+        )
         if scored:
             score_bearing += 1
 
@@ -476,17 +593,10 @@ def verify_outcome_store_integrity(
             # made "no failure of this kind remains" true of a store in which
             # every single comparison failed and none of them said why. A
             # failure that does not state its cause is an incomplete record,
-            # in the same way a failure carrying a score is.
-            reason = row.get("failure_reason")
-            if not isinstance(reason, str) or not reason.strip():
-                raise Stage19ResultIntegrityError(
-                    f"{where}: status {status!r} produced no score and the row "
-                    f"gives failure_reason {reason!r}. Every failure states its "
-                    "cause; an unstated one is counted as no failure at all, "
-                    "which is how a run that scored nothing was published as "
-                    "having nothing left to fix"
-                )
-            reason = reason.strip()
+            # failure that does not state its cause is an incomplete record,
+            # in the same way a failure carrying a score is — and the row
+            # contract above has already refused one, so this only counts.
+            reason = str(row["failure_reason"]).strip()
             failure_reasons[reason] = failure_reasons.get(reason, 0) + 1
             if reason not in classified:
                 unclassified[reason] = unclassified.get(reason, 0) + 1

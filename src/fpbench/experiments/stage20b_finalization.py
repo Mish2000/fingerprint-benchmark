@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -48,6 +49,7 @@ from fpbench.experiments.stage19_pair_manifest import (
 )
 from fpbench.adapters.mcc.failure_mapping import STAGE20B_STATUSES
 from fpbench.experiments.stage19_result_integrity import (
+    OutcomeShape,
     OutcomeStoreIntegrity,
     Stage19ResultIntegrityError,
     bound_manifest_digest,
@@ -90,6 +92,88 @@ CLASSIFIED_FAILURE_REASONS = frozenset(
 )
 
 
+#: What ``require_gray8_500ppi_png`` refuses a prepared image for. These reach
+#: the store as the reason on an ``INFRASTRUCTURE_FAILURE``: the image never
+#: got as far as the extractor.
+_INPUT_REJECTIONS = frozenset(
+    {
+        "input_missing",
+        "input_not_a_regular_file",
+        "input_unreadable",
+        "malformed_png",
+        "not_a_png",
+        "unsupported_bit_depth",
+        "unsupported_colour_type",
+        "unsupported_media_type",
+        "unsupported_png_layout",
+        "unsupported_resolution",
+        "unusable_dimensions",
+    }
+)
+
+#: What ``read_xyt`` refuses the extractor's own output for.
+_XYT_KINDS = frozenset({"invalid_extractor_output", "missing_extractor_output"})
+
+#: A mindtct exit code, rendered as a reason. The extractor produces the number;
+#: the shape is what can be checked.
+_EXIT_CODE = r"exit_code_-?\d+"
+
+#: The codes an ``INFRASTRUCTURE_FAILURE`` can carry. It is the one status whose
+#: code is a parameter rather than a constant, because the machine can fail in
+#: more than one way.
+_INFRASTRUCTURE_CODES = frozenset(
+    {
+        "dependency_missing",
+        "timeout",
+        "process_crashed",
+        "internal_error",
+        "input_invalid",
+    }
+)
+
+#: What each status of this route requires of the rest of its row. See the
+#: matching table in ``stage19a_finalization`` for what it is for; derived from
+#: ``fpbench.adapters.mcc.failure_mapping`` and checked against it by
+#: tests/contract/test_outcome_contracts_match_the_route.py.
+OUTCOME_CONTRACT: dict[str, OutcomeShape] = {
+    "OK": OutcomeShape(scored=True),
+    **{
+        f"MINDTCT_FAILED_{side}": OutcomeShape(
+            codes=frozenset({"template_extraction_failed"}),
+            reason_pattern=_EXIT_CODE,
+        )
+        for side in ("LEFT", "RIGHT", "BOTH")
+    },
+    **{
+        f"INVALID_XYT_{side}": OutcomeShape(
+            codes=frozenset({"template_extraction_failed"}),
+            reasons=_XYT_KINDS,
+        )
+        for side in ("LEFT", "RIGHT", "BOTH")
+    },
+    **{
+        f"MCC_TEMPLATE_REFUSAL_{side}": OutcomeShape(
+            codes=frozenset({"template_extraction_failed"}),
+            reasons=CLASSIFIED_FAILURE_REASONS | {"sdk_refusal"},
+        )
+        for side in ("LEFT", "RIGHT", "BOTH")
+    },
+    "MCC_MATCH_REFUSAL": OutcomeShape(codes=frozenset({"matching_failed"})),
+    "MCC_INVALID_SCORE": OutcomeShape(
+        codes=frozenset({"no_score"}), reasons=frozenset({"invalid_score"})
+    ),
+    "MCC_RUNTIME_FAILURE": OutcomeShape(codes=frozenset({"dependency_missing"})),
+    "BRIDGE_FAILURE": OutcomeShape(
+        codes=frozenset({"internal_error"}),
+        reasons=frozenset({"workspace_not_visible_to_windows"}),
+    ),
+    "INFRASTRUCTURE_FAILURE": OutcomeShape(codes=_INFRASTRUCTURE_CODES),
+}
+
+#: The route's status vocabulary, which is the contract's own keys.
+ALLOWED_STATUSES = frozenset(OUTCOME_CONTRACT)
+
+
 #: The two conditions that have an outcome of their own, so they are not
 #: also required for COMPLETE — a failed gate is published as a failed
 #: gate rather than refused.
@@ -97,9 +181,7 @@ _GATE_CONDITIONS = frozenset(
     {"gate_a_bridge_reproduction", "gate_b_mindtct_parity"}
 )
 
-#: The whole status vocabulary this route can produce, from the adapter
-#: that produces it.
-ALLOWED_STATUSES = frozenset(STAGE20B_STATUSES)
+
 
 
 class Stage20BFinalizationError(RuntimeError):
@@ -392,7 +474,6 @@ def build_canonical_run_binding(
     }
 
 
-
 def _verified_store(
     outcomes_path: Path | None,
     diagnostics: Mapping[str, Any],
@@ -418,7 +499,7 @@ def _verified_store(
             pair_manifest_hash=manifest.pair_manifest_hash,
             expected_outcomes=frozen.EXPECTED_OUTCOMES,
             classified_failure_reasons=CLASSIFIED_FAILURE_REASONS,
-            allowed_statuses=ALLOWED_STATUSES,
+            outcome_contract=OUTCOME_CONTRACT,
         )
     except Stage19ResultIntegrityError as exc:
         raise Stage20BFinalizationError(str(exc)) from None
@@ -512,6 +593,26 @@ def build_result_integrity(
 # ---------------------------------------------------------------------- marker
 
 
+def _written_at(created_utc: str | None) -> str:
+    """When this document was written, injected or read from the clock.
+
+    ``created_utc`` is an argument because a marker that reads the wall clock is
+    a document nobody can rebuild: given the same evidence it produces different
+    bytes, so "does this marker follow from the documents beside it" has no
+    answer. Passing ``None`` keeps the old behaviour — the moment the document is
+    written — and a caller checking a published marker passes the value that
+    marker already carries.
+    """
+    if created_utc is None:
+        return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    text = str(created_utc).strip()
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", text):
+        raise ValueError(
+            f"created_utc must be a UTC instant like 2026-08-23T12:00:00Z, not {text!r}"
+        )
+    return text
+
+
 def build_stage20b_finalization(
     *,
     repository_root: Path,
@@ -521,6 +622,7 @@ def build_stage20b_finalization(
     integrity: Mapping[str, Any],
     diagnostics: Mapping[str, Any],
     evidence_hashes: Mapping[str, str],
+    created_utc: str | None = None,
 ) -> dict[str, Any]:
     """Assemble the marker and derive section 25's conditions from the evidence."""
     stored = binding["stored_outcomes"]
@@ -566,15 +668,23 @@ def build_stage20b_finalization(
             integrity["ordinals_are_the_manifest_order"],
             True,
         ),
-        "bound_to_pair_manifest": (integrity["bound_to_pair_manifest"], True),
-        "unique_pair_ids": (
-            integrity["unique_pair_ids"],
-            frozen.EXPECTED_OUTCOMES,
+        # Read from the run binding, where the manifest hash is measured and
+        # published. It was read from the integrity document, which is the one
+        # place it is *not* independently recorded.
+        "pair_manifest_hash": (
+            binding.get("pair_manifest_hash"),
+            frozen.REFERENCE_PAIR_MANIFEST_HASH,
         ),
-        "unique_ordinals": (
-            integrity["unique_ordinals"],
-            frozen.EXPECTED_OUTCOMES,
-        ),
+        #
+        # ``unique_pair_ids`` and ``unique_ordinals`` are deliberately not here.
+        # They are not dropped checks: ``duplicate_pair_ids == 0`` *is*
+        # ``len(ids) - len(set(ids)) == 0``, so with ``stored_outcomes`` fixed
+        # at 6,000 the distinct count is 6,000; and ``ordinals_are_complete``
+        # *is* ``len(set(ordinals)) == len(outcomes)`` with the range pinned to
+        # 0..5,999. Requiring the derived pair as well made this condition
+        # unsatisfiable from the published evidence — the marker could not be
+        # rebuilt from the documents beside it, which is the property that lets
+        # a reader check it at all.
         "algorithm_ids_present": (
             integrity["algorithm_ids_present"],
             [frozen.ALGORITHM_ID],
@@ -672,7 +782,7 @@ def build_stage20b_finalization(
         "kind": "stage_20b_finalization",
         "schema_version": "1",
         "stage": "20B",
-        "created_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "created_utc": _written_at(created_utc),
         "outcome": outcome,
         "algorithm_id": frozen.ALGORITHM_ID,
         "adapter_id": frozen.ADAPTER_ID,

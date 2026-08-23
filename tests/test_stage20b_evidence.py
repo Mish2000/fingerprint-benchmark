@@ -293,6 +293,8 @@ def test_the_completion_conditions_are_all_recorded(marker) -> None:
         "no_parameter_selection",
         "no_calibration",
         "no_threshold_selection",
+        "no_unclassified_failure",
+        "at_least_one_score",
     }
     assert all(conditions.values())
 

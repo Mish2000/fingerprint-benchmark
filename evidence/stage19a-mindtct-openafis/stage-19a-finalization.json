@@ -2,8 +2,10 @@
   "absolute_paths_in_evidence": false,
   "adapter_id": "nbis_mindtct_openafis_subprocess",
   "algorithm_5_conditions": {
+    "at_least_one_score": true,
     "failures_are_upstream_limits_not_the_bridge": true,
     "no_systemic_implementation_defect": true,
+    "no_unclassified_failure": true,
     "substantial_cross_impression_score_bearing": null,
     "translation_settled_from_sources_not_tuning": true
   },
@@ -33,7 +35,7 @@
   ],
   "calibration_performed": false,
   "canonical_run_executed": true,
-  "created_utc": "2026-08-20T13:10:17Z",
+  "created_utc": "2026-08-23T00:00:00Z",
   "cross_impression": {
     "plain_roll_mated": {
       "comparisons": 1500,
@@ -79,8 +81,8 @@
   "secugen_reference_used_for_parameter_selection": false,
   "shares_extractor_with": "nbis_mindtct_bozorth3",
   "stage": "19A",
-  "stage19a_source_fingerprint": "4e5a187146f9eeb71245ade81786eaee8d2ddc492ef07a2407f2fd5e4893108c",
-  "stage_19a_finalization_fingerprint": "b14bb403be07eb52cf2e8b2a54c9f36af6896a9e363cae97f20b85293d9872db",
+  "stage19a_source_fingerprint": "087b91fcff8435e132caa158c9bd043849500d3ca2610c933d689e85b2da7c6a",
+  "stage_19a_finalization_fingerprint": "8564ef48201caf73acd47d99c40b83e21d700b69c65baa7d895622aa8c99a4f0",
   "stored_outcomes": 6000,
   "threshold": null,
   "unique_ordinals": 6000,

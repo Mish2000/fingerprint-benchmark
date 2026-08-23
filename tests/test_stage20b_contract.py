@@ -754,6 +754,8 @@ def _clean_binding(**overrides) -> dict:
         "threshold_applied": None,
         "outcome_counts": {"OK": frozen.EXPECTED_OUTCOMES},
         "failure_reasons": {},
+        "unclassified_failures": 0,
+        "pair_manifest_hash": frozen.REFERENCE_PAIR_MANIFEST_HASH,
     }
     document.update(overrides)
     return document
@@ -791,9 +793,6 @@ def test_a_complete_run_still_publishes_complete() -> None:
         ("ordinals_are_complete", False),
         ("ordinals_are_the_manifest_order", False),
         ("every_attempt_stored", False),
-        ("bound_to_pair_manifest", False),
-        ("unique_pair_ids", 1),
-        ("unique_ordinals", 1),
         ("algorithm_ids_present", ["sourceafis"]),
         ("scores_outside_contract", 1),
         ("failures_recorded_as_zero", 1),
@@ -814,6 +813,38 @@ def test_no_structural_defect_can_publish_a_complete_run(field, value) -> None:
 
     with pytest.raises(Stage20BFinalizationError):
         _marker_for(_clean_integrity(**{field: value}))
+
+
+def test_the_run_binding_must_name_the_canonical_pair_manifest() -> None:
+    """The manifest binding moved to the binding, where it is measured.
+
+    ``result-integrity.json`` was the one document that did *not* record the
+    hash independently, so requiring it there made the marker unrebuildable
+    from the evidence beside it.
+    """
+    from fpbench.experiments.stage20b_finalization import Stage20BFinalizationError
+
+    binding = _clean_binding(pair_manifest_hash="0" * 64)
+    with pytest.raises(Stage20BFinalizationError, match="pair_manifest_hash"):
+        _marker_for(_clean_integrity(), binding)
+
+
+def test_the_dropped_counts_are_implied_by_the_ones_that_remain() -> None:
+    """Not a weakening: the arithmetic is the proof.
+
+    ``duplicate_pair_ids`` is ``len(ids) - len(set(ids))``, so zero of them
+    over 6,000 stored rows *is* 6,000 distinct ids. ``ordinals_are_complete``
+    is ``len(set(ordinals)) == len(outcomes)`` with the range pinned. Anything
+    that would have failed ``unique_pair_ids`` fails one of these first.
+    """
+    from fpbench.experiments.stage20b_finalization import Stage20BFinalizationError
+
+    for field, value in (
+        ("duplicate_pair_ids", frozen.EXPECTED_OUTCOMES - 1),
+        ("ordinals_are_complete", False),
+    ):
+        with pytest.raises(Stage20BFinalizationError, match=field):
+            _marker_for(_clean_integrity(**{field: value}))
 
 
 def test_the_marker_reports_the_failures_the_binding_counted() -> None:

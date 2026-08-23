@@ -2,11 +2,13 @@
   "absolute_paths_in_evidence": false,
   "adapter_id": "nbis_mindtct_openafis_capacity_extended_subprocess",
   "algorithm_5_conditions": {
+    "at_least_one_score": true,
     "canonical_run_complete": true,
     "gate_a_baseline_scores_identical": true,
     "no_capacity_failure_remains": true,
     "no_secugen_based_tuning": true,
     "no_systemic_implementation_defect": true,
+    "no_unclassified_failure": true,
     "translation_contract_unchanged": true
   },
   "algorithm_5_established": true,
@@ -23,7 +25,7 @@
   },
   "bound_markers": [
     {
-      "finalization_fingerprint": "b14bb403be07eb52cf2e8b2a54c9f36af6896a9e363cae97f20b85293d9872db",
+      "finalization_fingerprint": "8564ef48201caf73acd47d99c40b83e21d700b69c65baa7d895622aa8c99a4f0",
       "outcome": "MINDTCT_OPENAFIS_CANONICAL500_RAW_COMPLETE",
       "stage": "19A",
       "why": "the unmodified route this stage extends, and the source of Gate A's 1,583 baseline scores"
@@ -43,7 +45,7 @@
   ],
   "calibration_performed": false,
   "capacity_failures_remaining": 0,
-  "created_utc": "2026-08-20T13:10:18Z",
+  "created_utc": "2026-08-23T00:00:00Z",
   "decision_profile_produced": false,
   "diagnostic_comparisons": 6000,
   "evidence_content_hashes": {
@@ -75,8 +77,8 @@
   "secugen_reference_used_for_parameter_selection": false,
   "shares_extractor_with": "nbis_mindtct_bozorth3",
   "stage": "19B",
-  "stage19b_source_fingerprint": "3cd4d0e2fbdfc55464df310e7195d9fdd17d6e2a7d662cd542a28f559c477fdc",
-  "stage_19b_finalization_fingerprint": "67e271911ed50d1d9aa1ff3eccdd46ef1d6dc918d6cf34d9b7f4323c66f24235",
+  "stage19b_source_fingerprint": "96409a1fad010d41ddacc1c9532dbd2f36ae95a05e3c6f0b4099d102f5dfe247",
+  "stage_19b_finalization_fingerprint": "3d7e1296e14c41febd0683428e8313452d2abb87bfbefdf2372c1b4d9f7b1a65",
   "stored_outcomes": 6000,
   "supervisor_disclosure": "NBIS MINDTCT + OpenAFIS (capacity-extended variant) — composition defined by the project. It shares the MINDTCT extractor with the NBIS/BOZORTH3 method and differs primarily in the matcher. The OpenAFIS source was minimally modified to permit CSV templates containing more than the upstream limit of 128 minutiae; the original behavior was verified unchanged on all 1,583 previously accepted comparisons.",
   "threshold": null,

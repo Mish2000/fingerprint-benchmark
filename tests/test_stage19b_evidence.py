@@ -96,7 +96,8 @@ def test_the_capacity_problem_is_gone(marker):
         assert binding[field] == marker[field]
 
 
-def test_all_six_structural_conditions_hold(marker):
+def test_all_the_structural_conditions_hold(marker):
+    """Section 17's six, and the two added since — all computed for this run."""
     conditions = marker["algorithm_5_conditions"]
     assert set(conditions) == {
         "gate_a_baseline_scores_identical",
@@ -105,6 +106,8 @@ def test_all_six_structural_conditions_hold(marker):
         "no_systemic_implementation_defect",
         "translation_contract_unchanged",
         "no_secugen_based_tuning",
+        "no_unclassified_failure",
+        "at_least_one_score",
     }
     assert all(conditions.values())
     assert marker["algorithm_5_established"] is True

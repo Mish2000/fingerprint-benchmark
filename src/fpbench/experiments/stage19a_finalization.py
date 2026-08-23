@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -42,6 +43,7 @@ from fpbench.experiments.stage19_pair_manifest import (
 )
 from fpbench.adapters.openafis.failure_mapping import STAGE19_STATUSES
 from fpbench.experiments.stage19_result_integrity import (
+    OutcomeShape,
     OutcomeStoreIntegrity,
     Stage19ResultIntegrityError,
     canonical_source_sha256,
@@ -68,10 +70,7 @@ __all__ = [
 #: everything the source fingerprint and the evidence gate can see.
 BLOCKING_STATUSES = frozenset({"OPENAFIS_MATCH_FAILED", "INFRASTRUCTURE_FAILURE"})
 
-#: The whole status vocabulary this route can produce, from the adapter
-#: that produces it. A store using anything else was not written by this
-#: stage, whatever else about it verifies.
-ALLOWED_STATUSES = frozenset(STAGE19_STATUSES)
+
 
 #: The failure reasons this route produces *as an answer*, rather than as a
 #: fault. They are the refusals the translation raises when a template cannot
@@ -93,6 +92,96 @@ CLASSIFIED_FAILURE_REASONS = frozenset(
         "minutiae_above_upstream_maximum",
     }
 )
+
+
+#: What ``require_gray8_500ppi_png`` refuses a prepared image for. These reach
+#: the store as the reason on an ``INFRASTRUCTURE_FAILURE``: the image never
+#: got as far as the extractor.
+_INPUT_REJECTIONS = frozenset(
+    {
+        "input_missing",
+        "input_not_a_regular_file",
+        "input_unreadable",
+        "malformed_png",
+        "not_a_png",
+        "unsupported_bit_depth",
+        "unsupported_colour_type",
+        "unsupported_media_type",
+        "unsupported_png_layout",
+        "unsupported_resolution",
+        "unusable_dimensions",
+    }
+)
+
+#: What ``read_xyt`` refuses the extractor's own output for.
+_XYT_KINDS = frozenset({"invalid_extractor_output", "missing_extractor_output"})
+
+#: A mindtct exit code, rendered as a reason. The extractor produces the number;
+#: the shape is what can be checked.
+_EXIT_CODE = r"exit_code_-?\d+"
+
+#: The codes an ``INFRASTRUCTURE_FAILURE`` can carry. It is the one status whose
+#: code is a parameter rather than a constant, because the machine can fail in
+#: more than one way.
+_INFRASTRUCTURE_CODES = frozenset(
+    {
+        "dependency_missing",
+        "timeout",
+        "process_crashed",
+        "internal_error",
+        "input_invalid",
+    }
+)
+
+#: What each status of this route requires of the rest of its row.
+#:
+#: Its keys are the whole status vocabulary; its values are the cross-field
+#: contract. ``MINDTCT_FAILED_LEFT`` carrying ``invalid_raster_dimensions`` is a
+#: row in which the extractor failed *and* the translation refused, which is not
+#: an event any comparison can have — every field legal, the row impossible.
+#:
+#: Derived from ``fpbench.adapters.openafis.failure_mapping``, and checked
+#: against it by tests/contract/test_outcome_contracts_match_the_route.py.
+OUTCOME_CONTRACT: dict[str, OutcomeShape] = {
+    "OK": OutcomeShape(scored=True),
+    **{
+        f"MINDTCT_FAILED_{side}": OutcomeShape(
+            codes=frozenset({"template_extraction_failed"}),
+            reason_pattern=_EXIT_CODE,
+        )
+        for side in ("LEFT", "RIGHT", "BOTH")
+    },
+    **{
+        f"INVALID_XYT_{side}": OutcomeShape(
+            codes=frozenset({"template_extraction_failed"}),
+            reasons=_XYT_KINDS,
+        )
+        for side in ("LEFT", "RIGHT")
+    },
+    **{
+        f"OPENAFIS_TEMPLATE_FAILED_{side}": OutcomeShape(
+            codes=frozenset({"template_extraction_failed"}),
+            reasons=CLASSIFIED_FAILURE_REASONS
+            | {
+                "load_failed_left",
+                "load_failed_right",
+                "load_failed_both",
+                "no_fingerprint_left",
+                "no_fingerprint_right",
+            },
+        )
+        for side in ("LEFT", "RIGHT", "BOTH")
+    },
+    # The matcher declining to run, and the machine. Both carry a free-text
+    # detail, so neither owns a reason — and both are already blocking through
+    # BLOCKING_STATUSES and no_unclassified_failure.
+    "OPENAFIS_MATCH_FAILED": OutcomeShape(codes=frozenset({"matching_failed"})),
+    "INFRASTRUCTURE_FAILURE": OutcomeShape(codes=_INFRASTRUCTURE_CODES),
+}
+
+#: The route's status vocabulary, which is the contract's own keys. One table,
+#: so the two cannot drift apart.
+ALLOWED_STATUSES = frozenset(OUTCOME_CONTRACT)
 
 
 class Stage19AFinalizationError(RuntimeError):
@@ -324,7 +413,7 @@ def _outcome_integrity(
             pair_manifest_hash=manifest.pair_manifest_hash,
             expected_outcomes=frozen.EXPECTED_OUTCOMES,
             classified_failure_reasons=CLASSIFIED_FAILURE_REASONS,
-            allowed_statuses=ALLOWED_STATUSES,
+            outcome_contract=OUTCOME_CONTRACT,
         )
     except Stage19ResultIntegrityError as exc:
         raise Stage19AFinalizationError(str(exc)) from None
@@ -398,12 +487,33 @@ def build_matcher_comparison(diagnostics: Mapping[str, Any]) -> dict[str, Any]:
 # ---------------------------------------------------------------------- marker
 
 
+def _written_at(created_utc: str | None) -> str:
+    """When this document was written, injected or read from the clock.
+
+    ``created_utc`` is an argument because a marker that reads the wall clock is
+    a document nobody can rebuild: given the same evidence it produces different
+    bytes, so "does this marker follow from the documents beside it" has no
+    answer. Passing ``None`` keeps the old behaviour — the moment the document is
+    written — and a caller checking a published marker passes the value that
+    marker already carries.
+    """
+    if created_utc is None:
+        return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    text = str(created_utc).strip()
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", text):
+        raise ValueError(
+            f"created_utc must be a UTC instant like 2026-08-23T12:00:00Z, not {text!r}"
+        )
+    return text
+
+
 def build_stage19a_finalization(
     *,
     repository_root: Path,
     binding: Mapping[str, Any],
     diagnostics: Mapping[str, Any],
     evidence_hashes: Mapping[str, str],
+    created_utc: str | None = None,
 ) -> dict[str, Any]:
     """Assemble the marker. Refuses one the run does not support.
 
@@ -476,7 +586,7 @@ def build_stage19a_finalization(
         "kind": "stage_19a_finalization",
         "schema_version": "1",
         "stage": frozen.STAGE,
-        "created_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "created_utc": _written_at(created_utc),
         "outcome": frozen.OUTCOME_COMPLETE,
         "algorithm_id": frozen.ALGORITHM_ID,
         "adapter_id": frozen.ADAPTER_ID,

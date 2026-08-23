@@ -108,13 +108,22 @@ def test_establishment_is_never_asserted_without_the_human_determination(marker)
         assert isinstance(marker["algorithm_5_established"], bool)
 
 
-def test_the_three_machine_conditions_are_published(marker):
+def test_the_machine_conditions_are_published(marker):
+    """The set is pinned, so a condition added or dropped is visible here.
+
+    Two were added after the run: ``at_least_one_score`` (ADR 0128) and
+    ``no_unclassified_failure``. The marker was rebuilt from the evidence, so
+    both are computed over *this* run rather than asserted about it — see
+    tests/contract/test_markers_are_rebuildable.py.
+    """
     conditions = marker["algorithm_5_conditions"]
     assert conditions["translation_settled_from_sources_not_tuning"] is True
     assert set(conditions) == {
         "translation_settled_from_sources_not_tuning",
         "no_systemic_implementation_defect",
         "failures_are_upstream_limits_not_the_bridge",
+        "no_unclassified_failure",
+        "at_least_one_score",
         "substantial_cross_impression_score_bearing",
     }
 

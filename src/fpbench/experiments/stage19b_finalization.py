@@ -44,6 +44,8 @@ from fpbench.experiments.stage19_pair_manifest import (
 from fpbench.adapters.openafis.failure_mapping import STAGE19_STATUSES
 from fpbench.experiments.stage19_result_integrity import (
     OutcomeShape,
+    ReasonRule,
+    ScoreContract,
     OutcomeStoreIntegrity,
     Stage19ResultIntegrityError,
     canonical_source_sha256,
@@ -76,6 +78,22 @@ EVIDENCE_DOCUMENTS = (
 
 OUTCOME_COMPLETE = "MINDTCT_OPENAFIS_CAPACITY_EXTENDED_CANONICAL_RAW_COMPLETE"
 OUTCOME_INERTNESS_FAIL = "CAPACITY_EXTENSION_INERTNESS_FAIL"
+
+#: What a run that verified and did not conclude is published as.
+#:
+#: A machine condition that comes out false used to be an exception in two of
+#: the three stages and a ``RAW_COMPLETE`` marker in the third — so a run whose
+#: score column was empty either vanished or was published as complete. Neither
+#: is a record. The store is honest, the failures are real, and the run is worth
+#: keeping: it gets a full marker, this outcome, ``failed_conditions``, and
+#: nothing established (docs/adr/0128).
+#:
+#: A *validator* refusal is different and still ends in an exception with no
+#: marker: there the store is not something any run could have produced, so
+#: there is nothing to record.
+OUTCOME_NOT_COMPLETE = (
+    "MINDTCT_OPENAFIS_CAPACITY_EXTENDED_CANONICAL_RAW_NOT_COMPLETE"
+)
 
 #: Section 21. Reproduced verbatim, because it is the sentence that has to travel
 #: with the number into the supervisor's table.
@@ -124,9 +142,13 @@ CLASSIFIED_FAILURE_REASONS = frozenset(
 )
 
 
-#: What ``require_gray8_500ppi_png`` refuses a prepared image for. These reach
-#: the store as the reason on an ``INFRASTRUCTURE_FAILURE``: the image never
-#: got as far as the extractor.
+#: Reasons a route's own machinery produces rather than the algorithm. Each is
+#: owned by exactly one ``status + failure_code`` pair, because owning is what
+#: stops it appearing under a status that cannot have produced it.
+
+#: ``require_gray8_500ppi_png`` refusing a prepared image. These reach the store
+#: under ``INFRASTRUCTURE_FAILURE`` with ``input_invalid``: the image never got
+#: as far as the extractor.
 _INPUT_REJECTIONS = frozenset(
     {
         "input_missing",
@@ -143,75 +165,159 @@ _INPUT_REJECTIONS = frozenset(
     }
 )
 
-#: What ``read_xyt`` refuses the extractor's own output for.
+#: ``read_xyt`` refusing the extractor's own output.
 _XYT_KINDS = frozenset({"invalid_extractor_output", "missing_extractor_output"})
 
-#: A mindtct exit code, rendered as a reason. The extractor produces the number;
-#: the shape is what can be checked.
+#: A mindtct exit code rendered as a reason. The extractor supplies the number.
 _EXIT_CODE = r"exit_code_-?\d+"
 
-#: The codes an ``INFRASTRUCTURE_FAILURE`` can carry. It is the one status whose
-#: code is a parameter rather than a constant, because the machine can fail in
-#: more than one way.
-_INFRASTRUCTURE_CODES = frozenset(
-    {
-        "dependency_missing",
-        "timeout",
-        "process_crashed",
-        "internal_error",
-        "input_invalid",
-    }
-)
+#: A crash, likewise.
+_CRASH = r"mindtct_crash_-?\d+"
 
-#: What each status of this route requires of the rest of its row.
+#: What each outcome of this route requires of the rest of its row.
 #:
-#: Its keys are the whole status vocabulary; its values are the cross-field
-#: contract. ``MINDTCT_FAILED_LEFT`` carrying ``invalid_raster_dimensions`` is a
-#: row in which the extractor failed *and* the translation refused, which is not
-#: an event any comparison can have — every field legal, the row impossible.
+#: Every entry corresponds to a producer path in
+#: ``fpbench.adapters.openafis`` — the factory that stamps the status, the code
+#: it carries, and the detail key that becomes the reason. Ownership is global:
+#: a reason listed here may not appear under any other pair, which is what
+#: refuses ``MINDTCT_FAILED_LEFT`` carrying ``invalid_raster_dimensions``.
+#: ``allow_unowned`` is opt-in, for the pairs that carry a bridge's or an
+#: interpreter's own text; everything else is closed.
 #:
-#: Derived from ``fpbench.adapters.openafis.failure_mapping``, and checked
-#: against it by tests/contract/test_outcome_contracts_match_the_route.py.
+#: Checked against the adapters by
+#: tests/contract/test_outcome_contracts_match_the_route.py.
 OUTCOME_CONTRACT: dict[str, OutcomeShape] = {
-    "OK": OutcomeShape(scored=True),
+    # The bridge prints ``score_native_type\tuint8_t`` and documents ``-1`` on
+    # every status but OK, so the contract is the whole of what it can emit.
+    "OK": OutcomeShape(
+        scored=True, score=ScoreContract(minimum=0, maximum=255, integral=True)
+    ),
     **{
         f"MINDTCT_FAILED_{side}": OutcomeShape(
-            codes=frozenset({"template_extraction_failed"}),
-            reason_pattern=_EXIT_CODE,
+            codes={
+                "template_extraction_failed": ReasonRule(pattern=_EXIT_CODE),
+            }
         )
         for side in ("LEFT", "RIGHT", "BOTH")
     },
     **{
         f"INVALID_XYT_{side}": OutcomeShape(
-            codes=frozenset({"template_extraction_failed"}),
-            reasons=_XYT_KINDS,
+            codes={"template_extraction_failed": ReasonRule(reasons=_XYT_KINDS)}
         )
         for side in ("LEFT", "RIGHT")
     },
     **{
         f"OPENAFIS_TEMPLATE_FAILED_{side}": OutcomeShape(
-            codes=frozenset({"template_extraction_failed"}),
-            reasons=CLASSIFIED_FAILURE_REASONS
-            | {
-                "load_failed_left",
-                "load_failed_right",
-                "load_failed_both",
-                "no_fingerprint_left",
-                "no_fingerprint_right",
-            },
+            codes={
+                # The translation's refusals, and the bridge's own template
+                # statuses lower-cased. Both are enumerable, so this pair is
+                # closed: nothing else can refuse a template here.
+                "template_extraction_failed": ReasonRule(
+                    reasons=CLASSIFIED_FAILURE_REASONS
+                    | {
+                        "load_failed_left",
+                        "load_failed_right",
+                        "load_failed_both",
+                        "no_fingerprint_left",
+                        "no_fingerprint_right",
+                    }
+                )
+            }
         )
         for side in ("LEFT", "RIGHT", "BOTH")
     },
-    # The matcher declining to run, and the machine. Both carry a free-text
-    # detail, so neither owns a reason — and both are already blocking through
-    # BLOCKING_STATUSES and no_unclassified_failure.
-    "OPENAFIS_MATCH_FAILED": OutcomeShape(codes=frozenset({"matching_failed"})),
-    "INFRASTRUCTURE_FAILURE": OutcomeShape(codes=_INFRASTRUCTURE_CODES),
+    # The matcher declining to run. It owns the messages the adapter names and
+    # is open besides, because ``exit_<n>`` and the bridge's ``MATCH_EXCEPTION``
+    # arrive as whatever the bridge printed.
+    "OPENAFIS_MATCH_FAILED": OutcomeShape(
+        codes={
+            "matching_failed": ReasonRule(
+                reasons=frozenset(
+                    {
+                        "unreadable_bridge_output",
+                        "unreadable_bridge_timings",
+                        "unreadable_score",
+                        "match_exception",
+                    }
+                ),
+                allow_unowned=True,
+            )
+        }
+    ),
+    # The one status whose code the caller chooses, so the pair is the unit.
+    # Only ``input_invalid`` owns anything; the rest carry a tool name, a
+    # budget, a crash code or an exception class, none of them enumerable.
+    "INFRASTRUCTURE_FAILURE": OutcomeShape(
+        codes={
+            "input_invalid": ReasonRule(reasons=_INPUT_REJECTIONS),
+            "dependency_missing": ReasonRule(allow_unowned=True),
+            "timeout": ReasonRule(allow_unowned=True),
+            "process_crashed": ReasonRule(pattern=_CRASH, allow_unowned=True),
+            "internal_error": ReasonRule(allow_unowned=True),
+        }
+    ),
 }
 
-#: The route's status vocabulary, which is the contract's own keys. One table,
-#: so the two cannot drift apart.
+#: The route's status vocabulary is the contract's own keys, so the two cannot
+#: drift apart.
 ALLOWED_STATUSES = frozenset(OUTCOME_CONTRACT)
+
+#: One ``(status, failure_code, failure_reason)`` per producer path in this
+#: route's own source. The contract refusing an honest run is the failure mode
+#: that does not announce itself — nobody reports a run that could not be
+#: published — so every path is walked in the other direction by
+#: tests/regression/test_stage19_outcome_matrix.py.
+#:
+#: Where a route generates the reason rather than naming it, the entry is one
+#: instance of the shape: an exit code the extractor really returns, an
+#: exception class the interpreter really raises.
+PRODUCIBLE_OUTCOMES: frozenset[tuple[str, str, str]] = frozenset(
+    {
+        ("MINDTCT_FAILED_LEFT", "template_extraction_failed", "exit_code_2"),
+        ("MINDTCT_FAILED_RIGHT", "template_extraction_failed", "exit_code_0"),
+        ("MINDTCT_FAILED_BOTH", "template_extraction_failed", "exit_code_-1"),
+        ("INVALID_XYT_LEFT", "template_extraction_failed", "invalid_extractor_output"),
+        ("INVALID_XYT_RIGHT", "template_extraction_failed", "missing_extractor_output"),
+        (
+            "OPENAFIS_TEMPLATE_FAILED_LEFT",
+            "template_extraction_failed",
+            "minutiae_above_upstream_maximum",
+        ),
+        (
+            "OPENAFIS_TEMPLATE_FAILED_RIGHT",
+            "template_extraction_failed",
+            "minutiae_below_upstream_minimum",
+        ),
+        (
+            "OPENAFIS_TEMPLATE_FAILED_BOTH",
+            "template_extraction_failed",
+            "invalid_raster_dimensions",
+        ),
+        (
+            "OPENAFIS_TEMPLATE_FAILED_LEFT",
+            "template_extraction_failed",
+            "load_failed_left",
+        ),
+        (
+            "OPENAFIS_TEMPLATE_FAILED_RIGHT",
+            "template_extraction_failed",
+            "no_fingerprint_right",
+        ),
+        ("OPENAFIS_MATCH_FAILED", "matching_failed", "exit_139"),
+        ("OPENAFIS_MATCH_FAILED", "matching_failed", "unreadable_bridge_output"),
+        ("OPENAFIS_MATCH_FAILED", "matching_failed", "unreadable_bridge_timings"),
+        ("OPENAFIS_MATCH_FAILED", "matching_failed", "unreadable_score"),
+        ("OPENAFIS_MATCH_FAILED", "matching_failed", "match_exception"),
+        ("INFRASTRUCTURE_FAILURE", "input_invalid", "unsupported_resolution"),
+        ("INFRASTRUCTURE_FAILURE", "dependency_missing", "mindtct_launch"),
+        ("INFRASTRUCTURE_FAILURE", "dependency_missing", "openafis_launch"),
+        ("INFRASTRUCTURE_FAILURE", "timeout", "mindtct_timeout"),
+        ("INFRASTRUCTURE_FAILURE", "timeout", "openafis_timeout"),
+        ("INFRASTRUCTURE_FAILURE", "timeout", "mindtct_extraction_budget"),
+        ("INFRASTRUCTURE_FAILURE", "process_crashed", "mindtct_crash_139"),
+        ("INFRASTRUCTURE_FAILURE", "internal_error", "OSError"),
+    }
+)
 
 
 class Stage19BFinalizationError(RuntimeError):
@@ -543,16 +649,11 @@ def build_stage19b_finalization(
     }
     established = all(conditions.values())
 
+    failed = sorted(name for name, value in conditions.items() if value is False)
     if not conditions["gate_a_baseline_scores_identical"]:
         outcome = OUTCOME_INERTNESS_FAIL
-    elif not conditions["canonical_run_complete"]:
-        detail = "; ".join(
-            f"{name} is {found!r}, required {required[name]!r}"
-            for name, found in sorted(unmet.items())
-        )
-        raise Stage19BFinalizationError(
-            f"the canonical run is not complete: {detail}"
-        )
+    elif failed:
+        outcome = OUTCOME_NOT_COMPLETE
     else:
         outcome = OUTCOME_COMPLETE
 
@@ -565,6 +666,7 @@ def build_stage19b_finalization(
         "algorithm_id": variant.ALGORITHM_ID,
         "adapter_id": variant.ADAPTER_ID,
         "algorithm_slot": "algorithm_5",
+        "failed_conditions": failed,
         "algorithm_5_established": established,
         "algorithm_5_conditions": conditions,
         "opens_common_calibration": established,

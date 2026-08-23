@@ -48,8 +48,11 @@ from fpbench.experiments.stage19_pair_manifest import (
     pairs_path_for,
 )
 from fpbench.adapters.mcc.failure_mapping import STAGE20B_STATUSES
+from fpbench.adapters.mcc.identity import SCORE_MAXIMUM, SCORE_MINIMUM
 from fpbench.experiments.stage19_result_integrity import (
     OutcomeShape,
+    ReasonRule,
+    ScoreContract,
     OutcomeStoreIntegrity,
     Stage19ResultIntegrityError,
     bound_manifest_digest,
@@ -92,9 +95,13 @@ CLASSIFIED_FAILURE_REASONS = frozenset(
 )
 
 
-#: What ``require_gray8_500ppi_png`` refuses a prepared image for. These reach
-#: the store as the reason on an ``INFRASTRUCTURE_FAILURE``: the image never
-#: got as far as the extractor.
+#: Reasons a route's own machinery produces rather than the algorithm. Each is
+#: owned by exactly one ``status + failure_code`` pair, because owning is what
+#: stops it appearing under a status that cannot have produced it.
+
+#: ``require_gray8_500ppi_png`` refusing a prepared image. These reach the store
+#: under ``INFRASTRUCTURE_FAILURE`` with ``input_invalid``: the image never got
+#: as far as the extractor.
 _INPUT_REJECTIONS = frozenset(
     {
         "input_missing",
@@ -111,67 +118,158 @@ _INPUT_REJECTIONS = frozenset(
     }
 )
 
-#: What ``read_xyt`` refuses the extractor's own output for.
+#: ``read_xyt`` refusing the extractor's own output.
 _XYT_KINDS = frozenset({"invalid_extractor_output", "missing_extractor_output"})
 
-#: A mindtct exit code, rendered as a reason. The extractor produces the number;
-#: the shape is what can be checked.
+#: A mindtct exit code rendered as a reason. The extractor supplies the number.
 _EXIT_CODE = r"exit_code_-?\d+"
 
-#: The codes an ``INFRASTRUCTURE_FAILURE`` can carry. It is the one status whose
-#: code is a parameter rather than a constant, because the machine can fail in
-#: more than one way.
-_INFRASTRUCTURE_CODES = frozenset(
-    {
-        "dependency_missing",
-        "timeout",
-        "process_crashed",
-        "internal_error",
-        "input_invalid",
-    }
-)
+#: A crash, likewise.
+_CRASH = r"mindtct_crash_-?\d+"
 
-#: What each status of this route requires of the rest of its row. See the
-#: matching table in ``stage19a_finalization`` for what it is for; derived from
-#: ``fpbench.adapters.mcc.failure_mapping`` and checked against it by
-#: tests/contract/test_outcome_contracts_match_the_route.py.
+#: What each outcome of this route requires of the rest of its row. See the
+#: matching table in ``stage19a_finalization`` for the rules; the entries here
+#: come from ``fpbench.adapters.mcc`` and from the C# bridge it drives, which
+#: publishes the exception type as the detail — so the pairs that carry a
+#: vendor's text are open and the pairs that carry a translation refusal are not.
 OUTCOME_CONTRACT: dict[str, OutcomeShape] = {
-    "OK": OutcomeShape(scored=True),
+    # The SDK's similarity, from ``mcc.identity``.
+    "OK": OutcomeShape(
+        scored=True,
+        score=ScoreContract(minimum=SCORE_MINIMUM, maximum=SCORE_MAXIMUM),
+    ),
     **{
         f"MINDTCT_FAILED_{side}": OutcomeShape(
-            codes=frozenset({"template_extraction_failed"}),
-            reason_pattern=_EXIT_CODE,
+            codes={"template_extraction_failed": ReasonRule(pattern=_EXIT_CODE)}
         )
         for side in ("LEFT", "RIGHT", "BOTH")
     },
     **{
         f"INVALID_XYT_{side}": OutcomeShape(
-            codes=frozenset({"template_extraction_failed"}),
-            reasons=_XYT_KINDS,
+            codes={"template_extraction_failed": ReasonRule(reasons=_XYT_KINDS)}
         )
         for side in ("LEFT", "RIGHT", "BOTH")
     },
     **{
+        # Owns the translation's refusals *and* is open: the bridge passes the
+        # SDK's own message through, so ``System.ArgumentException`` arrives
+        # here as legitimately as ``invalid_raster_dimensions``.
         f"MCC_TEMPLATE_REFUSAL_{side}": OutcomeShape(
-            codes=frozenset({"template_extraction_failed"}),
-            reasons=CLASSIFIED_FAILURE_REASONS | {"sdk_refusal"},
+            codes={
+                "template_extraction_failed": ReasonRule(
+                    reasons=CLASSIFIED_FAILURE_REASONS,
+                    allow_unowned=True,
+                )
+            }
         )
         for side in ("LEFT", "RIGHT", "BOTH")
     },
-    "MCC_MATCH_REFUSAL": OutcomeShape(codes=frozenset({"matching_failed"})),
+    # ``sdk_refusal`` is deliberately owned by neither this nor
+    # ``MCC_TEMPLATE_REFUSAL_*``: the adapter writes it as the fallback when the
+    # SDK declined without a message, on *both* paths, so claiming it for one
+    # would refuse the other. It is the vendor's silence, not a route's
+    # vocabulary, and stays unclassified like the rest of that text.
+    "MCC_MATCH_REFUSAL": OutcomeShape(
+        codes={"matching_failed": ReasonRule(allow_unowned=True)}
+    ),
     "MCC_INVALID_SCORE": OutcomeShape(
-        codes=frozenset({"no_score"}), reasons=frozenset({"invalid_score"})
+        codes={"no_score": ReasonRule(reasons=frozenset({"invalid_score"}))}
     ),
-    "MCC_RUNTIME_FAILURE": OutcomeShape(codes=frozenset({"dependency_missing"})),
+    "MCC_RUNTIME_FAILURE": OutcomeShape(
+        codes={
+            "dependency_missing": ReasonRule(
+                reasons=frozenset({"bridge_launch", "clr_failure"}),
+                pattern=r"bridge_crash_-?\d+",
+                allow_unowned=True,
+            )
+        }
+    ),
     "BRIDGE_FAILURE": OutcomeShape(
-        codes=frozenset({"internal_error"}),
-        reasons=frozenset({"workspace_not_visible_to_windows"}),
+        codes={
+            "internal_error": ReasonRule(
+                reasons=frozenset(
+                    {
+                        "no_bridge_output",
+                        "unreadable_bridge_output",
+                        "unknown_bridge_status",
+                        "unexpected_bridge_state",
+                        "unreadable_score",
+                        "workspace_not_visible_to_windows",
+                        "bridge_refusal",
+                    }
+                ),
+                allow_unowned=True,
+            )
+        }
     ),
-    "INFRASTRUCTURE_FAILURE": OutcomeShape(codes=_INFRASTRUCTURE_CODES),
+    "INFRASTRUCTURE_FAILURE": OutcomeShape(
+        codes={
+            "input_invalid": ReasonRule(reasons=_INPUT_REJECTIONS),
+            "dependency_missing": ReasonRule(allow_unowned=True),
+            "timeout": ReasonRule(allow_unowned=True),
+            "process_crashed": ReasonRule(pattern=_CRASH, allow_unowned=True),
+            "internal_error": ReasonRule(allow_unowned=True),
+        }
+    ),
 }
 
-#: The route's status vocabulary, which is the contract's own keys.
+#: The route's status vocabulary is the contract's own keys.
 ALLOWED_STATUSES = frozenset(OUTCOME_CONTRACT)
+
+#: One ``(status, failure_code, failure_reason)`` per producer path in this
+#: route's own source, including the C# bridge — which publishes the exception
+#: type as its detail, so ``System.ArgumentException`` is a row this route
+#: really produces. See the matching set in ``stage19a_finalization``.
+PRODUCIBLE_OUTCOMES: frozenset[tuple[str, str, str]] = frozenset(
+    {
+        ("MINDTCT_FAILED_LEFT", "template_extraction_failed", "exit_code_2"),
+        ("MINDTCT_FAILED_RIGHT", "template_extraction_failed", "exit_code_0"),
+        ("MINDTCT_FAILED_BOTH", "template_extraction_failed", "exit_code_-1"),
+        ("INVALID_XYT_LEFT", "template_extraction_failed", "invalid_extractor_output"),
+        ("INVALID_XYT_RIGHT", "template_extraction_failed", "missing_extractor_output"),
+        ("INVALID_XYT_BOTH", "template_extraction_failed", "invalid_extractor_output"),
+        (
+            "MCC_TEMPLATE_REFUSAL_LEFT",
+            "template_extraction_failed",
+            "invalid_raster_dimensions",
+        ),
+        (
+            "MCC_TEMPLATE_REFUSAL_RIGHT",
+            "template_extraction_failed",
+            "minutia_outside_mindtct_raster",
+        ),
+        (
+            "MCC_TEMPLATE_REFUSAL_BOTH",
+            "template_extraction_failed",
+            "invalid_mindtct_direction",
+        ),
+        ("MCC_TEMPLATE_REFUSAL_LEFT", "template_extraction_failed", "sdk_refusal"),
+        (
+            "MCC_TEMPLATE_REFUSAL_LEFT",
+            "template_extraction_failed",
+            "System.ArgumentException",
+        ),
+        ("MCC_MATCH_REFUSAL", "matching_failed", "sdk_refusal"),
+        ("MCC_MATCH_REFUSAL", "matching_failed", "System.InvalidOperationException"),
+        ("MCC_INVALID_SCORE", "no_score", "invalid_score"),
+        ("MCC_RUNTIME_FAILURE", "dependency_missing", "bridge_launch"),
+        ("MCC_RUNTIME_FAILURE", "dependency_missing", "bridge_crash_134"),
+        ("MCC_RUNTIME_FAILURE", "dependency_missing", "clr_failure"),
+        ("BRIDGE_FAILURE", "internal_error", "no_bridge_output"),
+        ("BRIDGE_FAILURE", "internal_error", "unreadable_bridge_output"),
+        ("BRIDGE_FAILURE", "internal_error", "unknown_bridge_status"),
+        ("BRIDGE_FAILURE", "internal_error", "unexpected_bridge_state"),
+        ("BRIDGE_FAILURE", "internal_error", "unreadable_score"),
+        ("BRIDGE_FAILURE", "internal_error", "workspace_not_visible_to_windows"),
+        ("BRIDGE_FAILURE", "internal_error", "bridge_refusal"),
+        ("INFRASTRUCTURE_FAILURE", "input_invalid", "unsupported_resolution"),
+        ("INFRASTRUCTURE_FAILURE", "dependency_missing", "mindtct_launch"),
+        ("INFRASTRUCTURE_FAILURE", "timeout", "mindtct_timeout"),
+        ("INFRASTRUCTURE_FAILURE", "timeout", "mcc_bridge_timeout"),
+        ("INFRASTRUCTURE_FAILURE", "process_crashed", "mindtct_crash_139"),
+        ("INFRASTRUCTURE_FAILURE", "internal_error", "OSError"),
+    }
+)
 
 
 #: The two conditions that have an outcome of their own, so they are not
@@ -723,18 +821,16 @@ def build_stage20b_finalization(
         "no_threshold_selection": binding["threshold_applied"] is None,
     }
 
+    failed = sorted(name for name, value in conditions.items() if value is False)
     if not conditions["gate_a_bridge_reproduction"]:
         outcome = frozen.OUTCOME_GATE_A_FAIL
     elif not conditions["gate_b_mindtct_parity"]:
         outcome = frozen.OUTCOME_GATE_B_FAIL
-    elif not conditions["canonical_run_complete"]:
-        detail = "; ".join(
-            f"{name} is {found!r}, required {required!r}"
-            for name, (found, required) in sorted(unmet.items())
-        )
-        raise Stage20BFinalizationError(
-            f"the canonical run is not complete: {detail}"
-        )
+    elif failed:
+        # The evidence is written and the marker says which conditions were not
+        # met, including the structural detail that used to be an exception —
+        # ``duplicate_pair_ids is 5999, required 0`` and the rest.
+        outcome = frozen.OUTCOME_NOT_COMPLETE
     else:
         # Every remaining condition, not just the structural ones. They were
         # computed, published in ``completion_conditions``, and read by nobody:
@@ -745,17 +841,6 @@ def build_stage20b_finalization(
         #
         # The two gates are excluded because each has its own outcome above;
         # everything else here is a requirement for calling the run complete.
-        withheld = sorted(
-            name
-            for name, held in conditions.items()
-            if name not in _GATE_CONDITIONS and not held
-        )
-        if withheld:
-            raise Stage20BFinalizationError(
-                "the run does not meet the conditions for "
-                f"{frozen.OUTCOME_COMPLETE}: {', '.join(withheld)} "
-                f"{'are' if len(withheld) > 1 else 'is'} false"
-            )
         outcome = frozen.OUTCOME_COMPLETE
 
     complete = outcome == frozen.OUTCOME_COMPLETE
@@ -800,6 +885,11 @@ def build_stage20b_finalization(
         if conditions["gate_b_mindtct_parity"]
         else "FAIL",
         "completion_conditions": conditions,
+        "failed_conditions": failed,
+        "unmet_structural_requirements": {
+            name: {"found": found, "required": required}
+            for name, (found, required) in sorted(unmet.items())
+        },
         "expected_outcomes": frozen.EXPECTED_OUTCOMES,
         "stored_outcomes": stored,
         "score_bearing": score_bearing,

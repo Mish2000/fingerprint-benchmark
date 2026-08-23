@@ -280,6 +280,7 @@ def test_diagnostics_that_overstate_the_scored_population_are_refused(
             {
                 "status": "INFRASTRUCTURE_FAILURE",
                 "raw_score": None,
+                "failure_code": "input_invalid",
                 "failure_reason": "input_unreadable",
             }
         )
@@ -991,25 +992,30 @@ def test_a_reason_its_own_status_owns_is_accepted(
 
 
 @pytest.mark.parametrize(
-    "status, reason",
+    "status, code, reason",
     [
-        ("OPENAFIS_MATCH_FAILED", "exit_139"),
-        ("OPENAFIS_MATCH_FAILED", "unreadable_bridge_output"),
-        ("INFRASTRUCTURE_FAILURE", "mindtct_timeout"),
-        ("INFRASTRUCTURE_FAILURE", "input_unreadable"),
+        ("OPENAFIS_MATCH_FAILED", "matching_failed", "exit_139"),
+        ("INFRASTRUCTURE_FAILURE", "timeout", "mindtct_timeout"),
+        ("INFRASTRUCTURE_FAILURE", "dependency_missing", "openafis_launch"),
+        ("INFRASTRUCTURE_FAILURE", "internal_error", "OSError"),
     ],
 )
-def test_a_status_that_owns_nothing_accepts_its_free_text(
-    tmp_path: Path, status: str, reason: str
+def test_a_pair_opened_to_free_text_accepts_what_nobody_owns(
+    tmp_path: Path, status: str, code: str, reason: str
 ) -> None:
-    """A vendor detail is not a vocabulary, and must not be treated as one.
+    """A vendor detail is not a vocabulary — and openness is not permission.
 
-    These statuses own no reason, so any text is accepted — and every one of
-    them is unclassified, which is what stops the stage publishing over them.
+    This test used to say a pair owning nothing accepts *any* reason, which was
+    the defect: it let ``OPENAFIS_MATCH_FAILED`` carry
+    ``invalid_raster_dimensions``. The rule is narrower. A pair marked open
+    accepts text **nobody owns**; a reason with an owner still goes only to its
+    owner, and a pair that is not marked open takes only what it owns.
+
+    Every reason here is unclassified, which is what stops the stage publishing
+    over it.
     """
     pairs = _manifest()
     rows = [_row(pair) for pair in pairs]
-    code = "matching_failed" if status == "OPENAFIS_MATCH_FAILED" else "timeout"
     rows[0].update(
         {
             "status": status,
@@ -1020,3 +1026,30 @@ def test_a_status_that_owns_nothing_accepts_its_free_text(
     )
     integrity = _verify(tmp_path, rows)
     assert integrity.unclassified_failure_reasons.get(reason) == 1
+
+
+@pytest.mark.parametrize(
+    "status, code",
+    [
+        ("OPENAFIS_MATCH_FAILED", "matching_failed"),
+        ("INFRASTRUCTURE_FAILURE", "timeout"),
+        ("INFRASTRUCTURE_FAILURE", "dependency_missing"),
+        ("INFRASTRUCTURE_FAILURE", "internal_error"),
+    ],
+)
+def test_an_open_pair_still_refuses_a_reason_with_an_owner(
+    tmp_path: Path, status: str, code: str
+) -> None:
+    """The half that was missing, over every open pair this route has."""
+    pairs = _manifest()
+    rows = [_row(pair) for pair in pairs]
+    rows[0].update(
+        {
+            "status": status,
+            "raw_score": None,
+            "failure_code": code,
+            "failure_reason": "minutiae_above_upstream_maximum",
+        }
+    )
+    with pytest.raises(Stage19ResultIntegrityError, match="different events"):
+        _verify(tmp_path, rows)

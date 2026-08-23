@@ -92,6 +92,20 @@ CROSS_IMPRESSION_SUFFICIENCY = "UNDETERMINED"
 OUTCOME_COMPLETE = "MINDTCT_OPENAFIS_CANONICAL500_RAW_COMPLETE"
 OUTCOME_ROUTE_BROKEN = "MINDTCT_OPENAFIS_ROUTE_BROKEN"
 
+#: What a run that verified and did not conclude is published as.
+#:
+#: A machine condition that comes out false used to be an exception in two of
+#: the three stages and a ``RAW_COMPLETE`` marker in the third — so a run whose
+#: score column was empty either vanished or was published as complete. Neither
+#: is a record. The store is honest, the failures are real, and the run is worth
+#: keeping: it gets a full marker, this outcome, ``failed_conditions``, and
+#: nothing established (docs/adr/0128).
+#:
+#: A *validator* refusal is different and still ends in an exception with no
+#: marker: there the store is not something any run could have produced, so
+#: there is nothing to record.
+OUTCOME_NOT_COMPLETE = "MINDTCT_OPENAFIS_CANONICAL500_RAW_NOT_COMPLETE"
+
 EVIDENCE_DIRECTORY = Path("evidence") / "stage19a-mindtct-openafis"
 STAGE_19A_FINALIZATION_NAME = "stage-19a-finalization.json"
 EVIDENCE_DOCUMENTS = (

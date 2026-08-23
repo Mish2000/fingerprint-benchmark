@@ -10,7 +10,7 @@
       "why": "the stage that qualified this SDK, closed the route and fixed the score contract; its runtime smoke is what Gate A reproduces"
     },
     {
-      "finalization_fingerprint": "3d7e1296e14c41febd0683428e8313452d2abb87bfbefdf2372c1b4d9f7b1a65",
+      "finalization_fingerprint": "23b4ffbbe9313e1ceb59637409a3931594a0268c56dfe5467153d31ef342922d",
       "outcome": "MINDTCT_OPENAFIS_CAPACITY_EXTENDED_CANONICAL_RAW_COMPLETE",
       "stage": "19B",
       "why": "the incumbent fifth method, which this route may displace for a reason frozen before either run's scores were read"
@@ -51,6 +51,7 @@
   },
   "expected_outcomes": 6000,
   "extractor": "NBIS_MINDTCT_5_0_0",
+  "failed_conditions": [],
   "failure_count": 0,
   "failure_reasons": {},
   "failures_recorded_as_zero": false,
@@ -87,11 +88,12 @@
   "selection_based_on_sd300_accuracy": false,
   "shares_extractor_with": "nbis_mindtct_bozorth3",
   "stage": "20B",
-  "stage20b_source_fingerprint": "9640c45d6200ef71e2c419641bcd75d21af4857ee8952ed3e8911779ddbf8132",
-  "stage_20b_finalization_fingerprint": "c90580762cef5afff2daceea9850f77e068011efc9d3ee513d2380a505cdeef6",
+  "stage20b_source_fingerprint": "0a359461ce4b72eb14f118a62a9c3bf2c05e8b5d476c6140554aa41e0fbdfcad",
+  "stage_20b_finalization_fingerprint": "bd4f2fee8059c340507b8b2bc78dce69beb66cc2bb8a63927fca005965fde700",
   "stored_outcomes": 6000,
   "supervisor_disclosure": "NBIS MINDTCT + MCC SDK v2.0 — a composition defined by this project. It shares the MINDTCT extractor with the NBIS/BOZORTH3 method and differs in the matcher: minutiae are passed to the official Minutia Cylinder-Code SDK v2.0 published by the University of Bologna, unmodified and at its own optimal parameters. The SDK contains no image extractor, which is why the extractor is named in the method. Scores are the SDK's raw similarity in [0,1]; no threshold, calibration or decision was applied.",
   "third_party_bytes_added_to_git": false,
   "threshold": null,
+  "unmet_structural_requirements": {},
   "upstream_modified": false
 }

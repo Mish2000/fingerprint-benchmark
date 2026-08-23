@@ -60,6 +60,7 @@
     "translation-contract.json": "171fd3869c9e936c0b66943f159c2efe79284aa3bc7d52b48d6c7e0281157854"
   },
   "expected_outcomes": 6000,
+  "failed_conditions": [],
   "failures_recorded_as_zero": false,
   "is_an_independent_fifth_system": false,
   "kind": "stage_19a_finalization",
@@ -81,8 +82,8 @@
   "secugen_reference_used_for_parameter_selection": false,
   "shares_extractor_with": "nbis_mindtct_bozorth3",
   "stage": "19A",
-  "stage19a_source_fingerprint": "087b91fcff8435e132caa158c9bd043849500d3ca2610c933d689e85b2da7c6a",
-  "stage_19a_finalization_fingerprint": "8564ef48201caf73acd47d99c40b83e21d700b69c65baa7d895622aa8c99a4f0",
+  "stage19a_source_fingerprint": "366e72b014edd36709cfd0067b31497301b28c79226de268a075a024c7b9e01c",
+  "stage_19a_finalization_fingerprint": "d3c45fea34f41bf3fed5d59ec092b71828307ea33ed5cfbc8e35853baae83319",
   "stored_outcomes": 6000,
   "threshold": null,
   "unique_ordinals": 6000,

@@ -148,6 +148,20 @@ OUTCOME_COMPLETE = "MINDTCT_MCC_SDK_V2_CANONICAL_RAW_COMPLETE"
 OUTCOME_GATE_A_FAIL = "MCC_PRODUCTION_BRIDGE_REPRODUCTION_FAIL"
 OUTCOME_GATE_B_FAIL = "MINDTCT_ROUTE_PARITY_FAIL"
 
+#: What a run that verified and did not conclude is published as.
+#:
+#: A machine condition that comes out false used to be an exception in two of
+#: the three stages and a ``RAW_COMPLETE`` marker in the third — so a run whose
+#: score column was empty either vanished or was published as complete. Neither
+#: is a record. The store is honest, the failures are real, and the run is worth
+#: keeping: it gets a full marker, this outcome, ``failed_conditions``, and
+#: nothing established (docs/adr/0128).
+#:
+#: A *validator* refusal is different and still ends in an exception with no
+#: marker: there the store is not something any run could have produced, so
+#: there is nothing to record.
+OUTCOME_NOT_COMPLETE = "MINDTCT_MCC_SDK_V2_CANONICAL_RAW_NOT_COMPLETE"
+
 EVIDENCE_DIRECTORY = Path("evidence") / "stage20b-mindtct-mcc-canonical500-raw"
 STAGE_20B_FINALIZATION_NAME = "stage-20b-finalization.json"
 EVIDENCE_DOCUMENTS: tuple[str, ...] = (

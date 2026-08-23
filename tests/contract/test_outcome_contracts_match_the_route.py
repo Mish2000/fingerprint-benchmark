@@ -1,21 +1,21 @@
 """Each stage's outcome contract is checked against the code that produces rows.
 
-``OUTCOME_CONTRACT`` says what every status of a route requires of the rest of
-its row: which ``failure_code`` it can carry, which ``failure_reason`` it owns,
-and whether it means a score was produced. The validator refuses a row that
-disagrees with it, so a table that has fallen behind the adapter would refuse
-honest runs — and one that has run ahead would accept impossible ones.
+``OUTCOME_CONTRACT`` says what every ``status + failure_code`` of a route
+requires of the rest of its row: which reasons the pair owns, whether it accepts
+text nobody owns, and — on the scoring status — what a score has to be. The
+validator refuses a row that disagrees, so a table that has fallen behind the
+adapter refuses honest runs, and one that has run ahead accepts impossible ones.
 
-So it is not maintained by hand and hoped over. The failure factories in each
-route's ``failure_mapping`` set exactly two things this cares about: the status
-they stamp on the row, and the ``FailureCode`` they carry. Both are literals in
-the source, and both are read out of the AST here.
+Both directions are checked here, because only one of them announces itself. An
+over-strict contract shows up as a run that could not be published and nobody
+files a report about that.
 
-What is deliberately *not* derived is which reasons a status owns: those come
-from several places (the translation's refusals, the bridge's own statuses, the
-PNG input checks) and some are free text. Ownership is checked instead by the
-property that matters — no two statuses may own the same reason, or the
-cross-field check would refuse a row both of them could legitimately produce.
+* the statuses and codes the factories stamp are read out of the AST;
+* every reason in ``PRODUCIBLE_OUTCOMES`` is checked against the pair that
+  claims it, and ``PRODUCIBLE_OUTCOMES`` is itself checked against the literals
+  the route's source can raise;
+* ownership is checked for the property that makes it mean anything — that no
+  two *families* claim the same reason.
 """
 
 from __future__ import annotations
@@ -28,77 +28,97 @@ import pytest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
-#: ``stage module -> the failure mapping whose factories write its rows``.
+#: ``stage module -> (failure mapping, the sources whose refusals it carries)``.
 _ROUTES = {
     "fpbench.experiments.stage19a_finalization": (
-        "src/fpbench/adapters/openafis/failure_mapping.py"
+        "src/fpbench/adapters/openafis/failure_mapping.py",
+        ("src/fpbench/adapters/openafis/translation.py",),
     ),
     "fpbench.experiments.stage19b_finalization": (
-        "src/fpbench/adapters/openafis/failure_mapping.py"
+        "src/fpbench/adapters/openafis/failure_mapping.py",
+        ("src/fpbench/adapters/openafis/capacity_extended.py",),
     ),
     "fpbench.experiments.stage20b_finalization": (
-        "src/fpbench/adapters/mcc/failure_mapping.py"
+        "src/fpbench/adapters/mcc/failure_mapping.py",
+        ("src/fpbench/adapters/mcc/translation.py",),
     ),
 }
 
-#: The two sides a status can name. A factory writes ``f"..._{_side(side)}"``,
-#: and the sides are the only thing that varies.
 _SIDES = ("LEFT", "RIGHT", "BOTH")
+_REFUSAL_CLASSES = ("TranslationRefused", "MccTranslationRefused")
+
+
+def _module(name: str):
+    return importlib.import_module(name)
 
 
 def _status_codes(relative: str) -> dict[str, set[str]]:
-    """``status -> the failure codes its factory can stamp``, from the source.
-
-    The status is an f-string over ``_side(side)`` or a plain literal; the code
-    is ``FailureCode.SOMETHING`` or the function's own ``code`` parameter, which
-    is the one factory — ``infrastructure_failure`` — whose caller chooses.
-    """
+    """``status -> the failure codes its factory stamps``, from the source."""
     tree = ast.parse((REPOSITORY_ROOT / relative).read_text(encoding="utf-8"))
     found: dict[str, set[str]] = {}
     for function in [n for n in tree.body if isinstance(n, ast.FunctionDef)]:
         statuses: set[str] = set()
         codes: set[str] = set()
         for node in ast.walk(function):
-            if isinstance(node, ast.Attribute) and getattr(
-                node.value, "id", None
-            ) == "FailureCode":
+            if (
+                isinstance(node, ast.Attribute)
+                and getattr(node.value, "id", None) == "FailureCode"
+            ):
                 codes.add(node.attr.lower())
             if isinstance(node, ast.JoinedStr):
                 literal = "".join(
-                    part.value for part in node.values if isinstance(part, ast.Constant)
+                    part.value
+                    for part in node.values
+                    if isinstance(part, ast.Constant)
                 )
                 if literal.endswith("_"):
                     statuses.update(f"{literal}{side}" for side in _SIDES)
             if isinstance(node, ast.Constant) and isinstance(node.value, str):
-                # A trailing underscore is an f-string prefix — the JoinedStr
-                # branch above has already expanded it over the three sides.
+                # A trailing underscore is an f-string prefix, already expanded.
                 if (
                     node.value.isupper()
                     and "_" in node.value
                     and not node.value.endswith("_")
                 ):
                     statuses.add(node.value)
-        if not statuses:
-            continue
         for status in statuses:
             found.setdefault(status, set()).update(codes)
     return found
 
 
-def _contract(module_name: str):
-    return getattr(importlib.import_module(module_name), "OUTCOME_CONTRACT")
+def _raised_reasons(relatives: tuple[str, ...]) -> set[str]:
+    reasons: set[str] = set()
+    for relative in relatives:
+        tree = ast.parse((REPOSITORY_ROOT / relative).read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and getattr(node.func, "id", None) in _REFUSAL_CLASSES
+                and node.args
+                and isinstance(node.args[0], ast.Constant)
+            ):
+                reasons.add(node.args[0].value)
+    return reasons
 
 
-@pytest.mark.parametrize("module_name, relative", sorted(_ROUTES.items()))
-def test_the_contract_names_every_status_the_route_can_stamp(
-    module_name: str, relative: str
-) -> None:
-    """A status the adapter can write and the contract does not know is refused."""
-    contract = _contract(module_name)
-    produced = set(_status_codes(relative))
-    # ``_BOTH`` variants exist for every sided factory in the source; only the
-    # ones a route actually declares are required here, because the adapter
-    # decides which sides it can report.
+def _pairs(module_name: str):
+    """``(status, code, rule)`` for every pair the contract declares."""
+    contract = _module(module_name).OUTCOME_CONTRACT
+    return [
+        (status, code, rule)
+        for status, shape in sorted(contract.items())
+        for code, rule in sorted(shape.codes.items())
+    ]
+
+
+# ------------------------------------------------- the contract knows the route
+
+
+@pytest.mark.parametrize("module_name", sorted(_ROUTES))
+def test_the_contract_names_every_status_the_route_can_stamp(module_name: str) -> None:
+    contract = _module(module_name).OUTCOME_CONTRACT
+    mapping, _sources = _ROUTES[module_name]
+    produced = set(_status_codes(mapping))
     missing = sorted(
         status
         for status in produced
@@ -106,98 +126,186 @@ def test_the_contract_names_every_status_the_route_can_stamp(
     )
     assert not missing, (
         f"{module_name}.OUTCOME_CONTRACT does not know {missing}, which "
-        f"{relative} can stamp on a row. The validator would refuse an honest run"
+        f"{mapping} can stamp. The validator would refuse an honest run"
     )
 
 
-@pytest.mark.parametrize("module_name, relative", sorted(_ROUTES.items()))
-def test_every_code_the_factories_stamp_is_allowed_by_the_contract(
-    module_name: str, relative: str
-) -> None:
-    """The codes are literals in the source; the table has to agree with them."""
-    contract = _contract(module_name)
+@pytest.mark.parametrize("module_name", sorted(_ROUTES))
+def test_every_code_the_factories_stamp_is_in_the_contract(module_name: str) -> None:
+    contract = _module(module_name).OUTCOME_CONTRACT
+    mapping, _sources = _ROUTES[module_name]
     wrong: list[str] = []
-    for status, codes in sorted(_status_codes(relative).items()):
+    for status, codes in sorted(_status_codes(mapping).items()):
         shape = contract.get(status)
         if shape is None or not codes:
             continue
-        unlisted = sorted(codes - shape.codes)
+        unlisted = sorted(codes - set(shape.codes))
         if unlisted:
-            wrong.append(f"{status}: {relative} stamps {unlisted}, contract allows {sorted(shape.codes)}")
+            wrong.append(
+                f"{status}: {mapping} stamps {unlisted}, contract has "
+                f"{sorted(shape.codes)}"
+            )
     assert not wrong, wrong
 
 
 @pytest.mark.parametrize("module_name", sorted(_ROUTES))
-def test_exactly_one_status_means_a_score_was_produced(module_name: str) -> None:
-    contract = _contract(module_name)
-    scored = sorted(status for status, shape in contract.items() if shape.scored)
-    assert scored == ["OK"], scored
+def test_every_translation_refusal_is_owned_by_a_template_pair(
+    module_name: str,
+) -> None:
+    """The reason a route raises must be claimed by the status that raises it.
+
+    This is the link the whole cross-field check turns on: unclaimed, the reason
+    would be free text that any open pair could carry.
+    """
+    module = _module(module_name)
+    _mapping, sources = _ROUTES[module_name]
+    raised = _raised_reasons(sources)
+    assert raised, f"{sources} raised no literal reason — the scan found nothing"
+    for reason in sorted(raised):
+        owners = [
+            f"{status}+{code}"
+            for status, code, rule in _pairs(module_name)
+            if rule.owns(reason)
+        ]
+        assert owners, f"{reason} is raised by {sources} and owned by no pair"
+        assert all(
+            "TEMPLATE" in owner or "REFUSAL" in owner for owner in owners
+        ), f"{reason} is a translation refusal and is owned by {owners}"
+        extractor = [
+            f"{status}+{code}"
+            for status, code, rule in _pairs(module_name)
+            if status.startswith("MINDTCT_FAILED_") and rule.owns(reason)
+        ]
+        assert not extractor, (
+            f"{reason} can be carried by {extractor}, which is the mismatch the "
+            "contract exists to refuse"
+        )
+
+
+# ---------------------------------------------------- the contract is not strict
 
 
 @pytest.mark.parametrize("module_name", sorted(_ROUTES))
-def test_the_scoring_status_carries_no_failure_detail(module_name: str) -> None:
-    """``OK`` explains nothing, because there is nothing to explain."""
-    shape = _contract(module_name)["OK"]
-    assert shape.codes == frozenset()
-    assert shape.reasons == frozenset()
-    assert shape.reason_pattern is None
+def test_every_producible_row_is_legal_under_the_contract(module_name: str) -> None:
+    """The over-strict direction, which nobody reports.
+
+    ``BRIDGE_FAILURE`` once owned a single reason and, being closed, refused the
+    other six the adapter emits — a contract that would have failed an honest
+    run and never been noticed.
+    """
+    module = _module(module_name)
+    contract = module.OUTCOME_CONTRACT
+    illegal: list[str] = []
+    for status, code, reason in sorted(module.PRODUCIBLE_OUTCOMES):
+        shape = contract.get(status)
+        rule = shape.codes.get(code) if shape else None
+        if rule is None:
+            illegal.append(f"({status}, {code}) is not in the contract")
+            continue
+        if rule.owns(reason) or rule.allow_unowned:
+            continue
+        illegal.append(f"({status}, {code}) refuses {reason!r}")
+    assert not illegal, illegal
 
 
 @pytest.mark.parametrize("module_name", sorted(_ROUTES))
-def test_every_failing_status_names_at_least_one_code(module_name: str) -> None:
-    """A failure with no allowed code could never be recorded at all."""
+def test_the_producible_set_covers_every_pair_the_contract_declares(
+    module_name: str,
+) -> None:
+    """Otherwise the walk above proves nothing about the pair it skipped."""
+    declared = {(status, code) for status, code, _rule in _pairs(module_name)}
+    walked = {
+        (status, code)
+        for status, code, _reason in _module(module_name).PRODUCIBLE_OUTCOMES
+    }
+    missing = sorted(declared - walked)
+    assert not missing, (
+        f"{missing} are declared and never exercised by PRODUCIBLE_OUTCOMES"
+    )
+
+
+@pytest.mark.parametrize("module_name", sorted(_ROUTES))
+def test_the_producible_set_contains_every_refusal_the_route_raises(
+    module_name: str,
+) -> None:
+    _mapping, sources = _ROUTES[module_name]
+    raised = _raised_reasons(sources)
+    walked = {reason for _s, _c, reason in _module(module_name).PRODUCIBLE_OUTCOMES}
+    missing = sorted(raised - walked)
+    assert not missing, (
+        f"{sources} raises {missing} and PRODUCIBLE_OUTCOMES never walks them"
+    )
+
+
+# ------------------------------------------------------------- structural rules
+
+
+@pytest.mark.parametrize("module_name", sorted(_ROUTES))
+def test_exactly_one_status_scores_and_it_bounds_its_score(module_name: str) -> None:
+    contract = _module(module_name).OUTCOME_CONTRACT
+    scoring = sorted(status for status, shape in contract.items() if shape.scored)
+    assert scoring == ["OK"], scoring
+    shape = contract["OK"]
+    assert shape.score is not None, "the scoring status declares no score contract"
+    assert shape.score.minimum < shape.score.maximum
+    assert not shape.codes, "OK explains nothing, so it carries no failure code"
+
+
+@pytest.mark.parametrize("module_name", sorted(_ROUTES))
+def test_every_failing_status_declares_at_least_one_code(module_name: str) -> None:
     silent = sorted(
         status
-        for status, shape in _contract(module_name).items()
+        for status, shape in _module(module_name).OUTCOME_CONTRACT.items()
         if not shape.scored and not shape.codes
     )
     assert not silent, silent
 
 
 @pytest.mark.parametrize("module_name", sorted(_ROUTES))
-def test_no_reason_is_owned_by_two_statuses(module_name: str) -> None:
+def test_no_reason_is_owned_by_two_families(module_name: str) -> None:
     """Ownership is what makes the cross-field check meaningful.
 
-    If two statuses owned ``invalid_raster_dimensions``, a row carrying it under
-    either would pass — and the check that ``MINDTCT_FAILED_LEFT`` cannot carry
-    it would silently stop working.
+    Sided variants of one family share a vocabulary — which template failed is
+    the side, the kind is the same — so families are compared, not statuses.
     """
-    owners: dict[str, list[str]] = {}
-    for status, shape in _contract(module_name).items():
-        for reason in shape.reasons:
-            owners.setdefault(reason, []).append(status)
-    shared = {
-        reason: sorted(statuses)
-        for reason, statuses in owners.items()
-        if len({s.rsplit("_", 1)[0] for s in statuses}) > 1
-    }
+    owners: dict[str, set[str]] = {}
+    for status, _code, rule in _pairs(module_name):
+        family = status.rsplit("_", 1)[0] if status.endswith(_SIDES) else status
+        for reason in rule.reasons:
+            owners.setdefault(reason, set()).add(family)
+    shared = {reason: sorted(f) for reason, f in owners.items() if len(f) > 1}
     assert not shared, (
-        f"{shared} are owned by more than one status family, so the "
-        "cross-field check cannot tell them apart"
+        f"{shared} are owned by more than one family, so the cross-field check "
+        "cannot tell them apart"
     )
 
 
-@pytest.mark.parametrize("module_name", sorted(_ROUTES))
-def test_the_classified_reasons_are_owned_by_a_template_status(
-    module_name: str,
-) -> None:
-    """The translation refusals belong to the status the translation raises under.
+def test_the_openafis_score_contract_is_the_bridges_own() -> None:
+    """``uint8_t`` on OK, ``-1`` on everything else — from the bridge's source."""
+    from fpbench.experiments.stage19a_finalization import OUTCOME_CONTRACT
 
-    This is the link the reviewer's example turns on: a reason owned by the
-    template family cannot appear under ``MINDTCT_FAILED_*``.
-    """
-    module = importlib.import_module(module_name)
-    contract = module.OUTCOME_CONTRACT
-    for reason in module.CLASSIFIED_FAILURE_REASONS:
-        owners = sorted(
-            status for status, shape in contract.items() if shape.owns(reason)
-        )
-        assert owners, f"{reason} is classified and owned by no status"
-        assert all("TEMPLATE" in status or "REFUSAL" in status for status in owners), (
-            f"{reason} is a translation refusal and is owned by {owners}"
-        )
-        extractor = [s for s in contract if s.startswith("MINDTCT_FAILED_")]
-        assert not any(contract[s].owns(reason) for s in extractor), (
-            f"{reason} can be carried by {extractor}, which is the exact "
-            "mismatch the contract exists to refuse"
-        )
+    bridge = (
+        REPOSITORY_ROOT / "integrations/openafis/src/fpbench_openafis_bridge.cpp"
+    ).read_text(encoding="utf-8", errors="replace")
+    assert "uint8_t score {}" in bridge
+    assert 'score_native_type\\tuint8_t' in bridge
+
+    score = OUTCOME_CONTRACT["OK"].score
+    assert (score.minimum, score.maximum, score.integral) == (0, 255, True)
+    assert score.refusal(-1) is not None
+    assert score.refusal(256) is not None
+    assert score.refusal(255.5) is not None
+    assert score.refusal(0) is None
+    assert score.refusal(255) is None
+
+
+def test_the_mcc_score_contract_is_the_sdks_own() -> None:
+    from fpbench.adapters.mcc.identity import SCORE_MAXIMUM, SCORE_MINIMUM
+    from fpbench.experiments.stage20b_finalization import OUTCOME_CONTRACT
+
+    score = OUTCOME_CONTRACT["OK"].score
+    assert (score.minimum, score.maximum) == (SCORE_MINIMUM, SCORE_MAXIMUM)
+    assert score.integral is False, "the SDK's similarity is a double"
+    assert score.refusal(0.5) is None
+    assert score.refusal(-0.1) is not None
+    assert score.refusal(1.5) is not None

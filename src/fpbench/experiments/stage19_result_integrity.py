@@ -35,12 +35,14 @@ import hashlib
 import json
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Collection, Mapping, Sequence
 
 __all__ = [
     "OutcomeShape",
+    "ReasonRule",
+    "ScoreContract",
     "failure_reason_from_details",
     "Stage19ResultIntegrityError",
     "CanonicalPair",
@@ -54,6 +56,9 @@ __all__ = [
 #: score". Everything else is a failure and must carry no score at all — the
 #: distinction ADR 0006 exists to keep, checked here against the stored bytes
 #: rather than trusted from the diagnostics.
+#: Kept for readers of published documents: every route's scoring status is
+#: ``OK``. The *authority* is each route's own ``OUTCOME_CONTRACT``, which says
+#: so and says what the score must be; this is a name, not a second answer.
 SCORE_BEARING_STATUSES: frozenset[str] = frozenset({"OK"})
 
 
@@ -193,42 +198,99 @@ def failure_reason_from_details(
 
 
 @dataclass(frozen=True, slots=True)
+class ScoreContract:
+    """What a score has to be for this route, not merely that it is a number.
+
+    The validator asked only for a finite number, so a stored ``OK`` row could
+    carry ``-1`` — which the OpenAFIS bridge documents as its failure marker,
+    never a similarity. Six thousand of them verified and published.
+    """
+
+    minimum: float
+    maximum: float
+    #: The bridge prints ``score_native_type\tuint8_t``, so a fraction is not a
+    #: rounding artefact; it is a value that route cannot emit.
+    integral: bool = False
+
+    def refusal(self, score: object) -> str | None:
+        """Why this score is impossible for this route, or ``None``."""
+        if isinstance(score, bool) or not isinstance(score, (int, float)):
+            return f"raw_score is {score!r}, which is not a number"
+        value = float(score)
+        if not math.isfinite(value):
+            return f"raw_score {score!r} is not finite"
+        if self.integral and value != int(value):
+            return (
+                f"raw_score {score!r} is not a whole number, and this route's "
+                "score is an integer"
+            )
+        if not self.minimum <= value <= self.maximum:
+            return (
+                f"raw_score {score!r} is outside this route's contract "
+                f"[{self.minimum}, {self.maximum}]"
+            )
+        return None
+
+
+@dataclass(frozen=True, slots=True)
+class ReasonRule:
+    """Which reasons one ``status + failure_code`` may carry.
+
+    The pair is the unit, not the status. ``INFRASTRUCTURE_FAILURE`` is the one
+    outcome whose code is chosen by the caller rather than fixed by its factory,
+    so the eleven PNG rejections belong to it *under* ``input_invalid`` and
+    nowhere else — a timeout never read a malformed file.
+    """
+
+    #: The reasons this pair owns. Ownership is global: a reason owned here may
+    #: not appear under any other pair, whatever that pair allows.
+    reasons: frozenset[str] = frozenset()
+    #: A shape, for reasons the route generates rather than names —
+    #: ``exit_code_2``, ``mindtct_crash_139``. Matched in full, and owned in the
+    #: same way as a literal.
+    pattern: str | None = None
+    #: Whether a reason **nobody** owns may appear here. Closed by default: a
+    #: status whose reasons are all enumerable says so by leaving this alone,
+    #: and one that carries a vendor's free text — a .NET exception name, a
+    #: bridge's own message — opts in explicitly. Being open is orthogonal to
+    #: owning: ``MCC_TEMPLATE_REFUSAL_*`` does both.
+    allow_unowned: bool = False
+
+    def owns(self, reason: str) -> bool:
+        if reason in self.reasons:
+            return True
+        return bool(self.pattern and re.fullmatch(self.pattern, reason))
+
+
+@dataclass(frozen=True, slots=True)
 class OutcomeShape:
     """What one status requires of the rest of the row it appears in.
 
     The four fields of an outcome were each checked on their own and never
     against each other, so a row could say ``MINDTCT_FAILED_LEFT`` — the
     extractor failed — and give ``invalid_raster_dimensions`` as the reason,
-    which is a refusal only the *translation* raises. Every field is
-    individually legal and the row describes no event that can happen.
+    which is a refusal only the *translation* raises. Every field individually
+    legal; the row describing no event that can happen.
     """
 
     #: Does this status mean a score was produced? Exactly one status per route
     #: does, and it is the one that must carry no failure detail at all.
     scored: bool = False
-    #: The ``failure_code`` values this status may carry. A failure with no code
-    #: is as incomplete a record as a failure with no reason.
-    codes: frozenset[str] = frozenset()
-    #: The reasons this status *owns*. A reason owned by one status may not
-    #: appear under another — that is the cross-field check. A status with an
-    #: empty set owns nothing and accepts any reason, which is the honest answer
-    #: for a free-text vendor detail; such reasons are unclassified and block
-    #: publication through their own condition.
-    reasons: frozenset[str] = frozenset()
-    #: A shape, for reasons the route generates rather than names —
-    #: ``exit_code_2``. Matched in full.
-    reason_pattern: str | None = None
+    #: What that score has to be. Required on the scoring status.
+    score: ScoreContract | None = None
+    #: ``failure_code -> the reasons that pair may carry``. Empty on the scoring
+    #: status, which has nothing to explain.
+    codes: Mapping[str, ReasonRule] = field(default_factory=dict)
 
-    def owns(self, reason: str) -> bool:
-        if reason in self.reasons:
-            return True
-        return bool(
-            self.reason_pattern and re.fullmatch(self.reason_pattern, reason)
-        )
 
-    def may_carry(self, reason: str) -> bool:
-        """A status accepts a reason it owns, or one nobody owns."""
-        return not (self.reasons or self.reason_pattern) or self.owns(reason)
+def _owners(
+    contract: Mapping[str, OutcomeShape],
+) -> list[tuple[str, str, ReasonRule]]:
+    return [
+        (status, code, rule)
+        for status, shape in sorted(contract.items())
+        for code, rule in sorted(shape.codes.items())
+    ]
 
 
 def _require_coherent_row(
@@ -236,51 +298,55 @@ def _require_coherent_row(
     status: str,
     *,
     where: str,
-    contract: Mapping[str, "OutcomeShape"],
-    scored: bool,
-) -> None:
+    contract: Mapping[str, OutcomeShape],
+    owners: list[tuple[str, str, "ReasonRule"]],
+) -> bool:
     """The four fields must describe one event, not four legal values.
 
-    Called after the score shape has been checked, because "did this row
-    produce a score" is the first thing the status has to agree with.
+    Returns whether the row is score-bearing, so the caller counts from the
+    store rather than from a report about it.
     """
     shape = contract[status]
+
+    score = row.get("raw_score")
     code = row.get("failure_code")
     reason = row.get("failure_reason")
 
     if shape.scored:
-        if not scored:
+        assert shape.score is not None  # the contract is checked on entry
+        refusal = shape.score.refusal(score)
+        if refusal is not None:
             raise Stage19ResultIntegrityError(
-                f"{where}: status {status!r} means a score was produced and the "
-                "row does not carry one"
+                f"{where}: status {status!r} means a score was produced and "
+                f"{refusal}"
             )
-        for field, value in (("failure_code", code), ("failure_reason", reason)):
+        for field_name, value in (("failure_code", code), ("failure_reason", reason)):
             if value is not None and str(value).strip():
                 raise Stage19ResultIntegrityError(
                     f"{where}: status {status!r} succeeded and the row carries "
-                    f"{field}={value!r}. A comparison that produced a score has "
-                    "nothing to explain"
+                    f"{field_name}={value!r}. A comparison that produced a score "
+                    "has nothing to explain"
                 )
-        return
+        return True
 
-    if scored:
+    if score is not None:
         raise Stage19ResultIntegrityError(
-            f"{where}: status {status!r} is a failure and the row is recorded "
-            "as score-bearing"
+            f"{where}: status {status!r} is a failure and it carries raw_score "
+            f"{score!r}. A failure recorded with a score is a non-match nobody "
+            "measured (docs/adr/0006)"
         )
     if not isinstance(code, str) or not code.strip():
         raise Stage19ResultIntegrityError(
             f"{where}: status {status!r} is a failure and gives failure_code "
             f"{code!r}. Every failure names what kind of failure it was"
         )
-    if code.strip() not in shape.codes:
+    code = code.strip()
+    rule = shape.codes.get(code)
+    if rule is None:
         raise Stage19ResultIntegrityError(
-            f"{where}: status {status!r} cannot carry failure_code "
-            f"{code.strip()!r}; this route records it as "
-            f"{sorted(shape.codes)}"
+            f"{where}: status {status!r} cannot carry failure_code {code!r}; "
+            f"this route records it as {sorted(shape.codes)}"
         )
-    # Before the ownership check, so a row with no reason is reported as the
-    # incomplete record it is rather than as a reason belonging elsewhere.
     if not isinstance(reason, str) or not reason.strip():
         raise Stage19ResultIntegrityError(
             f"{where}: status {status!r} produced no score and the row gives "
@@ -289,17 +355,156 @@ def _require_coherent_row(
             "that scored nothing was published as having nothing left to fix"
         )
     text = reason.strip()
-    if not shape.may_carry(text):
-        owner = sorted(
-            other
-            for other, other_shape in contract.items()
-            if other != status and other_shape.owns(text)
-        )
+
+    if rule.owns(text):
+        return False
+
+    elsewhere = sorted(
+        f"{other_status}+{other_code}"
+        for other_status, other_code, other_rule in owners
+        if (other_status, other_code) != (status, code) and other_rule.owns(text)
+    )
+    if elsewhere:
         raise Stage19ResultIntegrityError(
-            f"{where}: status {status!r} carries reason {text!r}, which belongs "
-            f"to {owner or 'another stage of this route'}. The status and the "
+            f"{where}: status {status!r} with failure_code {code!r} carries "
+            f"reason {text!r}, which belongs to {elsewhere}. The status and the "
             "reason describe different events, and no comparison produced both"
         )
+    if not rule.allow_unowned:
+        raise Stage19ResultIntegrityError(
+            f"{where}: status {status!r} with failure_code {code!r} accepts only "
+            f"the reasons it owns, and {text!r} is not one of "
+            f"{sorted(rule.reasons) or [rule.pattern]}"
+        )
+    return False
+
+
+def failure_reason_from_details(
+    details: Mapping[str, Any] | None, *, status: str
+) -> str:
+    """One reason string for any failure this project can record.
+
+    The run scripts used to store ``details["reason"]`` and nothing else, and
+    only ``template_refused_failure`` sets that key — so a mindtct exit code, an
+    invalid xyt, a bridge crash and a timeout were all written as
+    ``failure_reason: null``. The validator then counted them as no failure at
+    all, and a run in which every comparison failed could publish "no failure of
+    this kind remains".
+
+    The keys are tried in the order a reader would: the classified reason first,
+    then the kind of thing that went wrong, then the free-text detail. A failure
+    that carries none of them still gets a reason naming its status, because a
+    failure with no reason is the hole this closes.
+    """
+    payload = dict(details or {})
+    for key in ("reason", "kind", "detail"):
+        value = payload.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    exit_code = payload.get("exit_code")
+    if exit_code is not None:
+        return f"exit_code_{exit_code}"
+    if payload.get("observed_score") is not None:
+        return "invalid_score"
+    text = str(status or "").strip().lower()
+    return f"unclassified_{text}" if text else "unclassified"
+
+
+@dataclass(frozen=True, slots=True)
+class ScoreContract:
+    """What a score has to be for this route, not merely that it is a number.
+
+    The validator asked only for a finite number, so a stored ``OK`` row could
+    carry ``-1`` — which the OpenAFIS bridge documents as its failure marker,
+    never a similarity. Six thousand of them verified and published.
+    """
+
+    minimum: float
+    maximum: float
+    #: The bridge prints ``score_native_type\tuint8_t``, so a fraction is not a
+    #: rounding artefact; it is a value that route cannot emit.
+    integral: bool = False
+
+    def refusal(self, score: object) -> str | None:
+        """Why this score is impossible for this route, or ``None``."""
+        if isinstance(score, bool) or not isinstance(score, (int, float)):
+            return f"raw_score is {score!r}, which is not a number"
+        value = float(score)
+        if not math.isfinite(value):
+            return f"raw_score {score!r} is not finite"
+        if self.integral and value != int(value):
+            return (
+                f"raw_score {score!r} is not a whole number, and this route's "
+                "score is an integer"
+            )
+        if not self.minimum <= value <= self.maximum:
+            return (
+                f"raw_score {score!r} is outside this route's contract "
+                f"[{self.minimum}, {self.maximum}]"
+            )
+        return None
+
+
+@dataclass(frozen=True, slots=True)
+class ReasonRule:
+    """Which reasons one ``status + failure_code`` may carry.
+
+    The pair is the unit, not the status. ``INFRASTRUCTURE_FAILURE`` is the one
+    outcome whose code is chosen by the caller rather than fixed by its factory,
+    so the eleven PNG rejections belong to it *under* ``input_invalid`` and
+    nowhere else — a timeout never read a malformed file.
+    """
+
+    #: The reasons this pair owns. Ownership is global: a reason owned here may
+    #: not appear under any other pair, whatever that pair allows.
+    reasons: frozenset[str] = frozenset()
+    #: A shape, for reasons the route generates rather than names —
+    #: ``exit_code_2``, ``mindtct_crash_139``. Matched in full, and owned in the
+    #: same way as a literal.
+    pattern: str | None = None
+    #: Whether a reason **nobody** owns may appear here. Closed by default: a
+    #: status whose reasons are all enumerable says so by leaving this alone,
+    #: and one that carries a vendor's free text — a .NET exception name, a
+    #: bridge's own message — opts in explicitly. Being open is orthogonal to
+    #: owning: ``MCC_TEMPLATE_REFUSAL_*`` does both.
+    allow_unowned: bool = False
+
+    def owns(self, reason: str) -> bool:
+        if reason in self.reasons:
+            return True
+        return bool(self.pattern and re.fullmatch(self.pattern, reason))
+
+
+@dataclass(frozen=True, slots=True)
+class OutcomeShape:
+    """What one status requires of the rest of the row it appears in.
+
+    The four fields of an outcome were each checked on their own and never
+    against each other, so a row could say ``MINDTCT_FAILED_LEFT`` — the
+    extractor failed — and give ``invalid_raster_dimensions`` as the reason,
+    which is a refusal only the *translation* raises. Every field individually
+    legal; the row describing no event that can happen.
+    """
+
+    #: Does this status mean a score was produced? Exactly one status per route
+    #: does, and it is the one that must carry no failure detail at all.
+    scored: bool = False
+    #: What that score has to be. Required on the scoring status.
+    score: ScoreContract | None = None
+    #: ``failure_code -> the reasons that pair may carry``. Empty on the scoring
+    #: status, which has nothing to explain.
+    codes: Mapping[str, ReasonRule] = field(default_factory=dict)
+
+
+def _owners(
+    contract: Mapping[str, OutcomeShape],
+) -> list[tuple[str, str, ReasonRule]]:
+    return [
+        (status, code, rule)
+        for status, shape in sorted(contract.items())
+        for code, rule in sorted(shape.codes.items())
+    ]
+
 
 
 def canonical_source_sha256(path: Path) -> str:
@@ -421,38 +626,6 @@ def _check_against_manifest(
         )
 
 
-def _check_score_shape(
-    row: Mapping[str, Any],
-    status: str,
-    *,
-    where: str,
-    score_bearing_statuses: frozenset[str],
-) -> bool:
-    """A success carries a finite score; a failure carries none.
-
-    Returns whether this row was score-bearing, so the caller can count from the
-    store rather than from the report about it.
-    """
-    score = row.get("raw_score")
-    if status in score_bearing_statuses:
-        if isinstance(score, bool) or not isinstance(score, (int, float)):
-            raise Stage19ResultIntegrityError(
-                f"{where}: status {status!r} means a score was produced and "
-                f"raw_score is {score!r}"
-            )
-        if not math.isfinite(float(score)):
-            raise Stage19ResultIntegrityError(
-                f"{where}: raw_score {score!r} is not finite"
-            )
-        return True
-    if score is not None:
-        raise Stage19ResultIntegrityError(
-            f"{where}: status {status!r} is a failure and it carries "
-            f"raw_score {score!r}. A failure recorded with a score is a "
-            "non-match nobody measured (docs/adr/0006)"
-        )
-    return False
-
 
 def verify_outcome_store_integrity(
     outcomes_path: Path,
@@ -503,7 +676,13 @@ def verify_outcome_store_integrity(
             "a route has exactly one status that means a score was produced; "
             f"this contract names {scoring}"
         )
-    score_bearing_statuses = frozenset(scoring)
+    if contract[scoring[0]].score is None:
+        raise Stage19ResultIntegrityError(
+            f"the scoring status {scoring[0]!r} declares no score contract, so "
+            "any number at all would verify — which is how -1 was published as "
+            "a similarity"
+        )
+    owners = _owners(contract)
     allowed = frozenset(contract)
     if type(pair_manifest_hash) is not str or len(pair_manifest_hash.strip()) != 64:
         raise Stage19ResultIntegrityError(
@@ -568,11 +747,8 @@ def verify_outcome_store_integrity(
         _check_against_manifest(
             row, pairs[ordinal], where=where, algorithm_id=algorithm_id
         )
-        scored = _check_score_shape(
-            row, status, where=where, score_bearing_statuses=score_bearing_statuses
-        )
-        _require_coherent_row(
-            row, status, where=where, contract=contract, scored=scored
+        scored = _require_coherent_row(
+            row, status, where=where, contract=contract, owners=owners
         )
         if scored:
             score_bearing += 1

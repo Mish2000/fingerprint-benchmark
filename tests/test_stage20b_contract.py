@@ -756,6 +756,7 @@ def _clean_binding(**overrides) -> dict:
         "failure_reasons": {},
         "unclassified_failures": 0,
         "pair_manifest_hash": frozen.REFERENCE_PAIR_MANIFEST_HASH,
+        "score_bearing": frozen.EXPECTED_OUTCOMES,
     }
     document.update(overrides)
     return document
@@ -808,11 +809,16 @@ def test_no_structural_defect_can_publish_a_complete_run(field, value) -> None:
     ``ordinals_are_complete: false``. The counts were computed, published, and
     read by nobody. Each parameter below is one of those computed properties,
     and each one on its own now stops the publication.
-    """
-    from fpbench.experiments.stage20b_finalization import Stage20BFinalizationError
 
-    with pytest.raises(Stage20BFinalizationError):
-        _marker_for(_clean_integrity(**{field: value}))
+    Stopping it means *recording* it: the marker is written, its outcome is not
+    complete, and the requirement that was missed is in it by name. Raising here
+    would throw away a run that really happened (docs/adr/0128).
+    """
+    marker = _marker_for(_clean_integrity(**{field: value}))
+    assert marker["outcome"] == frozen.OUTCOME_NOT_COMPLETE
+    assert marker["publication_eligible"] is False
+    assert "canonical_run_complete" in marker["failed_conditions"]
+    assert field in marker["unmet_structural_requirements"]
 
 
 def test_the_run_binding_must_name_the_canonical_pair_manifest() -> None:
@@ -822,11 +828,10 @@ def test_the_run_binding_must_name_the_canonical_pair_manifest() -> None:
     hash independently, so requiring it there made the marker unrebuildable
     from the evidence beside it.
     """
-    from fpbench.experiments.stage20b_finalization import Stage20BFinalizationError
-
     binding = _clean_binding(pair_manifest_hash="0" * 64)
-    with pytest.raises(Stage20BFinalizationError, match="pair_manifest_hash"):
-        _marker_for(_clean_integrity(), binding)
+    marker = _marker_for(_clean_integrity(), binding)
+    assert marker["outcome"] == frozen.OUTCOME_NOT_COMPLETE
+    assert "pair_manifest_hash" in marker["unmet_structural_requirements"]
 
 
 def test_the_dropped_counts_are_implied_by_the_ones_that_remain() -> None:
@@ -837,14 +842,13 @@ def test_the_dropped_counts_are_implied_by_the_ones_that_remain() -> None:
     is ``len(set(ordinals)) == len(outcomes)`` with the range pinned. Anything
     that would have failed ``unique_pair_ids`` fails one of these first.
     """
-    from fpbench.experiments.stage20b_finalization import Stage20BFinalizationError
-
     for field, value in (
         ("duplicate_pair_ids", frozen.EXPECTED_OUTCOMES - 1),
         ("ordinals_are_complete", False),
     ):
-        with pytest.raises(Stage20BFinalizationError, match=field):
-            _marker_for(_clean_integrity(**{field: value}))
+        marker = _marker_for(_clean_integrity(**{field: value}))
+        assert marker["outcome"] == frozen.OUTCOME_NOT_COMPLETE
+        assert field in marker["unmet_structural_requirements"]
 
 
 def test_the_marker_reports_the_failures_the_binding_counted() -> None:
@@ -921,10 +925,11 @@ def test_no_unmet_condition_can_publish_a_complete_run(condition) -> None:
     else:
         binding["threshold_applied"] = 40.0
 
-    with pytest.raises(final.Stage20BFinalizationError) as refusal:
-        _marker_for(integrity, binding)
-    assert condition in str(refusal.value), (
-        f"the refusal does not name {condition}: {refusal.value}"
+    marker = _marker_for(integrity, binding)
+    assert marker["outcome"] == final.frozen.OUTCOME_NOT_COMPLETE
+    assert marker["publication_eligible"] is False
+    assert condition in marker["failed_conditions"], (
+        f"the marker does not name {condition}: {marker['failed_conditions']}"
     )
 
 
@@ -961,15 +966,14 @@ def test_a_run_with_an_unclassified_failure_is_not_complete() -> None:
     the translation refusals — are counted separately and have their own
     condition.
     """
-    from fpbench.experiments.stage20b_finalization import Stage20BFinalizationError
-
     binding = _clean_binding(
         failure_reasons={"bridge_crash_139": 2},
         unclassified_failures=2,
         outcome_counts={"OK": frozen.EXPECTED_OUTCOMES - 2, "MCC_MATCH_REFUSAL": 2},
     )
-    with pytest.raises(Stage20BFinalizationError, match="no_unclassified_failure"):
-        _marker_for(_clean_integrity(), binding)
+    marker = _marker_for(_clean_integrity(), binding)
+    assert marker["outcome"] == frozen.OUTCOME_NOT_COMPLETE
+    assert "no_unclassified_failure" in marker["failed_conditions"]
 
 
 def test_a_run_that_scored_nothing_is_not_a_complete_raw_run() -> None:
@@ -980,24 +984,29 @@ def test_a_run_that_scored_nothing_is_not_a_complete_raw_run() -> None:
     decided the *preference*; the outcome and ``publication_eligible`` did not
     read it.
     """
-    from fpbench.experiments.stage20b_finalization import Stage20BFinalizationError
-
     integrity = _clean_integrity(score_bearing=0)
     binding = _clean_binding(
         outcome_counts={"MCC_TEMPLATE_REFUSAL_LEFT": frozen.EXPECTED_OUTCOMES},
         failure_reasons={},
         unclassified_failures=0,
+        score_bearing=0,
     )
-    with pytest.raises(Stage20BFinalizationError, match="at_least_one_score"):
-        _marker_for(integrity, binding)
+    marker = _marker_for(integrity, binding)
+    assert marker["outcome"] == frozen.OUTCOME_NOT_COMPLETE
+    assert "at_least_one_score" in marker["failed_conditions"]
+    assert marker["publication_eligible"] is False
 
 
 def test_the_status_vocabulary_is_the_routes_own() -> None:
     """The validator is handed the adapter's list, not a subset written here."""
     from fpbench.adapters.mcc.failure_mapping import STAGE20B_STATUSES
-    from fpbench.experiments.stage20b_finalization import ALLOWED_STATUSES
+    from fpbench.experiments.stage20b_finalization import (
+        ALLOWED_STATUSES,
+        OUTCOME_CONTRACT,
+    )
 
     assert ALLOWED_STATUSES == frozenset(STAGE20B_STATUSES)
+    assert ALLOWED_STATUSES == frozenset(OUTCOME_CONTRACT)
     assert "OK" in ALLOWED_STATUSES
     # A status belonging to the other Stage 19 route is not this route's.
     assert "OPENAFIS_MATCH_FAILED" not in ALLOWED_STATUSES

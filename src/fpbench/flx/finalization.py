@@ -1,10 +1,17 @@
 """Bind the exact Stage 8B evidence bytes, and prove the stage stayed inside itself.
 
-The boundary audit follows docs/adr/0067 from the start: it compares two fixed
-commits, the one Stage 8B began at and the one it published at, rather than
-comparing against a moving ``HEAD``.  The span's end is not a constant in this
-file — it is read from the published marker's ``verifier_source_commit``, so
-Stage 8C can exist without anyone editing Stage 8B.
+The boundary audit follows docs/adr/0067: it compares two fixed commits, the one
+Stage 8B began at and the one it published at, rather than comparing against a
+moving ``HEAD``.  Both are constants in this file.
+
+The span's end used to be read from the published marker's
+``verifier_source_commit`` instead, so that Stage 8C could exist without anyone
+editing Stage 8B.  That is a field which moves whenever this stage's authority
+source is legitimately re-published, and the audited span moved with it — so a
+re-issue swept every later stage into "changed during Stage 8B", and a document
+naming its own boundary could equally have narrowed one.  The two questions are
+answered separately now: :data:`STAGE8B_PUBLICATION_COMMIT` says what this stage
+is answerable for, ``verifier_source_commit`` says which source is pinned.
 """
 
 from __future__ import annotations

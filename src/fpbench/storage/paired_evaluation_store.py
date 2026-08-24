@@ -28,7 +28,7 @@ from __future__ import annotations
 import datetime as _dt
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping
+from typing import Mapping, Protocol
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -62,6 +62,7 @@ from fpbench.storage.set_publication import publish_set
 
 __all__ = [
     "PairedEvaluationStore",
+    "PairedPolicy",
     "PairedSetInputs",
     "paired_summary_content_hash",
     "report_content_hash",
@@ -103,6 +104,28 @@ def report_content_hash(markdown: str) -> str:
     )
 
 
+class PairedPolicy(Protocol):
+    """A policy document together with the fingerprint it was derived as.
+
+    Storage cannot derive this fingerprint. The rule that produces it belongs to
+    the package that owns the policy — ``fpbench.paired.policy`` — and this
+    layer imports only ``core`` (docs/adr/0007). So it asks for both halves and
+    checks that everything else in the set agrees with them, which is the part it
+    *can* answer.
+
+    A plain ``Mapping`` was what this used to be, and the gap was exactly the
+    missing half: nothing in the set had to agree with the document, so a
+    definition pinning one ``policy_fingerprint`` could be published beside a
+    ``policy.json`` the policy loader refuses to read at all.
+    """
+
+    @property
+    def document(self) -> Mapping[str, object]: ...
+
+    @property
+    def policy_fingerprint(self) -> str: ...
+
+
 @dataclass(frozen=True, slots=True)
 class PairedSetInputs:
     """Everything one paired comparison is made of, in one argument.
@@ -118,7 +141,7 @@ class PairedSetInputs:
     """
 
     definition: PairedEvaluationDefinition
-    policy: Mapping[str, object]
+    policy: PairedPolicy
     records: tuple[PairedComparisonRecord, ...]
     transitions: tuple[SelfEligibilityTransitionRecord, ...]
     common: tuple[CommonEligibleMatedEntry, ...]
@@ -240,6 +263,7 @@ class PairedEvaluationStore:
             counts=inputs.counts,
             observations=inputs.observations,
             control_audit=inputs.control_audit,
+            policy_fingerprint=inputs.policy.policy_fingerprint,
             where="the paired comparison being published",
         )
 
@@ -300,7 +324,7 @@ class PairedEvaluationStore:
         first writer left, and it costs one create-if-absent call.
         """
         self._claim_definition(paired_id, inputs.definition)
-        self._claim_policy(paired_id, inputs.policy)
+        self._claim_policy(paired_id, inputs.policy.document)
         self._write_records(paired_id, inputs.records)
         self._write_eligibility_transitions(paired_id, inputs.transitions)
         self._write_common_eligible_view(paired_id, inputs.common)
@@ -575,6 +599,13 @@ class PairedEvaluationStore:
             counts=self.read_counts(paired_id),
             observations=self.read_observations(paired_id),
             control_audit=self.read_control_audit(paired_id),
+            # ``None`` because on this side there is no attestation to compare
+            # against: ``policy.json`` is a document, and the fingerprint it
+            # derives to is the paired package's rule, not storage's. What is
+            # checkable here — that the definition and every observation name one
+            # policy — is checked either way. Re-deriving the stored document
+            # itself belongs to ``verify_paired_evaluation_against_sources``.
+            policy_fingerprint=None,
             where=f"the stored paired comparison {paired_id}",
         )
         return manifest
@@ -590,6 +621,7 @@ class PairedEvaluationStore:
         counts: tuple[TransitionCountRecord, ...],
         observations: tuple[PairedRateObservation, ...],
         control_audit: NativeCanonicalControlAudit,
+        policy_fingerprint: str | None,
         where: str,
     ) -> None:
         """Everything the manifest says, checked against the rows it says it about.
@@ -598,6 +630,15 @@ class PairedEvaluationStore:
         published, before the manifest claims the name, and to the documents read
         back off the disk afterwards. Two copies of these checks would have been
         two chances to disagree about what a whole set is.
+
+        ``policy_fingerprint`` is the publishing caller's attestation of the
+        document it is about to store, and is ``None`` when reading back, where
+        no such attestation exists. It is separate from the definition's and the
+        observations' claims on purpose: three sources naming one policy is the
+        only thing this layer can decide, and until it did, a definition pinning
+        one fingerprint could be published beside a ``policy.json`` that the
+        policy loader refuses outright — with the manifest already owning the
+        name, so the set could never be corrected, only refused.
         """
         for label, rows in (
             ("paired records", records),
@@ -673,6 +714,28 @@ class PairedEvaluationStore:
         if definition.definition_fingerprint != manifest.definition_fingerprint:
             raise StorageError(
                 f"{where}: the definition is not the one the manifest names"
+            )
+
+        expected_policy = definition.policy_fingerprint
+        if policy_fingerprint is not None and policy_fingerprint != expected_policy:
+            raise StorageError(
+                f"{where}: the policy document derives "
+                f"{policy_fingerprint[:12]}... and the definition pins "
+                f"{expected_policy[:12]}.... Storing them together would publish a "
+                "set whose own policy cannot be read back as the one it names"
+            )
+        disagreeing = sorted(
+            {
+                observation.policy_fingerprint
+                for observation in observations
+                if observation.policy_fingerprint != expected_policy
+            }
+        )
+        if disagreeing:
+            raise StorageError(
+                f"{where}: {len(disagreeing)} observation policy fingerprint(s) "
+                f"disagree with the definition's {expected_policy[:12]}...: "
+                f"{[value[:12] + '...' for value in disagreeing[:3]]}"
             )
 
     # --------------------------------------------------------------- internals

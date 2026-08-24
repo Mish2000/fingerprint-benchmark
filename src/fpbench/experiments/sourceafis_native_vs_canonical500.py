@@ -336,7 +336,10 @@ def derive_paired_evaluation(
     store.publish_paired_set(
         PairedSetInputs(
             definition=prepared.definition,
-            policy=dict(prepared.policy.document),
+            # The loaded policy itself, not a copy of its document: the store
+            # checks the fingerprint it derived against the one the definition
+            # pins, and a bare mapping cannot answer that.
+            policy=prepared.policy,
             records=records,
             transitions=transitions,
             common=common,

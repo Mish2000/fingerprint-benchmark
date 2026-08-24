@@ -55,6 +55,13 @@ from fpbench.storage.paired_evaluation_store import (
 
 from pairedworld import build_paired_world, paired_policy
 
+#: The policy this world derives under, loaded once. Its fingerprint is used
+#: everywhere a policy is named — the definition, every observation, the receipt
+#: and the document stored beside them — because the store now refuses a set
+#: whose three claims about its own policy disagree, and a synthetic constant
+#: could satisfy that only by being wrong in the same way four times.
+_POLICY = paired_policy()
+
 pytestmark = [pytest.mark.paired_evaluation]
 
 _IDS = {
@@ -125,7 +132,7 @@ def _derive(tmp_path: Path, *, finalize: bool = True) -> _Derived:
         transitions=transitions,
         common_eligible=common,
         releases=releases,
-        policy_fingerprint="e" * 64,
+        policy_fingerprint=_POLICY.policy_fingerprint,
     )
 
     definition, manifest = _definition_and_manifest(
@@ -142,7 +149,7 @@ def _derive(tmp_path: Path, *, finalize: bool = True) -> _Derived:
     store.publish_paired_set(
         PairedSetInputs(
             definition=definition,
-            policy={"policy_id": "synthetic_v1"},
+            policy=_POLICY,
             records=records,
             transitions=transitions,
             common=common,
@@ -189,7 +196,7 @@ def _derive(tmp_path: Path, *, finalize: bool = True) -> _Derived:
     receipt = build_paired_receipt(
         manifest=manifest,
         policy_id="synthetic_v1",
-        policy_fingerprint="e" * 64,
+        policy_fingerprint=_POLICY.policy_fingerprint,
         native_ids=_IDS,
         canonical_ids=_IDS,
         canonical_preparation_set_id="preparedset_000000000001",
@@ -264,7 +271,7 @@ def _synthetic_definition():
     return _build_definition(
         native=world.native,
         canonical=world.canonical,
-        policy=SimpleNamespace(policy_fingerprint="e" * 64),
+        policy=SimpleNamespace(policy_fingerprint=_POLICY.policy_fingerprint),
         software=SoftwareProvenance(
             provenance_kind="git",
             source_revision="f" * 40,
@@ -363,7 +370,7 @@ def _verify_against_synthetic_sources(derived, monkeypatch):
         (),
         {
             "policy_id": "synthetic_v1",
-            "policy_fingerprint": "e" * 64,
+            "policy_fingerprint": _POLICY.policy_fingerprint,
             "document": {"policy": {"policy_id": "synthetic_v1"}},
             # Derivation reads these now, so a stub that omits them is a stub
             # of a policy that could not govern anything.
@@ -589,6 +596,116 @@ def test_a_marker_for_a_different_comparison_is_caught(tmp_path):
     assert state.status is not PairedEvaluationStatus.PAIRED_EVALUATION_READY
 
 
+# ------------------------------------------------- refused before it owns a name
+
+
+def _publish_with(store, derived, definition, *, policy, observations):
+    return store.publish_paired_set(
+        PairedSetInputs(
+            definition=definition,
+            policy=policy,
+            records=derived.records,
+            transitions=derived.transitions,
+            common=derived.common,
+            counts=derived.counts,
+            observations=observations,
+            control_audit=derived.control,
+            manifest=derived.manifest,
+        )
+    )
+
+
+@pytest.mark.parametrize("disagreeing", ["policy", "observations"])
+def test_a_set_whose_policy_contradicts_its_definition_never_takes_the_name(
+    tmp_path, disagreeing
+):
+    """The refusal has to land *before* the claim, or it cannot land at all.
+
+    A paired set names its policy three times: the document stored beside the
+    numbers, the ``policy_fingerprint`` its definition pins, and the one every
+    observation carries. Nothing required the three to agree, so a set could be
+    published whose own ``policy.json`` the policy loader refuses outright — and
+    once the manifest owned the name, no writer holding the right policy could
+    ever store it, because a different fingerprint is a conflict by design.
+
+    So this asserts the ordering rather than only the refusal: after the raise,
+    the directory holds no manifest and the set is still unclaimed.
+    """
+    from types import SimpleNamespace
+
+    derived = _derive(tmp_path / "coherent", finalize=False)
+    store = PairedEvaluationStore(tmp_path / "under-test")
+    other = "a" * 64
+
+    if disagreeing == "policy":
+        # The document and its fingerprint are honest about each other and name
+        # a policy the definition does not.
+        policy = SimpleNamespace(
+            document={"policy_id": "elsewhere"}, policy_fingerprint=other
+        )
+        derived_under_test = derived
+    else:
+        # Observations derived under one policy, definition pinned to another.
+        # Each row is internally valid — an observation's own hash covers its
+        # policy fingerprint, so this cannot be faked by editing one — which is
+        # why the disagreement has to be built from the start to exist at all.
+        policy = _POLICY
+        observations = build_paired_observations(
+            records=derived.records,
+            transitions=derived.transitions,
+            common_eligible=derived.common,
+            releases=derived.releases,
+            policy_fingerprint=other,
+        )
+        definition, manifest = _definition_and_manifest(
+            records=derived.records,
+            transitions=derived.transitions,
+            common=derived.common,
+            counts=derived.counts,
+            observations=observations,
+            control=derived.control,
+        )
+        derived_under_test = _Derived(
+            **{**derived.__dict__, "observations": observations, "manifest": manifest,
+               "definition": definition, "paired_id": manifest.paired_evaluation_id}
+        )
+
+    with pytest.raises(StorageError, match="polic"):
+        _publish_with(
+            store,
+            derived_under_test,
+            derived_under_test.definition,
+            policy=policy,
+            observations=derived_under_test.observations,
+        )
+
+    paired_id = derived_under_test.paired_id
+    assert not store.has_manifest(paired_id), (
+        "the set was refused after the manifest claimed the name, which is the "
+        "one order in which the refusal cannot be acted on"
+    )
+    directory = store.paired_dir(paired_id)
+    assert not directory.exists() or not list(directory.iterdir()), (
+        "a refused set left body files behind"
+    )
+
+
+def test_the_coherent_policy_publishes(tmp_path):
+    """The other direction, so the check above cannot pass by refusing everything."""
+    derived = _derive(tmp_path / "coherent", finalize=False)
+    store = PairedEvaluationStore(tmp_path / "under-test")
+
+    _publish_with(
+        store,
+        derived,
+        derived.definition,
+        policy=_POLICY,
+        observations=derived.observations,
+    )
+    assert store.has_manifest(derived.paired_id)
+    assert store.verify_paired_evaluation(derived.paired_id)
+
+
 # ----------------------------------------------------------- failure injection
 
 
@@ -679,7 +796,7 @@ def test_the_receipt_re_derives_to_the_same_fingerprint(tmp_path):
     again = build_paired_receipt(
         manifest=derived.manifest,
         policy_id="synthetic_v1",
-        policy_fingerprint="e" * 64,
+        policy_fingerprint=_POLICY.policy_fingerprint,
         native_ids=_IDS,
         canonical_ids=_IDS,
         canonical_preparation_set_id="preparedset_000000000001",

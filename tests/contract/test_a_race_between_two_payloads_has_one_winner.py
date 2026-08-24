@@ -22,8 +22,11 @@ that owns the claim.
 
 from __future__ import annotations
 
+import sys
 import threading
+import time
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Callable
 
 import pytest
@@ -243,6 +246,98 @@ def test_two_identical_reports_racing_are_both_a_no_op(tmp_path, monkeypatch):
 
     assert not any(isinstance(o, BaseException) for o in outcomes), outcomes
     assert path.read_text(encoding="utf-8") == "# the same report\n"
+
+
+# ------------------------------------------------------- a whole prepared set
+
+
+# -------------------------------------------------------- separate processes
+
+
+#: What each child publishes: distinct bytes under one name, all at once.
+#:
+#: Threads share an interpreter, and a lock or an import-time side effect could
+#: make them look serialised when the real writers are not. These are separate
+#: processes racing for a real filesystem name, which is what the workers in
+#: this repository are, so the guarantee is checked where it has to hold. They
+#: wait on a file rather than a barrier because that is all processes share.
+_CHILD = r"""
+import sys, time
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from fpbench.core.atomic_write import PublishConflictError
+from fpbench.core.json_io import publish_json
+
+target, go, ordinal = Path(sys.argv[2]), Path(sys.argv[3]), int(sys.argv[4])
+Path(sys.argv[5]).write_text("up", encoding="utf-8")
+deadline = time.monotonic() + 60
+while not go.exists():
+    if time.monotonic() > deadline:
+        print("timeout")
+        raise SystemExit(2)
+    time.sleep(0.005)
+try:
+    print("published" if publish_json(target, {"writer": ordinal}).created
+          else "already-identical")
+except PublishConflictError:
+    print("conflict")
+"""
+
+
+def test_a_dozen_processes_racing_for_one_name_leave_one_winner(tmp_path):
+    """The same guarantee as above, across process boundaries."""
+    import json
+    import subprocess
+
+    source = str(Path(__file__).resolve().parents[2] / "src")
+    target = tmp_path / "artefact.json"
+    go = tmp_path / "go"
+    script = tmp_path / "child.py"
+    script.write_text(_CHILD, encoding="utf-8")
+
+    children = []
+    for ordinal in range(12):
+        ready = tmp_path / f"ready-{ordinal}"
+        children.append(
+            (
+                ready,
+                subprocess.Popen(
+                    [
+                        sys.executable,
+                        str(script),
+                        source,
+                        str(target),
+                        str(go),
+                        str(ordinal),
+                        str(ready),
+                    ],
+                    stdout=subprocess.PIPE,
+                    text=True,
+                ),
+            )
+        )
+
+    deadline = time.monotonic() + 120
+    while not all(ready.exists() for ready, _ in children):
+        assert time.monotonic() < deadline, "a child never started"
+        time.sleep(0.02)
+    go.write_text("go", encoding="utf-8")
+
+    outcomes = []
+    for _ready, child in children:
+        stdout, _ = child.communicate(timeout=120)
+        assert child.returncode == 0, stdout
+        outcomes.append(stdout.strip())
+
+    assert outcomes.count("published") == 1, (
+        f"exactly one process may create the artefact, got {outcomes}"
+    )
+    assert set(outcomes) <= {"published", "conflict"}, outcomes
+
+    stored = json.loads(target.read_text(encoding="utf-8"))
+    assert stored["writer"] in range(12), (
+        f"the stored artefact is not any single writer's: {stored}"
+    )
 
 
 # ------------------------------------------------------- a whole prepared set

@@ -11,13 +11,21 @@ further claims the general engine cannot know about:
 This marker binds all three, the general chain, and the exact bytes of every
 published file, into one last-written document.
 
-The boundary audit follows docs/adr/0067 from the start: it compares two fixed
-commits, the one Stage 8C began at and the one it published at, rather than
-comparing against a moving ``HEAD``.  The span's end is not a constant in this
-file — it is read from the published marker's ``verifier_source_commit``, so
-Stage 8D can exist without anyone editing Stage 8C.  The untracked scan is
-scoped the same way: it looks only at paths Stage 8C owns, because an
-uncommitted file elsewhere belongs to whoever is working now.
+The boundary audit follows docs/adr/0067: it compares two fixed commits, the one
+Stage 8C began at and the one it published at, rather than comparing against a
+moving ``HEAD``.  Both are constants in this file.
+
+The span's end used to be read from the published marker's
+``verifier_source_commit``, so that Stage 8D could exist without anyone editing
+Stage 8C.  It survived the next stage arriving and not the marker being
+re-issued: that field moves when this stage's authority source is legitimately
+re-published, and the audited span moved with it.  A span end taken from the
+audited document is also one that document could narrow, which is the worse
+direction.  :data:`STAGE_8C_PUBLICATION_COMMIT` answers what this stage is
+answerable for; ``verifier_source_commit`` answers which source is pinned.
+
+The untracked scan is scoped the same way: it looks only at paths Stage 8C owns,
+because an uncommitted file elsewhere belongs to whoever is working now.
 """
 
 from __future__ import annotations

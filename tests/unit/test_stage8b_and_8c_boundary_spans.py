@@ -175,12 +175,17 @@ def test_both_span_endpoints_must_remain_in_the_current_history(
 def test_no_published_marker_can_move_the_audited_span(
     monkeypatch: pytest.MonkeyPatch, stage: _Stage
 ) -> None:
-    """The regression this file exists for, stated in both available ways.
+    """The regression this file exists for: re-issuing a marker cannot move the span.
+
+    The direct form — change ``verifier_source_commit`` and check the ``git diff``
+    range did not move — is vacuous *because* of the fix, since the audit no
+    longer reads that field at all, and a test that cannot fail is not a test.
+    So the same property is stated two ways that can both fail.
 
     The audit takes no commit, so there is no argument through which a document
     could name its own boundary; and the commit the published marker *does* name
-    appears nowhere in the Git questions the audit asks. The second half is what
-    keeps meaning something after somebody adds a parameter back.
+    appears nowhere in the Git questions the audit asks. The second half keeps
+    meaning something if somebody adds a parameter back.
     """
     parameters = inspect.signature(stage.audit).parameters
     assert list(parameters) == ["repository_root"], (

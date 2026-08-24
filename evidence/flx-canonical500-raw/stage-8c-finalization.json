@@ -2,7 +2,7 @@
   "schema_version": "1",
   "kind": "stage_8c_finalization",
   "outcome": "FLX_CANONICAL500_RAW_READY",
-  "stage8b_finalization_fingerprint": "aa6897bf25c7b6565647da3566e6ab6446ae6104b2511034fed0fdb08cb13373",
+  "stage8b_finalization_fingerprint": "7e9f6a9fea3a8b5e992a5616fdc77ae04c8efceb67ab21fd344cbe2706e1da0a",
   "stage8b_outcome": "FLX_RAW_SCORE_EXECUTION_READY",
   "algorithm_id": "flx_deepprint_texminu_512_without_localization",
   "integration_id": "flx_deepprint_texminu_research_v1",
@@ -66,8 +66,8 @@
     "run_902136b3b8ae.json": "6640f4c3adb76c0cc40ad663093997c70c50e46d913f5d1f4e1b626fbd98ccae",
     "runtime-provenance.json": "d47ac13b1748a9c99af6967feb3c04c8f9b7a33ec97be269105a189fe52acce5"
   },
-  "verifier_source_commit": "c4c9552bf9be913430479fa199ba5df519a72cad",
+  "verifier_source_commit": "6c6eb9c931a42c7ce1ab67e297acd998ffc3d57e",
   "verifier_source_tree_clean": true,
-  "stage_8c_finalization_fingerprint": "0c09483efb92b3e6689cb202f2ce0af193e237791c40ed95ff3a698f179abec2",
+  "stage_8c_finalization_fingerprint": "291b45feba75998e7dd1c20b076d04156e61d6b8af0e5f3a1ccfa603a479fe94",
   "created_utc": "2026-08-06T14:09:10.143789+00:00"
 }

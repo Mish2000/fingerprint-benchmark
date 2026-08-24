@@ -98,13 +98,16 @@ REQUIRED_EVIDENCE_FILES = (
 STAGE8D_FINALIZATION_FINGERPRINT = (
     "06265f90893fa8ba182935cfa67ac2bb159f3d92e58122fa3e7a86e109d23106"
 )
-# Stage 8E's historical marker above remains immutable.  Stage 8D was later
-# re-finalized after its calibration source binding was hardened to bind the
-# verified labelled result body.  Runtime predecessor checks use this current
-# authority; the Stage 8E marker continues to say which authority existed when
-# it was published.
+# Stage 8E's historical marker above remains immutable.  Stage 8D has been
+# re-finalized twice since: once when its calibration source binding was
+# hardened to bind the verified labelled result body, and once when the
+# 8A→8B→8C chain was re-issued to close the last check-then-write publication in
+# the storage layer (docs/adr/0139).  Neither re-derived a conclusion.  Runtime
+# predecessor checks use this current authority; the Stage 8E marker continues
+# to say which authority existed when it was published, which is why the
+# cascade stops here and the fourteen stages that bind Stage 8E are untouched.
 STAGE8D_CURRENT_FINALIZATION_FINGERPRINT = (
-    "9287ea7f1958bc90ffc34a6cadf4c7fbd67efd94cee5233653e08acf50cef290"
+    "6e353d746e0b02b1f6f71423a00e1904d9b355b542de15e16419363dcb5548fd"
 )
 STAGE8D_OUTCOME = "CALIBRATION_INFRASTRUCTURE_READY"
 

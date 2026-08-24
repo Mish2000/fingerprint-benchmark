@@ -2,7 +2,7 @@
   "schema_version": "1",
   "kind": "stage_8d_finalization",
   "outcome": "CALIBRATION_INFRASTRUCTURE_READY",
-  "stage8c_finalization_fingerprint": "0c09483efb92b3e6689cb202f2ce0af193e237791c40ed95ff3a698f179abec2",
+  "stage8c_finalization_fingerprint": "291b45feba75998e7dd1c20b076d04156e61d6b8af0e5f3a1ccfa603a479fe94",
   "stage8c_outcome": "FLX_CANONICAL500_RAW_READY",
   "calibration_model_fingerprint": "5eb9e7c62b8fd45a6fdfcb3168ae895cd6e183e1d9d01c6a18007c6c3b7c3aac",
   "selection_engine_fingerprint": "4a723c92bd8a2903e750c29ab36e98a6b45d3291ff95fba84e2546847d9d0cfe",
@@ -32,6 +32,6 @@
   "source_tree_clean": true,
   "verifier_source_commit": "e4b845401175a1918e535a48424157bdad24b626",
   "verifier_source_tree_clean": true,
-  "stage_8d_finalization_fingerprint": "9287ea7f1958bc90ffc34a6cadf4c7fbd67efd94cee5233653e08acf50cef290",
+  "stage_8d_finalization_fingerprint": "6e353d746e0b02b1f6f71423a00e1904d9b355b542de15e16419363dcb5548fd",
   "created_utc": "2026-08-07T16:47:46Z"
 }

@@ -107,7 +107,7 @@ STAGE8D_FINALIZATION_FINGERPRINT = (
 # to say which authority existed when it was published, which is why the
 # cascade stops here and the fourteen stages that bind Stage 8E are untouched.
 STAGE8D_CURRENT_FINALIZATION_FINGERPRINT = (
-    "6e353d746e0b02b1f6f71423a00e1904d9b355b542de15e16419363dcb5548fd"
+    "452ba7cc3526a3a4b18b694f64cb928e0d78104a50ca89e337b3c52943af1676"
 )
 STAGE8D_OUTCOME = "CALIBRATION_INFRASTRUCTURE_READY"
 

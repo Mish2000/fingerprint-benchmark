@@ -25,10 +25,10 @@
     "runtime-probe.json": "286694ddecfe3b4c6916a07244fba585e72b7479b105209dd4182ab1803a309f",
     "score-profile.json": "5b1178317fa2aa340eda4af617eeef6a4493e132e23e9856c81aff8660160fe9"
   },
-  "verifier_source_commit": "077155d6a775f0832851e86e8d24a1dc6936d722",
+  "verifier_source_commit": "dad752610a2a3770ceee70bf5c6fa0fbcae27dcb",
   "verifier_source_tree_clean": true,
   "biometric_inputs_read": false,
   "prior_stages_unchanged": true,
   "created_utc": "2026-08-05T17:46:23+00:00",
-  "fingerprint": "7e9f6a9fea3a8b5e992a5616fdc77ae04c8efceb67ab21fd344cbe2706e1da0a"
+  "fingerprint": "90f83f646e08c2fb60f8e3f3d2dafe475a80ca8a6da978f12ffbea9db2e5b29b"
 }

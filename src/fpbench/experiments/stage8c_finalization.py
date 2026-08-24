@@ -59,6 +59,19 @@ STAGE_8C_FINALIZATION_KIND = STAGE_FINALIZATION_KIND
 #: Stage 8C began here: the approved HEAD that closed Stage 8B (spec section 31).
 STAGE_8C_BASELINE_COMMIT = "755d13f929c280d4079b50374c6974e44468e174"
 
+#: And ended here: the first commit that bound this stage's evidence in its final
+#: marker. Both ends are constants, for the reason Stage 8A's audit has carried
+#: since ADR 0067 — work committed afterwards is some other stage's, and is
+#: neither Stage 8C's to permit nor Stage 8C's to forbid.
+#:
+#: It used to be the marker's own ``verifier_source_commit``. That is a field
+#: which legitimately moves when the authority source is re-published, and the
+#: audit boundary must not: a document that names its own span could narrow it,
+#: and a re-issue at a current commit widened it to every stage since. The two
+#: questions are separate now — this constant answers "what is Stage 8C
+#: answerable for", ``verifier_source_commit`` answers "which source is pinned".
+STAGE_8C_PUBLICATION_COMMIT = "42813cf11009c1b34edfad1b55919ae7712d9d6a"
+
 _HEX = frozenset("0123456789abcdef")
 
 #: Shared files Stage 8C is allowed to touch, each named rather than covered by
@@ -675,14 +688,18 @@ def _audit_source_boundaries(repository_root: Path) -> None:
                 )
 
 
-def verify_stage8c_workspace_boundaries(
-    repository_root: Path, *, span_end_commit: str
-) -> None:
+def verify_stage8c_workspace_boundaries(repository_root: Path) -> None:
     """Prove Stage 8C changed only its own surface, over its own span.
 
-    ``span_end_commit`` is the commit the publication names as its verifier.
-    Reading the span's end from the evidence rather than from a constant is what
-    lets Stage 8D exist without editing this file (docs/adr/0067).
+    Both ends are constants: :data:`STAGE_8C_BASELINE_COMMIT` to
+    :data:`STAGE_8C_PUBLICATION_COMMIT`, and nothing outside this file moves
+    either (docs/adr/0067).
+
+    It takes no ``span_end_commit``. Reading the end from the marker's
+    ``verifier_source_commit`` did let Stage 8D exist without editing this file,
+    and it also meant the audited span moved whenever that field did — so
+    re-publishing the marker at a current commit made every stage since into
+    something that "changed during Stage 8C".
     """
     repository_root = Path(repository_root)
     roots = _git_output(repository_root, "rev-parse", "--show-toplevel")
@@ -702,16 +719,22 @@ def verify_stage8c_workspace_boundaries(
         "merge-base",
         "--is-ancestor",
         STAGE_8C_BASELINE_COMMIT,
-        span_end_commit,
+        STAGE_8C_PUBLICATION_COMMIT,
     )
-    _git_output(repository_root, "merge-base", "--is-ancestor", span_end_commit, "HEAD")
+    _git_output(
+        repository_root,
+        "merge-base",
+        "--is-ancestor",
+        STAGE_8C_PUBLICATION_COMMIT,
+        "HEAD",
+    )
     changed = _git_output(
         repository_root,
         "diff",
         "--name-only",
         "--diff-filter=ACDMRTUXB",
         STAGE_8C_BASELINE_COMMIT,
-        span_end_commit,
+        STAGE_8C_PUBLICATION_COMMIT,
         "--",
     )
     protected = sorted(

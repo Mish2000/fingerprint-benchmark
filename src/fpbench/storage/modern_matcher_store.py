@@ -9,9 +9,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, Protocol
 
+from fpbench.core.atomic_write import PublishConflictError
 from fpbench.core.errors import StorageError
 from fpbench.core.identifiers import validate_id
-from fpbench.core.serialization import read_json, to_plain, write_json
+from fpbench.core.json_io import publish_json
+from fpbench.core.serialization import read_json, to_plain
 
 __all__ = ["Stage8AEvidenceStore", "FingerprintRecord"]
 
@@ -96,8 +98,28 @@ class Stage8AEvidenceStore:
         return dict(payload)
 
     def _ensure(self, path: Path, record: FingerprintRecord, what: str) -> Path:
+        """Publish one evidence document exactly once (docs/adr/0139).
+
+        The comparison below is the one this method always made; what changed is
+        which branch reaches it. Testing for the file and writing on the absent
+        branch meant two publishers both found it absent, both wrote, and the
+        second silently replaced the first — the only comparison in the method
+        being on the branch neither took. The name is claimed first now, and a
+        writer that loses re-reads the winner's document and applies it.
+
+        The claim is spelled out here rather than taken from
+        ``storage.immutable_publication.claim_document``, which is the same four
+        lines: this store imports only ``core`` from the project, and a contract
+        test holds it to that (tests/contract/test_stage8a_boundaries.py).
+        """
         payload = to_plain(record)
-        if path.is_file():
+        try:
+            claimed = publish_json(path, record).created
+        except PublishConflictError:
+            # Byte-different under this name. Whether that is a conflict is the
+            # comparison below, over the document rather than over its bytes.
+            claimed = False
+        if not claimed:
             stored = self.read_document(path, what)
             if stored != payload:
                 stored_fp = str(stored.get("fingerprint", ""))
@@ -106,5 +128,4 @@ class Stage8AEvidenceStore:
                     f"({stored_fp[:12]}...); refusing to overwrite it with "
                     f"{record.fingerprint[:12]}..."
                 )
-            return path
-        return write_json(path, record)
+        return path

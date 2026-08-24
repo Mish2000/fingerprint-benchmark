@@ -70,17 +70,14 @@ _CLAIMS = frozenset(
 
 #: Functions allowed to replace a document after checking for it, and why.
 #:
-#: The two ``_archive_*`` helpers are the deliberate replacement: they copy the
-#: old bytes aside first, which is the only way a schema upgrade can keep the
-#: document it supersedes. The two stores are pinned by Stage 8A's and Stage
-#: 8B's published verifiers — see
-#: tests/contract/test_pinned_verifier_sources_are_untouched.py, which records
-#: what moving them costs.
+#: Two, and both are the deliberate replacement: they copy the old bytes aside
+#: first, which is the only way a schema upgrade can keep the document it
+#: supersedes. The Stage 8A and Stage 8B stores were here too, exempted because
+#: their publications are pinned byte-for-byte and fixing them costs a
+#: re-issued marker at four stages. They were fixed and the markers re-issued.
 _EXEMPT = {
     "storage/result_store.py::_archive_publication",
     "storage/prepared_image_set_store.py::_archive_preparation_publication",
-    "storage/modern_matcher_store.py::_ensure",
-    "storage/flx_store.py::_ensure",
 }
 
 #: The layer whose artefacts are immutable, and the only one the transitive scan
@@ -89,16 +86,15 @@ _STORAGE = "storage/"
 
 #: Modules the transitive scan skips whole, because a published verifier pins
 #: them byte-for-byte and the fix cannot land without re-issuing the stage.
-#: One entry per module rather than one per wrapper: following calls makes every
-#: ``ensure_*`` in these files match through their shared ``_ensure``, and a
-#: dozen exemptions would say twelve times what this says once.
-#: tests/contract/test_pinned_verifier_sources_are_untouched.py records the cost.
-_PINNED_MODULES = frozenset(
-    {
-        "storage/modern_matcher_store.py",
-        "storage/flx_store.py",
-    }
-)
+#:
+#: **Empty, and that is the point.** It held ``modern_matcher_store`` and
+#: ``flx_store``, whose six ``ensure_*`` methods all reached the same
+#: check-then-write ``_ensure``. Emptying it meant re-issuing Stage 8A, 8B, 8C
+#: and 8D — the only reason those two were ever the exception was cost, not a
+#: property of the artefacts, and an exemption kept for cost is one nobody
+#: revisits. Anything added here has to name the verifier that justifies it,
+#: which is what the test below checks.
+_PINNED_MODULES: frozenset[str] = frozenset()
 
 
 def _called(node: ast.AST) -> set[str]:

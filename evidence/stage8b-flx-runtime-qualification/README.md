@@ -156,9 +156,14 @@ missing fields are all errors — recomputes each record's fingerprint from its
 claims, rebuilds all four profiles from this repository's source and compares
 them to what was published, re-applies the fifteen gates to the published
 probe, re-derives the finalization, and re-hashes the exact bytes of all ten
-files. The boundary audit compares two fixed commits, reading the span's end
-from the published marker so that Stage 8C can exist without editing Stage 8B
-(docs/adr/0067).
+files. The boundary audit compares two fixed commits — the commit that opened
+this stage and the commit that published it — and neither is read from the
+marker (docs/adr/0067). The span's end was once taken from the marker's
+`verifier_source_commit`, which let Stage 8C exist without editing Stage 8B and
+also tied the audited span to a field that moves when this stage's authority
+source is legitimately re-published. They are separate questions and are now
+answered separately: the constants say what Stage 8B is answerable for, and
+`verifier_source_commit` says which source is pinned byte-for-byte.
 
 ## Next-stage gate
 

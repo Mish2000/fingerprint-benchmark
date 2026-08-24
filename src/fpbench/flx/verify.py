@@ -149,9 +149,7 @@ def verify_stage8b_evidence(
         raise Stage8BFinalizationError("the Stage 8B publication has no finalization")
 
     if require_git_provenance:
-        verify_stage8b_workspace_boundaries(
-            repository_root, span_end_commit=finalization.verifier_source_commit
-        )
+        verify_stage8b_workspace_boundaries(repository_root)
     _verify_verifier_source_commit(
         repository_root,
         finalization.verifier_source_commit,

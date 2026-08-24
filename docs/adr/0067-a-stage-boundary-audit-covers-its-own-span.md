@@ -110,3 +110,41 @@ again, and later stages are free to add whatever their own gates permit.
 Stages that follow carry the same obligation in their own gate. Stage 8B pins
 its own baseline and its own publication commit, and audits only what happened
 between them.
+
+## What Stage 8B and Stage 8C actually did — corrected 2026-08-24
+
+The sentence above described the obligation; neither stage implemented it.
+Both pinned a baseline constant and read the span's *end* from their own
+marker's `verifier_source_commit`, so that a later stage could exist without
+editing them. Against that case it worked, and this ADR's own closing paragraph
+was read as satisfied for three years of stages.
+
+It fails against a case neither had reached: `verifier_source_commit` moves
+whenever a stage's authority source is legitimately re-published. Re-issuing
+Stage 8B's marker at a current commit therefore widened
+`STAGE8B_BASELINE_COMMIT..span_end` to cover every stage committed since, and
+the audit refused with fifteen stages of unrelated work listed as having
+"changed during Stage 8B". Stage 8C had the same shape and would have failed the
+same way.
+
+The deeper problem is the direction nobody hit: a span end read out of the
+document being audited is an end that document could *narrow*. Making such a
+field safe would mean comparing it against an authoritative constant in the
+code — at which point the field is a duplicate.
+
+So both stages now hold two constants, as this ADR always said they should:
+
+```python
+STAGE8B_PUBLICATION_COMMIT  = "755d13f…"   # the marker was published here
+STAGE_8C_PUBLICATION_COMMIT = "42813cf…"   # this stage's evidence was bound here
+```
+
+`verify_stage8b_workspace_boundaries` and `verify_stage8c_workspace_boundaries`
+no longer take a `span_end_commit` at all — an argument a caller supplies is an
+argument the audited document can reach. `verifier_source_commit` keeps its one
+job, which this ADR already distinguished: pinning the authority source
+byte-for-byte, a claim that may legitimately be re-made.
+
+`tests/unit/test_stage8b_and_8c_boundary_spans.py` is Stage 8A's span suite
+applied to both, including the direction that was missing — that the commit a
+published marker names appears nowhere in the Git questions its own audit asks.

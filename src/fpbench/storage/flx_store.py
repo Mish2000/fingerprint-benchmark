@@ -13,8 +13,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, Protocol
 
+from fpbench.core.atomic_write import PublishConflictError
 from fpbench.core.errors import StorageError
-from fpbench.core.serialization import read_json, to_plain, write_json
+from fpbench.core.json_io import publish_json
+from fpbench.core.serialization import read_json, to_plain
 
 __all__ = ["Stage8BEvidenceStore"]
 
@@ -95,8 +97,23 @@ class Stage8BEvidenceStore:
         return dict(payload)
 
     def _ensure(self, path: Path, record: _FingerprintRecord, what: str) -> Path:
+        """Publish one evidence document exactly once (docs/adr/0139).
+
+        Identical in shape to Stage 8A's store, and it was identical in defect:
+        the existence test read as a guarantee and was not one. The comparison is
+        unchanged; it is now what a writer that *lost* the name applies, rather
+        than what the branch nobody took would have applied.
+
+        Spelled out rather than imported from
+        ``storage.immutable_publication.claim_document``, for the reason in this
+        module's own docstring: it imports only ``core``.
+        """
         payload = to_plain(record)
-        if path.is_file():
+        try:
+            claimed = publish_json(path, record).created
+        except PublishConflictError:
+            claimed = False
+        if not claimed:
             stored = self.read_document(path, what)
             if stored != payload:
                 stored_fingerprint = str(stored.get("fingerprint", ""))
@@ -105,5 +122,4 @@ class Stage8BEvidenceStore:
                     f"({stored_fingerprint[:12]}...); refusing to overwrite it with "
                     f"{record.fingerprint[:12]}..."
                 )
-            return path
-        return write_json(path, record)
+        return path

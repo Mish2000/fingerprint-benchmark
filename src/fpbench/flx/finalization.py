@@ -31,6 +31,7 @@ from fpbench.storage.flx_store import Stage8BEvidenceStore
 
 __all__ = [
     "STAGE8B_BASELINE_COMMIT",
+    "STAGE8B_PUBLICATION_COMMIT",
     "file_sha256",
     "verify_stage8b_workspace_boundaries",
     "build_stage8b_finalization",
@@ -39,6 +40,24 @@ __all__ = [
 
 #: Stage 8B began here: the commit that closed the Stage 8A boundary repair.
 STAGE8B_BASELINE_COMMIT = "e065fad7162c3f584ded6ddcedd73aa0c84d9f54"
+
+#: And ended here: the commit that published the finalization marker. Work
+#: committed after it is some other stage's, and is neither Stage 8B's to permit
+#: nor Stage 8B's to forbid — the sentence Stage 8A's audit has carried since
+#: ADR 0067, and the reason both ends are constants.
+#:
+#: This used to be read from the marker's ``verifier_source_commit``, so that
+#: Stage 8C could exist without editing this file. It survived the next stage
+#: arriving and did not survive the marker being *re-issued*: the end of the
+#: audited span moved with the commit the marker named, so re-publishing at a
+#: current commit widened the span to every stage committed since and the audit
+#: refused with fifteen stages of somebody else's work.
+#:
+#: The two questions were being answered by one field. ``verifier_source_commit``
+#: pins the authority source and may move when that source is legitimately
+#: re-published; the span this stage is answerable for cannot move at all, and a
+#: document that could choose its own audit boundary could narrow it.
+STAGE8B_PUBLICATION_COMMIT = "755d13f929c280d4079b50374c6974e44468e174"
 
 _ALLOWED_EXACT_CHANGES = frozenset(
     {
@@ -247,14 +266,19 @@ def _audit_source_boundaries(repository_root: Path) -> None:
                 )
 
 
-def verify_stage8b_workspace_boundaries(
-    repository_root: Path, *, span_end_commit: str
-) -> None:
+def verify_stage8b_workspace_boundaries(repository_root: Path) -> None:
     """Prove Stage 8B changed only its own surface, over its own span.
 
-    ``span_end_commit`` is the commit the publication names as its verifier.
-    Reading the span's end from the evidence rather than from a constant is
-    what lets Stage 8C exist without editing this file (docs/adr/0067).
+    Both ends are constants: :data:`STAGE8B_BASELINE_COMMIT` to
+    :data:`STAGE8B_PUBLICATION_COMMIT`. The span is a fact about what this stage
+    did, so nothing outside this file — and in particular nothing in the document
+    being audited — gets to move it (docs/adr/0067).
+
+    It takes no ``span_end_commit`` any more. Reading the end from the marker's
+    ``verifier_source_commit`` was meant to let Stage 8C exist without editing
+    this file, and did; what it also did was tie the audit boundary to a field
+    that legitimately moves when the authority source is re-published, so a
+    re-issue swept every later stage into "during Stage 8B".
     """
     repository_root = Path(repository_root)
     roots = _git_output(repository_root, "rev-parse", "--show-toplevel")
@@ -270,16 +294,26 @@ def verify_stage8b_workspace_boundaries(
             "the Stage 8B boundary audit requires the Git worktree root"
         )
     _git_output(
-        repository_root, "merge-base", "--is-ancestor", STAGE8B_BASELINE_COMMIT, span_end_commit
+        repository_root,
+        "merge-base",
+        "--is-ancestor",
+        STAGE8B_BASELINE_COMMIT,
+        STAGE8B_PUBLICATION_COMMIT,
     )
-    _git_output(repository_root, "merge-base", "--is-ancestor", span_end_commit, "HEAD")
+    _git_output(
+        repository_root,
+        "merge-base",
+        "--is-ancestor",
+        STAGE8B_PUBLICATION_COMMIT,
+        "HEAD",
+    )
     changed = _git_output(
         repository_root,
         "diff",
         "--name-only",
         "--diff-filter=ACDMRTUXB",
         STAGE8B_BASELINE_COMMIT,
-        span_end_commit,
+        STAGE8B_PUBLICATION_COMMIT,
         "--",
     )
     forbidden = sorted(path for path in changed if not _is_allowed_change(path))
@@ -288,7 +322,9 @@ def verify_stage8b_workspace_boundaries(
             f"paths outside Stage 8B changed during Stage 8B: {forbidden}"
         )
     for path, expected_blob in _HISTORICAL_REPAIR_BLOBS.items():
-        actual = _git_output(repository_root, "rev-parse", f"{span_end_commit}:{path}")
+        actual = _git_output(
+            repository_root, "rev-parse", f"{STAGE8B_PUBLICATION_COMMIT}:{path}"
+        )
         if actual != (expected_blob,):
             raise Stage8BFinalizationError(
                 f"historical evidence repair {path} is not the reviewed Git blob"
@@ -323,9 +359,7 @@ def build_stage8b_finalization(
     require_git_provenance: bool = True,
 ) -> Stage8BFinalization:
     if require_git_provenance:
-        verify_stage8b_workspace_boundaries(
-            store.repository_root, span_end_commit=verifier_source_commit
-        )
+        verify_stage8b_workspace_boundaries(store.repository_root)
     missing = [name for name in store.PREREQUISITE_NAMES if not store.path(name).is_file()]
     if missing:
         raise Stage8BFinalizationError(

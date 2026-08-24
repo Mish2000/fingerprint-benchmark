@@ -121,9 +121,7 @@ def verify_stage8c_evidence(
     marker = read_stage8c_finalization(repository_root=repository_root)
 
     if require_git_provenance:
-        verify_stage8c_workspace_boundaries(
-            repository_root, span_end_commit=marker.verifier_source_commit
-        )
+        verify_stage8c_workspace_boundaries(repository_root)
     _verify_verifier_source_commit(
         repository_root,
         marker.verifier_source_commit,

@@ -22,6 +22,7 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+/outputs/
 .pytest_cache/
 .idea/
 .venv/

@@ -19,6 +19,10 @@ So they are generated, from the same evidence a reader can verify:
 named population, never a rate, in ADR 0030's fixed wording. The mated
 workbook's FRR is a different quantity over a different population and is a
 legitimate rate; the ADR is about the impostor side only.
+
+The generated files are build artefacts.  By default they are written under
+the ignored ``build/report-workbooks`` directory and are never committed to
+the repository.
 """
 
 from __future__ import annotations
@@ -353,7 +357,7 @@ _NON_MATCHED_COLUMNS = _COLUMNS
 
 
 def write_workbooks(
-    *, repository_root: Path = REPOSITORY_ROOT, outputs: Path | None = None
+    *, repository_root: Path = REPOSITORY_ROOT, destination: Path | None = None
 ) -> dict[str, Path]:
     """Write both workbooks. Returns ``name -> path``.
 
@@ -361,7 +365,11 @@ def write_workbooks(
     place is one somebody has to remember to patch again.
     """
 
-    directory = Path(outputs) if outputs is not None else Path(repository_root) / "outputs"
+    directory = (
+        Path(destination)
+        if destination is not None
+        else Path(repository_root) / "build" / "report-workbooks"
+    )
     directory.mkdir(parents=True, exist_ok=True)
 
     written: dict[str, Path] = {}
@@ -389,9 +397,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     import argparse
 
     parser = argparse.ArgumentParser(description="Regenerate the report workbooks")
-    parser.add_argument("--outputs", type=Path, default=None)
+    parser.add_argument("--destination", type=Path, default=None)
     args = parser.parse_args(argv)
-    for name, path in sorted(write_workbooks(outputs=args.outputs).items()):
+    for name, path in sorted(write_workbooks(destination=args.destination).items()):
         print(f"  {name}  {path}")
     return 0
 

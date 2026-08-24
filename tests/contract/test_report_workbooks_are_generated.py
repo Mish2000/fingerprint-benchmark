@@ -7,8 +7,9 @@ it: the spreadsheet was a fourth description of the runs, kept in step with the
 other three by memory.
 
 These tests check the property that makes the ADR enforceable at all: every
-number in the workbooks comes from a published metric set or marker, so
-regenerating them is a no-op and a drift is a diff.
+number in the workbooks comes from a published metric set or marker, and two
+independent renderings are identical.  The workbooks are build artefacts, not
+files committed beside the evidence.
 """
 
 from __future__ import annotations
@@ -30,32 +31,22 @@ from fpbench.experiments.report_workbooks import (
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-OUTPUTS = REPOSITORY_ROOT / "outputs"
 
 
-def test_both_workbooks_are_present() -> None:
+def test_both_workbooks_are_generated(tmp_path: Path) -> None:
+    written = write_workbooks(destination=tmp_path)
     for name in (MATCHED_WORKBOOK, NON_MATCHED_WORKBOOK):
-        assert (OUTPUTS / name).is_file(), (
-            f"{name} is missing. Run `make report-workbooks`; it is generated, "
-            "not stored by hand"
-        )
+        assert written[name].is_file()
 
 
 @pytest.mark.parametrize("name", [MATCHED_WORKBOOK, NON_MATCHED_WORKBOOK])
-def test_the_committed_workbook_regenerates_byte_for_byte(
+def test_two_renderings_are_identical_byte_for_byte(
     name: str, tmp_path: Path
 ) -> None:
-    """The property the ADR check rests on.
-
-    If regenerating produced different bytes, the workbook in ``outputs/`` would
-    be somebody's edit rather than the evidence's rendering, and checking the
-    rendering would prove nothing about the file a supervisor opens.
-    """
-    fresh = write_workbooks(outputs=tmp_path)[name]
-    assert fresh.read_bytes() == (OUTPUTS / name).read_bytes(), (
-        f"{name} in outputs/ is not what the evidence renders to. Either it was "
-        "edited by hand, or the evidence moved and it was not regenerated"
-    )
+    """The renderer is deterministic without storing generated files in Git."""
+    first = write_workbooks(destination=tmp_path / "first")[name]
+    second = write_workbooks(destination=tmp_path / "second")[name]
+    assert first.read_bytes() == second.read_bytes()
 
 
 def test_every_row_traces_to_a_published_source() -> None:
@@ -114,8 +105,9 @@ def test_a_route_with_no_decisions_reports_none() -> None:
 
 
 @pytest.mark.parametrize("name", [MATCHED_WORKBOOK, NON_MATCHED_WORKBOOK])
-def test_the_workbook_is_a_readable_archive(name: str) -> None:
-    with zipfile.ZipFile(OUTPUTS / name) as archive:
+def test_the_workbook_is_a_readable_archive(name: str, tmp_path: Path) -> None:
+    workbook = write_workbooks(destination=tmp_path)[name]
+    with zipfile.ZipFile(workbook) as archive:
         assert archive.testzip() is None
         assert "xl/worksheets/sheet1.xml" in archive.namelist()
 
@@ -135,7 +127,9 @@ def _header_row_xml(path: Path) -> str:
 
 
 @pytest.mark.parametrize("name", [MATCHED_WORKBOOK, NON_MATCHED_WORKBOOK])
-def test_the_header_row_is_tall_enough_for_the_header_it_holds(name: str) -> None:
+def test_the_header_row_is_tall_enough_for_the_header_it_holds(
+    name: str, tmp_path: Path
+) -> None:
     """A fixed height clipped the longest heading.
 
     The first styled version set ``ht="42"`` for every sheet — two and a half
@@ -158,7 +152,8 @@ def test_the_header_row_is_tall_enough_for_the_header_it_holds(name: str) -> Non
         else (_NON_MATCHED_HEADERS, _NON_MATCHED_COLUMNS)
     )
     needed = _header_height(list(headers), columns)
-    row = _header_row_xml(OUTPUTS / name)
+    workbook = write_workbooks(destination=tmp_path)[name]
+    row = _header_row_xml(workbook)
     stored = float(row.split('ht="', 1)[1].split('"', 1)[0])
     assert stored >= needed, (
         f"{name} gives its header {stored} points and the widest heading needs "

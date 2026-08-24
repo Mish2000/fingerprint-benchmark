@@ -1,4 +1,4 @@
-"""The workbooks in ``outputs/`` are published results, and ADR 0030 binds them.
+"""The generated supervisor workbooks obey ADR 0030.
 
 ADR 0030 names four enforcement points — metric ids, definitions, prose and
 configuration — and the workbooks were outside all four. ``NonMatchedV1``
@@ -15,8 +15,8 @@ letters would push that sentence out of the file to stay green. What is checked
 instead is the same thing the metric-id rule checks: the sanity fraction may not
 be *named* as a rate, and may not be *valued* as one.
 
-The workbooks are hand-authored, so this is the only thing standing between the
-ADR and the deliverable a reader actually opens.
+The workbooks are generated from evidence into build space.  These checks run
+against a fresh rendering, so generated binaries never need to be committed.
 """
 
 from __future__ import annotations
@@ -28,8 +28,12 @@ from pathlib import Path
 
 import pytest
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-OUTPUTS = REPOSITORY_ROOT / "outputs"
+from fpbench.experiments.report_workbooks import (
+    MATCHED_WORKBOOK,
+    NON_MATCHED_WORKBOOK,
+    write_workbooks,
+)
+
 MAIN = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 
 #: The negative-sanity workbook. The mated workbook is a different population,
@@ -58,14 +62,10 @@ _RATE_ASSERTION = re.compile(
 _FRACTION_AS_PERCENT = re.compile(r"\d+\s*/\s*\d+\s*=\s*[\d.]+\s*%")
 
 
-def _workbooks() -> list[Path]:
-    if not OUTPUTS.is_dir():
-        return []
-    return sorted(
-        path
-        for path in OUTPUTS.iterdir()
-        if path.suffix in {".xlsx", ".xlsm"} and not path.name.startswith("~$")
-    )
+@pytest.fixture(params=(MATCHED_WORKBOOK, NON_MATCHED_WORKBOOK))
+def workbook(request: pytest.FixtureRequest, tmp_path: Path) -> Path:
+    """One fresh build artefact, outside the repository tree."""
+    return write_workbooks(destination=tmp_path)[str(request.param)]
 
 
 def _shared_strings(path: Path) -> list[str]:
@@ -128,7 +128,6 @@ def _header_row(path: Path) -> list[str]:
     return []
 
 
-@pytest.mark.parametrize("workbook", _workbooks(), ids=lambda p: p.name)
 def test_no_column_names_the_sanity_fraction_as_a_rate(workbook: Path) -> None:
     if NEGATIVE_SANITY not in workbook.stem:
         pytest.skip("ADR 0030 governs the same-subject different-finger set only")
@@ -145,7 +144,6 @@ def test_no_column_names_the_sanity_fraction_as_a_rate(workbook: Path) -> None:
     )
 
 
-@pytest.mark.parametrize("workbook", _workbooks(), ids=lambda p: p.name)
 def test_no_comment_states_the_sanity_fraction_as_a_rate(workbook: Path) -> None:
     if NEGATIVE_SANITY not in workbook.stem:
         pytest.skip("ADR 0030 governs the same-subject different-finger set only")
@@ -193,7 +191,6 @@ def _percentage_styles(path: Path) -> frozenset[int]:
     )
 
 
-@pytest.mark.parametrize("workbook", _workbooks(), ids=lambda p: p.name)
 def test_no_cell_is_formatted_as_a_percentage(workbook: Path) -> None:
     """The prohibition survives the move from text to typed cells.
 
@@ -223,7 +220,6 @@ def test_no_cell_is_formatted_as_a_percentage(workbook: Path) -> None:
     )
 
 
-@pytest.mark.parametrize("workbook", _workbooks(), ids=lambda p: p.name)
 def test_counts_are_stored_as_numbers(workbook: Path) -> None:
     """The counts a supervisor is asked to check must be checkable.
 

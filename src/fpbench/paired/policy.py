@@ -75,6 +75,22 @@ class PairedComparisonPolicy:
 
     document: Mapping[str, Any]
 
+    def fingerprint_of(self, document: Any) -> str:
+        """Derive a document's fingerprint by the rule that produced this one.
+
+        The storage layer holds the document and the fingerprint side by side and
+        cannot check that one came from the other: the rule is here, and that
+        layer imports only ``core``. So it asks the policy, before it publishes
+        anything, whether the exact bytes it is about to write derive to the
+        fingerprint the set claims.
+
+        This is not a formality. ``document`` is an ordinary field of a frozen
+        dataclass, so ``dataclasses.replace`` produces a perfectly real
+        :class:`PairedComparisonPolicy` carrying somebody else's document under
+        this one's fingerprint — and until storage asked, that published.
+        """
+        return policy_from_document(document, source="policy document").policy_fingerprint
+
 
 def load_paired_policy(path: Path) -> PairedComparisonPolicy:
     """Read ``configs/comparisons/policies/<name>.yaml``."""
@@ -82,8 +98,25 @@ def load_paired_policy(path: Path) -> PairedComparisonPolicy:
     if not path.is_file():
         raise ConfigurationError(f"paired comparison policy not found: {path}")
     document = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return policy_from_document(document, source=path)
+
+
+def policy_from_document(
+    document: Any, *, source: object
+) -> PairedComparisonPolicy:
+    """The same policy, derived from a document rather than from a file.
+
+    Split out so that a *stored* ``policy.json`` can be read back through the
+    identical rules that produced the fingerprint in the first place. Storage
+    cannot do this — the rules are here, and that layer imports only ``core``
+    — so it asks a policy to re-derive itself from the exact document it is
+    about to write, and this is what answers.
+
+    ``source`` only names the document in error messages.
+    """
     if not isinstance(document, Mapping):
-        raise ConfigurationError(f"{path}: expected a mapping at the top level")
+        raise ConfigurationError(f"{source}: expected a mapping at the top level")
+    path = source
 
     unknown_sections = sorted(set(document) - _TOP_LEVEL_KEYS)
     if unknown_sections:

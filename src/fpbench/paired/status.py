@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from fpbench.core.enums import PairedEvaluationStatus
-from fpbench.core.errors import StorageError
+from fpbench.core.errors import ConfigurationError, StorageError
 from fpbench.core.paired_models import (
     paired_receipt_content_hash,
     paired_receipt_fingerprint,
@@ -105,6 +105,31 @@ def inspect_paired_evaluation(
             issues=(str(exc),),
             inspected_utc=inspected,
         )
+
+    # The stored policy, re-derived by the rule that produced the fingerprint the
+    # definition pins. Storage checked that the document is present, readable and
+    # non-empty, and that the definition and every observation name one policy —
+    # that is as far as a layer importing only ``core`` can go. Whether those
+    # bytes *are* that policy is this package's question, and it is asked here
+    # rather than only in the finalization path, because "is this set ready?" was
+    # answering yes for a set whose policy nobody had read.
+    from fpbench.paired.policy import policy_from_document
+
+    try:
+        stored_policy = policy_from_document(
+            store.read_policy(paired_evaluation_id),
+            source=store.policy_path(paired_evaluation_id),
+        )
+    except (ConfigurationError, StorageError) as exc:
+        issues.append(f"policy.json is not a readable paired policy ({exc})")
+    else:
+        definition = store.read_definition(paired_evaluation_id)
+        if stored_policy.policy_fingerprint != definition.policy_fingerprint:
+            issues.append(
+                "policy.json derives "
+                f"{stored_policy.policy_fingerprint[:12]}... and the definition "
+                f"names {definition.policy_fingerprint[:12]}..."
+            )
 
     control = store.read_control_audit(paired_evaluation_id)
     if not control.is_clean:

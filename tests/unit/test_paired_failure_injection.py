@@ -615,6 +615,90 @@ def _publish_with(store, derived, definition, *, policy, observations):
     )
 
 
+def _policy_saying_something_else():
+    """A real, loadable policy that is not the one this world derives under.
+
+    One flipped flag, so it parses cleanly and derives to a different
+    fingerprint. A document that merely fails to parse would test the wrong
+    thing: the interesting case is the one that *looks* like a policy.
+    """
+    from dataclasses import replace as _replace
+
+    document = {
+        section: dict(body) if isinstance(body, dict) else body
+        for section, body in dict(_POLICY.document).items()
+    }
+    document["scores"] = {
+        **document["scores"],
+        "report_direction_counts": not document["scores"]["report_direction_counts"],
+    }
+    return _replace(_POLICY, document=document)
+
+
+def test_a_policy_whose_document_is_not_its_fingerprint_never_takes_the_name(
+    tmp_path,
+):
+    """A genuine policy object carrying somebody else's document.
+
+    ``document`` is an ordinary field of a frozen dataclass, so
+    ``dataclasses.replace`` produces a real ``PairedComparisonPolicy`` whose
+    fingerprint no longer describes what it holds. Storage cannot derive that
+    fingerprint — the rule lives in the package that owns the policy — so it
+    asks the policy to re-derive from the exact snapshot it is about to write.
+    Until it did, this published: the fingerprint was simply believed.
+    """
+    derived = _derive(tmp_path / "coherent", finalize=False)
+    store = PairedEvaluationStore(tmp_path / "under-test")
+    lying = _policy_saying_something_else()
+    assert lying.policy_fingerprint == _POLICY.policy_fingerprint
+    assert lying.fingerprint_of(lying.document) != lying.policy_fingerprint
+
+    with pytest.raises(StorageError, match="polic"):
+        _publish_with(
+            store, derived, derived.definition,
+            policy=lying, observations=derived.observations,
+        )
+    assert not store.has_manifest(derived.paired_id)
+
+
+def test_a_finished_set_whose_policy_document_is_gone_stops_verifying(tmp_path):
+    """The file the definition names, deleted after the fact.
+
+    ``verify_paired_evaluation`` used to pass ``None`` for the policy and never
+    open ``policy.json`` at all, so this returned clean and the set reported
+    PAIRED_EVALUATION_READY with no issues — a finished comparison naming a
+    policy that was not there.
+    """
+    derived = _derive(tmp_path, finalize=True)
+    store, paired_id = derived.store, derived.paired_id
+    assert store.verify_paired_evaluation(paired_id)
+
+    store.policy_path(paired_id).unlink()
+
+    with pytest.raises(StorageError, match="policy"):
+        store.verify_paired_evaluation(paired_id)
+    state = inspect_paired_evaluation(store=store, paired_evaluation_id=paired_id)
+    assert state.status is not PairedEvaluationStatus.PAIRED_EVALUATION_READY
+    assert state.issues
+
+
+def test_a_stored_policy_that_no_longer_derives_is_reported(tmp_path):
+    """Not deleted — replaced by a different, perfectly valid policy.
+
+    Storage sees a document that is present, readable and non-empty, which is
+    the whole of what a layer importing only ``core`` can decide. That the bytes
+    are no longer *this* policy is the paired package's rule, so the refusal
+    comes from the inspector rather than from the store.
+    """
+    derived = _derive(tmp_path, finalize=True)
+    store, paired_id = derived.store, derived.paired_id
+    write_json(store.policy_path(paired_id), _policy_saying_something_else().document)
+
+    state = inspect_paired_evaluation(store=store, paired_evaluation_id=paired_id)
+    assert state.status is not PairedEvaluationStatus.PAIRED_EVALUATION_READY
+    assert any("derives" in issue for issue in state.issues), state.issues
+
+
 @pytest.mark.parametrize("disagreeing", ["policy", "observations"])
 def test_a_set_whose_policy_contradicts_its_definition_never_takes_the_name(
     tmp_path, disagreeing
@@ -638,10 +722,14 @@ def test_a_set_whose_policy_contradicts_its_definition_never_takes_the_name(
     other = "a" * 64
 
     if disagreeing == "policy":
-        # The document and its fingerprint are honest about each other and name
-        # a policy the definition does not.
+        # A real policy, honest about itself, that the definition does not name.
+        # The definition is what the manifest fingerprints, so this is a set
+        # asking to be stored under a policy it was not derived with.
+        elsewhere = _policy_saying_something_else()
         policy = SimpleNamespace(
-            document={"policy_id": "elsewhere"}, policy_fingerprint=other
+            document=elsewhere.document,
+            policy_fingerprint=elsewhere.fingerprint_of(elsewhere.document),
+            fingerprint_of=elsewhere.fingerprint_of,
         )
         derived_under_test = derived
     else:

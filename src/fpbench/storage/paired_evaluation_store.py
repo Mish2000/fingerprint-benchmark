@@ -125,6 +125,17 @@ class PairedPolicy(Protocol):
     @property
     def policy_fingerprint(self) -> str: ...
 
+    def fingerprint_of(self, document: object) -> str:
+        """Derive ``document``'s fingerprint by the rule that produced this one.
+
+        Required, not optional. Without it the two halves above are a claim and
+        a document that never have to agree, and ``dataclasses.replace`` makes a
+        genuine policy object carrying somebody else's document under this one's
+        fingerprint. Storage asks this about the exact snapshot it is about to
+        write, so what is checked and what is stored cannot differ.
+        """
+        ...
+
 
 @dataclass(frozen=True, slots=True)
 class PairedSetInputs:
@@ -254,6 +265,28 @@ class PairedEvaluationStore:
         """
         manifest = inputs.manifest
         paired_id = manifest.paired_evaluation_id
+
+        # One deep, plain snapshot: what is derived from, what is checked, and
+        # what is written. Deriving from ``policy.document`` and then writing
+        # ``policy.document`` again would be two reads of a mutable mapping, and
+        # the whole point is that they cannot differ.
+        policy_document = to_plain(inputs.policy.document)
+        try:
+            derived = inputs.policy.fingerprint_of(policy_document)
+        except Exception as exc:  # the rule's own refusal, re-stated as this set's
+            raise StorageError(
+                "the policy document being published cannot be read as a paired "
+                f"policy at all ({type(exc).__name__}: {exc}), so no set may name "
+                "it"
+            ) from exc
+        if derived != inputs.policy.policy_fingerprint:
+            raise StorageError(
+                "the policy document being published derives "
+                f"{derived[:12]}... but the policy names "
+                f"{inputs.policy.policy_fingerprint[:12]}.... A fingerprint that "
+                "does not come from the document beside it describes nothing"
+            )
+
         self._require_coherent(
             manifest=manifest,
             definition=inputs.definition,
@@ -264,6 +297,7 @@ class PairedEvaluationStore:
             observations=inputs.observations,
             control_audit=inputs.control_audit,
             policy_fingerprint=inputs.policy.policy_fingerprint,
+            policy_document=policy_document,
             where="the paired comparison being published",
         )
 
@@ -280,7 +314,7 @@ class PairedEvaluationStore:
         )
 
         if claim.write_body:
-            self._write_body(paired_id, inputs)
+            self._write_body(paired_id, inputs, policy_document=policy_document)
 
         if not claim.owned:
             stored = self.read_manifest(paired_id)
@@ -314,7 +348,13 @@ class PairedEvaluationStore:
             self.control_audit_path(paired_id),
         )
 
-    def _write_body(self, paired_id: str, inputs: PairedSetInputs) -> None:
+    def _write_body(
+        self,
+        paired_id: str,
+        inputs: PairedSetInputs,
+        *,
+        policy_document: Mapping[str, object],
+    ) -> None:
         """Write the files the manifest describes. Only a claim holder gets here.
 
         The three JSON bodies keep claiming their own names rather than being
@@ -324,7 +364,7 @@ class PairedEvaluationStore:
         first writer left, and it costs one create-if-absent call.
         """
         self._claim_definition(paired_id, inputs.definition)
-        self._claim_policy(paired_id, inputs.policy.document)
+        self._claim_policy(paired_id, policy_document)
         self._write_records(paired_id, inputs.records)
         self._write_eligibility_transitions(paired_id, inputs.transitions)
         self._write_common_eligible_view(paired_id, inputs.common)
@@ -599,13 +639,16 @@ class PairedEvaluationStore:
             counts=self.read_counts(paired_id),
             observations=self.read_observations(paired_id),
             control_audit=self.read_control_audit(paired_id),
-            # ``None`` because on this side there is no attestation to compare
-            # against: ``policy.json`` is a document, and the fingerprint it
-            # derives to is the paired package's rule, not storage's. What is
-            # checkable here — that the definition and every observation name one
-            # policy — is checked either way. Re-deriving the stored document
-            # itself belongs to ``verify_paired_evaluation_against_sources``.
+            # Read, not skipped. This used to pass ``None`` and never touch
+            # ``policy.json`` at all, so a finished set with the file *deleted*
+            # verified clean and reported ready — the manifest's definition named
+            # a policy that was not there. ``read_policy`` refuses a missing or
+            # unreadable document, which is the half of the question this layer
+            # owns; whether the document still derives to the fingerprint the
+            # definition names is the paired package's rule, applied in
+            # :func:`fpbench.paired.status.inspect_paired_evaluation`.
             policy_fingerprint=None,
+            policy_document=self.read_policy(paired_id),
             where=f"the stored paired comparison {paired_id}",
         )
         return manifest
@@ -622,6 +665,7 @@ class PairedEvaluationStore:
         observations: tuple[PairedRateObservation, ...],
         control_audit: NativeCanonicalControlAudit,
         policy_fingerprint: str | None,
+        policy_document: Mapping[str, object],
         where: str,
     ) -> None:
         """Everything the manifest says, checked against the rows it says it about.
@@ -714,6 +758,13 @@ class PairedEvaluationStore:
         if definition.definition_fingerprint != manifest.definition_fingerprint:
             raise StorageError(
                 f"{where}: the definition is not the one the manifest names"
+            )
+
+        if not policy_document:
+            raise StorageError(
+                f"{where}: the policy document is empty. A set names a policy in "
+                "its definition and in every observation; a document that says "
+                "nothing cannot be the one they name"
             )
 
         expected_policy = definition.policy_fingerprint

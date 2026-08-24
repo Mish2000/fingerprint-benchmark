@@ -7,19 +7,14 @@ from pathlib import Path
 
 import pytest
 
+import fpbench.experiments.stage19a_finalization as stage19a
+import fpbench.experiments.stage19b_finalization as stage19b
+from fpbench.experiments.stage19_pair_manifest import CanonicalPairManifest
 from fpbench.experiments.stage19_result_integrity import (
     CanonicalPair,
     Stage19ResultIntegrityError,
     canonical_source_sha256,
     verify_outcome_store_integrity,
-)
-from fpbench.experiments.stage19a_finalization import (
-    Stage19AFinalizationError,
-    build_canonical_run_binding as build_stage19a_binding,
-)
-from fpbench.experiments.stage19b_finalization import (
-    Stage19BFinalizationError,
-    build_canonical_run_binding as build_stage19b_binding,
 )
 
 
@@ -163,27 +158,34 @@ def test_a_short_store_cannot_be_closed_by_agreeable_diagnostics(
 
 
 @pytest.mark.parametrize(
-    "builder, error",
+    "module, error",
     [
-        (build_stage19a_binding, Stage19AFinalizationError),
-        (build_stage19b_binding, Stage19BFinalizationError),
+        (stage19a, stage19a.Stage19AFinalizationError),
+        (stage19b, stage19b.Stage19BFinalizationError),
     ],
 )
 def test_one_diagnostic_comparison_can_never_close_a_stage19_run(
     tmp_path: Path,
-    builder,
+    monkeypatch: pytest.MonkeyPatch,
+    module,
     error: type[RuntimeError],
 ) -> None:
+    manifest = CanonicalPairManifest(
+        pairs=(_pair(0),),
+        pair_manifest_hash=MANIFEST_HASH,
+        protocol_id="sd300_50_subjects",
+        cohort_id="sd300_50_subjects_test_22f8d52a7478",
+        source_path=tmp_path / "pairs.parquet",
+    )
+    monkeypatch.setattr(module, "_pair_manifest", lambda workspace: manifest)
     path = _write_outcomes(
         tmp_path / "pair-outcomes.jsonl",
         [_row(_pair(0))],
     )
-    # The real workspace, so the stage reaches its own pair manifest. The
-    # refusal now lands earlier and says more than it used to: a one-row store
-    # is not merely the wrong size, its row is not a comparison this stage was
-    # defined over. Either sentence is a refusal, and both must remain one.
-    with pytest.raises(error, match="canonical run|6000"):
-        builder(_diagnostics(1), outcomes=path)
+    # Supply the manifest explicitly: a clean CI checkout has no workspace, and
+    # this test is about refusing a short store rather than about acquisition.
+    with pytest.raises(error, match="6000"):
+        module.build_canonical_run_binding(_diagnostics(1), outcomes=path)
 
 
 def test_stage19_make_targets_do_not_accept_claimed_counters() -> None:

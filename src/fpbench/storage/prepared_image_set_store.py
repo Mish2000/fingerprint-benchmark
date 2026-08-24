@@ -56,6 +56,7 @@ from fpbench.core.imaging_models import (
     TransformRuntimeManifest,
     ordered_prepared_entries_hash,
     preparation_receipt_fingerprint,
+    preparation_set_fingerprint,
 )
 from fpbench.core.identifiers import ImageId
 from fpbench.core.serialization import read_json, stable_hash, to_plain
@@ -876,6 +877,29 @@ class PreparedImageSetStore:
         if ordered_prepared_entries_hash(entries) != manifest.ordered_entries_hash:
             raise StorageError(
                 "the manifest's ordered-entries hash does not cover these rows"
+            )
+
+        # And the identity itself, re-derived. The ordered hash above says the
+        # rows are the rows; this says the *name* follows from them. It is the
+        # key publish_set decides ownership by, so a declared one that nothing
+        # derives lets a set be completed under a manifest describing something
+        # else.
+        expected = preparation_set_fingerprint(
+            dataset_id=manifest.dataset_id,
+            image_manifest_hash=manifest.image_manifest_hash,
+            protocol_id=manifest.protocol_id,
+            cohort_id=manifest.cohort_id,
+            cohort_fingerprint=manifest.cohort_fingerprint,
+            pair_manifest_hash=manifest.pair_manifest_hash,
+            transform_profile_fingerprint=manifest.transform_profile_fingerprint,
+            transform_runtime_fingerprint=manifest.transform_runtime_fingerprint,
+            entries=entries,
+        )
+        if manifest.preparation_set_fingerprint != expected:
+            raise StorageError(
+                "the manifest's preparation_set_fingerprint is not derived from "
+                f"what it describes ({manifest.preparation_set_fingerprint[:12]}"
+                f"... declared, {expected[:12]}... derived)"
             )
 
         for label, actual, expected in (

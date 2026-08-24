@@ -31,7 +31,7 @@ stores compare on — and is why a legitimate retry is not a conflict.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable, Sequence
 
@@ -94,6 +94,11 @@ class SetHarness:
     publish_expected: Callable[[], object]
     expected: dict[Path, object]
 
+    #: Publish the same set under a manifest whose declared identity does not
+    #: follow from the bodies. ``None`` where a store's manifest has no such
+    #: field to falsify.
+    publish_lying: Callable[[], object] | None = None
+
     def assert_disk_equals_expected(self) -> None:
         for path in self.body_paths:
             stored = _snapshot(path)
@@ -148,6 +153,12 @@ def plan_set(tmp_path: Path) -> SetHarness:
         body_paths=(store.jobs_path(run_id),),
         publish_expected=lambda: store.ensure_plan(plan),
         expected={},
+        publish_lying=lambda: store.ensure_plan(
+            replace(
+                plan,
+                definition=replace(plan.definition, job_manifest_hash="c" * 64),
+            )
+        ),
     )
     harness.capture()
     return harness
@@ -181,6 +192,13 @@ def prepared_image_set(tmp_path: Path) -> SetHarness:
         ),
         publish_expected=publish,
         expected={},
+        publish_lying=lambda: store.ensure_manifest(
+            manifest=replace(world.manifest, ordered_entries_hash="c" * 64),
+            entries=world.entries,
+            profile=world.profile,
+            runtime=world.runtime,
+            definition=world.definition,
+        ),
     )
     harness.capture()
     return harness
@@ -230,6 +248,21 @@ def paired_set(tmp_path: Path) -> SetHarness:
         ),
         publish_expected=publish,
         expected={},
+        publish_lying=lambda: store.publish_paired_set(
+            paired.PairedSetInputs(
+                definition=derived.definition,
+                policy=paired._POLICY,
+                records=derived.records,
+                transitions=derived.transitions,
+                common=derived.common,
+                counts=derived.counts,
+                observations=derived.observations,
+                control_audit=derived.control,
+                manifest=replace(
+                    derived.manifest, ordered_paired_records_hash="c" * 64
+                ),
+            )
+        ),
     )
     harness.capture()
     return harness
@@ -255,6 +288,9 @@ def result_set(tmp_path: Path) -> SetHarness:
         body_paths=(store.entries_path(manifest.run_id),),
         publish_expected=lambda: store.ensure_result_set(manifest, entries),
         expected={},
+        publish_lying=lambda: store.ensure_result_set(
+            replace(manifest, ordered_results_hash="c" * 64), entries
+        ),
     )
     harness.capture()
     return harness
@@ -291,6 +327,13 @@ def decision_set(tmp_path: Path) -> SetHarness:
         ),
         publish_expected=publish,
         expected={},
+        publish_lying=lambda: store.ensure_decision_set(
+            profile=chain.decision_set.profile,
+            manifest=replace(
+                chain.decision_set.manifest, ordered_decisions_hash="c" * 64
+            ),
+            records=chain.decision_set.records,
+        ),
     )
     harness.capture()
     return harness
@@ -317,6 +360,11 @@ def eligibility_set(tmp_path: Path) -> SetHarness:
         body_paths=(store.entries_path(manifest.run_id, set_id),),
         publish_expected=publish,
         expected={},
+        publish_lying=lambda: store.ensure_eligibility_set(
+            decision_set_id=set_id,
+            manifest=replace(manifest, ordered_units_hash="c" * 64),
+            records=chain.eligibility.records,
+        ),
     )
     harness.capture()
     return harness
@@ -346,6 +394,12 @@ def evaluation_view(tmp_path: Path) -> SetHarness:
         body_paths=(store.entries_path(run_id, set_id, manifest.view_kind),),
         publish_expected=publish,
         expected={},
+        publish_lying=lambda: store.ensure_view(
+            run_id=run_id,
+            decision_set_id=set_id,
+            manifest=replace(manifest, ordered_entries_hash="c" * 64),
+            entries=view.entries,
+        ),
     )
     harness.capture()
     return harness
@@ -384,6 +438,14 @@ def metric_set(tmp_path: Path) -> SetHarness:
         ),
         publish_expected=publish,
         expected={},
+        publish_lying=lambda: store.ensure_metric_set(
+            definition=definition,
+            policy=policy,
+            report_profile=profile,
+            manifest=replace(manifest, ordered_count_records_hash="c" * 64),
+            counts=counts,
+            observations=observations,
+        ),
     )
     harness.capture()
     return harness
@@ -409,6 +471,47 @@ def factory(request):
 
 
 # ------------------------------------------------------------------- the matrix
+
+
+def test_a_manifest_that_does_not_describe_its_bodies_never_takes_the_name(
+    tmp_path, factory
+):
+    """The hole this file had, and the defect it let through.
+
+    Every factory above builds its set through the real derivation, so the
+    declared identity always followed from the rows and no scenario here could
+    ever ask whether that was *checked*. It was not: five stores took the
+    manifest's word for its own fingerprint, which is the key ``publish_set``
+    decides ownership by. A manifest-only set could then be completed with
+    somebody else's body under the same declared name, and verified clean.
+
+    Both halves are asserted, because the second is the one that bites: refused,
+    and refused *before* the claim — a lying manifest that takes the name first
+    leaves a set no correct writer can ever publish.
+
+    Where the refusal comes from differs, and the difference is worth knowing:
+    six stores refuse in their own ``_require_coherent``, while the metric and
+    paired manifests will not *construct* with an ordered hash their fingerprint
+    does not cover, so those two are refused a step earlier still. Both satisfy
+    the property. Only the first kind is evidence that the store checks, so do
+    not read a pass here as proof that a given store re-derives anything — that
+    is what the per-store checks are for.
+    """
+    case = factory(tmp_path)
+    if case.publish_lying is None:
+        pytest.skip(f"{case.name} has no declared identity to falsify")
+
+    for path in (case.manifest_path, *case.body_paths):
+        path.unlink()
+
+    with pytest.raises(_CONFLICT):
+        case.publish_lying()
+
+    assert not case.manifest_path.is_file(), (
+        f"{case.name}: a manifest that does not describe its bodies claimed the "
+        "name anyway"
+    )
+    assert not any(path.is_file() for path in case.body_paths)
 
 
 def test_a_fresh_publication_puts_the_expected_set_on_disk(tmp_path, factory):

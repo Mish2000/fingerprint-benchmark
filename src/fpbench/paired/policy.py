@@ -97,7 +97,16 @@ def load_paired_policy(path: Path) -> PairedComparisonPolicy:
     path = Path(path)
     if not path.is_file():
         raise ConfigurationError(f"paired comparison policy not found: {path}")
-    document = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    try:
+        text = path.read_bytes().decode("utf-8")
+    except OSError as exc:
+        raise ConfigurationError(f"{path}: unreadable ({exc})") from exc
+    except UnicodeDecodeError as exc:
+        raise ConfigurationError(f"{path}: not valid UTF-8 ({exc})") from exc
+    try:
+        document = yaml.safe_load(text) or {}
+    except yaml.YAMLError as exc:
+        raise ConfigurationError(f"{path}: not valid YAML ({exc})") from exc
     return policy_from_document(document, source=path)
 
 
@@ -225,8 +234,17 @@ def policy_from_document(
         report_distribution=False,
         document=dict(document),
     )
-    fingerprint = paired_policy_fingerprint(fields)
-    return PairedComparisonPolicy(policy_fingerprint=fingerprint, **fields)
+    try:
+        fingerprint = paired_policy_fingerprint(fields)
+        return PairedComparisonPolicy(policy_fingerprint=fingerprint, **fields)
+    except (TypeError, ValueError) as exc:
+        # A model refusing the values a document produced is that document being
+        # malformed, and callers catch ConfigurationError for that. Named
+        # exception types, not ``except Exception``: a genuine bug in this module
+        # must still surface as one.
+        raise ConfigurationError(
+            f"{path}: the document does not describe a paired policy ({exc})"
+        ) from exc
 
 
 def paired_policy_fingerprint(fields: Mapping[str, Any]) -> str:

@@ -77,6 +77,8 @@ class PlanStore:
         Raises:
             PlanConflictError: a different plan is already stored for this run.
         """
+        self._require_coherent(plan)
+
         run_id = plan.definition.run_id
         manifest_path = self.plan_manifest_path(run_id)
 
@@ -110,6 +112,33 @@ class PlanStore:
             conflict=conflict,
         )
         return manifest_path.parent
+
+    def _require_coherent(self, plan: ExecutionPlan) -> None:
+        """The manifest's claims about the jobs, checked against the jobs.
+
+        ``read_plan`` has always recomputed the job manifest hash — but only
+        after the fact. Under a claim-first publication that is too late: the
+        manifest takes the name and *then* the whole-set check refuses it,
+        leaving a claimed set nobody can correct. So the same question is asked
+        before the claim as well.
+
+        The plan *fingerprint* itself is derived by the planner, out of inputs a
+        store does not hold, so this checks what a store can: the hash over the
+        jobs, and the count it declares.
+        """
+        definition = plan.definition
+        if definition.total_jobs != len(plan.jobs):
+            raise PlanConflictError(
+                f"the plan declares {definition.total_jobs} jobs and carries "
+                f"{len(plan.jobs)}"
+            )
+        recomputed = job_manifest_hash(definition.run_fingerprint, plan.jobs)
+        if recomputed != definition.job_manifest_hash:
+            raise PlanConflictError(
+                "the plan's job_manifest_hash does not cover these jobs "
+                f"({definition.job_manifest_hash[:12]}... declared, "
+                f"{recomputed[:12]}... derived)"
+            )
 
     def _jobs_table(self, plan: ExecutionPlan) -> pa.Table:
         """The jobs body this plan would store, stamped. Built, never written."""

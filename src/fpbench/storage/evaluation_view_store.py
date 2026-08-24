@@ -26,6 +26,7 @@ from fpbench.core.evaluation_view_models import (
     EVALUATION_VIEW_SCHEMA_VERSION,
     EvaluationViewEntry,
     EvaluationViewManifest,
+    evaluation_view_fingerprint,
     ordered_entries_hash,
 )
 from fpbench.core.serialization import read_json
@@ -187,6 +188,30 @@ class EvaluationViewStore:
         if ordered_entries_hash(entries) != manifest.ordered_entries_hash:
             raise StorageError(
                 "the manifest's ordered entries hash does not cover these rows"
+            )
+
+        # And the identity itself, re-derived. The ordered hash above says the
+        # rows are the rows; this says the *name* follows from them. It is the
+        # key publish_set decides ownership by, so a declared one that nothing
+        # derives lets a set be completed under a manifest describing something
+        # else.
+        expected = evaluation_view_fingerprint(
+            view_kind=manifest.view_kind,
+            policy_id=manifest.policy_id,
+            policy_version=manifest.policy_version,
+            run_fingerprint=manifest.run_fingerprint,
+            result_set_fingerprint=manifest.result_set_fingerprint,
+            decision_set_fingerprint=manifest.decision_set_fingerprint,
+            eligibility_set_fingerprint=manifest.eligibility_set_fingerprint,
+            pair_manifest_hash=manifest.pair_manifest_hash,
+            policy_metadata=manifest.policy_metadata,
+            entries=entries,
+        )
+        if manifest.view_fingerprint != expected:
+            raise StorageError(
+                "the manifest's view_fingerprint is not derived from what it "
+                f"describes ({manifest.view_fingerprint[:12]}... declared, "
+                f"{expected[:12]}... derived)"
             )
 
     def _entries_table(

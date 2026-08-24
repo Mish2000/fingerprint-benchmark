@@ -41,13 +41,16 @@ from fpbench.core.decision_models import (
     DecisionSetManifest,
     ThresholdComparator,
     ThresholdOrigin,
+    decision_set_fingerprint,
+    decision_set_id,
+    ordered_decisions_hash,
 )
 from fpbench.core.derivation_models import (
     DecisionDerivationFinalizationMarker,
     DecisionDerivationReceipt,
     derivation_receipt_fingerprint,
 )
-from fpbench.core.enums import ScoreDirection
+from fpbench.core.enums import DecisionApplicationStatus, ScoreDirection
 from fpbench.core.errors import DecisionSetConflictError, StorageError
 from fpbench.core.serialization import read_json
 from fpbench.core.json_io import publish_json, write_json
@@ -352,7 +355,20 @@ class DecisionSetStore:
         manifest: DecisionSetManifest,
         records: tuple[DecisionRecord, ...],
     ) -> None:
-        """Cheap structural agreement. Re-derivation lives in ``decisions.verify``."""
+        """The identity, re-derived from the rows, plus structural agreement.
+
+        It used to be structural only, with a docstring pointing at
+        ``decisions.verify`` for re-derivation — which runs far later and not on
+        this path at all. So a manifest could declare any ``ordered_decisions_hash``
+        and any ``decision_set_fingerprint``, and both publication and read-back
+        believed them. Since the fingerprint is the key
+        :func:`~fpbench.storage.set_publication.publish_set` decides ownership by,
+        believing it meant a set could be completed under a manifest that does not
+        describe it: manifest A over body B, verified clean.
+
+        Called before the claim *and* on every read, because a set is only its own
+        identity if that identity follows from its rows on both sides.
+        """
         if not records:
             raise StorageError("a decision set with no decisions is not one")
         if len(records) != manifest.total_decisions:
@@ -378,6 +394,51 @@ class DecisionSetStore:
         hashes = [record.decision_record_hash for record in records]
         if len(set(hashes)) != len(hashes):
             raise StorageError("two decisions hash identically")
+
+        decided = sum(
+            1
+            for record in records
+            if record.application_status is DecisionApplicationStatus.DECIDED
+        )
+        if manifest.decided_count != decided:
+            raise StorageError(
+                f"the manifest declares {manifest.decided_count} decided but the "
+                f"rows hold {decided}"
+            )
+        if manifest.undecidable_count != len(records) - decided:
+            raise StorageError(
+                f"the manifest declares {manifest.undecidable_count} undecidable "
+                f"but the rows hold {len(records) - decided}"
+            )
+
+        expected_hash = ordered_decisions_hash(records)
+        if manifest.ordered_decisions_hash != expected_hash:
+            raise StorageError(
+                "the manifest's ordered_decisions_hash does not cover these "
+                f"decisions ({manifest.ordered_decisions_hash[:12]}... declared, "
+                f"{expected_hash[:12]}... derived)"
+            )
+        expected_fingerprint = decision_set_fingerprint(
+            run_fingerprint=manifest.run_fingerprint,
+            plan_fingerprint=manifest.plan_fingerprint,
+            result_set_fingerprint=manifest.result_set_fingerprint,
+            decision_profile_fingerprint=manifest.decision_profile_fingerprint,
+            derivation_software_fingerprint=manifest.derivation_software_fingerprint,
+            derivation_source_revision=manifest.derivation_source_revision,
+            records=records,
+            decided_count=manifest.decided_count,
+            undecidable_count=manifest.undecidable_count,
+        )
+        if manifest.decision_set_fingerprint != expected_fingerprint:
+            raise StorageError(
+                "the manifest's decision_set_fingerprint is not derived from what "
+                f"it describes ({manifest.decision_set_fingerprint[:12]}... "
+                f"declared, {expected_fingerprint[:12]}... derived)"
+            )
+        if manifest.decision_set_id != decision_set_id(expected_fingerprint):
+            raise StorageError(
+                "the decision set id is not derived from its own fingerprint"
+            )
         for record in records:
             if record.decision_profile_fingerprint != profile.profile_fingerprint:
                 raise StorageError(

@@ -25,6 +25,7 @@ from fpbench.core.eligibility_models import (
     ELIGIBILITY_SCHEMA_VERSION,
     SelfEligibilityDecisionRecord,
     SelfEligibilityManifest,
+    eligibility_set_fingerprint,
 )
 from fpbench.core.errors import DecisionSetConflictError, StorageError
 from fpbench.core.serialization import read_json
@@ -176,6 +177,27 @@ class EligibilitySetStore:
         if ordered_units_hash(records) != manifest.ordered_units_hash:
             raise StorageError(
                 "the manifest's ordered units hash does not cover these records"
+            )
+
+        # And the identity itself, re-derived. The ordered hash above says the
+        # rows are the rows; this says the *name* follows from them. It is the
+        # key publish_set decides ownership by, so a declared one that nothing
+        # derives lets a set be completed under a manifest describing something
+        # else.
+        expected = eligibility_set_fingerprint(
+            result_set_fingerprint=manifest.result_set_fingerprint,
+            decision_set_fingerprint=manifest.decision_set_fingerprint,
+            decision_profile_fingerprint=manifest.decision_profile_fingerprint,
+            pair_manifest_hash=manifest.pair_manifest_hash,
+            records=records,
+            policy_id=manifest.policy_id,
+            policy_version=manifest.policy_version,
+        )
+        if manifest.eligibility_set_fingerprint != expected:
+            raise StorageError(
+                "the manifest's eligibility_set_fingerprint is not derived from "
+                f"what it describes ({manifest.eligibility_set_fingerprint[:12]}"
+                f"... declared, {expected[:12]}... derived)"
             )
 
     def _entries_table(

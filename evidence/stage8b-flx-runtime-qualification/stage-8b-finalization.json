@@ -2,7 +2,7 @@
   "schema_version": "1",
   "kind": "stage_8b_finalization",
   "outcome": "FLX_RAW_SCORE_EXECUTION_READY",
-  "stage8a_finalization_fingerprint": "e8d3b645a6d4b3a62772a5d386c8385d1a65437a773ef78e956ef6d763c023fb",
+  "stage8a_finalization_fingerprint": "b81faad99eeb3eba0ade46e55d0607fc56d993bb3b44922a2fa1aa35b0dea561",
   "source_archive_sha256": "60fa2c8894ea90efe2bb0553cd331d8ef84611b973b6126eaf6d162d1aa9b7e2",
   "checkpoint_sha256": "2683a04427bacd54adc00cfdc97474625b1e11e5a9e6672c5129f033018f8a28",
   "artifact_binding_fingerprint": "f51bca79bd2698a439becfe14930f49e04fd11bcfa830473928696cab84b766f",
@@ -15,7 +15,7 @@
   "qualification_report_fingerprint": "34db4383de318a9c864bcc1df2cede6568f96386ca6d86cea572ceb5d88a7713",
   "runtime_policy_fingerprint": "75682ba09e82598c9088cac642f4673a9e3dc5652ddaa5243632b41c154face8",
   "evidence_content_hashes": {
-    "README.md": "81e4bb27789df73dd998fa4c74e64ed7a833298b81dcbc8e9f45a7ad657d595a",
+    "README.md": "cb82198d68ee998ee8c96b00ba7161853ba35576223655b96e3622f9d9fb377a",
     "adapter-profile.json": "4d19622f3c855b6208b11b554d9d945080bc0721b2a1c70a4f213f8bb792a177",
     "artifact-binding.json": "3bd2e65d0dd0e101e9ce1f19284e6d03fd6967bff15dc926f0bd8b61a18af6f2",
     "preprocessing-profile.json": "7b60a914bf65b70c79f08deb7fc77b80fffd6c4fb5ddc23d5886940ee92002b8",
@@ -25,10 +25,10 @@
     "runtime-probe.json": "286694ddecfe3b4c6916a07244fba585e72b7479b105209dd4182ab1803a309f",
     "score-profile.json": "5b1178317fa2aa340eda4af617eeef6a4493e132e23e9856c81aff8660160fe9"
   },
-  "verifier_source_commit": "c459102c9433b3d33311d7c816e8e73a6cc78d0f",
+  "verifier_source_commit": "077155d6a775f0832851e86e8d24a1dc6936d722",
   "verifier_source_tree_clean": true,
   "biometric_inputs_read": false,
   "prior_stages_unchanged": true,
   "created_utc": "2026-08-05T17:46:23+00:00",
-  "fingerprint": "aa6897bf25c7b6565647da3566e6ab6446ae6104b2511034fed0fdb08cb13373"
+  "fingerprint": "7e9f6a9fea3a8b5e992a5616fdc77ae04c8efceb67ab21fd344cbe2706e1da0a"
 }

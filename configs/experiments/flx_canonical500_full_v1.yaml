@@ -44,7 +44,7 @@ require_verified_checksums: true
 # is what makes the binding reviewable in a diff rather than only in code.
 # ---------------------------------------------------------------------------
 stage8b:
-  finalization_fingerprint: aa6897bf25c7b6565647da3566e6ab6446ae6104b2511034fed0fdb08cb13373
+  finalization_fingerprint: 7e9f6a9fea3a8b5e992a5616fdc77ae04c8efceb67ab21fd344cbe2706e1da0a
   outcome: FLX_RAW_SCORE_EXECUTION_READY
 
   algorithm_id: flx_deepprint_texminu_512_without_localization

@@ -35,7 +35,7 @@ def test_every_identifier_is_a_safe_path_and_key_component() -> None:
 
 def test_the_stage_8b_binding_is_the_published_qualification() -> None:
     assert frozen.STAGE8B_FINALIZATION_FINGERPRINT == (
-        "aa6897bf25c7b6565647da3566e6ab6446ae6104b2511034fed0fdb08cb13373"
+        "7e9f6a9fea3a8b5e992a5616fdc77ae04c8efceb67ab21fd344cbe2706e1da0a"
     )
     assert frozen.STAGE8B_OUTCOME == "FLX_RAW_SCORE_EXECUTION_READY"
 

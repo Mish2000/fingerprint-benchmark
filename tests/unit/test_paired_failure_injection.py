@@ -48,6 +48,7 @@ from fpbench.paired import (
 )
 from fpbench.storage.paired_evaluation_store import (
     PairedEvaluationStore,
+    PairedSetInputs,
     paired_summary_content_hash,
     report_content_hash,
 )
@@ -138,15 +139,19 @@ def _derive(tmp_path: Path, *, finalize: bool = True) -> _Derived:
     paired_id = manifest.paired_evaluation_id
 
     store = PairedEvaluationStore(tmp_path)
-    store.ensure_definition(paired_id, definition)
-    store.ensure_policy(paired_id, {"policy_id": "synthetic_v1"})
-    store.ensure_records(paired_id, records)
-    store.ensure_eligibility_transitions(paired_id, transitions)
-    store.ensure_common_eligible_view(paired_id, common)
-    store.ensure_counts(paired_id, counts)
-    store.ensure_observations(paired_id, observations)
-    store.ensure_control_audit(paired_id, control)
-    store.ensure_manifest(manifest)
+    store.publish_paired_set(
+        PairedSetInputs(
+            definition=definition,
+            policy={"policy_id": "synthetic_v1"},
+            records=records,
+            transitions=transitions,
+            common=common,
+            counts=counts,
+            observations=observations,
+            control_audit=control,
+            manifest=manifest,
+        )
+    )
 
     derived = _Derived(
         world=world,

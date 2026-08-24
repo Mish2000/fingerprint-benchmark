@@ -20,6 +20,12 @@ reported, never replaced. Silently restoring it would destroy the evidence that
 something changed it — which, for an input set every algorithm is compared over,
 is the only thing anyone would want to know.
 
+**The manifest claims the set.** A prepared-image set is five files, and
+atomicity per file is not atomicity for the set, so the manifest is published
+create-if-absent *before* the profile, the runtime, the definition copy and the
+entries table, and only its owner writes them
+(:mod:`fpbench.storage.set_publication`).
+
 Layout is in :mod:`fpbench.storage.layout`, including why the PNGs sit at the
 workspace level rather than inside the set directory.
 """
@@ -53,11 +59,12 @@ from fpbench.core.imaging_models import (
 )
 from fpbench.core.identifiers import ImageId
 from fpbench.core.serialization import read_json, stable_hash, to_plain
-from fpbench.core.json_io import publish_json, write_json
+from fpbench.core.json_io import write_json
 from fpbench.storage import layout, prepared_image_schemas
 from fpbench.core.atomic_write import PublishConflictError, publish_file
 from fpbench.storage.immutable_publication import claim_document
 from fpbench.storage.atomic_parquet import replace_table
+from fpbench.storage.set_publication import publish_set
 
 __all__ = ["PreparedImageSetStore", "ImageWriteOutcome"]
 
@@ -370,10 +377,18 @@ class PreparedImageSetStore:
     ) -> Path:
         """Publish the finished set, or confirm the published one is already it.
 
-        The manifest is written **last** of the five files, because it is the
-        marker that says the set is readable. A crash between the entries table
-        and the manifest leaves a visibly unfinished directory rather than an
-        identity pointing at rows that were never written.
+        The manifest is published **first** of the five files, create-if-absent,
+        because it is the claim over the set (docs/adr/0139). It used to be
+        written last — which reads as caution and was the defect: two writers
+        with different content both found it absent, both replaced the four body
+        files, and one was then refused the manifest. What was left was one
+        writer's identity over the other writer's rows, with a fingerprint that
+        described rows no longer there.
+
+        Only the claim's owner writes the body. A crash between the two leaves a
+        set that is visibly unfinished and that the same fingerprint may finish;
+        a different fingerprint is a conflict and is never resolved by
+        overwriting.
         """
         entries = tuple(entries)
         self._require_coherent(
@@ -386,31 +401,40 @@ class PreparedImageSetStore:
 
         set_id = manifest.preparation_set_id
         manifest_path = self.manifest_path(set_id)
-        if manifest_path.is_file():
-            stored = self.read_manifest(set_id)
-            if stored.preparation_set_fingerprint != manifest.preparation_set_fingerprint:
-                raise PreparedImageSetConflictError(
-                    f"{manifest_path} already holds prepared-image set "
-                    f"{stored.preparation_set_id}; refusing to replace it"
-                )
-            return manifest_path.parent
-
         container = self.set_dir(set_id)
         container.mkdir(parents=True, exist_ok=True)
-        self.ensure_transform_profile(container, profile)
-        self.ensure_runtime(container, runtime)
-        self.ensure_definition_copy(container, definition)
-        self.ensure_entries_table(manifest, entries)
-        if not publish_json(manifest_path, manifest).created:
+        claim = publish_set(
+            manifest_path=manifest_path,
+            manifest=manifest,
+            body_paths=(
+                self.profile_path(container),
+                self.runtime_path(container),
+                self.definition_path(container),
+                self.entries_table_path(set_id),
+            ),
+            stored_fingerprint=lambda: self.read_manifest(
+                set_id
+            ).preparation_set_fingerprint,
+            fingerprint=manifest.preparation_set_fingerprint,
+        )
+
+        if claim.write_body:
+            self.ensure_transform_profile(container, profile)
+            self.ensure_runtime(container, runtime)
+            self.ensure_definition_copy(container, definition)
+            self.ensure_entries_table(manifest, entries)
+
+        if not claim.owned:
             stored = self.read_manifest(set_id)
             if (
                 stored.preparation_set_fingerprint
                 != manifest.preparation_set_fingerprint
             ):
                 raise PreparedImageSetConflictError(
-                    f"{manifest_path} was given prepared-image set "
-                    f"{stored.preparation_set_id} by another writer while this "
-                    "one was storing its own"
+                    f"{manifest_path} already holds prepared-image set "
+                    f"{stored.preparation_set_id} "
+                    f"({stored.preparation_set_fingerprint[:12]}...); refusing to "
+                    f"replace it with {manifest.preparation_set_fingerprint[:12]}..."
                 )
         return manifest_path.parent
 

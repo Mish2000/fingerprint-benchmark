@@ -40,10 +40,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fpbench.core.atomic_write import PublishConflictError
+from fpbench.core.atomic_write import PublishConflictError, publish_text
 from fpbench.core.json_io import publish_json
 
-__all__ = ["claim_document"]
+__all__ = ["claim_document", "claim_text"]
 
 
 def claim_document(path: Path, payload: object) -> bool:
@@ -64,4 +64,25 @@ def claim_document(path: Path, payload: object) -> bool:
     except PublishConflictError:
         # Byte-different under this name. Whether that is a conflict depends on
         # the fingerprint, and the caller is the only one that can read it.
+        return False
+
+
+def claim_text(path: Path, text: str) -> bool:
+    """Publish ``text`` at ``path`` exactly once.
+
+    The same rule as :func:`claim_document` for a document that is not JSON —
+    the generated Markdown reports. Those were the last two ``ensure_*`` methods
+    still checking ``is_file()`` and then reaching a replacing writer, and they
+    are not disposable: both compare a ``report_content_hash`` and raise on
+    disagreement, which is a statement that the report belongs to the set.
+
+    Returns:
+        ``True`` when this caller created the file. ``False`` means somebody
+        else's bytes are already there — and whether they are *the same report*
+        is the caller's comparison, because the hash it compares on normalises
+        what a byte comparison would not.
+    """
+    try:
+        return publish_text(Path(path), text, what="report").created
+    except PublishConflictError:
         return False

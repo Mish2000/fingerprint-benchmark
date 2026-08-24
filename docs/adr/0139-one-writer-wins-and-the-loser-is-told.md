@@ -91,10 +91,49 @@ widened allowlist — Stage 8B, 8D and 8E each added one — so `write_json` and
 pinned paths imports from there; the pinned writer's only remaining caller is
 `storage/modern_matcher_store.py`, which is pinned too.
 
+## What "the manifest publishes" turned out to mean
+
+Applying the decision store by store found three things the sentence above did
+not settle. They are recorded here because each was decided once and then had to
+be decided again in the next store.
+
+**A set may be incomplete; it may never be mixed.** Publishing the manifest first
+inverts the crash story: an interruption between the claim and the body leaves an
+identity whose rows are missing, where the old order left rows nobody claimed.
+That state is permitted, because it is *detectable* — same fingerprint, a
+required file absent — and the writer that owns it may finish it. What is never
+permitted is a directory holding one writer's manifest over another writer's
+rows. `publish_set` takes **every** body path for exactly this reason.
+
+**The check before the claim is load-bearing.** A claim cannot be given back, so
+a manifest that names hashes and counts describing nothing must be refused
+*before* it takes the name — otherwise a mis-derived set owns an identity that
+can only ever be refused afterwards. Each multi-file store therefore checks its
+inputs against its own manifest first, through the same function its verifier
+uses on what it later reads back.
+
+**`overwrite=True` is a separate path, not a flag on the same one.** `ManifestStore`
+had one writer taking a boolean. Splitting it is what makes the refusal the
+filesystem's: `overwrite=False` publishes create-if-absent and turns *both* ways
+of losing — different bytes, and identical bytes — back into `ManifestExistsError`.
+The second way is easy to miss: a manifest is stamped with `created_utc` at
+one-second resolution, so two writers of the same rows inside one second produce
+byte-identical files, and a store that only translated `PublishConflictError`
+would have told both of them they had stored it.
+
 ## Consequences
 
 * A losing writer now raises where it used to return. That is the point, and it
   will surface harness bugs that were previously invisible.
+* `PairedEvaluationStore` no longer has nine public writers whose call order was
+  the contract. `publish_paired_set` takes the whole comparison, because the
+  order was unenforceable while any of them could be called alone.
+* The static scan that enforces this (`tests/contract/`) follows calls inside a
+  module — but only under `src/fpbench/storage/`. Resolved across the whole
+  tree it matches every stage publisher in `experiments/`, and those write
+  evidence markers, which this ADR deliberately puts in the `replace_*` class.
+  Eighty-five exemptions would have emptied the test; the direct scan still
+  covers the rest of the tree.
 * `publish_*` needs the temp and the target on one filesystem. They are
   siblings, so this holds by construction.
 * `write_json` output is byte-identical to the pinned writer's on a POSIX

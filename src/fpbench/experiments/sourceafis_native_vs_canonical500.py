@@ -83,6 +83,7 @@ from fpbench.paired import (
 from fpbench.paired.status import PairedEvaluationState
 from fpbench.storage.paired_evaluation_store import (
     PairedEvaluationStore,
+    PairedSetInputs,
     paired_summary_content_hash,
     report_content_hash,
 )
@@ -332,15 +333,19 @@ def derive_paired_evaluation(
     paired_id = manifest.paired_evaluation_id
 
     store = prepared.store
-    store.ensure_definition(paired_id, prepared.definition)
-    store.ensure_policy(paired_id, dict(prepared.policy.document))
-    store.ensure_records(paired_id, records)
-    store.ensure_eligibility_transitions(paired_id, transitions)
-    store.ensure_common_eligible_view(paired_id, common)
-    store.ensure_counts(paired_id, counts)
-    store.ensure_observations(paired_id, observations)
-    store.ensure_control_audit(paired_id, control)
-    store.ensure_manifest(manifest)
+    store.publish_paired_set(
+        PairedSetInputs(
+            definition=prepared.definition,
+            policy=dict(prepared.policy.document),
+            records=records,
+            transitions=transitions,
+            common=common,
+            counts=counts,
+            observations=observations,
+            control_audit=control,
+            manifest=manifest,
+        )
+    )
 
     # Read it all back and re-check before claiming anything was written.
     store.verify_paired_evaluation(paired_id)

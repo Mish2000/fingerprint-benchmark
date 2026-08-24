@@ -6,11 +6,18 @@ regenerate: the same identity with the same content is a no-op, the same
 identity with different content is a conflict, nothing is overwritten and
 nothing is silently repaired.
 
-**Write order matters.** Definition and policy first, then the five tables, then
-the manifest — which is the marker that says the comparison is readable. The
-control audit, summary, report and receipt come after, and the finalization
-marker last of all. A crash anywhere leaves a visibly unfinished directory
-rather than an identity pointing at rows that were never written.
+**The manifest is the claim.** It is published first, create-if-absent, and only
+its owner writes the eight files it describes — definition, policy, the five
+tables and the control audit (docs/adr/0139). The old order wrote those eight
+first and published the manifest last, which read as caution and was the defect:
+two writers with different content both found the manifest absent, both replaced
+the body, and one was then refused the manifest, leaving one writer's manifest
+standing over the other writer's rows.
+
+The summary, report and receipt come after the manifest, and the finalization
+marker last of all; each claims its own name. A crash between the claim and the
+body leaves a set that is visibly unfinished and can be finished by the same
+fingerprint — never a set that is silently mixed.
 
 The layout, and why a paired comparison is not filed under either run, is in
 :mod:`fpbench.storage.layout`.
@@ -19,13 +26,13 @@ The layout, and why a paired comparison is not filed under either run, is in
 from __future__ import annotations
 
 import datetime as _dt
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping
 
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from fpbench.core.atomic_write import replace_text
 from fpbench.core.errors import PairedEvaluationConflictError, StorageError
 from fpbench.core.paired_models import (
     PAIRED_SCHEMA_VERSION,
@@ -48,12 +55,17 @@ from fpbench.core.paired_models import (
 )
 from fpbench.core.provenance_models import SoftwareProvenance
 from fpbench.core.serialization import read_json, stable_hash, to_plain
-from fpbench.core.json_io import write_json
 from fpbench.storage import layout, paired_schemas
-from fpbench.storage.immutable_publication import claim_document
+from fpbench.storage.immutable_publication import claim_document, claim_text
 from fpbench.storage.atomic_parquet import replace_table
+from fpbench.storage.set_publication import publish_set
 
-__all__ = ["PairedEvaluationStore", "paired_summary_content_hash", "report_content_hash"]
+__all__ = [
+    "PairedEvaluationStore",
+    "PairedSetInputs",
+    "paired_summary_content_hash",
+    "report_content_hash",
+]
 
 _DEFINITION = "definition.json"
 _POLICY = "policy.json"
@@ -91,15 +103,29 @@ def report_content_hash(markdown: str) -> str:
     )
 
 
-def write_text_atomically(path: Path, text: str) -> Path:
-    """Write text atomically, through a uniquely named temp.
+@dataclass(frozen=True, slots=True)
+class PairedSetInputs:
+    """Everything one paired comparison is made of, in one argument.
 
-    LF on every platform and no shared scratch name — the same two properties
-    ``write_json`` has since ADR 0139, and for the same reasons: these bytes are
-    compared against a committed copy, and two writers of one report must not be
-    able to corrupt each other's temp file.
+    The nine documents used to be published by nine public methods, called in
+    order by one caller. That order *was* the contract — definition, policy,
+    five tables, control audit, then the manifest — and nothing enforced it, so
+    the body went to disk while the set was still unowned.
+
+    They arrive together now because the manifest cannot be published until they
+    have all been checked against it: the manifest's hashes, counts and
+    fingerprints describe exactly these objects, and a claim is irreversible.
     """
-    return replace_text(Path(path), text)
+
+    definition: PairedEvaluationDefinition
+    policy: Mapping[str, object]
+    records: tuple[PairedComparisonRecord, ...]
+    transitions: tuple[SelfEligibilityTransitionRecord, ...]
+    common: tuple[CommonEligibleMatedEntry, ...]
+    counts: tuple[TransitionCountRecord, ...]
+    observations: tuple[PairedRateObservation, ...]
+    control_audit: NativeCanonicalControlAudit
+    manifest: PairedEvaluationManifest
 
 
 class PairedEvaluationStore:
@@ -189,7 +215,100 @@ class PairedEvaluationStore:
 
     # ------------------------------------------------------------------- write
 
-    def ensure_definition(
+    def publish_paired_set(self, inputs: PairedSetInputs) -> Path:
+        """Publish one whole paired comparison, manifest first. Returns its directory.
+
+        The manifest is the claim over the set (docs/adr/0139). It is published
+        create-if-absent *before* a single body file is written, so two writers
+        with different content can never leave one writer's manifest standing
+        over the other writer's rows.
+
+        Because a claim cannot be taken back, everything is checked against the
+        manifest first — the same coherence :meth:`verify_paired_evaluation`
+        applies to what is on disk, applied here to what is about to go there.
+        Otherwise a mis-derived set would take a name that can only be refused
+        from then on, never corrected.
+        """
+        manifest = inputs.manifest
+        paired_id = manifest.paired_evaluation_id
+        self._require_coherent(
+            manifest=manifest,
+            definition=inputs.definition,
+            records=inputs.records,
+            transitions=inputs.transitions,
+            common=inputs.common,
+            counts=inputs.counts,
+            observations=inputs.observations,
+            control_audit=inputs.control_audit,
+            where="the paired comparison being published",
+        )
+
+        manifest_path = self.manifest_path(paired_id)
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        claim = publish_set(
+            manifest_path=manifest_path,
+            manifest=manifest,
+            body_paths=self._body_paths(paired_id),
+            stored_fingerprint=lambda: self.read_manifest(
+                paired_id
+            ).paired_evaluation_fingerprint,
+            fingerprint=manifest.paired_evaluation_fingerprint,
+        )
+
+        if claim.write_body:
+            self._write_body(paired_id, inputs)
+
+        if not claim.owned:
+            stored = self.read_manifest(paired_id)
+            if (
+                stored.paired_evaluation_fingerprint
+                != manifest.paired_evaluation_fingerprint
+            ):
+                raise PairedEvaluationConflictError(
+                    f"{manifest_path} already holds paired comparison "
+                    f"{stored.paired_evaluation_id} "
+                    f"({stored.paired_evaluation_fingerprint[:12]}...); refusing to "
+                    f"replace it with {manifest.paired_evaluation_fingerprint[:12]}..."
+                )
+        return manifest_path.parent
+
+    def _body_paths(self, paired_id: str) -> tuple[Path, ...]:
+        """Every file the manifest describes. All of them, not a representative.
+
+        A crash between two of them leaves a set the retry would otherwise
+        declare finished; :func:`~fpbench.storage.set_publication.publish_set`
+        can only tell that it stopped half way if it is given the whole list.
+        """
+        return (
+            self.definition_path(paired_id),
+            self.policy_path(paired_id),
+            self.comparisons_path(paired_id),
+            self.eligibility_path(paired_id),
+            self.common_eligible_path(paired_id),
+            self.counts_path(paired_id),
+            self.observations_path(paired_id),
+            self.control_audit_path(paired_id),
+        )
+
+    def _write_body(self, paired_id: str, inputs: PairedSetInputs) -> None:
+        """Write the files the manifest describes. Only a claim holder gets here.
+
+        The three JSON bodies keep claiming their own names rather than being
+        replaced. Under the set claim that is not what stops a second writer —
+        the manifest already did — but it is still the check that catches a
+        *resumed* publication finishing a set with something other than what the
+        first writer left, and it costs one create-if-absent call.
+        """
+        self._claim_definition(paired_id, inputs.definition)
+        self._claim_policy(paired_id, inputs.policy)
+        self._write_records(paired_id, inputs.records)
+        self._write_eligibility_transitions(paired_id, inputs.transitions)
+        self._write_common_eligible_view(paired_id, inputs.common)
+        self._write_counts(paired_id, inputs.counts)
+        self._write_observations(paired_id, inputs.observations)
+        self._claim_control_audit(paired_id, inputs.control_audit)
+
+    def _claim_definition(
         self, paired_id: str, definition: PairedEvaluationDefinition
     ) -> Path:
         path = self.definition_path(paired_id)
@@ -201,7 +320,7 @@ class PairedEvaluationStore:
                 )
         return path
 
-    def ensure_policy(self, paired_id: str, policy: Mapping[str, object]) -> Path:
+    def _claim_policy(self, paired_id: str, policy: Mapping[str, object]) -> Path:
         """Store the policy beside the numbers, not merely a reference to it.
 
         The config file it was read from lives in a repository that will keep
@@ -217,62 +336,7 @@ class PairedEvaluationStore:
                 )
         return path
 
-    def ensure_records(
-        self, paired_id: str, records: tuple[PairedComparisonRecord, ...]
-    ) -> Path:
-        return self._write_parquet(
-            self.comparisons_path(paired_id),
-            paired_schemas.paired_comparisons_to_table(records),
-            paired_id=paired_id,
-            row_kind=b"paired_comparisons",
-            rows=len(records),
-        )
-
-    def ensure_eligibility_transitions(
-        self, paired_id: str, records: tuple[SelfEligibilityTransitionRecord, ...]
-    ) -> Path:
-        return self._write_parquet(
-            self.eligibility_path(paired_id),
-            paired_schemas.eligibility_transitions_to_table(records),
-            paired_id=paired_id,
-            row_kind=b"eligibility_transitions",
-            rows=len(records),
-        )
-
-    def ensure_common_eligible_view(
-        self, paired_id: str, entries: tuple[CommonEligibleMatedEntry, ...]
-    ) -> Path:
-        return self._write_parquet(
-            self.common_eligible_path(paired_id),
-            paired_schemas.common_eligible_to_table(entries),
-            paired_id=paired_id,
-            row_kind=b"common_eligible_mated",
-            rows=len(entries),
-        )
-
-    def ensure_counts(
-        self, paired_id: str, records: tuple[TransitionCountRecord, ...]
-    ) -> Path:
-        return self._write_parquet(
-            self.counts_path(paired_id),
-            paired_schemas.transition_counts_to_table(records),
-            paired_id=paired_id,
-            row_kind=b"transition_counts",
-            rows=len(records),
-        )
-
-    def ensure_observations(
-        self, paired_id: str, observations: tuple[PairedRateObservation, ...]
-    ) -> Path:
-        return self._write_parquet(
-            self.observations_path(paired_id),
-            paired_schemas.paired_observations_to_table(observations),
-            paired_id=paired_id,
-            row_kind=b"paired_observations",
-            rows=len(observations),
-        )
-
-    def ensure_control_audit(
+    def _claim_control_audit(
         self, paired_id: str, audit: NativeCanonicalControlAudit
     ) -> Path:
         path = self.control_audit_path(paired_id)
@@ -284,22 +348,60 @@ class PairedEvaluationStore:
                 )
         return path
 
-    def ensure_manifest(
-        self, manifest: PairedEvaluationManifest
+    def _write_records(
+        self, paired_id: str, records: tuple[PairedComparisonRecord, ...]
     ) -> Path:
-        """The marker that says the comparison is readable. Written last of six."""
-        path = self.manifest_path(manifest.paired_evaluation_id)
-        if not claim_document(path, manifest):
-            stored = self.read_manifest(manifest.paired_evaluation_id)
-            if (
-                stored.paired_evaluation_fingerprint
-                != manifest.paired_evaluation_fingerprint
-            ):
-                raise PairedEvaluationConflictError(
-                    f"{path} already holds paired comparison "
-                    f"{stored.paired_evaluation_id}; refusing to replace it"
-                )
-        return path
+        return self._write_parquet(
+            self.comparisons_path(paired_id),
+            paired_schemas.paired_comparisons_to_table(records),
+            paired_id=paired_id,
+            row_kind=b"paired_comparisons",
+            rows=len(records),
+        )
+
+    def _write_eligibility_transitions(
+        self, paired_id: str, records: tuple[SelfEligibilityTransitionRecord, ...]
+    ) -> Path:
+        return self._write_parquet(
+            self.eligibility_path(paired_id),
+            paired_schemas.eligibility_transitions_to_table(records),
+            paired_id=paired_id,
+            row_kind=b"eligibility_transitions",
+            rows=len(records),
+        )
+
+    def _write_common_eligible_view(
+        self, paired_id: str, entries: tuple[CommonEligibleMatedEntry, ...]
+    ) -> Path:
+        return self._write_parquet(
+            self.common_eligible_path(paired_id),
+            paired_schemas.common_eligible_to_table(entries),
+            paired_id=paired_id,
+            row_kind=b"common_eligible_mated",
+            rows=len(entries),
+        )
+
+    def _write_counts(
+        self, paired_id: str, records: tuple[TransitionCountRecord, ...]
+    ) -> Path:
+        return self._write_parquet(
+            self.counts_path(paired_id),
+            paired_schemas.transition_counts_to_table(records),
+            paired_id=paired_id,
+            row_kind=b"transition_counts",
+            rows=len(records),
+        )
+
+    def _write_observations(
+        self, paired_id: str, observations: tuple[PairedRateObservation, ...]
+    ) -> Path:
+        return self._write_parquet(
+            self.observations_path(paired_id),
+            paired_schemas.paired_observations_to_table(observations),
+            paired_id=paired_id,
+            row_kind=b"paired_observations",
+            rows=len(observations),
+        )
 
     def ensure_summary(
         self, paired_id: str, summary: Mapping[str, object]
@@ -317,14 +419,13 @@ class PairedEvaluationStore:
 
     def ensure_report(self, paired_id: str, markdown: str) -> Path:
         path = self.report_path(paired_id)
-        if path.is_file():
+        if not claim_text(path, markdown):
             stored = self.read_report(paired_id)
             if report_content_hash(stored) != report_content_hash(markdown):
                 raise PairedEvaluationConflictError(
                     f"{path} already carries a different paired report"
                 )
-            return path
-        return write_text_atomically(path, markdown)
+        return path
 
     def ensure_receipt(
         self, paired_id: str, receipt: PairedEvaluationReceipt
@@ -465,12 +566,39 @@ class PairedEvaluationStore:
         comparison is not evidence of itself, and neither is this method.
         """
         manifest = self.read_manifest(paired_id)
-        records = self.read_records(paired_id)
-        transitions = self.read_eligibility_transitions(paired_id)
-        common = self.read_common_eligible_view(paired_id)
-        counts = self.read_counts(paired_id)
-        observations = self.read_observations(paired_id)
+        self._require_coherent(
+            manifest=manifest,
+            definition=self.read_definition(paired_id),
+            records=self.read_records(paired_id),
+            transitions=self.read_eligibility_transitions(paired_id),
+            common=self.read_common_eligible_view(paired_id),
+            counts=self.read_counts(paired_id),
+            observations=self.read_observations(paired_id),
+            control_audit=self.read_control_audit(paired_id),
+            where=f"the stored paired comparison {paired_id}",
+        )
+        return manifest
 
+    @staticmethod
+    def _require_coherent(
+        *,
+        manifest: PairedEvaluationManifest,
+        definition: PairedEvaluationDefinition,
+        records: tuple[PairedComparisonRecord, ...],
+        transitions: tuple[SelfEligibilityTransitionRecord, ...],
+        common: tuple[CommonEligibleMatedEntry, ...],
+        counts: tuple[TransitionCountRecord, ...],
+        observations: tuple[PairedRateObservation, ...],
+        control_audit: NativeCanonicalControlAudit,
+        where: str,
+    ) -> None:
+        """Everything the manifest says, checked against the rows it says it about.
+
+        One definition of coherence, applied twice: to the objects about to be
+        published, before the manifest claims the name, and to the documents read
+        back off the disk afterwards. Two copies of these checks would have been
+        two chances to disagree about what a whole set is.
+        """
         for label, rows in (
             ("paired records", records),
             ("eligibility transitions", transitions),
@@ -481,7 +609,8 @@ class PairedEvaluationStore:
             ordinals = [row.ordinal for row in rows]
             if ordinals != list(range(len(rows))):
                 raise StorageError(
-                    f"{label}: ordinals must be 0..n-1 with no gaps and no repeats"
+                    f"{where}: {label} ordinals must be 0..n-1 with no gaps and "
+                    "no repeats"
                 )
 
         checks = (
@@ -514,37 +643,37 @@ class PairedEvaluationStore:
         for label, actual, expected in checks:
             if actual != expected:
                 raise StorageError(
-                    f"the manifest's {label} hash does not cover the stored rows"
+                    f"{where}: the manifest's {label} hash does not cover the rows"
                 )
 
         if manifest.total_paired_comparisons != len(records):
             raise StorageError(
-                f"the manifest declares {manifest.total_paired_comparisons} paired "
-                f"comparisons but the table holds {len(records)}"
+                f"{where}: the manifest declares "
+                f"{manifest.total_paired_comparisons} paired comparisons but the "
+                f"table holds {len(records)}"
             )
         if manifest.total_eligibility_units != len(transitions):
             raise StorageError(
-                f"the manifest declares {manifest.total_eligibility_units} "
-                f"eligibility units but the table holds {len(transitions)}"
+                f"{where}: the manifest declares "
+                f"{manifest.total_eligibility_units} eligibility units but the "
+                f"table holds {len(transitions)}"
             )
         included = sum(1 for entry in common if entry.included)
         if manifest.total_common_eligible_rows != included:
             raise StorageError(
-                f"the manifest declares {manifest.total_common_eligible_rows} "
-                f"common-eligible rows but {included} are marked included"
+                f"{where}: the manifest declares "
+                f"{manifest.total_common_eligible_rows} common-eligible rows but "
+                f"{included} are marked included"
             )
 
-        audit = self.read_control_audit(paired_id)
-        if audit.audit_fingerprint != manifest.control_audit_fingerprint:
+        if control_audit.audit_fingerprint != manifest.control_audit_fingerprint:
             raise StorageError(
-                "the stored control audit is not the one the manifest names"
+                f"{where}: the control audit is not the one the manifest names"
             )
-        definition = self.read_definition(paired_id)
         if definition.definition_fingerprint != manifest.definition_fingerprint:
             raise StorageError(
-                "the stored definition is not the one the manifest names"
+                f"{where}: the definition is not the one the manifest names"
             )
-        return manifest
 
     # --------------------------------------------------------------- internals
 

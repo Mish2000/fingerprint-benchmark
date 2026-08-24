@@ -120,6 +120,13 @@ def publish_evidence_document(path: Path, payload: Any) -> Path:
 
     Sorted keys and LF, matching what the stage writers already emitted, so
     routing an existing writer through this changes no byte of a clean document.
+
+    Written through :func:`~fpbench.core.atomic_write.replace_bytes` rather than
+    ``Path.write_bytes``. An evidence marker is *meant* to be regenerated, so
+    replace-if-present is the right semantic — but the bare write was not even
+    atomic against a crash, which for the one door every stage's documents go
+    through meant a truncated marker could be left where a whole one had been.
+    The bytes are identical either way.
     """
     redacted = redact_absolute_paths(payload)
     leaks = find_absolute_paths(redacted, path=Path(path).name)
@@ -130,5 +137,5 @@ def publish_evidence_document(path: Path, payload: Any) -> Path:
             f"{location} = {text!r}. Evidence carries no machine's layout"
         )
     body = json.dumps(redacted, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
-    Path(path).write_bytes(body.encode("utf-8"))
+    replace_bytes(Path(path), body.encode("utf-8"), what="evidence document")
     return Path(path)

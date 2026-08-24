@@ -10,6 +10,12 @@ things: no marker exists, the status is not ``PREPARATION_READY``, and running
 the same command again under the same runtime finishes the job. The last is the
 one that matters operationally — a 3,000-image materialisation that had to start
 over after every interruption would be unusable.
+
+Since the manifest became the *claim* over the set (docs/adr/0139) there is one
+new crash story and it is covered below: the manifest is published first, so an
+interruption can leave a set whose identity exists and whose rows do not. That
+state is permitted, detected, and finished by the writer that owns it — what is
+not permitted, at any point, is a set that mixes two writers' work.
 """
 
 from __future__ import annotations
@@ -98,7 +104,13 @@ def test_a_failure_after_an_entry_write_is_resumable(tmp_path, monkeypatch):
     assert world.store.verify_set(world.preparation_set_id)
 
 
-def test_a_failure_after_the_entries_table_leaves_no_manifest(tmp_path, monkeypatch):
+def test_a_failure_after_the_entries_table_leaves_a_whole_set(tmp_path, monkeypatch):
+    """The last body file, interrupted after it landed.
+
+    The manifest is the claim now, so it is already there — which is the point:
+    a set is never *mixed*, and one that is whole is whole whatever raised
+    afterwards. The retry re-reads it and finds its own fingerprint.
+    """
     original = PreparedImageSetStore.ensure_entries_table
     monkeypatch.setattr(
         PreparedImageSetStore, "ensure_entries_table", _fail_after(original)
@@ -107,9 +119,38 @@ def test_a_failure_after_the_entries_table_leaves_no_manifest(tmp_path, monkeypa
         build_canonical_world(tmp_path, subjects=1, fingers=(1,))
     monkeypatch.undo()
 
-    world = build_canonical_world(tmp_path, subjects=1, fingers=(1,), finalise=False)
-    assert not world.store.has_manifest(world.preparation_set_id)
-    assert _status(world).status is PreparationStatus.IMAGES_COMPLETE
+    world = build_canonical_world(tmp_path, subjects=1, fingers=(1,))
+    assert world.store.has_manifest(world.preparation_set_id)
+    assert world.store.verify_set(world.preparation_set_id)
+
+
+def test_a_failure_between_the_claim_and_the_body_is_resumable(tmp_path, monkeypatch):
+    """A crash *inside* the set: the manifest is down and the rows are not.
+
+    This is the failure the old write order could not produce and the new one
+    can, so it is the one worth pinning. ``publish_set`` recognises it — same
+    fingerprint, a body file missing — and lets the retry finish the publication
+    it started rather than refusing a set it owns.
+    """
+    original = PreparedImageSetStore.ensure_definition_copy
+    monkeypatch.setattr(
+        PreparedImageSetStore, "ensure_definition_copy", _fail_after(original)
+    )
+    with pytest.raises(_Boom):
+        build_canonical_world(tmp_path, subjects=1, fingers=(1,))
+    monkeypatch.undo()
+
+    store = PreparedImageSetStore(tmp_path / "workspace")
+    claimed = [
+        path.name
+        for path in (tmp_path / "workspace" / "prepared-images").glob("prepset_*")
+        if (path / "manifest.json").is_file()
+    ]
+    assert claimed, "the manifest is published before the body it describes"
+    assert not store.entries_table_path(claimed[0]).is_file()
+
+    world = build_canonical_world(tmp_path, subjects=1, fingers=(1,))
+    assert world.store.verify_set(world.preparation_set_id)
 
 
 def test_a_failure_after_the_manifest_leaves_no_receipt(tmp_path, monkeypatch):

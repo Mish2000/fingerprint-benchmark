@@ -4,9 +4,14 @@ Manifests are the source of truth. Reports are derived and disposable;
 manifests are not, so every write here is:
 
   * refused by default when the target already exists — regenerating a manifest
-    under changed rules must be a deliberate act (docs/adr/0005);
-  * atomic — written to a temporary sibling and renamed, so an interrupted run
-    cannot leave a half-written file that later looks valid;
+    under changed rules must be a deliberate act (docs/adr/0005). The refusal is
+    the *filesystem's*, not a check's: ``overwrite=False`` publishes
+    create-if-absent, so two writers arriving together cannot both pass a guard
+    and have the second replace the first. ``overwrite=True`` is the separate,
+    deliberate replacement (docs/adr/0139);
+  * atomic — written to a uniquely named temporary sibling and renamed, so an
+    interrupted run cannot leave a half-written file that later looks valid, and
+    two concurrent writers cannot corrupt each other's scratch copy;
   * stamped — creation time, tool version and row count are stored in the
     parquet schema metadata, not in a separate file that can drift.
 
@@ -39,10 +44,11 @@ from fpbench.core.models import (
     SelfEligibilityRecord,
     SubjectRecord,
 )
+from fpbench.core.atomic_write import PublishConflictError
 from fpbench.core.serialization import read_json, stable_hash
-from fpbench.core.json_io import write_json
+from fpbench.core.json_io import publish_json, write_json
 from fpbench.storage import schemas
-from fpbench.storage.atomic_parquet import replace_table
+from fpbench.storage.atomic_parquet import publish_table, replace_table
 
 __all__ = ["ManifestStore"]
 
@@ -166,7 +172,7 @@ class ManifestStore:
             raise StorageError("validation report release does not match its path")
         path = self.validation_report_path(dataset_id, release)
         self._guard(path, overwrite)
-        return write_json(path, report)
+        return self._publish_json_document(path, report, overwrite=overwrite)
 
     def read_validation_report(
         self, dataset_id: str, release: str
@@ -206,7 +212,7 @@ class ManifestStore:
         """Cohorts are small and read by humans, so they are JSON, not parquet."""
         path = self.cohort_path(cohort.protocol_id, cohort.cohort_id)
         self._guard(path, overwrite)
-        return write_json(path, cohort)
+        return self._publish_json_document(path, cohort, overwrite=overwrite)
 
     def read_cohort(self, protocol_id: str, cohort_id: str) -> Cohort:
         payload = read_json(self.cohort_path(protocol_id, cohort_id))
@@ -341,11 +347,49 @@ class ManifestStore:
     # --------------------------------------------------------------- internal
 
     def _guard(self, path: Path, overwrite: bool) -> None:
+        """Refuse early, and cheaply, when the manifest is already there.
+
+        No longer the thing that makes ``overwrite=False`` safe — the writers
+        below reserve the name with the filesystem, which is what a *second*
+        writer arriving at the same moment runs into. This stays because it
+        turns the ordinary case into an immediate message with the remedy in it,
+        without first producing a scratch parquet nobody will keep.
+        """
         if path.exists() and not overwrite:
             raise ManifestExistsError(
                 f"{path} already exists; pass overwrite=True to replace it. "
                 "Manifests are treated as immutable inputs to every run."
             )
+
+    @staticmethod
+    def _refuse_a_taken_name(path: Path) -> ManifestExistsError:
+        return ManifestExistsError(
+            f"{path} was published by another writer while this one was storing "
+            "its own; pass overwrite=True to replace it. Manifests are treated "
+            "as immutable inputs to every run."
+        )
+
+    def _publish_json_document(
+        self, path: Path, payload: object, *, overwrite: bool
+    ) -> Path:
+        """One JSON manifest, refused-if-present or deliberately replaced.
+
+        ``overwrite=False`` means "create this, and tell me if somebody else
+        already did" — so it publishes create-if-absent and turns *either* way of
+        losing into the refusal this store has always raised. Both ways matter:
+        a second writer with different bytes raises ``PublishConflictError``, and
+        one that happens to produce the same bytes is simply not the creator.
+        """
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if overwrite:
+            return write_json(path, payload)
+        try:
+            published = publish_json(path, payload)
+        except PublishConflictError as exc:
+            raise self._refuse_a_taken_name(path) from exc
+        if not published.created:
+            raise self._refuse_a_taken_name(path)
+        return path
 
     def _write_table(
         self,
@@ -375,7 +419,22 @@ class ManifestStore:
             }
         )
 
-        replace_table(path, stamped, what="manifest table")
+        if overwrite:
+            # A deliberate replacement, which is what overwrite=True is for.
+            replace_table(path, stamped, what="manifest table")
+            return path
+
+        # Create-if-absent. ``created_utc`` has one-second resolution, so two
+        # writers of the same rows inside one second produce *identical* bytes
+        # and the loser is told ALREADY_IDENTICAL rather than being refused —
+        # which for a store whose contract is "refuse if present" would be a
+        # silent success. Both outcomes are turned back into the refusal.
+        try:
+            published = publish_table(path, stamped, what="manifest table")
+        except PublishConflictError as exc:
+            raise self._refuse_a_taken_name(path) from exc
+        if not published.created:
+            raise self._refuse_a_taken_name(path)
         return path
 
     def _read_table(self, path: Path) -> pa.Table:

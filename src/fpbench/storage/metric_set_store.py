@@ -65,12 +65,11 @@ from fpbench.core.metric_models import (
 from fpbench.core.serialization import read_json
 from fpbench.core.json_io import write_json
 from fpbench.storage import layout, metric_schemas
-from fpbench.core.atomic_write import replace_text
-from fpbench.storage.immutable_publication import claim_document
+from fpbench.storage.immutable_publication import claim_document, claim_text
 from fpbench.storage.atomic_parquet import replace_table
 from fpbench.storage.set_publication import publish_set
 
-__all__ = ["MetricSetStore", "write_text_atomically"]
+__all__ = ["MetricSetStore"]
 
 _DEFINITION = "definition.json"
 _POLICY = "metric-policy.json"
@@ -82,20 +81,6 @@ _SUMMARY = "summary.json"
 _REPORT = "report.md"
 _RECEIPT = "evaluation-receipt.json"
 _FINALIZATION = "evaluation-finalization.json"
-
-
-def write_text_atomically(path: Path, text: str) -> Path:
-    """Write text the same way :func:`write_json` does, and as atomically.
-
-    The bytes are the string's own UTF-8, with no platform newline translation,
-    exactly as :func:`write_json` now stores them. That is what lets a report
-    written here and its committed evidence copy be byte-identical on *every*
-    platform rather than only on the one that wrote it (spec section 84).
-
-    The temp file is uniquely named, so two writers of the same report cannot
-    corrupt each other's scratch copy (``fpbench.core.atomic_write``).
-    """
-    return replace_text(Path(path), text)
 
 
 class MetricSetStore:
@@ -260,18 +245,17 @@ class MetricSetStore:
         return path
 
     def ensure_report(self, *, run_id: str, metric_set_id: str, markdown: str) -> Path:
-        """Write the report once, byte-identically or not at all."""
+        """Publish the report once, byte-identically or not at all."""
         from fpbench.core.evaluation_models import report_content_hash
 
         path = self.report_path(run_id, metric_set_id)
-        if path.is_file():
+        if not claim_text(path, markdown):
             stored = self.read_report(run_id, metric_set_id)
             if report_content_hash(stored) != report_content_hash(markdown):
                 raise MetricSetConflictError(
                     f"{path} already carries a different evaluation report"
                 )
-            return path
-        return write_text_atomically(path, markdown)
+        return path
 
     def ensure_receipt(
         self, *, run_id: str, metric_set_id: str, receipt: EvaluationReceipt

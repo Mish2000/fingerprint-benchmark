@@ -282,12 +282,19 @@ def test_a_null_delta_survives_the_round_trip(tmp_path):
 
 
 def test_the_same_policy_twice_is_a_no_op_and_a_different_one_conflicts(tmp_path):
+    """The policy body keeps guarding itself under the set claim.
+
+    The manifest is what stops a second *writer*, so this check is not what
+    makes the set safe any more. It is what a resumed publication runs into: a
+    retry that owns the claim and is finishing the body must not be able to
+    complete it with a policy other than the one the first attempt stored.
+    """
     store = PairedEvaluationStore(tmp_path)
     paired_id = "pairedeval_000000000001"
-    store.ensure_policy(paired_id, {"policy": {"policy_id": "p"}})
-    store.ensure_policy(paired_id, {"policy": {"policy_id": "p"}})
+    store._claim_policy(paired_id, {"policy": {"policy_id": "p"}})
+    store._claim_policy(paired_id, {"policy": {"policy_id": "p"}})
     with pytest.raises(PairedEvaluationConflictError):
-        store.ensure_policy(paired_id, {"policy": {"policy_id": "q"}})
+        store._claim_policy(paired_id, {"policy": {"policy_id": "q"}})
 
 
 def test_reading_a_manifest_from_a_foreign_directory_is_refused(tmp_path):
@@ -542,7 +549,13 @@ def test_json_round_trip_of_a_manifest(tmp_path):
         created_utc="2026-01-01T00:00:00+00:00",
     )
     store = PairedEvaluationStore(tmp_path)
-    store.ensure_manifest(manifest)
+    # Stored directly: this is a test of how a manifest reads back, and the
+    # publication path would rightly refuse a manifest whose hashes and counts
+    # describe no rows at all.
+    store.manifest_path(manifest.paired_evaluation_id).parent.mkdir(
+        parents=True, exist_ok=True
+    )
+    write_json(store.manifest_path(manifest.paired_evaluation_id), manifest)
     assert (
         store.read_manifest(manifest.paired_evaluation_id).paired_evaluation_fingerprint
         == fingerprint

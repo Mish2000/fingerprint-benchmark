@@ -26,12 +26,22 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 STORAGE = REPOSITORY_ROOT / "src" / "fpbench" / "storage"
 
 #: The stores that publish a manifest describing a separate body file.
+#:
+#: Enumerated, because the list is what the check *is* — a store missing from it
+#: is not tested, and three were. ``prepared_image_set_store`` and
+#: ``paired_evaluation_store`` were both still on the old order and neither
+#: appeared here; ``plan_store`` had been fixed and was never listed, so nothing
+#: would have noticed it regressing. The way to add a store to this repository is
+#: to add it to this tuple.
 _MULTI_FILE_STORES = (
     "result_set_store.py",
     "decision_set_store.py",
     "eligibility_set_store.py",
     "evaluation_view_store.py",
     "metric_set_store.py",
+    "prepared_image_set_store.py",
+    "paired_evaluation_store.py",
+    "plan_store.py",
 )
 
 #: Writers that replace whatever is there. Legitimate for a body a claim

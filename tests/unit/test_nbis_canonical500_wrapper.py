@@ -590,7 +590,7 @@ def test_a_real_paired_definition_blocks_readiness(tmp_path):
         derivation_software=software,
         created_utc="2026-08-03T00:00:00+00:00",
     )
-    PairedEvaluationStore(world.workspace).ensure_definition(
+    PairedEvaluationStore(world.workspace)._claim_definition(
         "pairedeval_111111111111", definition
     )
 

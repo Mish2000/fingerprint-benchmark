@@ -158,7 +158,7 @@ def test_an_edited_job_list_fails_its_manifest_hash(store, world):
     forged = replace(world.plan, jobs=world.plan.jobs[:-1] + (tampered,))
 
     store.jobs_path(world.run.run_id).unlink()
-    store._write_jobs(forged)  # noqa: SLF001 - deliberately forging damage
+    _forge_jobs(store, forged)
 
     with pytest.raises(StorageError, match="job manifest hash"):
         store.read_plan(world.run.run_id)
@@ -174,10 +174,25 @@ def test_a_truncated_job_list_fails_the_declared_count(store, world):
         jobs=world.plan.jobs[:-1],
     )
     store.jobs_path(world.run.run_id).unlink()
-    store._write_jobs(truncated)  # noqa: SLF001 - deliberately forging damage
+    _forge_jobs(store, truncated)
 
     with pytest.raises(StorageError, match="inconsistent"):
         store.read_plan(world.run.run_id)
+
+
+def _forge_jobs(store, plan) -> None:
+    """Write a jobs table nobody should accept, straight past the publisher.
+
+    The store no longer has a method that replaces a body — publishing verifies
+    what is already there and creates only what is missing, which is the point.
+    Forging damage is therefore a test's own act, spelled out here rather than
+    borrowed from a private writer that used to exist.
+    """
+    from fpbench.storage.atomic_parquet import replace_table
+
+    path = store.jobs_path(plan.definition.run_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    replace_table(path, store._jobs_table(plan), what="plan table")
 
 
 def test_two_runs_keep_separate_plans(tmp_path):

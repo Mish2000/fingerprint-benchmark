@@ -333,12 +333,27 @@ def test_a_tampered_stored_job_manifest_is_refused_before_execution(tmp_path):
         last, job=replace(last.job, pair_id=PairId(f"{last.job.pair_id}_edited"))
     )
     forged = replace(world.plan, jobs=world.plan.jobs[:-1] + (tampered,))
-    world.plan_store.jobs_path(world.run.run_id).unlink()
-    world.plan_store._write_jobs(  # noqa: SLF001 - deliberately forging damage
-        forged
+    # Forged straight past the publisher: the store no longer has a method that
+    # replaces a body, because publishing verifies what is there and creates only
+    # what is missing. Damage is the test's own act now.
+    from fpbench.storage.atomic_parquet import replace_table
+
+    path = world.plan_store.jobs_path(world.run.run_id)
+    path.unlink()
+    replace_table(
+        path,
+        world.plan_store._jobs_table(forged),  # noqa: SLF001 - forging damage
+        what="plan table",
     )
 
-    with pytest.raises(StorageError, match="job manifest hash"):
+    # The refusal moved earlier and got sharper. The executor republishes the
+    # plan before it runs anything, and publication now reads every body back
+    # and compares it to what is being published — so the forged jobs are caught
+    # at the publication boundary, naming the file, rather than later by the job
+    # manifest hash when something tries to read the plan.
+    from fpbench.core.errors import PlanConflictError
+
+    with pytest.raises(PlanConflictError, match="different plan table"):
         world.executor()
 
     assert adapter.compare_calls == 0

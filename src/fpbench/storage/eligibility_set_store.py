@@ -30,7 +30,7 @@ from fpbench.core.errors import DecisionSetConflictError, StorageError
 from fpbench.core.serialization import read_json
 from fpbench.storage import derivation_schemas, layout
 from fpbench.storage.atomic_parquet import replace_table
-from fpbench.storage.set_publication import publish_set
+from fpbench.storage.set_publication import publish_set, table_body
 
 __all__ = ["EligibilitySetStore"]
 
@@ -76,28 +76,35 @@ class EligibilitySetStore:
         # The manifest is the claim and goes first, so two writers cannot both
         # replace the entries and leave one writer's manifest standing over the
         # other writer's rows (docs/adr/0139).
-        claim = publish_set(
+        def conflict(stored: str) -> BaseException:
+            return DecisionSetConflictError(
+                f"decision set {decision_set_id} already holds eligibility set "
+                f"{stored[:12]}...; refusing to replace it with "
+                f"{manifest.eligibility_set_id}"
+            )
+
+        publish_set(
             manifest_path=manifest_path,
             manifest=manifest,
-            body_paths=(self.entries_path(manifest.run_id, decision_set_id),),
+            fingerprint=manifest.eligibility_set_fingerprint,
             stored_fingerprint=lambda: self.read_manifest(
                 manifest.run_id, decision_set_id
             ).eligibility_set_fingerprint,
-            fingerprint=manifest.eligibility_set_fingerprint,
+            bodies=(
+                table_body(
+                    path=self.entries_path(manifest.run_id, decision_set_id),
+                    expected=lambda: self._entries_table(
+                        decision_set_id, manifest, records
+                    ),
+                    what="eligibility entries",
+                    error=DecisionSetConflictError,
+                ),
+            ),
+            verify_whole_set=lambda: self.read_eligibility_set(
+                manifest.run_id, decision_set_id
+            ),
+            conflict=conflict,
         )
-        if claim.write_body:
-            self._write_entries(decision_set_id, manifest, records)
-        if not claim.owned:
-            stored = self.read_manifest(manifest.run_id, decision_set_id)
-            if (
-                stored.eligibility_set_fingerprint
-                != manifest.eligibility_set_fingerprint
-            ):
-                raise DecisionSetConflictError(
-                    f"decision set {decision_set_id} already holds eligibility set "
-                    f"{stored.eligibility_set_id}; refusing to replace it with "
-                    f"{manifest.eligibility_set_id}"
-                )
         return manifest_path.parent
 
     # ------------------------------------------------------------------- read
@@ -171,15 +178,13 @@ class EligibilitySetStore:
                 "the manifest's ordered units hash does not cover these records"
             )
 
-    def _write_entries(
+    def _entries_table(
         self,
         decision_set_id: str,
         manifest: SelfEligibilityManifest,
         records: tuple[SelfEligibilityDecisionRecord, ...],
-    ) -> Path:
-        path = self.entries_path(manifest.run_id, decision_set_id)
-        path.parent.mkdir(parents=True, exist_ok=True)
-
+    ) -> pa.Table:
+        """The entries body this set would store, stamped. Built, never written."""
         from fpbench import __version__
 
         table = derivation_schemas.eligibility_to_table(records)
@@ -207,6 +212,4 @@ class EligibilitySetStore:
                 .encode(),
             }
         )
-
-        replace_table(path, stamped, what="eligibility entries")
-        return path
+        return stamped

@@ -67,7 +67,7 @@ from fpbench.core.json_io import write_json
 from fpbench.storage import layout, metric_schemas
 from fpbench.storage.immutable_publication import claim_document, claim_text
 from fpbench.storage.atomic_parquet import replace_table
-from fpbench.storage.set_publication import publish_set
+from fpbench.storage.set_publication import document_body, publish_set, table_body
 
 __all__ = ["MetricSetStore"]
 
@@ -191,35 +191,51 @@ class MetricSetStore:
         # A metric set is six files. The manifest is published first and is the
         # claim over all of them, so a second writer never replaces one of the
         # five bodies underneath the first writer's manifest (docs/adr/0139).
-        claim = publish_set(
+        def conflict(stored: str) -> BaseException:
+            return MetricSetConflictError(
+                f"run {run_id} already holds metric set {stored[:12]}...; "
+                f"refusing to replace it with "
+                f"{manifest.metric_set_fingerprint[:12]}..."
+            )
+
+        def document(path, expected, what):
+            return document_body(
+                path=path, expected=expected, what=what, error=MetricSetConflictError
+            )
+
+        publish_set(
             manifest_path=manifest_path,
             manifest=manifest,
-            body_paths=(
-                self.definition_path(run_id, set_id),
-                self.policy_path(run_id, set_id),
-                self.report_profile_path(run_id, set_id),
-                self.counts_path(run_id, set_id),
-                self.observations_path(run_id, set_id),
-            ),
+            fingerprint=manifest.metric_set_fingerprint,
             stored_fingerprint=lambda: self.read_manifest(
                 run_id, set_id
             ).metric_set_fingerprint,
-            fingerprint=manifest.metric_set_fingerprint,
+            bodies=(
+                document(
+                    self.definition_path(run_id, set_id), definition,
+                    "metric definition",
+                ),
+                document(self.policy_path(run_id, set_id), policy, "metric policy"),
+                document(
+                    self.report_profile_path(run_id, set_id), report_profile,
+                    "report profile",
+                ),
+                table_body(
+                    path=self.counts_path(run_id, set_id),
+                    expected=lambda: self._counts_table(manifest, counts),
+                    what="evaluation counts",
+                    error=MetricSetConflictError,
+                ),
+                table_body(
+                    path=self.observations_path(run_id, set_id),
+                    expected=lambda: self._observations_table(manifest, observations),
+                    what="metric observations",
+                    error=MetricSetConflictError,
+                ),
+            ),
+            verify_whole_set=lambda: self.verify_metric_set(run_id, set_id),
+            conflict=conflict,
         )
-        if claim.write_body:
-            write_json(self.definition_path(run_id, set_id), definition)
-            write_json(self.policy_path(run_id, set_id), policy)
-            write_json(self.report_profile_path(run_id, set_id), report_profile)
-            self._write_counts(manifest, counts)
-            self._write_observations(manifest, observations)
-        if not claim.owned:
-            stored = self.read_manifest(run_id, set_id)
-            if stored.metric_set_fingerprint != manifest.metric_set_fingerprint:
-                raise MetricSetConflictError(
-                    f"run {run_id} already holds metric set {stored.metric_set_id} "
-                    f"({stored.metric_set_fingerprint[:12]}...); refusing to replace "
-                    f"it with {manifest.metric_set_fingerprint[:12]}..."
-                )
         return manifest_path.parent
 
     def ensure_summary(
@@ -697,11 +713,12 @@ class MetricSetStore:
                 )
             policy.definition(observation.metric_id)
 
-    def _write_counts(
+    def _counts_table(
         self, manifest: MetricSetManifest, counts: tuple[EvaluationCountRecord, ...]
-    ) -> Path:
+    ) -> pa.Table:
+        """The counts body this set would store, stamped. Built, never written."""
         table = metric_schemas.counts_to_table(counts)
-        return self._write_parquet(
+        return self._stamped(
             self.counts_path(manifest.run_id, manifest.metric_set_id),
             table,
             manifest,
@@ -709,11 +726,12 @@ class MetricSetStore:
             rows=len(counts),
         )
 
-    def _write_observations(
+    def _observations_table(
         self, manifest: MetricSetManifest, observations: tuple[MetricObservation, ...]
-    ) -> Path:
+    ) -> pa.Table:
+        """The observations body, stamped. Built, never written."""
         table = metric_schemas.observations_to_table(observations)
-        return self._write_parquet(
+        return self._stamped(
             self.observations_path(manifest.run_id, manifest.metric_set_id),
             table,
             manifest,
@@ -721,7 +739,7 @@ class MetricSetStore:
             rows=len(observations),
         )
 
-    def _write_parquet(
+    def _stamped(
         self,
         path: Path,
         table: pa.Table,
@@ -729,9 +747,7 @@ class MetricSetStore:
         *,
         extra: Mapping[bytes, bytes],
         rows: int,
-    ) -> Path:
-        path.parent.mkdir(parents=True, exist_ok=True)
-
+    ) -> pa.Table:
         from fpbench import __version__
 
         stamped = table.replace_schema_metadata(
@@ -765,9 +781,7 @@ class MetricSetStore:
                 .encode(),
             }
         )
-
-        replace_table(path, stamped, what="metric table")
-        return path
+        return stamped
 
 
 # --------------------------------------------------------- summary rehydration

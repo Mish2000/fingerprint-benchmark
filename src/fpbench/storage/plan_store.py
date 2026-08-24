@@ -38,8 +38,7 @@ from fpbench.core.serialization import read_json
 from fpbench.core.json_io import write_json
 from fpbench.storage import plan_schemas
 from fpbench.storage.layout import run_directory
-from fpbench.storage.atomic_parquet import replace_table
-from fpbench.storage.set_publication import publish_set
+from fpbench.storage.set_publication import publish_set, table_body
 
 __all__ = ["PlanStore"]
 
@@ -85,31 +84,35 @@ class PlanStore:
         # and only its owner writes the jobs. Writing the jobs first let two
         # writers leave one writer's manifest over the other's job list
         # (docs/adr/0139).
-        claim = publish_set(
+        def conflict(stored: str) -> BaseException:
+            return PlanConflictError(
+                f"run {run_id} already has plan {stored[:12]}...; refusing to "
+                f"replace it with {plan.plan_id} "
+                f"({plan.definition.plan_fingerprint[:12]}...)"
+            )
+
+        publish_set(
             manifest_path=manifest_path,
             manifest=plan.definition,
-            body_paths=(self.jobs_path(run_id),),
+            fingerprint=plan.definition.plan_fingerprint,
             stored_fingerprint=lambda: self.read_plan_definition(
                 run_id
             ).plan_fingerprint,
-            fingerprint=plan.definition.plan_fingerprint,
+            bodies=(
+                table_body(
+                    path=self.jobs_path(run_id),
+                    expected=lambda: self._jobs_table(plan),
+                    what="plan table",
+                    error=PlanConflictError,
+                ),
+            ),
+            verify_whole_set=lambda: self.read_plan(run_id),
+            conflict=conflict,
         )
-        if claim.write_body:
-            self._write_jobs(plan)
-        if not claim.owned:
-            stored = self.read_plan_definition(run_id)
-            if stored.plan_fingerprint != plan.definition.plan_fingerprint:
-                raise PlanConflictError(
-                    f"run {run_id} already has plan {stored.plan_id} "
-                    f"({stored.plan_fingerprint[:12]}...); refusing to replace it "
-                    f"with {plan.plan_id} ({plan.definition.plan_fingerprint[:12]}...)"
-                )
         return manifest_path.parent
 
-    def _write_jobs(self, plan: ExecutionPlan) -> Path:
-        path = self.jobs_path(plan.definition.run_id)
-        path.parent.mkdir(parents=True, exist_ok=True)
-
+    def _jobs_table(self, plan: ExecutionPlan) -> pa.Table:
+        """The jobs body this plan would store, stamped. Built, never written."""
         from fpbench import __version__
 
         table = plan_schemas.planned_jobs_to_table(plan.jobs)
@@ -131,9 +134,7 @@ class PlanStore:
                 .encode(),
             }
         )
-
-        replace_table(path, stamped, what="plan table")
-        return path
+        return stamped
 
     # -------------------------------------------------------------------- read
 

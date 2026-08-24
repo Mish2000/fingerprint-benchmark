@@ -44,8 +44,7 @@ from fpbench.core.result_set_models import (
 from fpbench.core.serialization import read_json
 from fpbench.storage import layout, result_set_schemas
 from fpbench.storage.result_store import ResultStore
-from fpbench.storage.atomic_parquet import replace_table
-from fpbench.storage.set_publication import publish_set
+from fpbench.storage.set_publication import publish_set, table_body
 
 __all__ = ["ResultSetStore"]
 
@@ -102,26 +101,32 @@ class ResultSetStore:
 
         # The manifest is the claim, so the entries are only ever written by the
         # writer that owns the set. Writing them first let two writers leave one
-        # writer's manifest over the other's rows.
-        claim = publish_set(
+        # writer's manifest over the other's rows — and returning before reading
+        # the entries back let a retry report success over somebody else's.
+        def conflict(stored: str) -> BaseException:
+            return ResultSetConflictError(
+                f"run {manifest.run_id} already holds result set "
+                f"{stored[:12]}...; refusing to replace it with "
+                f"{manifest.result_set_id} "
+                f"({manifest.result_set_fingerprint[:12]}...)"
+            )
+
+        publish_set(
             manifest_path=manifest_path,
             manifest=manifest,
-            body_paths=(self.entries_path(manifest.run_id),),
-            stored_fingerprint=stored_fingerprint,
             fingerprint=manifest.result_set_fingerprint,
+            stored_fingerprint=stored_fingerprint,
+            bodies=(
+                table_body(
+                    path=self.entries_path(manifest.run_id),
+                    expected=lambda: self._entries_table(manifest, entries),
+                    what="result-set entries",
+                    error=ResultSetConflictError,
+                ),
+            ),
+            verify_whole_set=lambda: self.read_result_set(manifest.run_id),
+            conflict=conflict,
         )
-        if claim.write_body:
-            self._write_entries(manifest, entries)
-        if not claim.owned:
-            stored = self.read_manifest(manifest.run_id)
-            if stored.result_set_fingerprint != manifest.result_set_fingerprint:
-                raise ResultSetConflictError(
-                    f"run {manifest.run_id} already holds result set "
-                    f"{stored.result_set_id} "
-                    f"({stored.result_set_fingerprint[:12]}...); refusing to "
-                    f"replace it with {manifest.result_set_id} "
-                    f"({manifest.result_set_fingerprint[:12]}...)"
-                )
         return manifest_path.parent
 
     # ------------------------------------------------------------------- read
@@ -297,12 +302,15 @@ class ResultSetStore:
                 f"and {failures}"
             )
 
-    def _write_entries(
+    def _entries_table(
         self, manifest: ResultSetManifest, entries: tuple[ResultSetEntry, ...]
-    ) -> Path:
-        path = self.entries_path(manifest.run_id)
-        path.parent.mkdir(parents=True, exist_ok=True)
+    ) -> pa.Table:
+        """The body this set would store, stamped. Built, never written here.
 
+        One function for "what the entries are", used both to publish them when
+        they are missing and to compare against them when they are not. Two
+        functions would be two chances to disagree.
+        """
         from fpbench import __version__
 
         table = result_set_schemas.result_set_entries_to_table(entries)
@@ -325,9 +333,7 @@ class ResultSetStore:
                 .encode(),
             }
         )
-
-        replace_table(path, stamped, what="result-set entries")
-        return path
+        return stamped
 
     def _read_entries(self, run_id: str) -> list[ResultSetEntry]:
         path = self.entries_path(run_id)

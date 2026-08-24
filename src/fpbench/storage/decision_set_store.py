@@ -54,7 +54,7 @@ from fpbench.core.json_io import publish_json, write_json
 from fpbench.storage import derivation_schemas, layout
 from fpbench.storage.immutable_publication import claim_document
 from fpbench.storage.atomic_parquet import replace_table
-from fpbench.storage.set_publication import publish_set
+from fpbench.storage.set_publication import document_body, publish_set, table_body
 
 __all__ = ["DecisionSetStore"]
 
@@ -138,29 +138,37 @@ class DecisionSetStore:
         set_id = manifest.decision_set_id
         manifest_path = self.manifest_path(run_id, set_id)
 
-        claim = publish_set(
+        def conflict(stored: str) -> BaseException:
+            return DecisionSetConflictError(
+                f"run {run_id} already holds decision set {stored[:12]}...; "
+                f"refusing to replace it with "
+                f"{manifest.decision_set_fingerprint[:12]}..."
+            )
+
+        publish_set(
             manifest_path=manifest_path,
             manifest=manifest,
-            body_paths=(
-                self.records_path(run_id, set_id),
-                self.profile_path(run_id, set_id),
-            ),
+            fingerprint=manifest.decision_set_fingerprint,
             stored_fingerprint=lambda: self.read_manifest(
                 run_id, set_id
             ).decision_set_fingerprint,
-            fingerprint=manifest.decision_set_fingerprint,
+            bodies=(
+                table_body(
+                    path=self.records_path(run_id, set_id),
+                    expected=lambda: self._records_table(manifest, records),
+                    what="decision records",
+                    error=DecisionSetConflictError,
+                ),
+                document_body(
+                    path=self.profile_path(run_id, set_id),
+                    expected=profile,
+                    what="decision profile",
+                    error=DecisionSetConflictError,
+                ),
+            ),
+            verify_whole_set=lambda: self.read_decision_set(run_id, set_id),
+            conflict=conflict,
         )
-        if claim.write_body:
-            write_json(self.profile_path(run_id, set_id), profile)
-            self._write_records(manifest, records)
-        if not claim.owned:
-            stored = self.read_manifest(run_id, set_id)
-            if stored.decision_set_fingerprint != manifest.decision_set_fingerprint:
-                raise DecisionSetConflictError(
-                    f"run {run_id} already holds decision set {stored.decision_set_id} "
-                    f"({stored.decision_set_fingerprint[:12]}...); refusing to replace "
-                    f"it with {manifest.decision_set_fingerprint[:12]}..."
-                )
         return manifest_path.parent
 
     # ------------------------------------------------------------------- read
@@ -377,12 +385,10 @@ class DecisionSetStore:
                     "than the one stored beside it"
                 )
 
-    def _write_records(
+    def _records_table(
         self, manifest: DecisionSetManifest, records: tuple[DecisionRecord, ...]
-    ) -> Path:
-        path = self.records_path(manifest.run_id, manifest.decision_set_id)
-        path.parent.mkdir(parents=True, exist_ok=True)
-
+    ) -> pa.Table:
+        """The records body this set would store, stamped. Built, never written."""
         from fpbench import __version__
 
         table = derivation_schemas.decisions_to_table(records)
@@ -409,6 +415,4 @@ class DecisionSetStore:
                 .encode(),
             }
         )
-
-        replace_table(path, stamped, what="decision records")
-        return path
+        return stamped

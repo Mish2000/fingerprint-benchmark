@@ -145,6 +145,15 @@ argument the audited document can reach. `verifier_source_commit` keeps its one
 job, which this ADR already distinguished: pinning the authority source
 byte-for-byte, a claim that may legitimately be re-made.
 
-`tests/unit/test_stage8b_and_8c_boundary_spans.py` is Stage 8A's span suite
-applied to both, including the direction that was missing — that the commit a
+Stage 8D carried the same shape and never hit it: nothing pins its sources by
+*commit* — two source-family fingerprints pin them by content — so its
+`verifier_source_commit` never had to move. It was corrected in the same pass
+rather than left as a debt only the next person to need it would discover.
+Choosing its end took evidence rather than a lookup: its marker has been written
+seven times, and ending the span at the 2026-08-20 calibration repair would put
+147 commits in it, 118 of them belonging to Stage 8E, Stage 9A and later. It
+ends at `2ad4698`, its own last re-closure, with 25.
+
+`tests/unit/test_stage8_boundary_spans.py` is Stage 8A's span suite applied to
+all three, including the direction that was missing — that the commit a
 published marker names appears nowhere in the Git questions its own audit asks.

@@ -121,6 +121,54 @@ one-second resolution, so two writers of the same rows inside one second produce
 byte-identical files, and a store that only translated `PublishConflictError`
 would have told both of them they had stored it.
 
+## A claim is not the guarantee — corrected 2026-08-24
+
+Publishing the manifest first stops two writers from interleaving. It says
+nothing about what is on disk when the call *returns*, and the difference
+between those two statements is where three further defects lived. Each was
+found by review, fixed as the instance demonstrated, and followed by another
+instance of the same class one layer down:
+
+1. a body that was never checked against the caller's inputs at all;
+2. a body checked against a fingerprint the caller supplied — so a genuine
+   policy object carrying somebody else's document published;
+3. a body checked on the branch that *writes* it and not on the branch that
+   finds it already there — so replacing a stored body and re-publishing the
+   correct set returned success.
+
+All three are one shape, and the shape was in the API: `publish_set` returned a
+`write_body` flag and left the verification to each of eight callers. A rule
+every caller must remember is a rule that will be forgotten, and the third
+defect is that fact demonstrated twice in one function.
+
+So the flag is gone and the contract is one sentence:
+
+> A public publish returns successfully only if, at a linearization point before
+> it returns, the set on disk is the set the caller asked to publish.
+
+On **every** outcome — fresh, retried, resumed, or racing — the manifest carries
+this caller's fingerprint or it is a conflict; every body exists; every body
+equals what the caller passed; and the whole set is re-read before returning. A
+partial set with the same fingerprint may be finished, and finishing is not
+repairing: what is present is verified *before* anything is created, so one body
+missing and another disagreeing is a conflict rather than a completed set nobody
+should trust. Nothing on disk is ever overwritten under the guise of recovery.
+
+Two things this deliberately does not claim. It does not defend against another
+process editing a file after the verification point — that needs a lock held
+across the operation, which this repository does not take. And "equal" is
+canonical, not byte-for-byte: a Parquet body is stamped with a wall clock and
+some JSON bodies carry `created_utc`, both of which the fingerprints that give a
+set its identity already exclude. Comparing bytes would make every legitimate
+retry a conflict.
+
+`tests/contract/test_every_set_publishes_the_set_it_verified.py` runs one table
+of thirteen situations against all eight stores. Its oracle re-reads each body
+and compares it to a snapshot taken at first publication — it never calls
+`store.verify_*`, because the wrong set *passed* the store's verifier: the
+verifier checks a set against its manifest, and one wrong publication had
+written both.
+
 ## Consequences
 
 * A losing writer now raises where it used to return. That is the point, and it

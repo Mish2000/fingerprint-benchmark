@@ -58,7 +58,12 @@ from fpbench.core.serialization import read_json, stable_hash, to_plain
 from fpbench.storage import layout, paired_schemas
 from fpbench.storage.immutable_publication import claim_document, claim_text
 from fpbench.storage.atomic_parquet import replace_table
-from fpbench.storage.set_publication import publish_set
+from fpbench.storage.set_publication import (
+    SetBody,
+    document_body,
+    publish_set,
+    table_body,
+)
 
 __all__ = [
     "PairedEvaluationStore",
@@ -303,74 +308,96 @@ class PairedEvaluationStore:
 
         manifest_path = self.manifest_path(paired_id)
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
-        claim = publish_set(
+
+        def conflict(stored: str) -> BaseException:
+            return PairedEvaluationConflictError(
+                f"{manifest_path} already holds paired comparison "
+                f"{stored[:12]}...; refusing to replace it with "
+                f"{manifest.paired_evaluation_fingerprint[:12]}..."
+            )
+
+        publish_set(
             manifest_path=manifest_path,
             manifest=manifest,
-            body_paths=self._body_paths(paired_id),
+            fingerprint=manifest.paired_evaluation_fingerprint,
             stored_fingerprint=lambda: self.read_manifest(
                 paired_id
             ).paired_evaluation_fingerprint,
-            fingerprint=manifest.paired_evaluation_fingerprint,
+            bodies=self._bodies(paired_id, inputs, policy_document),
+            verify_whole_set=lambda: self.verify_paired_evaluation(paired_id),
+            conflict=conflict,
         )
-
-        if claim.write_body:
-            self._write_body(paired_id, inputs, policy_document=policy_document)
-
-        if not claim.owned:
-            stored = self.read_manifest(paired_id)
-            if (
-                stored.paired_evaluation_fingerprint
-                != manifest.paired_evaluation_fingerprint
-            ):
-                raise PairedEvaluationConflictError(
-                    f"{manifest_path} already holds paired comparison "
-                    f"{stored.paired_evaluation_id} "
-                    f"({stored.paired_evaluation_fingerprint[:12]}...); refusing to "
-                    f"replace it with {manifest.paired_evaluation_fingerprint[:12]}..."
-                )
         return manifest_path.parent
 
-    def _body_paths(self, paired_id: str) -> tuple[Path, ...]:
-        """Every file the manifest describes. All of them, not a representative.
-
-        A crash between two of them leaves a set the retry would otherwise
-        declare finished; :func:`~fpbench.storage.set_publication.publish_set`
-        can only tell that it stopped half way if it is given the whole list.
-        """
-        return (
-            self.definition_path(paired_id),
-            self.policy_path(paired_id),
-            self.comparisons_path(paired_id),
-            self.eligibility_path(paired_id),
-            self.common_eligible_path(paired_id),
-            self.counts_path(paired_id),
-            self.observations_path(paired_id),
-            self.control_audit_path(paired_id),
-        )
-
-    def _write_body(
+    def _bodies(
         self,
         paired_id: str,
         inputs: PairedSetInputs,
-        *,
         policy_document: Mapping[str, object],
-    ) -> None:
-        """Write the files the manifest describes. Only a claim holder gets here.
+    ) -> tuple[SetBody, ...]:
+        """Every file the manifest describes. All of them, not a representative.
 
-        The three JSON bodies keep claiming their own names rather than being
-        replaced. Under the set claim that is not what stops a second writer —
-        the manifest already did — but it is still the check that catches a
-        *resumed* publication finishing a set with something other than what the
-        first writer left, and it costs one create-if-absent call.
+        Each carries how to *check* it as well as how to write it, so a
+        publication that finds a body cannot take a different path from one that
+        creates it — which is the shape that produced three rounds of defects.
+        The policy appears as the snapshot that was derived and checked above,
+        never as a second read of the caller's mapping.
         """
-        self._claim_definition(paired_id, inputs.definition)
-        self._claim_policy(paired_id, policy_document)
-        self._write_records(paired_id, inputs.records)
-        self._write_eligibility_transitions(paired_id, inputs.transitions)
-        self._write_common_eligible_view(paired_id, inputs.common)
-        self._write_counts(paired_id, inputs.counts)
-        self._write_observations(paired_id, inputs.observations)
-        self._claim_control_audit(paired_id, inputs.control_audit)
+
+        def document(path: Path, expected: object, what: str) -> SetBody:
+            return document_body(
+                path=path,
+                expected=expected,
+                what=what,
+                error=PairedEvaluationConflictError,
+            )
+
+        def table(path: Path, expected, what: str) -> SetBody:
+            return table_body(
+                path=path,
+                expected=expected,
+                what=what,
+                error=PairedEvaluationConflictError,
+            )
+
+        return (
+            document(
+                self.definition_path(paired_id),
+                inputs.definition,
+                "paired definition",
+            ),
+            document(self.policy_path(paired_id), policy_document, "paired policy"),
+            table(
+                self.comparisons_path(paired_id),
+                lambda: self._records_table(paired_id, inputs.records),
+                "paired comparisons",
+            ),
+            table(
+                self.eligibility_path(paired_id),
+                lambda: self._transitions_table(paired_id, inputs.transitions),
+                "eligibility transitions",
+            ),
+            table(
+                self.common_eligible_path(paired_id),
+                lambda: self._common_table(paired_id, inputs.common),
+                "common-eligible view",
+            ),
+            table(
+                self.counts_path(paired_id),
+                lambda: self._counts_table(paired_id, inputs.counts),
+                "transition counts",
+            ),
+            table(
+                self.observations_path(paired_id),
+                lambda: self._observations_table(paired_id, inputs.observations),
+                "paired observations",
+            ),
+            document(
+                self.control_audit_path(paired_id),
+                inputs.control_audit,
+                "control audit",
+            ),
+        )
 
     def _claim_definition(
         self, paired_id: str, definition: PairedEvaluationDefinition
@@ -412,55 +439,50 @@ class PairedEvaluationStore:
                 )
         return path
 
-    def _write_records(
+    def _records_table(
         self, paired_id: str, records: tuple[PairedComparisonRecord, ...]
-    ) -> Path:
-        return self._write_parquet(
-            self.comparisons_path(paired_id),
+    ) -> pa.Table:
+        return self._stamped_table(
             paired_schemas.paired_comparisons_to_table(records),
             paired_id=paired_id,
             row_kind=b"paired_comparisons",
             rows=len(records),
         )
 
-    def _write_eligibility_transitions(
+    def _transitions_table(
         self, paired_id: str, records: tuple[SelfEligibilityTransitionRecord, ...]
-    ) -> Path:
-        return self._write_parquet(
-            self.eligibility_path(paired_id),
+    ) -> pa.Table:
+        return self._stamped_table(
             paired_schemas.eligibility_transitions_to_table(records),
             paired_id=paired_id,
             row_kind=b"eligibility_transitions",
             rows=len(records),
         )
 
-    def _write_common_eligible_view(
+    def _common_table(
         self, paired_id: str, entries: tuple[CommonEligibleMatedEntry, ...]
-    ) -> Path:
-        return self._write_parquet(
-            self.common_eligible_path(paired_id),
+    ) -> pa.Table:
+        return self._stamped_table(
             paired_schemas.common_eligible_to_table(entries),
             paired_id=paired_id,
             row_kind=b"common_eligible_mated",
             rows=len(entries),
         )
 
-    def _write_counts(
+    def _counts_table(
         self, paired_id: str, records: tuple[TransitionCountRecord, ...]
-    ) -> Path:
-        return self._write_parquet(
-            self.counts_path(paired_id),
+    ) -> pa.Table:
+        return self._stamped_table(
             paired_schemas.transition_counts_to_table(records),
             paired_id=paired_id,
             row_kind=b"transition_counts",
             rows=len(records),
         )
 
-    def _write_observations(
+    def _observations_table(
         self, paired_id: str, observations: tuple[PairedRateObservation, ...]
-    ) -> Path:
-        return self._write_parquet(
-            self.observations_path(paired_id),
+    ) -> pa.Table:
+        return self._stamped_table(
             paired_schemas.paired_observations_to_table(observations),
             paired_id=paired_id,
             row_kind=b"paired_observations",
@@ -808,17 +830,15 @@ class PairedEvaluationStore:
         except (pa.ArrowInvalid, OSError) as exc:
             raise StorageError(f"{path}: unreadable parquet ({exc})") from exc
 
-    def _write_parquet(
+    def _stamped_table(
         self,
-        path: Path,
         table: pa.Table,
         *,
         paired_id: str,
         row_kind: bytes,
         rows: int,
-    ) -> Path:
-        path.parent.mkdir(parents=True, exist_ok=True)
-
+    ) -> pa.Table:
+        """One paired body, stamped. Built, never written."""
         from fpbench import __version__
 
         stamped = table.replace_schema_metadata(
@@ -834,5 +854,4 @@ class PairedEvaluationStore:
                 .encode(),
             }
         )
-        replace_table(path, stamped, what="paired-evaluation table")
-        return path
+        return stamped

@@ -1,4 +1,4 @@
-"""Stage 8B and Stage 8C audit their own spans, and no document moves the ends.
+"""Stage 8B, 8C and 8D audit their own spans, and no document moves the ends.
 
 ADR 0067 settled this for Stage 8A: a boundary audit compares the commit that
 opened the stage with the commit that published it, both constants. Stage 8B and
@@ -20,7 +20,12 @@ that can be re-made. The direction that matters most is the one below in
 :func:`test_no_published_marker_can_move_the_audited_span` — a span end read from
 the audited document could be *narrowed* by it, not only widened.
 
-These are Stage 8A's own span tests applied to the two stages that drifted from
+Stage 8D carried the same shape and never hit it — nothing pins its sources by
+*commit*, so its ``verifier_source_commit`` never had to move. That made it a
+debt rather than a bug, and it is included here because a debt nobody can see is
+one nobody pays.
+
+These are Stage 8A's own span tests applied to the three stages that drifted from
 it, both directions locked: work inside the span is still refused, and work
 committed after the publication is still not theirs to permit or forbid.
 """
@@ -34,9 +39,11 @@ from typing import Callable, Sequence
 
 import pytest
 
+from fpbench.core.calibration_errors import Stage8DFinalizationError
 from fpbench.core.errors import ResearchPreflightError
 from fpbench.core.flx_errors import Stage8BFinalizationError
 from fpbench.experiments import stage8c_finalization as stage8c
+from fpbench.experiments import stage8d_finalization as stage8d
 from fpbench.flx import finalization as stage8b
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -99,6 +106,20 @@ _STAGES = (
         owned_path="evidence/flx-canonical500-raw/notes.json",
         later_path="src/fpbench/experiments/stage20b_finalization.py",
     ),
+    _Stage(
+        label="8D",
+        module=stage8d,
+        audit=stage8d.verify_stage8d_workspace_boundaries,
+        baseline=stage8d.STAGE_8D_BASELINE_COMMIT,
+        publication=stage8d.STAGE_8D_PUBLICATION_COMMIT,
+        error=Stage8DFinalizationError,
+        marker=(
+            "evidence/stage8d-calibration-infrastructure/stage-8d-finalization.json"
+        ),
+        forbidden_path="src/fpbench/execution/planner.py",
+        owned_path="evidence/stage8d-calibration-infrastructure/notes.json",
+        later_path="src/fpbench/experiments/stage20b_finalization.py",
+    ),
 )
 
 
@@ -126,6 +147,12 @@ def _install_git(
             return ()
         if arguments[:1] == ("diff",):
             return tuple(changed)
+        if arguments[:1] == ("rev-list",):
+            # Stage 8D walks its span commit by commit; one synthetic revision
+            # is enough to carry the changed paths through that walk.
+            return ("0" * 40,)
+        if arguments[:1] == ("diff-tree",):
+            return tuple(changed)
         if arguments[:1] == ("ls-files",):
             return tuple(untracked)
         raise AssertionError(f"unexpected git invocation {arguments}")
@@ -143,16 +170,25 @@ def test_the_audited_span_is_two_fixed_commits_and_never_head(
 
     stage.audit(REPOSITORY_ROOT)
 
-    diff = next(arguments for arguments in calls if arguments[0] == "diff")
-    assert diff == (
-        "diff",
-        "--name-only",
-        "--diff-filter=ACDMRTUXB",
-        stage.baseline,
-        stage.publication,
-        "--",
+    # Stage 8B and 8C diff two commits; Stage 8D walks the span with rev-list.
+    # The property is the same either way and is asserted on the shape rather
+    # than on which Git verb a given stage happens to use.
+    spanning = [
+        arguments
+        for arguments in calls
+        if stage.baseline in arguments and stage.publication in arguments
+    ]
+    assert spanning, (
+        f"Stage {stage.label} never asked Git about its own span: {calls}"
     )
-    assert "HEAD" not in diff
+    reaching_head = [
+        arguments
+        for arguments in calls
+        if "HEAD" in arguments and arguments[0] != "merge-base"
+    ]
+    assert not reaching_head, (
+        f"Stage {stage.label}'s span reaches HEAD: {reaching_head}"
+    )
 
 
 @pytest.mark.parametrize("stage", _STAGES, ids=lambda stage: stage.label)

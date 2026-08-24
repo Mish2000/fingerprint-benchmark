@@ -202,7 +202,7 @@ def policy_from_document(
         raise ConfigurationError(f"{path}: transitions enables no family")
 
     fields = dict(
-        policy_id=str(policy["policy_id"]),
+        policy_id=_required(policy, "policy_id", path=path, section="policy"),
         policy_version=str(policy.get("policy_version", "1")),
         pairing_key="pair_id",
         require_same_pair_manifest=True,
@@ -299,6 +299,32 @@ def _reject_unknown(
             f"Permitted keys are {sorted(permitted)}"
         )
     return section
+
+
+def _required(
+    section_value: Mapping[str, Any], name: str, *, path: object, section: str
+) -> str:
+    """A field the policy cannot do without, as a string.
+
+    Subscripting the mapping instead raised ``KeyError``, which is not a
+    configuration error to anyone catching one: it escaped the loader, past
+    ``inspect_paired_evaluation``'s ``except (ConfigurationError, StorageError)``,
+    and turned "this set is invalid" into a crash. A malformed document is a
+    ``ConfigurationError`` — every path out of this module, without exception.
+    """
+    value = section_value.get(name, _MISSING)
+    if value is _MISSING or value is None:
+        raise ConfigurationError(
+            f"{path}: {section}.{name} is required and is missing"
+        )
+    if isinstance(value, (Mapping, list, tuple, set)):
+        raise ConfigurationError(
+            f"{path}: {section}.{name} must be a single value, not {type(value).__name__}"
+        )
+    text = str(value).strip()
+    if not text:
+        raise ConfigurationError(f"{path}: {section}.{name} is empty")
+    return text
 
 
 def _section(document: Mapping[str, Any], key: str, path: Path) -> Mapping[str, Any]:

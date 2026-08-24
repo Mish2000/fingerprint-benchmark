@@ -64,7 +64,7 @@ from fpbench.storage import layout, prepared_image_schemas
 from fpbench.core.atomic_write import PublishConflictError, publish_file
 from fpbench.storage.immutable_publication import claim_document
 from fpbench.storage.atomic_parquet import replace_table
-from fpbench.storage.set_publication import publish_set
+from fpbench.storage.set_publication import document_body, publish_set, table_body
 
 __all__ = ["PreparedImageSetStore", "ImageWriteOutcome"]
 
@@ -403,39 +403,45 @@ class PreparedImageSetStore:
         manifest_path = self.manifest_path(set_id)
         container = self.set_dir(set_id)
         container.mkdir(parents=True, exist_ok=True)
-        claim = publish_set(
+        def conflict(stored: str) -> BaseException:
+            return PreparedImageSetConflictError(
+                f"{manifest_path} already holds prepared-image set "
+                f"{stored[:12]}...; refusing to replace it with "
+                f"{manifest.preparation_set_fingerprint[:12]}..."
+            )
+
+        def document(path, expected, what):
+            return document_body(
+                path=path,
+                expected=expected,
+                what=what,
+                error=PreparedImageSetConflictError,
+            )
+
+        publish_set(
             manifest_path=manifest_path,
             manifest=manifest,
-            body_paths=(
-                self.profile_path(container),
-                self.runtime_path(container),
-                self.definition_path(container),
-                self.entries_table_path(set_id),
-            ),
+            fingerprint=manifest.preparation_set_fingerprint,
             stored_fingerprint=lambda: self.read_manifest(
                 set_id
             ).preparation_set_fingerprint,
-            fingerprint=manifest.preparation_set_fingerprint,
+            bodies=(
+                document(self.profile_path(container), profile, "transform profile"),
+                document(self.runtime_path(container), runtime, "transform runtime"),
+                document(
+                    self.definition_path(container), definition,
+                    "preparation definition",
+                ),
+                table_body(
+                    path=self.entries_table_path(set_id),
+                    expected=lambda: self._entries_table(manifest, entries),
+                    what="prepared-image entries",
+                    error=PreparedImageSetConflictError,
+                ),
+            ),
+            verify_whole_set=lambda: self.verify_set(set_id),
+            conflict=conflict,
         )
-
-        if claim.write_body:
-            self.ensure_transform_profile(container, profile)
-            self.ensure_runtime(container, runtime)
-            self.ensure_definition_copy(container, definition)
-            self.ensure_entries_table(manifest, entries)
-
-        if not claim.owned:
-            stored = self.read_manifest(set_id)
-            if (
-                stored.preparation_set_fingerprint
-                != manifest.preparation_set_fingerprint
-            ):
-                raise PreparedImageSetConflictError(
-                    f"{manifest_path} already holds prepared-image set "
-                    f"{stored.preparation_set_id} "
-                    f"({stored.preparation_set_fingerprint[:12]}...); refusing to "
-                    f"replace it with {manifest.preparation_set_fingerprint[:12]}..."
-                )
         return manifest_path.parent
 
     def ensure_definition_copy(
@@ -450,14 +456,13 @@ class PreparedImageSetStore:
                 )
         return path
 
-    def ensure_entries_table(
+    def _entries_table(
         self,
         manifest: PreparedImageSetManifest,
         entries: tuple[PreparedImageEntry, ...],
-    ) -> Path:
+    ) -> pa.Table:
+        """The entries body this set would store, stamped. Built, never written."""
         table = prepared_image_schemas.prepared_entries_to_table(entries)
-        path = self.entries_table_path(manifest.preparation_set_id)
-        path.parent.mkdir(parents=True, exist_ok=True)
 
         from fpbench import __version__
 
@@ -486,8 +491,7 @@ class PreparedImageSetStore:
                 .encode(),
             }
         )
-        replace_table(path, stamped, what="prepared-image entries")
-        return path
+        return stamped
 
     def ensure_summary(
         self, *, preparation_set_id: str, summary: Mapping[str, object]

@@ -1,235 +1,210 @@
-"""A set that is more than one file is claimed before any of it is written.
+"""The primitive itself: what it does, in what order, on every outcome.
 
-The five manifest+body stores all published in the same order: check whether
-the manifest is there, write the body, then publish the manifest
-create-if-absent. Two writers with different content both passed the check, both
-*replaced* the body, and then one published the manifest and the other was
-refused. What survived was one writer's manifest standing over the other
-writer's rows — and the manifest's own fingerprint said nothing was wrong,
-because it described rows that were no longer on disk.
+The store-level guarantee is checked over all eight stores in
+``tests/contract/test_every_set_publishes_the_set_it_verified.py``. These are the
+mechanics underneath it, with the stores' formats replaced by counters, because
+what went wrong three times was never a format — it was an order, and a branch.
 
-:mod:`fpbench.storage.set_publication` inverts it: the manifest is the claim, it
-goes first, and only its owner writes the body. These are the cases that
-inversion has to get right, including the one it creates — a crash between the
-manifest and the body.
+The previous version of this file tested a ``SetClaim`` whose ``write_body``
+flag left the verification to each caller. It passed, thoroughly, while three
+callers were getting that branch wrong. So these assert the two properties the
+flag made unassertable: that verification happens on **every** path out of
+:func:`publish_set`, and that nothing is created before everything present has
+been checked.
 """
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
 
-from fpbench.storage.set_publication import SetClaim, publish_set
+from fpbench.core.errors import StorageError
+from fpbench.storage.set_publication import SetBody, publish_set
 
 
-@dataclass(frozen=True, slots=True)
-class _Manifest:
-    """The smallest thing a store publishes: an id and a fingerprint."""
+class _Recorder:
+    """A body that records what was asked of it, and can be told to disagree."""
 
-    set_id: str
-    fingerprint: str
+    def __init__(self, path: Path, *, agrees: bool = True) -> None:
+        self.path = Path(path)
+        self.agrees = agrees
+        self.verified = 0
+        self.created = 0
+        self.log: list[str] = []
+
+    def body(self) -> SetBody:
+        return SetBody(
+            path=self.path,
+            verify_existing=self._verify,
+            publish_missing=self._create,
+        )
+
+    def _verify(self) -> None:
+        self.verified += 1
+        self.log.append("verify")
+        if not self.path.is_file():
+            raise StorageError(f"missing: {self.path}")
+        if not self.agrees:
+            raise StorageError(f"{self.path} is not the expected body")
+
+    def _create(self) -> None:
+        self.created += 1
+        self.log.append("create")
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text("body", encoding="utf-8")
 
 
-def _claim(tmp_path: Path, manifest: _Manifest) -> SetClaim:
+def _publish(
+    tmp_path: Path,
+    recorders: tuple[_Recorder, ...],
+    *,
+    fingerprint: str = "a" * 64,
+    whole_set: list[str] | None = None,
+):
     manifest_path = tmp_path / "manifest.json"
+    recorded = whole_set if whole_set is not None else []
 
-    def stored() -> str:
-        return str(json.loads(manifest_path.read_text(encoding="utf-8"))["fingerprint"])
+    def stored_fingerprint() -> str:
+        return json.loads(manifest_path.read_text(encoding="utf-8"))["fingerprint"]
 
     return publish_set(
         manifest_path=manifest_path,
-        manifest=manifest,
-        body_paths=(tmp_path / "entries.parquet",),
-        stored_fingerprint=stored,
-        fingerprint=manifest.fingerprint,
+        manifest={"fingerprint": fingerprint},
+        fingerprint=fingerprint,
+        stored_fingerprint=stored_fingerprint,
+        bodies=tuple(recorder.body() for recorder in recorders),
+        verify_whole_set=lambda: recorded.append("whole"),
+        conflict=lambda stored: StorageError(f"conflict with {stored}"),
     )
 
 
-def _write_body(tmp_path: Path, payload: bytes) -> None:
-    (tmp_path / "entries.parquet").write_bytes(payload)
+def test_a_fresh_publication_creates_then_verifies(tmp_path: Path) -> None:
+    one = _Recorder(tmp_path / "one")
+    whole: list[str] = []
+
+    result = _publish(tmp_path, (one,), whole_set=whole)
+
+    assert result.created and not result.already_published
+    assert one.log == ["create", "verify"], (
+        "a body must be read back after it is written, not assumed"
+    )
+    assert whole == ["whole"]
 
 
-def test_the_first_writer_owns_the_set_and_writes_the_body(tmp_path: Path) -> None:
-    claim = _claim(tmp_path, _Manifest("set_a", "a" * 64))
-    assert claim == SetClaim(owned=True, write_body=True, already_published=False)
+def test_a_retry_over_a_finished_set_verifies_and_creates_nothing(
+    tmp_path: Path,
+) -> None:
+    """The case that was silently skipped: everything present, so nothing read."""
+    one = _Recorder(tmp_path / "one")
+    _publish(tmp_path, (one,))
+
+    again = _Recorder(tmp_path / "one")
+    whole: list[str] = []
+    result = _publish(tmp_path, (again,), whole_set=whole)
+
+    assert not result.created and result.already_published
+    assert again.created == 0, "a finished set was written again"
+    assert again.verified >= 1, "a finished set was returned without being read"
+    assert whole == ["whole"]
+
+
+def test_everything_present_is_verified_before_anything_is_created(
+    tmp_path: Path,
+) -> None:
+    """One body missing and another disagreeing is a conflict, not a repair."""
+    first = _Recorder(tmp_path / "one")
+    second = _Recorder(tmp_path / "two")
+    _publish(tmp_path, (first, second))
+
+    (tmp_path / "one").unlink()
+    disagreeing = _Recorder(tmp_path / "two", agrees=False)
+    missing = _Recorder(tmp_path / "one")
+
+    with pytest.raises(StorageError):
+        _publish(tmp_path, (missing, disagreeing))
+
+    assert missing.created == 0, (
+        "the missing body was created even though another body disagreed"
+    )
+    assert not (tmp_path / "one").is_file()
+
+
+def test_a_different_fingerprint_is_refused_before_a_body_is_touched(
+    tmp_path: Path,
+) -> None:
+    one = _Recorder(tmp_path / "one")
+    _publish(tmp_path, (one,))
+
+    intruder = _Recorder(tmp_path / "one")
+    with pytest.raises(StorageError, match="conflict with"):
+        _publish(tmp_path, (intruder,), fingerprint="b" * 64)
+
+    assert intruder.log == [], "a conflicting set read or wrote a body"
+
+
+def test_orphaned_bodies_are_decided_before_the_claim(tmp_path: Path) -> None:
+    """Bodies under a name nothing claims: verified, or the claim is refused."""
+    (tmp_path / "one").write_text("body", encoding="utf-8")
+
+    agreeing = _Recorder(tmp_path / "one")
+    _publish(tmp_path, (agreeing,))
     assert (tmp_path / "manifest.json").is_file()
+    assert agreeing.created == 0
 
-
-def test_a_second_writer_of_the_same_set_does_not_rewrite_the_body(
-    tmp_path: Path,
-) -> None:
-    """Idempotent re-publication, which every store's caller relies on."""
-    manifest = _Manifest("set_a", "a" * 64)
-    assert _claim(tmp_path, manifest).write_body is True
-    _write_body(tmp_path, b"rows")
-
-    again = _claim(tmp_path, manifest)
-    assert again == SetClaim(owned=False, write_body=False, already_published=True)
-    assert (tmp_path / "entries.parquet").read_bytes() == b"rows"
-
-
-def test_a_publication_that_stopped_half_way_is_finished_not_refused(
-    tmp_path: Path,
-) -> None:
-    """The failure mode the inversion creates, handled rather than inherited.
-
-    Manifest first means a crash before the body leaves a set whose manifest is
-    present and whose rows are missing. That is recoverable precisely because
-    the fingerprint determines the rows: writing them is finishing the
-    publication, not guessing at it.
-    """
-    manifest = _Manifest("set_a", "a" * 64)
-    assert _claim(tmp_path, manifest).write_body is True
-    # ...and then the process died, before entries.parquet existed.
-
-    resumed = _claim(tmp_path, manifest)
-    assert resumed == SetClaim(owned=False, write_body=True, already_published=True)
-
-
-def test_a_different_set_never_writes_the_body(tmp_path: Path) -> None:
-    """The refusal the whole module exists for.
-
-    The second writer disagrees about the content. It does not own the set, and
-    — the part that used to be wrong — it does not touch the body either. The
-    caller raises its own conflict from the comparison this returns.
-    """
-    assert _claim(tmp_path, _Manifest("set_a", "a" * 64)).write_body is True
-    _write_body(tmp_path, b"rows from A")
-
-    intruder = _claim(tmp_path, _Manifest("set_b", "b" * 64))
-    assert intruder == SetClaim(owned=False, write_body=False, already_published=True)
-    assert (tmp_path / "entries.parquet").read_bytes() == b"rows from A"
-
-    stored = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
-    assert stored["set_id"] == "set_a"
-
-
-def test_a_different_set_is_refused_even_before_its_body_exists(
-    tmp_path: Path,
-) -> None:
-    """The half-published set is not an opening for somebody else's rows.
-
-    ``write_body`` is true for a resumed publication only when the fingerprints
-    match. A second writer arriving at the same gap with different content must
-    not be handed the empty body slot.
-    """
-    assert _claim(tmp_path, _Manifest("set_a", "a" * 64)).write_body is True
-
-    intruder = _claim(tmp_path, _Manifest("set_b", "b" * 64))
-    assert intruder.write_body is False
-    assert not (tmp_path / "entries.parquet").exists()
-
-
-def test_an_already_published_manifest_is_never_re_rendered(tmp_path: Path) -> None:
-    """The stored manifest decides, so the caller's object is not serialised.
-
-    A store reaching this path holds whatever it was handed — including, in one
-    of the conflict tests, an object built field by field to reach a state the
-    real model refuses. Rendering it to compare would fail on the encoder
-    instead of on the fingerprint, which is the wrong error for the wrong
-    reason.
-    """
-
-    class _Unserialisable:
-        fingerprint = "b" * 64
-
-    assert _claim(tmp_path, _Manifest("set_a", "a" * 64)).owned is True
-
-    manifest_path = tmp_path / "manifest.json"
-    claim = publish_set(
-        manifest_path=manifest_path,
-        manifest=_Unserialisable(),
-        body_paths=(tmp_path / "entries.parquet",),
-        stored_fingerprint=lambda: "a" * 64,
-        fingerprint="b" * 64,
+    other = tmp_path / "other"
+    other.mkdir()
+    (other / "one").write_text("body", encoding="utf-8")
+    disagreeing = _Recorder(other / "one", agrees=False)
+    with pytest.raises(StorageError):
+        _publish(other, (disagreeing,))
+    assert not (other / "manifest.json").is_file(), (
+        "a set was claimed over bodies that disagree with it"
     )
-    assert claim == SetClaim(owned=False, write_body=False, already_published=True)
 
 
-def test_an_unreadable_stored_manifest_is_the_callers_error(tmp_path: Path) -> None:
-    """Not swallowed into "somebody else has it".
+def test_an_unreadable_manifest_is_the_callers_error_and_touches_nothing(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "manifest.json").write_text("{ not json", encoding="utf-8")
+    one = _Recorder(tmp_path / "one")
 
-    ``stored_fingerprint`` is the caller's reader. If the published manifest
-    cannot be read, that is a corrupt set and the caller's exception is the
-    right one to see.
-    """
-    (tmp_path / "manifest.json").write_text("not json", encoding="utf-8")
     with pytest.raises(json.JSONDecodeError):
-        _claim(tmp_path, _Manifest("set_a", "a" * 64))
+        _publish(tmp_path, (one,))
+
+    assert one.log == []
 
 
-# ------------------------------------------ a set is every file it is made of
+def test_the_whole_set_check_runs_on_every_outcome(tmp_path: Path) -> None:
+    """Fresh, resumed and already-finished all end at the same gate."""
+    calls: list[str] = []
+
+    one = _Recorder(tmp_path / "one")
+    two = _Recorder(tmp_path / "two")
+    _publish(tmp_path, (one, two), whole_set=calls)
+    assert calls == ["whole"]
+
+    (tmp_path / "two").unlink()
+    _publish(tmp_path, (_Recorder(tmp_path / "one"), _Recorder(tmp_path / "two")),
+             whole_set=calls)
+    assert calls == ["whole", "whole"]
+
+    _publish(tmp_path, (_Recorder(tmp_path / "one"), _Recorder(tmp_path / "two")),
+             whole_set=calls)
+    assert calls == ["whole", "whole", "whole"]
 
 
-def _multi(tmp_path: Path, manifest: _Manifest, names: tuple[str, ...]) -> SetClaim:
-    manifest_path = tmp_path / "manifest.json"
+def test_only_the_missing_body_is_created(tmp_path: Path) -> None:
+    first = _Recorder(tmp_path / "one")
+    second = _Recorder(tmp_path / "two")
+    _publish(tmp_path, (first, second))
 
-    def stored() -> str:
-        return str(json.loads(manifest_path.read_text(encoding="utf-8"))["fingerprint"])
+    (tmp_path / "two").unlink()
+    present = _Recorder(tmp_path / "one")
+    absent = _Recorder(tmp_path / "two")
+    result = _publish(tmp_path, (present, absent))
 
-    return publish_set(
-        manifest_path=manifest_path,
-        manifest=manifest,
-        body_paths=tuple(tmp_path / name for name in names),
-        stored_fingerprint=stored,
-        fingerprint=manifest.fingerprint,
-    )
-
-
-#: A metric set: a definition, a policy, a report profile, the counts and the
-#: observations. Six files with the manifest, and the crash below lands between
-#: the fourth and the fifth.
-_METRIC_SET = (
-    "definition.json",
-    "policy.json",
-    "report-profile.json",
-    "counts.parquet",
-    "observations.parquet",
-)
-
-
-def test_a_crash_between_two_body_files_is_still_an_unfinished_set(
-    tmp_path: Path,
-) -> None:
-    """The reviewer's case, and the reason ``body_paths`` is plural.
-
-    ``counts.parquet`` used to stand in for the whole body. A crash after it and
-    before ``observations.parquet`` left a set whose retry reported success over
-    a set that cannot be read: the manifest is there, the counts are there, and
-    the observations the manifest describes never arrived.
-    """
-    manifest = _Manifest("ms_1", "a" * 64)
-    assert _multi(tmp_path, manifest, _METRIC_SET).write_body is True
-    for name in _METRIC_SET[:-1]:
-        (tmp_path / name).write_bytes(b"written")
-    # ...and then the process died.
-
-    resumed = _multi(tmp_path, manifest, _METRIC_SET)
-    assert resumed.write_body is True, (
-        "the set is missing observations.parquet and the retry called it finished"
-    )
-
-
-def test_a_set_whose_every_file_arrived_is_not_written_again(tmp_path: Path) -> None:
-    manifest = _Manifest("ms_1", "a" * 64)
-    assert _multi(tmp_path, manifest, _METRIC_SET).write_body is True
-    for name in _METRIC_SET:
-        (tmp_path / name).write_bytes(b"written")
-
-    resumed = _multi(tmp_path, manifest, _METRIC_SET)
-    assert resumed.write_body is False
-
-
-@pytest.mark.parametrize("missing", _METRIC_SET)
-def test_any_missing_file_makes_the_set_unfinished(tmp_path: Path, missing: str) -> None:
-    """Not just the last one: each file is the manifest's claim as much as the rest."""
-    manifest = _Manifest("ms_1", "a" * 64)
-    assert _multi(tmp_path, manifest, _METRIC_SET).write_body is True
-    for name in _METRIC_SET:
-        if name != missing:
-            (tmp_path / name).write_bytes(b"written")
-
-    assert _multi(tmp_path, manifest, _METRIC_SET).write_body is True
+    assert present.created == 0
+    assert absent.created == 1
+    assert result.completed == (tmp_path / "two",)

@@ -10,9 +10,11 @@ no production threshold exists, and no evaluation score row was read
 
 The boundary audit follows docs/adr/0067: it compares the commit Stage 8D began
 at with the commit it published at, rather than comparing against a moving
-``HEAD``. The span's end is read from the published marker's
-``verifier_source_commit``, so Stage 9A can exist without anyone editing this
-file.
+``HEAD``. Both ends are constants in this file. The span's end used to be read
+from the published marker's ``verifier_source_commit`` so that Stage 9A could
+exist without editing this file — a field that moves when a stage is
+re-published cannot also bound what that stage is answerable for, and Stage 8B
+and Stage 8C were bitten by exactly that.
 
 Stage 8D touches more shared infrastructure than the stages before it — the
 decision-profile schema, the shared enums, the storage layout — because a
@@ -46,6 +48,7 @@ from fpbench.experiments.stage8d_identity import (
 
 __all__ = [
     "STAGE_8D_BASELINE_COMMIT",
+    "STAGE_8D_PUBLICATION_COMMIT",
     "Stage8DFinalization",
     "stage_8d_finalization_fingerprint",
     "calibration_model_fingerprint",
@@ -60,6 +63,23 @@ __all__ = [
 
 #: Stage 8D began here: the approved HEAD that closed Stage 8C.
 STAGE_8D_BASELINE_COMMIT = "a27104b244489c02240c345ad4cee7e0d1a2cb3d"
+
+#: And ended here: Stage 8D's own last re-closure, before Stage 8E begins.
+#:
+#: Not the marker's ``verifier_source_commit``, and not the later calibration
+#: repair. Stage 8D's marker has been written seven times, so "the commit that
+#: published it" is a choice rather than a lookup, and the evidence decides it:
+#: ending at ``8d4a7a5`` — the 2026-08-20 repair that hardened the calibration
+#: source binding — puts 147 commits in the span, of which 118 belong to Stage
+#: 8E, Stage 9A and everything after. Ending here puts 25 in, none of them
+#: anybody else's.
+#:
+#: That leaves ``8d4a7a5``'s nine changed calibration files outside the span,
+#: which is correct rather than a gap: they are bound by content, in
+#: :func:`calibration_model_fingerprint` and :func:`selection_engine_fingerprint`,
+#: and ADR 0067 already says work committed after a stage's publication "is
+#: neither that stage's to permit nor that stage's to forbid".
+STAGE_8D_PUBLICATION_COMMIT = "2ad4698da5dd74a2aa5673ff08ffe71e69a750f0"
 
 #: Commits inside Stage 8D's span that are **not** Stage 8D's work.
 #:
@@ -759,14 +779,22 @@ def _stage_8d_changed_paths(
     return tuple(sorted(changed))
 
 
-def verify_stage8d_workspace_boundaries(
-    repository_root: Path, *, span_end_commit: str
-) -> None:
+def verify_stage8d_workspace_boundaries(repository_root: Path) -> None:
     """Prove Stage 8D changed only its own surface, over its own span.
 
-    ``span_end_commit`` is the commit the publication names as its verifier.
-    Reading the span's end from the evidence rather than from a constant is what
-    lets Stage 9A exist without editing this file (docs/adr/0067).
+    Both ends are constants: :data:`STAGE_8D_BASELINE_COMMIT` to
+    :data:`STAGE_8D_PUBLICATION_COMMIT` (docs/adr/0067). It took a
+    ``span_end_commit`` until 2026-08-24, read from the marker's
+    ``verifier_source_commit`` so that Stage 9A could exist without editing this
+    file — the same shape Stage 8B and Stage 8C carried, and the same latent
+    defect: a field that legitimately moves when a stage is re-published cannot
+    also be the boundary of what that stage is answerable for.
+
+    Stage 8D never hit it, because nothing pins its sources *by commit* — the two
+    source-family fingerprints pin them by content — so its
+    ``verifier_source_commit`` never had to move. That made it a debt rather than
+    a bug, and it is paid here rather than left for whoever first needs to move
+    it.
     """
     repository_root = Path(repository_root)
     roots = _git_output(repository_root, "rev-parse", "--show-toplevel")
@@ -786,10 +814,16 @@ def verify_stage8d_workspace_boundaries(
         "merge-base",
         "--is-ancestor",
         STAGE_8D_BASELINE_COMMIT,
-        span_end_commit,
+        STAGE_8D_PUBLICATION_COMMIT,
     )
-    _git_output(repository_root, "merge-base", "--is-ancestor", span_end_commit, "HEAD")
-    changed = _stage_8d_changed_paths(repository_root, span_end_commit)
+    _git_output(
+        repository_root,
+        "merge-base",
+        "--is-ancestor",
+        STAGE_8D_PUBLICATION_COMMIT,
+        "HEAD",
+    )
+    changed = _stage_8d_changed_paths(repository_root, STAGE_8D_PUBLICATION_COMMIT)
     protected = sorted(
         path
         for path in changed

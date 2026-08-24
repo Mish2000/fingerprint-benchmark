@@ -31,7 +31,7 @@ from fpbench.core.evaluation_view_models import (
 from fpbench.core.serialization import read_json
 from fpbench.storage import derivation_schemas, layout
 from fpbench.storage.atomic_parquet import replace_table
-from fpbench.storage.set_publication import publish_set
+from fpbench.storage.set_publication import publish_set, table_body
 
 __all__ = ["EvaluationViewStore"]
 
@@ -83,27 +83,38 @@ class EvaluationViewStore:
         manifest_path = self.manifest_path(
             run_id, decision_set_id, manifest.view_kind
         )
-        claim = publish_set(
+
+        def conflict(stored: str) -> BaseException:
+            return DecisionSetConflictError(
+                f"decision set {decision_set_id} already holds view {stored[:12]}"
+                f"... of kind {manifest.view_kind}; refusing to replace it with "
+                f"{manifest.view_id}"
+            )
+
+        publish_set(
             manifest_path=manifest_path,
             manifest=manifest,
-            body_paths=(
-                self.entries_path(run_id, decision_set_id, manifest.view_kind),
-            ),
+            fingerprint=manifest.view_fingerprint,
             stored_fingerprint=lambda: self.read_manifest(
                 run_id, decision_set_id, manifest.view_kind
             ).view_fingerprint,
-            fingerprint=manifest.view_fingerprint,
+            bodies=(
+                table_body(
+                    path=self.entries_path(
+                        run_id, decision_set_id, manifest.view_kind
+                    ),
+                    expected=lambda: self._entries_table(
+                        run_id, decision_set_id, manifest, entries
+                    ),
+                    what="evaluation-view entries",
+                    error=DecisionSetConflictError,
+                ),
+            ),
+            verify_whole_set=lambda: self.read_view(
+                run_id, decision_set_id, manifest.view_kind
+            ),
+            conflict=conflict,
         )
-        if claim.write_body:
-            self._write_entries(run_id, decision_set_id, manifest, entries)
-        if not claim.owned:
-            stored = self.read_manifest(run_id, decision_set_id, manifest.view_kind)
-            if stored.view_fingerprint != manifest.view_fingerprint:
-                raise DecisionSetConflictError(
-                    f"decision set {decision_set_id} already holds view "
-                    f"{stored.view_id} of kind {manifest.view_kind}; refusing to "
-                    f"replace it with {manifest.view_id}"
-                )
         return manifest_path.parent
 
     # ------------------------------------------------------------------- read
@@ -178,16 +189,14 @@ class EvaluationViewStore:
                 "the manifest's ordered entries hash does not cover these rows"
             )
 
-    def _write_entries(
+    def _entries_table(
         self,
         run_id: str,
         decision_set_id: str,
         manifest: EvaluationViewManifest,
         entries: tuple[EvaluationViewEntry, ...],
-    ) -> Path:
-        path = self.entries_path(run_id, decision_set_id, manifest.view_kind)
-        path.parent.mkdir(parents=True, exist_ok=True)
-
+    ) -> pa.Table:
+        """The entries body this view would store, stamped. Built, never written."""
         from fpbench import __version__
 
         table = derivation_schemas.view_entries_to_table(entries)
@@ -211,6 +220,4 @@ class EvaluationViewStore:
                 .encode(),
             }
         )
-
-        replace_table(path, stamped, what="evaluation-view entries")
-        return path
+        return stamped

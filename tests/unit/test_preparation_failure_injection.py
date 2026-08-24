@@ -111,9 +111,12 @@ def test_a_failure_after_the_entries_table_leaves_a_whole_set(tmp_path, monkeypa
     a set is never *mixed*, and one that is whole is whole whatever raised
     afterwards. The retry re-reads it and finds its own fingerprint.
     """
-    original = PreparedImageSetStore.ensure_entries_table
+    import fpbench.storage.set_publication as publication
+
+    # The entries parquet is the last body a prepared set writes, so failing
+    # just after it is the crash that leaves the set already whole.
     monkeypatch.setattr(
-        PreparedImageSetStore, "ensure_entries_table", _fail_after(original)
+        publication, "publish_table", _fail_after(publication.publish_table)
     )
     with pytest.raises(_Boom):
         build_canonical_world(tmp_path, subjects=1, fingers=(1,))
@@ -132,9 +135,12 @@ def test_a_failure_between_the_claim_and_the_body_is_resumable(tmp_path, monkeyp
     fingerprint, a body file missing — and lets the retry finish the publication
     it started rather than refusing a set it owns.
     """
-    original = PreparedImageSetStore.ensure_definition_copy
+    import fpbench.storage.set_publication as publication
+
+    # The manifest is the first thing publish_set writes, so failing after the
+    # first JSON publication is the crash between the claim and its body.
     monkeypatch.setattr(
-        PreparedImageSetStore, "ensure_definition_copy", _fail_after(original)
+        publication, "publish_json", _fail_after(publication.publish_json)
     )
     with pytest.raises(_Boom):
         build_canonical_world(tmp_path, subjects=1, fingers=(1,))

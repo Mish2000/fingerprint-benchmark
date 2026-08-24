@@ -33,12 +33,16 @@ import pytest
 
 from fpbench.core import atomic_write
 from fpbench.core.enums import CohortRole
-from fpbench.core.errors import ManifestExistsError, MetricSetConflictError
+from fpbench.core.errors import (
+    ManifestExistsError,
+    MetricSetConflictError,
+    StorageError,
+)
 from fpbench.core.identifiers import CohortId, SubjectId
 from fpbench.core.models import Cohort, CohortSelection
 from fpbench.storage.manifest_store import ManifestStore
 from fpbench.storage.metric_set_store import MetricSetStore
-from fpbench.storage.set_publication import publish_set
+from fpbench.storage.set_publication import SetBody, publish_set
 
 _TIMEOUT_SECONDS = 30.0
 
@@ -110,30 +114,49 @@ def _cohort(seed: int) -> Cohort:
 def test_two_different_sets_racing_for_one_manifest_leave_one_owner(
     tmp_path, monkeypatch
 ):
-    """``publish_set`` is where a set's ownership is decided, so it is tested first."""
+    """``publish_set`` is where a set's ownership is decided, so it is tested first.
+
+    The loser does not "return without writing the body" any more — there is no
+    such branch to check. It raises, because the name it asked for holds somebody
+    else's set, and that is the only outcome a caller can act on.
+    """
     manifest_path = tmp_path / "manifest.json"
-    body = tmp_path / "body.parquet"
+    body = tmp_path / "body.json"
 
     def claim(fingerprint: str):
+        def write() -> None:
+            body.write_text(fingerprint, encoding="utf-8")
+
+        def verify() -> None:
+            if not body.is_file():
+                raise StorageError(f"missing: {body}")
+            if body.read_text(encoding="utf-8") != fingerprint:
+                raise StorageError(f"{body} belongs to another set")
+
         return publish_set(
             manifest_path=manifest_path,
             manifest={"fingerprint": fingerprint},
-            body_paths=(body,),
-            stored_fingerprint=lambda: _read_fingerprint(manifest_path),
             fingerprint=fingerprint,
+            stored_fingerprint=lambda: _read_fingerprint(manifest_path),
+            bodies=(
+                SetBody(path=body, verify_existing=verify, publish_missing=write),
+            ),
+            verify_whole_set=lambda: None,
+            conflict=lambda stored: StorageError(f"conflict with {stored}"),
         )
 
     with _writers_collide(monkeypatch):
         outcomes = _run_together(lambda: claim("a" * 64), lambda: claim("b" * 64))
 
-    assert not any(isinstance(outcome, BaseException) for outcome in outcomes), outcomes
-    owners = [outcome for outcome in outcomes if outcome.owned]
-    assert len(owners) == 1, "exactly one writer may own a set"
+    published = [o for o in outcomes if not isinstance(o, BaseException)]
+    refused = [o for o in outcomes if isinstance(o, StorageError)]
+    assert len(published) == 1, f"exactly one writer may own a set, got {outcomes}"
+    assert len(refused) == 1, f"the loser must be told, got {outcomes}"
+    assert published[0].created
 
-    loser = next(outcome for outcome in outcomes if not outcome.owned)
-    assert loser.already_published
-    assert not loser.write_body, (
-        "the writer that lost the manifest must not write the body: that is the "
+    stored = body.read_text(encoding="utf-8")
+    assert stored == _read_fingerprint(manifest_path), (
+        "the body on disk belongs to a different set than the manifest: the "
         "mixed set the claim exists to prevent"
     )
 

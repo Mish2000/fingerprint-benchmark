@@ -135,7 +135,7 @@ def test_the_predecessor_is_the_exact_closed_stage_12a_marker() -> None:
     assert frozen.STAGE_12A_OUTCOME == "IDKIT_PREFLIGHT_FAIL"
     assert frozen.STAGE_12A_FAILURE_CLASS == "VENDOR_ACCESS_REFUSED"
     assert frozen.STAGE_12A_FINALIZATION_FINGERPRINT == (
-        "d3ef1127be38c75b932bdb8d2400da2608fbbf543223f78621535c0f24df321b"
+        "495b3b6ca0fc60500ab662f8418c04e7848b04e64a7aaccc88c4f79c145db0f8"
     )
 
 

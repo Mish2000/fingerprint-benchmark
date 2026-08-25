@@ -79,6 +79,7 @@ from fpbench.experiments.stage13a_fingercell_identity import (
 
 __all__ = [
     "STAGE_13A_BASELINE_COMMIT",
+    "STAGE_13A_PUBLICATION_COMMIT",
     "Stage13AFinalization",
     "stage_13a_finalization_fingerprint",
     "stage13a_source_fingerprint",
@@ -95,6 +96,15 @@ __all__ = [
 
 #: Stage 13A began here: the commit that published Stage 12A's refusal marker.
 STAGE_13A_BASELINE_COMMIT = "d64c5174c5ec47a528c7b8b5adc3375d279fae2a"
+
+#: Stage 13A ended here: the commit its marker was published at. Both ends of
+#: the span are constants, which is Stage 8A's shape rather than Stage 8B's,
+#: and the difference only shows up on a re-issue: reading the end from the
+#: commit being published grows the span every time the marker is rewritten,
+#: so re-publishing today would audit Stage 13A against every stage committed
+#: since. Which commit's source the marker pins and which span the stage
+#: changed things in are two questions, and they were sharing one field.
+STAGE_13A_PUBLICATION_COMMIT = "09f1d6274d1476786ad3c0940646111ee0e71aeb"
 
 #: Commits inside Stage 13A's span that are **not** Stage 13A's work. Empty
 #: today and kept because it will not be (docs/adr/0067).
@@ -1177,7 +1187,9 @@ def write_stage13a_evidence(
             "committed bytes of every other document; commit them first"
         )
     commit = _head_commit(repository_root)
-    verify_stage13a_workspace_boundaries(repository_root, span_end_commit=commit)
+    verify_stage13a_workspace_boundaries(
+        repository_root, span_end_commit=STAGE_13A_PUBLICATION_COMMIT
+    )
     byte_audit = engine.require_no_fingercell_bytes_in_git(repository_root)
 
     hashed = tuple(

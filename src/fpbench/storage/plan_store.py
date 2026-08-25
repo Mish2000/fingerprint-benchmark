@@ -32,7 +32,9 @@ from fpbench.core.execution_plan_models import (
     ExecutionPlan,
     ExecutionPlanDefinition,
     PlannedJob,
+    execution_plan_fingerprint,
     job_manifest_hash,
+    plan_id_for,
 )
 from fpbench.core.serialization import read_json
 from fpbench.core.json_io import write_json
@@ -122,9 +124,14 @@ class PlanStore:
         leaving a claimed set nobody can correct. So the same question is asked
         before the claim as well.
 
-        The plan *fingerprint* itself is derived by the planner, out of inputs a
-        store does not hold, so this checks what a store can: the hash over the
-        jobs, and the count it declares.
+        The first version of this checked only the job manifest hash, on the
+        claim that the plan fingerprint needs inputs a store does not hold. That
+        was written without reading the formula, and it was wrong: every input is
+        a definition field or a job fingerprint. So a plan whose jobs had been
+        *reordered*, with a correctly recomputed hash and a stale fingerprint,
+        published and read back clean — and the fingerprint is the key ownership
+        is decided by. The formula is now shared, and the whole identity is
+        derived here.
         """
         definition = plan.definition
         if definition.total_jobs != len(plan.jobs):
@@ -138,6 +145,27 @@ class PlanStore:
                 "the plan's job_manifest_hash does not cover these jobs "
                 f"({definition.job_manifest_hash[:12]}... declared, "
                 f"{recomputed[:12]}... derived)"
+            )
+
+        expected = execution_plan_fingerprint(
+            run_fingerprint=definition.run_fingerprint,
+            pair_manifest_hash=definition.pair_manifest_hash,
+            job_manifest_hash=recomputed,
+            total_jobs=definition.total_jobs,
+            stage_counts=definition.stage_counts,
+            release_counts=definition.release_counts,
+            job_fingerprints=[planned.job.job_fingerprint for planned in plan.jobs],
+        )
+        if definition.plan_fingerprint != expected:
+            raise PlanConflictError(
+                "the plan's fingerprint is not derived from what it describes "
+                f"({definition.plan_fingerprint[:12]}... declared, "
+                f"{expected[:12]}... derived)"
+            )
+        if definition.plan_id != plan_id_for(expected):
+            raise PlanConflictError(
+                f"the plan id {definition.plan_id} is not derived from its own "
+                "fingerprint"
             )
 
     def _jobs_table(self, plan: ExecutionPlan) -> pa.Table:
@@ -208,12 +236,15 @@ class PlanStore:
                 f"{self.plan_dir(run_id)}: stored plan is inconsistent ({exc})"
             ) from exc
 
-        recomputed = job_manifest_hash(definition.run_fingerprint, jobs)
-        if recomputed != definition.job_manifest_hash:
+        # The same question the publication asked, asked again of the disk. It
+        # used to be only the job manifest hash here, which a reordered plan can
+        # satisfy while its fingerprint no longer follows from its jobs.
+        try:
+            self._require_coherent(plan)
+        except PlanConflictError as exc:
             raise StorageError(
-                f"{self.jobs_path(run_id)}: job manifest hash does not match "
-                f"plan.json; the stored plan has been altered"
-            )
+                f"{self.plan_dir(run_id)}: the stored plan has been altered ({exc})"
+            ) from exc
         return plan
 
     def plan_metadata(self, run_id: str) -> Mapping[str, str]:

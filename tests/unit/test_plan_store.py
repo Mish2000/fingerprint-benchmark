@@ -160,7 +160,9 @@ def test_an_edited_job_list_fails_its_manifest_hash(store, world):
     store.jobs_path(world.run.run_id).unlink()
     _forge_jobs(store, forged)
 
-    with pytest.raises(StorageError, match="job manifest hash"):
+    # read_plan asks the same question the publication does, so the refusal now
+    # names both digests rather than only the file.
+    with pytest.raises(StorageError, match="job_manifest_hash does not cover"):
         store.read_plan(world.run.run_id)
 
 

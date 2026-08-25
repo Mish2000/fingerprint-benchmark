@@ -21,8 +21,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Iterator, Mapping
+from typing import Iterator, Mapping, Sequence
 
+from fpbench.core.execution_models import FINGERPRINT_LENGTH
 from fpbench.core.identifiers import ImageId, PairId, validate_id
 from fpbench.core.serialization import stable_hash
 
@@ -34,6 +35,8 @@ __all__ = [
     "job_manifest_hash",
     "PLAN_SCHEMA_VERSION",
     "PLAN_ID_LENGTH",
+    "execution_plan_fingerprint",
+    "plan_id_for",
 ]
 
 #: Bumped when the meaning of a plan changes. Inside the fingerprint, so a bump
@@ -209,6 +212,50 @@ class ExecutionPlan:
 
     def pair_ids(self) -> tuple[PairId, ...]:
         return tuple(planned.job.pair_id for planned in self.jobs)
+
+
+def execution_plan_fingerprint(
+    *,
+    run_fingerprint: str,
+    pair_manifest_hash: str,
+    job_manifest_hash: str,
+    total_jobs: int,
+    stage_counts: Mapping[str, int],
+    release_counts: Mapping[str, int],
+    job_fingerprints: Sequence[str],
+) -> str:
+    """The digest behind ``plan_id``.
+
+    Includes the ordered job fingerprints as well as the job manifest hash. That
+    is redundant on its face — but the two cover different things, and a plan
+    whose *order* changed while its contents did not is still a different plan.
+
+    It lives here rather than in the planner because a store has to be able to
+    ask the same question. While it was private to ``planner``, ``PlanStore``
+    could only re-derive the job manifest hash, so a plan whose jobs had been
+    reordered — with a correct hash and a stale fingerprint — published and read
+    back clean. Every input below comes from the plan definition and its jobs,
+    which is what makes deriving it from a stored plan possible at all.
+    """
+    return stable_hash(
+        {
+            "schema": "execution_plan_fingerprint_v1",
+            "plan_schema_version": PLAN_SCHEMA_VERSION,
+            "run_fingerprint": run_fingerprint,
+            "pair_manifest_hash": pair_manifest_hash,
+            "job_manifest_hash": job_manifest_hash,
+            "total_jobs": total_jobs,
+            "stage_counts": dict(stage_counts),
+            "release_counts": dict(release_counts),
+            "job_fingerprints": list(job_fingerprints),
+        },
+        length=FINGERPRINT_LENGTH,
+    )
+
+
+def plan_id_for(fingerprint: str) -> str:
+    """The plan id a fingerprint produces. One rule, so a store can check it."""
+    return f"plan_{fingerprint[:PLAN_ID_LENGTH]}"
 
 
 def job_manifest_hash(

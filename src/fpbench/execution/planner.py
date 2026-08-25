@@ -30,7 +30,8 @@ from fpbench.core.enums import ProtocolStage
 from fpbench.core.errors import PlanningError
 from fpbench.core.execution_models import FINGERPRINT_LENGTH
 from fpbench.core.execution_plan_models import (
-    PLAN_ID_LENGTH,
+    execution_plan_fingerprint,
+    plan_id_for,
     PLAN_SCHEMA_VERSION,
     ComparisonJob,
     ExecutionPlan,
@@ -98,9 +99,10 @@ def build_execution_plan(
     stage_counts = _counts(pair.protocol_stage.value for pair in ordered)
     release_counts = _counts(pair.release for pair in ordered)
 
-    fingerprint = _plan_fingerprint(
-        run=run,
-        manifest_hash=manifest_hash,
+    fingerprint = execution_plan_fingerprint(
+        run_fingerprint=run.run_fingerprint,
+        pair_manifest_hash=run.pair_manifest_hash,
+        job_manifest_hash=manifest_hash,
         total_jobs=len(planned),
         stage_counts=stage_counts,
         release_counts=release_counts,
@@ -108,7 +110,7 @@ def build_execution_plan(
     )
 
     definition = ExecutionPlanDefinition(
-        plan_id=f"plan_{fingerprint[:PLAN_ID_LENGTH]}",
+        plan_id=plan_id_for(fingerprint),
         plan_fingerprint=fingerprint,
         run_id=run.run_id,
         run_fingerprint=run.run_fingerprint,
@@ -205,35 +207,3 @@ def _counts(values: Iterable[str]) -> dict[str, int]:
     for value in values:
         counts[value] = counts.get(value, 0) + 1
     return counts
-
-
-def _plan_fingerprint(
-    *,
-    run: RunDefinition,
-    manifest_hash: str,
-    total_jobs: int,
-    stage_counts: Mapping[str, int],
-    release_counts: Mapping[str, int],
-    job_fingerprints: list[str],
-) -> str:
-    """The digest behind ``plan_id``.
-
-    Includes the ordered job fingerprints as well as the job manifest hash.
-    That is redundant on its face — but the two cover different things, and a
-    plan whose *order* changed while its contents did not is still a different
-    plan.
-    """
-    return stable_hash(
-        {
-            "schema": "execution_plan_fingerprint_v1",
-            "plan_schema_version": PLAN_SCHEMA_VERSION,
-            "run_fingerprint": run.run_fingerprint,
-            "pair_manifest_hash": run.pair_manifest_hash,
-            "job_manifest_hash": manifest_hash,
-            "total_jobs": total_jobs,
-            "stage_counts": dict(stage_counts),
-            "release_counts": dict(release_counts),
-            "job_fingerprints": list(job_fingerprints),
-        },
-        length=FINGERPRINT_LENGTH,
-    )

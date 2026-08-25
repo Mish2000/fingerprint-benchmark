@@ -190,16 +190,28 @@ def table_body(
     Taking a separate writer would let a store verify one thing and publish
     another, which is the shape this module exists to remove.
 
-    ``expected`` is a callable because building a table costs something and a
-    fresh publication should pay for it once.
+    ``expected`` is a callable so that it is built at most once per publication
+    and not at all when there is nothing to compare or create. Building an Arrow
+    table from the records is the expensive part of publishing a set, and this
+    body is asked for it from two places.
     """
     path = Path(path)
+    built: list[pa.Table] = []
+
+    def once() -> pa.Table:
+        # One table per publication. The wall clock inside it differs between
+        # builds and the comparison ignores that, so rebuilding would be correct
+        # and merely wasteful — but "merely wasteful" here is the whole set's
+        # rows, twice, on every publish and every retry.
+        if not built:
+            built.append(expected())
+        return built[0]
 
     def verify_existing() -> None:
         if not path.is_file():
             raise error(f"{what} not found: {path}")
         stored = _read_table(path, what, error)
-        if not canonical_table(stored).equals(canonical_table(expected())):
+        if not canonical_table(stored).equals(canonical_table(once())):
             raise error(
                 f"{path} holds a different {what} than the set being published; "
                 "refusing to replace it"
@@ -208,7 +220,7 @@ def table_body(
     def publish_missing() -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            publish_table(path, expected(), what=what)
+            publish_table(path, once(), what=what)
         except PublishConflictError:
             # Another publisher of this same set got there first. Both are
             # entitled to succeed; the verification that follows decides.
@@ -343,12 +355,18 @@ def publish_set(
             body.publish_missing()
             completed.append(Path(body.path))
 
-    # 6. Read it all back — including whatever step 5 wrote, and whatever
-    #    another publisher of this same set wrote while we were doing it. A file
-    #    that is still absent raises from the store's own reader, which is the
-    #    layer that knows what to call it.
+    # 6. Read back what step 5 put there — our own writes, and whatever another
+    #    publisher of this same set wrote into a name we found empty. A file that
+    #    is still absent raises from the store's own reader, which is the layer
+    #    that knows what to call it.
+    #
+    #    Only those. Everything else was read at step 4 and nothing between here
+    #    and there writes to a body; re-reading them would cost the whole set's
+    #    rows a second time to defend against an external process editing a file
+    #    mid-call, which is exactly what this module says it does not promise.
     for body in bodies:
-        body.verify_existing()
+        if body not in present:
+            body.verify_existing()
 
     # 7. And the set as a whole, which is a different question from each of its
     #    files being right.

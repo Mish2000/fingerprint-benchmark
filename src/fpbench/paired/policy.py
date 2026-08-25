@@ -125,6 +125,7 @@ def policy_from_document(
     """
     if not isinstance(document, Mapping):
         raise ConfigurationError(f"{source}: expected a mapping at the top level")
+    _require_string_keys(document, source=source, where="the top level")
     path = source
 
     unknown_sections = sorted(set(document) - _TOP_LEVEL_KEYS)
@@ -345,10 +346,29 @@ def _required(
     return text
 
 
+def _require_string_keys(section: Mapping[Any, Any], *, source: object, where: str) -> None:
+    """Every key is a string, checked before anything tries to order them.
+
+    YAML allows ``1``, ``null`` and ``true`` as keys. The unknown-key reports
+    below sort what they find, and sorting a set holding an ``int`` and a
+    ``None`` raises ``TypeError`` — out of a loader whose callers catch
+    ``ConfigurationError``, so a malformed document crashed the status path
+    instead of marking the set invalid. A key that is not a string is a
+    malformed document and is said so here, before the sort.
+    """
+    offenders = [key for key in section if not isinstance(key, str)]
+    if offenders:
+        rendered = ", ".join(f"{key!r} ({type(key).__name__})" for key in offenders[:4])
+        raise ConfigurationError(
+            f"{source}: {where} carries keys that are not strings: {rendered}"
+        )
+
+
 def _section(document: Mapping[str, Any], key: str, path: Path) -> Mapping[str, Any]:
     value = document.get(key)
     if not isinstance(value, Mapping):
         raise ConfigurationError(f"{path}: missing or malformed '{key}' section")
+    _require_string_keys(value, source=path, where=f"the '{key}' section")
     return _reject_unknown(value, key, path)
 
 

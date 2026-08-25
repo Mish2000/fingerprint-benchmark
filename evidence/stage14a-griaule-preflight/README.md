@@ -118,8 +118,8 @@ and a test proves the refusal.
 
 | Stage | Fingerprint | Why |
 |-------|-------------|-----|
-| 13A | `b24bdb672926abfb5dd5a9e03a4c3aab39f51488d9a5413092adef392d99871d` | the predecessor: `FINGERCELL_PREFLIGHT_FAIL` / `OPERATIONAL_TRIAL_ENTITLEMENT_NOT_ESTABLISHED`, which reopened the Algorithm 5 search |
-| 11B | `3d271490edda9e3e9d066485c2d93e82e2eceb4556668df7d65a8207e591684c` | Algorithm 4's 6,000 published outcomes. Bound and never read |
+| 13A | `d6c04e12dca3559774f9b7e5fbb33098b5793f0c1f6151f2a37b569c639b8b3d` | the predecessor: `FINGERCELL_PREFLIGHT_FAIL` / `OPERATIONAL_TRIAL_ENTITLEMENT_NOT_ESTABLISHED`, which reopened the Algorithm 5 search |
+| 11B | `48643010311d7fbce0855a2878f5d90c9aa3b5531f90e713f6dda77e7c75b1dc` | Algorithm 4's 6,000 published outcomes. Bound and never read |
 | 8E | `c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8` | the third-party research-use policy, reused and not reopened |
 
 ## What happens next

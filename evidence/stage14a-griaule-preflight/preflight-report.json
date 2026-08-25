@@ -82,7 +82,7 @@
     }
   ],
   "pending_reasons": [],
-  "predecessor_fingerprint": "b24bdb672926abfb5dd5a9e03a4c3aab39f51488d9a5413092adef392d99871d",
+  "predecessor_fingerprint": "d6c04e12dca3559774f9b7e5fbb33098b5793f0c1f6151f2a37b569c639b8b3d",
   "preflight_fingerprint": "1b67c33ab4787b5504c31f0ab03c7e250b74a3b2c39ca40005bf86e6cdfd2842",
   "prior_algorithm_scores_read": false,
   "product_family": "GBS Fingerprint SDK",

@@ -9,13 +9,13 @@
   "blocker": "BOOLEAN_OR_THRESHOLD_ONLY_OUTPUT",
   "bound_markers": [
     {
-      "finalization_fingerprint": "115c9aca2e28c1fe2e949c65c4e2b653a4e0ea8e442dedfa9156c8dce4e5f6cc",
+      "finalization_fingerprint": "a706143fc0c4d097fc982d02fd229d3a9e9d3ec35a6600bafdba973c766eb2f7",
       "outcome": "FINGERFLOW_ROUTE_CLOSURE_FAIL",
       "stage": "16A",
       "why": "the predecessor candidate, closed at its route gate. It left Algorithm 5 open with no reserve named, which is why this stage exists"
     },
     {
-      "finalization_fingerprint": "03ce3ec61f21300261e46f5aef9ded7c4ae0a2006db3779df5664bd2436c66ac",
+      "finalization_fingerprint": "e4a75344e26ce66e04c73dd124505d7c24a7940d6183a6f70ec7fe0db2a8f870",
       "outcome": "FINGERPRINTS_MATCHING_CANONICAL500_RAW_COMPLETE",
       "stage": "15A",
       "why": "the algorithm whose slot is still contested. Bound and never read for its scores"
@@ -97,8 +97,8 @@
   "source_artifact_sha256": "50692faf63ca8bccb83ea8a2adfac7284e389b05bc19347c86a513a85f868411",
   "source_commit": "6556be99e16dc993ac8fb49652924cdbc928a1db",
   "source_tree_clean": true,
-  "stage17a_source_fingerprint": "704872b7208aa2220d6e7c08b3870191aa6def978a9c97f535c5baa82b656d81",
-  "stage_17a_finalization_fingerprint": "cff771f55dad5eb1b935e2be8120d5943ae72898e9aeb302e1b03667f0573c3a",
+  "stage17a_source_fingerprint": "c4f8f2e0de2fc3f973c5ab31e9ef3bf567c0aab6edf76cf5fed432f173c815ce",
+  "stage_17a_finalization_fingerprint": "a86ca819aed9678a212b7b33e378bc52c5ac3f65fad6e5c5c0d835b8f9fbea68",
   "stdout_parsed_for_a_score": false,
   "stored_outcomes": 0,
   "third_party_bytes_added_to_git": false,

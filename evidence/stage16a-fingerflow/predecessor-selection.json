@@ -2,7 +2,7 @@
   "algorithm_slot": "algorithm_5",
   "bound_markers": [
     {
-      "finalization_fingerprint": "03ce3ec61f21300261e46f5aef9ded7c4ae0a2006db3779df5664bd2436c66ac",
+      "finalization_fingerprint": "e4a75344e26ce66e04c73dd124505d7c24a7940d6183a6f70ec7fe0db2a8f870",
       "outcome": "FINGERPRINTS_MATCHING_CANONICAL500_RAW_COMPLETE",
       "stage": "15A",
       "why": "the predecessor candidate. Its evidence stands unmodified and its scores were not read; only its extraction mechanism is cited. The fingerprint is the one Stage 15A carries after its result set id was bound into the marker that had published it as null \u2014 an evidence correction, with no rerun and no conclusion moved"

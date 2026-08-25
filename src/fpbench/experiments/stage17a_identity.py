@@ -210,7 +210,7 @@ BOUND_MARKERS: tuple[dict[str, str], ...] = (
     {
         "stage": "16A",
         "finalization_fingerprint": (
-            "68b53156f88ce34be57c89e9cbfa19bdd24e06c5db9ec9489afc0f9e8ba99a75"
+            "115c9aca2e28c1fe2e949c65c4e2b653a4e0ea8e442dedfa9156c8dce4e5f6cc"
         ),
         "outcome": PREDECESSOR_OUTCOME,
         "why": (
@@ -222,7 +222,7 @@ BOUND_MARKERS: tuple[dict[str, str], ...] = (
     {
         "stage": "15A",
         "finalization_fingerprint": (
-            "24172f474c11ec438077ae839b03f8a8337e1b0276fd5f421b59a446344152a9"
+            "03ce3ec61f21300261e46f5aef9ded7c4ae0a2006db3779df5664bd2436c66ac"
         ),
         "outcome": "FINGERPRINTS_MATCHING_CANONICAL500_RAW_COMPLETE",
         "why": (

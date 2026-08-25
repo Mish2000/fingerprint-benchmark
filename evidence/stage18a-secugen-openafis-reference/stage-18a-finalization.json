@@ -5,13 +5,13 @@
   "algorithm_slot": "algorithm_5",
   "bound_markers": [
     {
-      "finalization_fingerprint": "f94f51e3e5b7d5f89a114403a0955bfbe7021f02851516d4b2e34641dcc30000",
+      "finalization_fingerprint": "cff771f55dad5eb1b935e2be8120d5943ae72898e9aeb302e1b03667f0573c3a",
       "outcome": "FINGERPRINTMATCHER_SCORE_CONTRACT_FAIL",
       "stage": "17A",
       "why": "the predecessor candidate, closed at its score-contract gate. It left Algorithm 5 open, which is why OpenAFIS was revisited"
     },
     {
-      "finalization_fingerprint": "24172f474c11ec438077ae839b03f8a8337e1b0276fd5f421b59a446344152a9",
+      "finalization_fingerprint": "03ce3ec61f21300261e46f5aef9ded7c4ae0a2006db3779df5664bd2436c66ac",
       "outcome": "FINGERPRINTS_MATCHING_CANONICAL500_RAW_COMPLETE",
       "stage": "15A",
       "why": "the algorithm whose slot is still contested. Bound and never read for its scores"
@@ -26,7 +26,7 @@
   "calibration_performed": false,
   "canonical_input_pixels_identical_to_other_algorithms": false,
   "completion_criterion": "stored == expected == 6000 and missing == 0; nothing else",
-  "created_utc": "2026-08-25T15:51:09Z",
+  "created_utc": "2026-08-25T19:17:07Z",
   "decision_profile_produced": false,
   "evidence_content_hashes": {
     "README.md": "62599924aa3058eb57d8911a8a398e5a04cf4ec4709c8db83c8972e7d48acfe1",
@@ -82,7 +82,7 @@
   "scores_in_evidence": false,
   "stage": "18A",
   "stage18a_source_fingerprint": "bb93ad42cddc24ea4e599d3fb18e2d425d43919c0072978cb7c224694bbde7a8",
-  "stage_18a_finalization_fingerprint": "f6bc23617a446f18a203e1f9a4712c17e1ade084a82d0a6b32b80e0a14bb83ec",
+  "stage_18a_finalization_fingerprint": "ae174bbfad63f109806963d454c13319dcddfca4090c51b652af17dd85369370",
   "stored_pair_outcomes": 6000,
   "threshold_applied": false,
   "vendor_binaries_in_git": false,

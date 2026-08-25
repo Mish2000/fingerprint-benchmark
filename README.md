@@ -2097,7 +2097,7 @@ pairs, in the same order, over the same 3,000 immutable 500 ppi PNGs.
 ```
 6,000 planned      6,000 stored      0 missing        0 duplicate
 5,919 scores       81 algorithm failures              0 infrastructure failures
-run_52731bb3407e / plan_0a66249b7412 / resultset_960baecb83b8
+run_9a410a17fdde / plan_4e17726e9be9 / resultset_b43a0681d16b
 ```
 
 **Six thousand outcomes, not six thousand scores.** The 81 are VeriFinger
@@ -2121,7 +2121,7 @@ makes a cross-comparison cache, a representation cache and a score cache
 impossible rather than merely absent, and it makes restart determinism the
 ordinary behaviour of every job rather than a property somebody has to test for.
 6,000 processes, 12,000 logical extractions, 6,000 `verify` calls, median
-1,775 ms each including JVM startup and licence acquisition.
+1,883 ms each including JVM startup and licence acquisition.
 
 **Seventeen pinned runtime components.** Stage 11A pinned ten — five DLLs, two
 model data files and three jars. The engine reports *seven* loaded modules, and

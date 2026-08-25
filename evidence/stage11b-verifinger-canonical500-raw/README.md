@@ -72,9 +72,17 @@ recorded at all — a licence that was refused, a model file that moved, an engi
 fault or a JVM that died would each have blocked the result set.
 
 Timings, per comparison, including JVM startup, licence acquisition, engine
-construction, two extractions and one match: median 1,775 ms, p99 2,051 ms, max
-3,652 ms, against a 180-second job deadline chosen from qualification and smoke
-timings before SD300 was opened. Wall clock 10,594 s.
+construction, two extractions and one match: median 1,883 ms, p95 4,531 ms,
+p99 5,292 ms, max 147,449 ms, against a 180-second job deadline chosen from
+qualification and smoke timings before SD300 was opened. Wall clock 14,427 s.
+
+The tail is the machine, not the route. A network adapter changed power state
+partway through the run, name resolution went down for 86 seconds, and the
+licensing service stayed slow for about a quarter of an hour after it came
+back. The maximum is one licence acquisition waiting on a host that could not
+be resolved, and it still finished inside the job deadline. Every score here is
+identical to the run this one replaces — which is what establishes that the
+tail cost wall clock and nothing else.
 
 ## The runtime this rests on
 

@@ -78,7 +78,7 @@ REQUIRED_EVIDENCE_FILES = (
 # confirm the stage it follows is the stage it thinks it follows, and refuses on
 # disagreement. Nothing under that directory is edited (docs/adr/0078).
 STAGE8C_FINALIZATION_FINGERPRINT = (
-    "48f8d3151978ec649c102484dfe3694c3c61e782657c46536c3d2a48cdb13fd3"
+    "87690c967a9cd939cbad63d92edf5e117a9a6d0e8bf20eb3cd11c33c7369ad0a"
 )
 STAGE8C_OUTCOME = "FLX_CANONICAL500_RAW_READY"
 

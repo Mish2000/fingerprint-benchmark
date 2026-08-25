@@ -23,7 +23,7 @@ VeriFinger 2025.2, official Java binding   verify(reference, candidate)
       v
 6,000 stored raw outcomes                  immutable, and never a threshold
 
-run_52731bb3407e / plan_0a66249b7412 / resultset_960baecb83b8
+run_9a410a17fdde / plan_4e17726e9be9 / resultset_b43a0681d16b
 ```
 
 Aligned row for row against `run_4c59fa02a6ab` — the same pair manifest
@@ -128,7 +128,7 @@ finalization that refuses to publish a document carrying a forbidden key.
 | `canonical-run-binding.json` | the reference run, plan, pairs and inputs |
 | `operational-summary.json` | counts, codes and timings — and no score |
 | `stage-11b-finalization.json` | the marker |
-| `run_52731bb3407e.json` | the shared engine's own research receipt |
+| `run_9a410a17fdde.json` | the shared engine's own research receipt |
 
 The run definition, the plan and the result set stay in the engine's structure
 and are not copied out under a Stage 11B name.

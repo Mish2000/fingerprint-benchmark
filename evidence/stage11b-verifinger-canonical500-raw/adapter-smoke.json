@@ -12,7 +12,7 @@
   "scores_produced": 5,
   "scores_permitted": 20,
   "runtime_manifest_fingerprint": "0f2aed19753c71ffb9981f187790a5f861ddc949d32dc63d6258c4a1ef45404d",
-  "algorithm_profile_fingerprint": "9f1cd6c5746716d4c9dec4aab09b021ca0a68ee4c4831c2b12452cc480cdbaa4",
+  "algorithm_profile_fingerprint": "914f9ab9c44b4d7618e08e1d42451ffc6c7b37d8a6d33f3186e29fa229551ac8",
   "claims": {
     "bad_fixture_is_a_structured_failure_with_no_score": true,
     "both_orderings_run": true,
@@ -32,7 +32,7 @@
       "score": 2,
       "engine_status": "MATCH_NOT_FOUND",
       "extraction_count": 2,
-      "elapsed_seconds": 1.703
+      "elapsed_seconds": 1.594
     },
     {
       "case": "forward_repeated",
@@ -42,7 +42,7 @@
       "score": 2,
       "engine_status": "MATCH_NOT_FOUND",
       "extraction_count": 2,
-      "elapsed_seconds": 1.719
+      "elapsed_seconds": 1.672
     },
     {
       "case": "reversed",
@@ -52,7 +52,7 @@
       "score": 2,
       "engine_status": "MATCH_NOT_FOUND",
       "extraction_count": 2,
-      "elapsed_seconds": 1.781
+      "elapsed_seconds": 1.594
     },
     {
       "case": "self",
@@ -62,7 +62,7 @@
       "score": 2908,
       "engine_status": "OK",
       "extraction_count": 2,
-      "elapsed_seconds": 1.844
+      "elapsed_seconds": 1.625
     },
     {
       "case": "bad_fixture",
@@ -72,7 +72,7 @@
       "engine_status": "BAD_OBJECT",
       "failure_code": "template_extraction_failed",
       "failure_stage": "extraction",
-      "elapsed_seconds": 1.843
+      "elapsed_seconds": 1.671
     },
     {
       "case": "restart",
@@ -82,8 +82,8 @@
       "score": 2,
       "engine_status": "MATCH_NOT_FOUND",
       "extraction_count": 2,
-      "elapsed_seconds": 1.781
+      "elapsed_seconds": 1.625
     }
   ],
-  "performed_utc": "2026-08-12T17:29:19Z"
+  "performed_utc": "2026-08-25T11:34:36Z"
 }

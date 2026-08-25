@@ -8,7 +8,7 @@
   "vendor": "Neurotechnology",
   "algorithm_slot": "algorithm_4",
   "stage11a": {
-    "finalization_fingerprint": "f8228072e0dc6d016e191ab5356d1d65748ba62caa4768dfb21650f78a0b3a7b",
+    "finalization_fingerprint": "d1863c714a5038c467f36749dc872d4e0064c7f20caf9fb6617d3a1ea2f88411",
     "outcome": "VERIFINGER_PREFLIGHT_PASS",
     "selected_candidate": "neurotechnology_verifinger_2025_2_1to1"
   },
@@ -33,7 +33,7 @@
     "bridge_protocol": "fpbench.verifinger.bridge.v1",
     "bridge_version": "1",
     "platform": "windows/x86_64",
-    "stage11a_fingerprint": "f8228072e0dc6d016e191ab5356d1d65748ba62caa4768dfb21650f78a0b3a7b"
+    "stage11a_fingerprint": "d1863c714a5038c467f36749dc872d4e0064c7f20caf9fb6617d3a1ea2f88411"
   },
   "score": {
     "direction": "higher_is_better",
@@ -97,5 +97,5 @@
     "bridge_protocol": "fpbench.verifinger.bridge.v1",
     "bridge_version": "1"
   },
-  "algorithm_profile_fingerprint": "9f1cd6c5746716d4c9dec4aab09b021ca0a68ee4c4831c2b12452cc480cdbaa4"
+  "algorithm_profile_fingerprint": "914f9ab9c44b4d7618e08e1d42451ffc6c7b37d8a6d33f3186e29fa229551ac8"
 }

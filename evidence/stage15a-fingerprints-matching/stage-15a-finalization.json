@@ -22,12 +22,12 @@
   "duplicate_jobs": 0,
   "evidence_content_hashes": {
     "README.md": "c92f02840a685c53e3b969cd14d79f9a50df2a722962c05b20cf97685da281bd",
-    "artifact-runtime-identity.json": "eced5a3cd0190be3344169912af3223cf698a49ece848642ec4969573cf27969",
-    "canonical-run-binding.json": "6ecaad2a18e2eea09015759b48c48320ae16762f7b12c29f0efb8d1c9aad8ea4",
-    "predecessor-selection.json": "b9784cc2bdc726c499cfba2c8ed529e410ed9817c45804b7c5d5974d93a0c91a",
-    "qualification.json": "cda4d178058d1dda4343deb18483380cc4770d5ad7aea19353026e800478f4ed",
-    "result-integrity.json": "f65e88ca2937ead6531101ac7f759f6c48beaa29e192e549f3120c9f327f5cce",
-    "upstream-route-contract.json": "cae93cd4699fd65c9164f32a317d376608c74d5f30132761336990589c5df42f"
+    "artifact-runtime-identity.json": "8b81020890fd99fbf717b57c250940e9fb022825f47bd0a98dc3ab1a69ec4c44",
+    "canonical-run-binding.json": "124dde87f07673338a1fdf2df3086a563c28de5f4cea185d429c1079c169fa72",
+    "predecessor-selection.json": "f67d9787adeb3c9b649f4588d145fea2a646b59c026c6eb84d64ce94f0721190",
+    "qualification.json": "6ac96962bac2e154a8ada968de96e27e9b32619dfb8336caea5d284a58cce77c",
+    "result-integrity.json": "7ad4c99e21cf6a702ee115714d3f996bc97de5d257099c2310fa4cb4d7c0ff88",
+    "upstream-route-contract.json": "c48e575c1b4afabf85925524e0511aff72fe73c072f876df14e20fd2af63c1fc"
   },
   "expected_comparisons": 6000,
   "experiment_id": "fingerprints_matching_canonical500_full_v1",
@@ -89,7 +89,7 @@
   "stage14a_evidence_modified": false,
   "stage14a_final_outcome": "NONE",
   "stage15a_source_fingerprint": "4e0329f27245af708b31e63d4671e7ceaee5743e4c1e01b81552cb3f1fd9dbee",
-  "stage_15a_finalization_fingerprint": "03ce3ec61f21300261e46f5aef9ded7c4ae0a2006db3779df5664bd2436c66ac",
+  "stage_15a_finalization_fingerprint": "e4a75344e26ce66e04c73dd124505d7c24a7940d6183a6f70ec7fe0db2a8f870",
   "stored_outcomes": 6000,
   "successful_scores": 389,
   "successful_scores_genuine": 22,

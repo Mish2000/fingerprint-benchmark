@@ -70,6 +70,7 @@ from fpbench.experiments.stage12a_idkit_identity import (
 
 __all__ = [
     "STAGE_12A_BASELINE_COMMIT",
+    "STAGE_12A_PUBLICATION_COMMIT",
     "Stage12AFinalization",
     "stage_12a_finalization_fingerprint",
     "stage12a_source_fingerprint",
@@ -88,6 +89,15 @@ __all__ = [
 #: Stage 12A began here: the commit that re-closed Stage 11B over its corrected
 #: evidence.
 STAGE_12A_BASELINE_COMMIT = "170a303b55609ed1aa67d24531050e372c6b2592"
+
+#: Stage 12A ended here: the commit its marker was published at. Both ends of
+#: the span are constants, which is Stage 8A's shape rather than Stage 8B's,
+#: and the difference only shows up on a re-issue: reading the end from the
+#: commit being published grows the span every time the marker is rewritten,
+#: so re-publishing today would audit Stage 12A against every stage committed
+#: since. Which commit's source the marker pins and which span the stage
+#: changed things in are two questions, and they were sharing one field.
+STAGE_12A_PUBLICATION_COMMIT = "adf8c982e7296f41191780c9cb716e2d39fbef4d"
 
 #: Commits inside Stage 12A's span that are **not** Stage 12A's work. Empty
 #: today and kept because it will not be: every stage so far has had at least one
@@ -1238,7 +1248,9 @@ def write_stage12a_evidence(
             "committed bytes of every other document; commit them first"
         )
     commit = _head_commit(repository_root)
-    verify_stage12a_workspace_boundaries(repository_root, span_end_commit=commit)
+    verify_stage12a_workspace_boundaries(
+        repository_root, span_end_commit=STAGE_12A_PUBLICATION_COMMIT
+    )
     byte_audit = engine.require_no_idkit_bytes_in_git(repository_root)
 
     hashed = tuple(name for name in REQUIRED_EVIDENCE_FILES if name != STAGE_12A_FINALIZATION_NAME)

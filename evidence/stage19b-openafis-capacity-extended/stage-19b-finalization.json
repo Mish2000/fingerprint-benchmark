@@ -25,13 +25,13 @@
   },
   "bound_markers": [
     {
-      "finalization_fingerprint": "d3c45fea34f41bf3fed5d59ec092b71828307ea33ed5cfbc8e35853baae83319",
+      "finalization_fingerprint": "f1616344935fda15d47e47943059c5c7c1702e8ea5e77608759fd6bfd0923aa3",
       "outcome": "MINDTCT_OPENAFIS_CANONICAL500_RAW_COMPLETE",
       "stage": "19A",
       "why": "the unmodified route this stage extends, and the source of Gate A's 1,583 baseline scores"
     },
     {
-      "finalization_fingerprint": "3dc872147b57469cb42204e87674ae2cf3853400f92255e2e97077f90e6f2737",
+      "finalization_fingerprint": "f6bc23617a446f18a203e1f9a4712c17e1ade084a82d0a6b32b80e0a14bb83ec",
       "outcome": "SECU_GEN_OPENAFIS_PRIVATE_RAW_COMPLETE",
       "stage": "18A",
       "why": "the private reference that produced the OpenAFIS build and the raw 1:1 bridge this stage patched"
@@ -45,7 +45,7 @@
   ],
   "calibration_performed": false,
   "capacity_failures_remaining": 0,
-  "created_utc": "2026-08-23T00:00:00Z",
+  "created_utc": "2026-08-25T15:52:03Z",
   "decision_profile_produced": false,
   "diagnostic_comparisons": 6000,
   "evidence_content_hashes": {
@@ -79,7 +79,7 @@
   "shares_extractor_with": "nbis_mindtct_bozorth3",
   "stage": "19B",
   "stage19b_source_fingerprint": "4ac87b07b17a78112e5493d6d5271d4cadf46832757fb58c74169c95473ca9a0",
-  "stage_19b_finalization_fingerprint": "23b4ffbbe9313e1ceb59637409a3931594a0268c56dfe5467153d31ef342922d",
+  "stage_19b_finalization_fingerprint": "970cadc47d1d783b733e152b46cfe041bbd9376f5927d253ccf86f77e67f3cf9",
   "stored_outcomes": 6000,
   "supervisor_disclosure": "NBIS MINDTCT + OpenAFIS (capacity-extended variant) — composition defined by the project. It shares the MINDTCT extractor with the NBIS/BOZORTH3 method and differs primarily in the matcher. The OpenAFIS source was minimally modified to permit CSV templates containing more than the upstream limit of 128 minutiae; the original behavior was verified unchanged on all 1,583 previously accepted comparisons.",
   "threshold": null,

@@ -20,6 +20,7 @@ from pathlib import PurePosixPath
 
 import pytest
 
+from fpbench.core.evidence_sanitisation import sanitised_evidence_payload
 from fpbench.core.verifinger_preflight_errors import Stage11AFinalizationError
 from fpbench.experiments import stage11a_artifacts as store
 from fpbench.experiments import stage11a_preflight as engine
@@ -28,6 +29,7 @@ from fpbench.experiments import stage11a_verifinger_observations as observed
 from fpbench.experiments.algorithm_research import REPOSITORY_ROOT
 from fpbench.experiments.stage11a_finalization import (
     STAGE_11A_BASELINE_COMMIT,
+    STAGE_11A_PUBLICATION_COMMIT,
     Stage11AFinalization,
     file_sha256,
     published_evidence_names,
@@ -99,6 +101,15 @@ def test_every_derivable_document_matches_what_the_engine_derives_now() -> None:
     This is what makes the evidence a *record* rather than a transcript: if the
     observations or the gate logic move, this fails, and the response is to
     re-derive and republish rather than to edit a document.
+
+    The derivation is put through
+    :func:`~fpbench.core.evidence_sanitisation.sanitised_evidence_payload`
+    because that is part of what publishing a document *is* here — the writer
+    redacts machine-specific roots, and `runtime-identity.json` names the
+    directory the engine loaded its libraries from. Comparing the raw
+    derivation would assert that publication is a byte-for-byte copy, which
+    it deliberately is not. Redaction is total and deterministic, so every
+    other difference this test exists to catch still fails it.
     """
     _require_the_artifact_is_here()
     preflight = engine.run_preflight()
@@ -106,8 +117,13 @@ def test_every_derivable_document_matches_what_the_engine_derives_now() -> None:
         if name in (frozen.README_NAME, frozen.STAGE_11A_FINALIZATION_NAME):
             continue
         published = _document(name)
-        derived = json.loads(
-            json.dumps(engine.evidence_document(preflight, name), ensure_ascii=False)
+        derived = sanitised_evidence_payload(
+            json.loads(
+                json.dumps(
+                    engine.evidence_document(preflight, name), ensure_ascii=False
+                )
+            ),
+            document_name=name,
         )
         assert published == derived, name
 
@@ -342,9 +358,17 @@ def test_no_vendor_byte_is_tracked_here() -> None:
 
 
 def test_the_stage_stayed_inside_its_own_surface() -> None:
-    marker = _marker()
+    """Audited over Stage 11A's own span, not over everything since.
+
+    The span end is the pinned publication commit rather than the commit the
+    marker names as its verifier. Those were the same value until Stage 11A
+    was re-issued; after that, reading it from the marker asks whether Stage
+    11A stayed inside its surface *while Stages 11B to 20B were written*, and
+    the answer is a list of twenty-eight paths that were never Stage 11A's to
+    touch or to be blamed for.
+    """
     verify_stage11a_workspace_boundaries(
-        REPOSITORY_ROOT, span_end_commit=marker["verifier_source_commit"]
+        REPOSITORY_ROOT, span_end_commit=STAGE_11A_PUBLICATION_COMMIT
     )
 
 

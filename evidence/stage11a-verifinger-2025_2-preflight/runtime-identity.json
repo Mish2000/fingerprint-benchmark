@@ -28,49 +28,49 @@
       "product": "Neurotechnology Core",
       "company": "Neurotechnology",
       "version": "2025.2.0.0",
-      "file_name": "C:\\Users\\sirak\\.cache\\fpbench\\third_party\\verifinger-2025-2\\installation\\Bin\\Win64_x64\\NCore.dll"
+      "file_name": "<third_party_artifact_store>/verifinger-2025-2/installation/Bin/Win64_x64/NCore.dll"
     },
     {
       "name": "NLicensing",
       "product": "Neurotechnology Licensing",
       "company": "Neurotechnology",
       "version": "2025.2.0.0",
-      "file_name": "C:\\Users\\sirak\\.cache\\fpbench\\third_party\\verifinger-2025-2\\installation\\Bin\\Win64_x64\\NLicensing.dll"
+      "file_name": "<third_party_artifact_store>/verifinger-2025-2/installation/Bin/Win64_x64/NLicensing.dll"
     },
     {
       "name": "NMedia",
       "product": "Neurotechnology Media",
       "company": "Neurotechnology",
       "version": "2025.2.0.0",
-      "file_name": "C:\\Users\\sirak\\.cache\\fpbench\\third_party\\verifinger-2025-2\\installation\\Bin\\Win64_x64\\NMedia.dll"
+      "file_name": "<third_party_artifact_store>/verifinger-2025-2/installation/Bin/Win64_x64/NMedia.dll"
     },
     {
       "name": "NMediaProc",
       "product": "Neurotechnology Media Processing",
       "company": "Neurotechnology",
       "version": "2025.2.0.0",
-      "file_name": "C:\\Users\\sirak\\.cache\\fpbench\\third_party\\verifinger-2025-2\\installation\\Bin\\Win64_x64\\NMediaProc.dll"
+      "file_name": "<third_party_artifact_store>/verifinger-2025-2/installation/Bin/Win64_x64/NMediaProc.dll"
     },
     {
       "name": "NBiometrics",
       "product": "Neurotechnology Biometrics",
       "company": "Neurotechnology",
       "version": "2025.2.0.0",
-      "file_name": "C:\\Users\\sirak\\.cache\\fpbench\\third_party\\verifinger-2025-2\\installation\\Bin\\Win64_x64\\NBiometrics.dll"
+      "file_name": "<third_party_artifact_store>/verifinger-2025-2/installation/Bin/Win64_x64/NBiometrics.dll"
     },
     {
       "name": "NDevices",
       "product": "Neurotechnology Devices",
       "company": "Neurotechnology",
       "version": "2025.2.0.0",
-      "file_name": "C:\\Users\\sirak\\.cache\\fpbench\\third_party\\verifinger-2025-2\\installation\\Bin\\Win64_x64\\NDevices.dll"
+      "file_name": "<third_party_artifact_store>/verifinger-2025-2/installation/Bin/Win64_x64/NDevices.dll"
     },
     {
       "name": "NBiometricClient",
       "product": "Neurotechnology Biometric Client",
       "company": "Neurotechnology",
       "version": "2025.2.0.0",
-      "file_name": "C:\\Users\\sirak\\.cache\\fpbench\\third_party\\verifinger-2025-2\\installation\\Bin\\Win64_x64\\NBiometricClient.dll"
+      "file_name": "<third_party_artifact_store>/verifinger-2025-2/installation/Bin/Win64_x64/NBiometricClient.dll"
     }
   ],
   "loaded_runtime_module_count": 7,

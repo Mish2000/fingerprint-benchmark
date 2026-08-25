@@ -37,6 +37,7 @@ __all__ = [
     "WORKSPACE_PLACEHOLDER",
     "find_absolute_paths",
     "redact_absolute_paths",
+    "sanitised_evidence_payload",
 ]
 
 #: What replaces the machine-specific prefix of the third-party artifact cache.
@@ -178,3 +179,37 @@ def _walk(value: Any, path: str) -> Iterator[tuple[str, str]]:
         match = _ABSOLUTE.search(value)
         if match is not None:
             yield path, match.group(0)
+
+
+def sanitised_evidence_payload(value: Any, *, document_name: str) -> Any:
+    """Redact the roots this module knows, then refuse anything still absolute.
+
+    The two halves above are only sound when they run as a pair, and a pair
+    spelled out twice is a pair that drifts. Stage 11A is the proof: the
+    redactor existed, :func:`fpbench.core.json_io.publish_evidence_document`
+    called it, and Stage 11A's own writer — which predates that door — did not,
+    so seven module paths under the author's home directory were published by a
+    stage whose marker declared there were none.
+
+    So the sequence lives here once, and both writers call it. The check after
+    the redaction is the half that matters: it fires on a root no rule below
+    anticipated, which turns an unknown machine layout into a refused
+    publication instead of a published one.
+
+    ``document_name`` only names the document in the error, so a caller reading
+    a stack trace is told which file stopped rather than which field.
+
+    Returns the redacted payload, ready to serialise.
+
+    Raises:
+        ValueError: a value still looks like an absolute path after redaction.
+    """
+    redacted = redact_absolute_paths(value)
+    leaks = find_absolute_paths(redacted, path=document_name)
+    if leaks:
+        location, text = leaks[0]
+        raise ValueError(
+            f"{document_name} still names an absolute path after redaction: "
+            f"{location} = {text!r}. Evidence carries no machine's layout"
+        )
+    return redacted

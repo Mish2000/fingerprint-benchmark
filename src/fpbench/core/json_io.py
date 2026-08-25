@@ -44,10 +44,7 @@ from fpbench.core.atomic_write import (
     publish_bytes,
     replace_bytes,
 )
-from fpbench.core.evidence_sanitisation import (
-    find_absolute_paths,
-    redact_absolute_paths,
-)
+from fpbench.core.evidence_sanitisation import sanitised_evidence_payload
 from fpbench.core.serialization import read_json, stable_hash, to_plain
 
 __all__ = [
@@ -107,10 +104,11 @@ def publish_evidence_document(path: Path, payload: Any) -> Path:
     """Write one evidence document, with no machine's paths left in it.
 
     Two steps, and the second is the one that matters.
-    :func:`~fpbench.core.evidence_sanitisation.redact_absolute_paths` replaces
-    the roots it recognises; the check afterwards refuses anything *still*
-    shaped like an absolute path, so a root nobody anticipated stops the
-    publication instead of being published.
+    :func:`~fpbench.core.evidence_sanitisation.sanitised_evidence_payload`
+    replaces the roots it recognises, then refuses anything *still* shaped
+    like an absolute path, so a root nobody anticipated stops the publication
+    instead of being published. The pair is shared with Stage 11A's own
+    writer rather than spelled out twice, so the two cannot drift apart.
 
     This is the door a stage's documents go through. Before it existed the
     redactor was available and uncalled, which is how
@@ -128,14 +126,7 @@ def publish_evidence_document(path: Path, payload: Any) -> Path:
     through meant a truncated marker could be left where a whole one had been.
     The bytes are identical either way.
     """
-    redacted = redact_absolute_paths(payload)
-    leaks = find_absolute_paths(redacted, path=Path(path).name)
-    if leaks:
-        location, text = leaks[0]
-        raise ValueError(
-            f"{Path(path).name} still names an absolute path after redaction: "
-            f"{location} = {text!r}. Evidence carries no machine's layout"
-        )
+    redacted = sanitised_evidence_payload(payload, document_name=Path(path).name)
     body = json.dumps(redacted, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
     replace_bytes(Path(path), body.encode("utf-8"), what="evidence document")
     return Path(path)

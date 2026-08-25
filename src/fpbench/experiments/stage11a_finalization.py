@@ -21,7 +21,10 @@ changed.
 The boundary audit follows docs/adr/0067: it compares the commit Stage 11A began
 at with the commit it published at, rather than against a moving ``HEAD``, and it
 walks the span commit by commit so that work belonging to another stage can be
-attributed to that stage rather than to this one.
+attributed to that stage rather than to this one. Both ends are constants, so
+the span is the same on the day it was written and on any later day the marker
+is re-issued; see :data:`STAGE_11A_PUBLICATION_COMMIT` for why that is not the
+same thing as the commit the marker pins its source to.
 """
 
 from __future__ import annotations
@@ -36,6 +39,7 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 
+from fpbench.core.evidence_sanitisation import sanitised_evidence_payload
 from fpbench.core.serialization import stable_hash, to_plain
 from fpbench.core.verifinger_preflight_errors import (
     Stage11AFinalizationError,
@@ -68,6 +72,7 @@ from fpbench.experiments.stage11a_verifinger_identity import (
 
 __all__ = [
     "STAGE_11A_BASELINE_COMMIT",
+    "STAGE_11A_PUBLICATION_COMMIT",
     "Stage11AFinalization",
     "stage_11a_finalization_fingerprint",
     "stage11a_source_fingerprint",
@@ -86,6 +91,22 @@ __all__ = [
 #: Stage 11A began here: the commit that republished the Stage 10B marker over
 #: the reserved Stage 10C.
 STAGE_11A_BASELINE_COMMIT = "57c332121642a81bf46db184c40cfc637eec61ff"
+
+#: Stage 11A ended here: the commit its evidence and marker were published at
+#: on 2026-08-12. Both ends of the span are constants, which is Stage 8A's
+#: shape rather than Stage 8B's and 8C's, and the difference only shows up on
+#: a re-issue. Reading the end of the span from the commit being published
+#: means the span grows every time the marker is rewritten: re-publishing
+#: today would audit Stage 11A against all of 11B through 20B and refuse the
+#: repository over work Stage 11A never did.
+#:
+#: The two questions were being answered with one field. *Which commit's
+#: source does this marker pin* is still ``HEAD`` at publication, and still
+#: goes to ``source_commit`` and ``verifier_source_commit``. *Which span did
+#: Stage 11A change things in* is this closed pair, and it does not move when
+#: the marker is regenerated. Work after this commit is neither Stage 11A's
+#: to permit nor Stage 11A's to forbid (docs/adr/0067).
+STAGE_11A_PUBLICATION_COMMIT = "4559ddd50fd9f6f83fcb7e16154dbb49f7e97910"
 
 #: Commits inside Stage 11A's span that are **not** Stage 11A's work. Empty
 #: today and kept because it will not be: every stage so far has had at least one
@@ -271,8 +292,23 @@ def write_evidence_json(path: Path, value: Any) -> Path:
     pins this directory to LF, and the marker's content hashes are over raw
     bytes, so a CRLF file would agree with exactly one of the two machines that
     checked it out.
+
+    Every document goes through
+    :func:`~fpbench.core.evidence_sanitisation.sanitised_evidence_payload`
+    first — the same redact-then-refuse pair
+    :func:`fpbench.core.json_io.publish_evidence_document` uses, called from
+    the one place it is defined so that the two writers cannot drift. This
+    writer predates that door and did not call the redactor, which is how
+    ``runtime-identity.json`` published seven module paths under the author's
+    home directory from a stage whose own marker said there were none
+    (docs/adr/0139).
+
+    Key order is preserved rather than sorted, unlike that door. These
+    documents are read in the order the gate reasons in, and re-sorting all
+    fifteen of them would move fifteen content hashes to redact one field.
     """
-    payload = json.dumps(to_plain(value), indent=2, ensure_ascii=False, sort_keys=False)
+    sanitised = sanitised_evidence_payload(to_plain(value), document_name=path.name)
+    payload = json.dumps(sanitised, indent=2, ensure_ascii=False, sort_keys=False)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_bytes((payload + "\n").encode("utf-8"))
@@ -1302,7 +1338,9 @@ def write_stage11a_evidence(
             "committed bytes of every other document; commit them first"
         )
     commit = _head_commit(repository_root)
-    verify_stage11a_workspace_boundaries(repository_root, span_end_commit=commit)
+    verify_stage11a_workspace_boundaries(
+        repository_root, span_end_commit=STAGE_11A_PUBLICATION_COMMIT
+    )
     byte_audit = store.require_no_verifinger_bytes_in_git(repository_root)
 
     hashed = tuple(

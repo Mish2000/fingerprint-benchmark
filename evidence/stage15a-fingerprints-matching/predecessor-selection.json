@@ -7,7 +7,7 @@
       "why": "the superseded candidate. Bound as a non-final investigation with no request sent, and left exactly as HEAD published it"
     },
     {
-      "finalization_fingerprint": "3d271490edda9e3e9d066485c2d93e82e2eceb4556668df7d65a8207e591684c",
+      "finalization_fingerprint": "48643010311d7fbce0855a2878f5d90c9aa3b5531f90e713f6dda77e7c75b1dc",
       "outcome": "VERIFINGER_CANONICAL500_RAW_COMPLETE",
       "stage": "11B",
       "why": "Algorithm 4's 6,000 published outcomes, and the run this one is aligned against. Bound and never read for its scores"

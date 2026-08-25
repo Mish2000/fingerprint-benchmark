@@ -409,7 +409,7 @@ BOUND_MARKERS: tuple[dict[str, str], ...] = (
     {
         "stage": "11B",
         "finalization_fingerprint": (
-            "3d271490edda9e3e9d066485c2d93e82e2eceb4556668df7d65a8207e591684c"
+            "48643010311d7fbce0855a2878f5d90c9aa3b5531f90e713f6dda77e7c75b1dc"
         ),
         "outcome": "VERIFINGER_CANONICAL500_RAW_COMPLETE",
         "why": (

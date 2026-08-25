@@ -14,15 +14,15 @@
     "flx_fixed_length_extractor": "c4fd2298d7638e0a652a06b2c092fd09ad49c0d3f424aa66037d720463582512",
     "mgvit_official_artifact": "b995363527ae98e5c08120db1059b6273425a762a515d1a90cf0c655b2ffb1c4"
   },
-  "selection_decision_fingerprint": "4d251b20fb80a8bdbe11e08c4a266ad261e3a0e50f40e86d666fbb005d1945ec",
-  "selection_decision_content_hash": "e1bc5fbea3f4fb4b1c99441350c62572c38da276c502a863569952baf76690af",
+  "selection_decision_fingerprint": "f7f0611727cf58f0c22685e766219354346778ed53edbb9d274c80f327b36624",
+  "selection_decision_content_hash": "a66b2a6832ac98873e12370b62d9d9278b47277126ee1cae1f4e8d81d77ba6bb",
   "readme_content_hash": "cdf6bfffba64ae2c39587ec443d0277122425fcf7de420061fd544dcf1f0d68c",
   "selection_policy_fingerprint": "b61d85f8539d06df9984fa6ad95f21e40977edfda17225c53fdbfb2428b6f396",
   "required_local_artifact_fingerprints": {},
   "forbidden_inputs_read": false,
   "prior_stages_unchanged": true,
-  "verifier_source_commit": "077155d6a775f0832851e86e8d24a1dc6936d722",
+  "verifier_source_commit": "5a03aeedf7c728a26fdde9019fe145d277a07489",
   "verifier_source_tree_clean": true,
   "created_utc": "2026-08-05T10:00:00+03:00",
-  "fingerprint": "b81faad99eeb3eba0ade46e55d0607fc56d993bb3b44922a2fa1aa35b0dea561"
+  "fingerprint": "2b9ee7961ceed0cff8221f691513da7fa7f054487cf42d908a62926bae2c5a73"
 }

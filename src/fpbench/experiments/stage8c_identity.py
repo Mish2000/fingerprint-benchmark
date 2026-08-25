@@ -117,7 +117,7 @@ STAGE_8C_FINALIZATION_NAME = "stage-8c-finalization.json"
 # the published documents and refuses on any disagreement, so these are a
 # reviewable copy of an authority rather than a second authority.
 STAGE8B_FINALIZATION_FINGERPRINT = (
-    "90f83f646e08c2fb60f8e3f3d2dafe475a80ca8a6da978f12ffbea9db2e5b29b"
+    "bec244830c126fac0b1d191c81657ef86809e67dfcad729e20b4d84902ae9e7e"
 )
 STAGE8B_OUTCOME = "FLX_RAW_SCORE_EXECUTION_READY"
 

@@ -2,7 +2,7 @@
   "schema_version": "1",
   "kind": "stage_8b_finalization",
   "outcome": "FLX_RAW_SCORE_EXECUTION_READY",
-  "stage8a_finalization_fingerprint": "b81faad99eeb3eba0ade46e55d0607fc56d993bb3b44922a2fa1aa35b0dea561",
+  "stage8a_finalization_fingerprint": "2b9ee7961ceed0cff8221f691513da7fa7f054487cf42d908a62926bae2c5a73",
   "source_archive_sha256": "60fa2c8894ea90efe2bb0553cd331d8ef84611b973b6126eaf6d162d1aa9b7e2",
   "checkpoint_sha256": "2683a04427bacd54adc00cfdc97474625b1e11e5a9e6672c5129f033018f8a28",
   "artifact_binding_fingerprint": "f51bca79bd2698a439becfe14930f49e04fd11bcfa830473928696cab84b766f",
@@ -25,10 +25,10 @@
     "runtime-probe.json": "286694ddecfe3b4c6916a07244fba585e72b7479b105209dd4182ab1803a309f",
     "score-profile.json": "5b1178317fa2aa340eda4af617eeef6a4493e132e23e9856c81aff8660160fe9"
   },
-  "verifier_source_commit": "dad752610a2a3770ceee70bf5c6fa0fbcae27dcb",
+  "verifier_source_commit": "ee94ba1d86cdd58c19148d774f6ee7bd6c74e7c5",
   "verifier_source_tree_clean": true,
   "biometric_inputs_read": false,
   "prior_stages_unchanged": true,
   "created_utc": "2026-08-05T17:46:23+00:00",
-  "fingerprint": "90f83f646e08c2fb60f8e3f3d2dafe475a80ca8a6da978f12ffbea9db2e5b29b"
+  "fingerprint": "bec244830c126fac0b1d191c81657ef86809e67dfcad729e20b4d84902ae9e7e"
 }

@@ -2071,7 +2071,7 @@ STAGE_12A_EVIDENCE_DIRECTORY = "/".join(("evidence", "stage12a-" + "idkit-prefli
 #: Algorithm 4. Immutable here, and the reason the contamination guard exists.
 STAGE_11B_OUTCOME = "VERIFINGER_CANONICAL500_RAW_COMPLETE"
 STAGE_11B_FINALIZATION_FINGERPRINT = (
-    "48643010311d7fbce0855a2878f5d90c9aa3b5531f90e713f6dda77e7c75b1dc"
+    "1a338fe131eae75d6b53f437fae05fb42ac0069516cbdf53976b44521bf5d909"
 )
 
 STAGE8E_FINALIZATION_FINGERPRINT = (

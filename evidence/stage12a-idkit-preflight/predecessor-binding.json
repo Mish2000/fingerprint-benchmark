@@ -5,7 +5,7 @@
   "predecessor": {
     "stage": "11B",
     "outcome": "VERIFINGER_CANONICAL500_RAW_COMPLETE",
-    "finalization_fingerprint": "48643010311d7fbce0855a2878f5d90c9aa3b5531f90e713f6dda77e7c75b1dc",
+    "finalization_fingerprint": "1a338fe131eae75d6b53f437fae05fb42ac0069516cbdf53976b44521bf5d909",
     "what_it_established": "6,000 canonical raw 1:1 outcomes under VeriFinger 2025.2 as Algorithm 4, and a marker that opens a search for Algorithm 5"
   },
   "policy": {

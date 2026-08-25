@@ -56,7 +56,7 @@ this stage's frozen identity (docs/adr/0110).
 
 ```text
 stage11b_outcome                  VERIFINGER_CANONICAL500_RAW_COMPLETE
-stage11b_finalization_fingerprint 48643010311d7fbce0855a2878f5d90c9aa3b5531f90e713f6dda77e7c75b1dc
+stage11b_finalization_fingerprint 1a338fe131eae75d6b53f437fae05fb42ac0069516cbdf53976b44521bf5d909
 stage8e_policy_fingerprint        c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8
 ```
 

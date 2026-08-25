@@ -22,7 +22,7 @@ algorithm:
   slot: algorithm_4
 
 stage11a:
-  finalization_fingerprint: f8228072e0dc6d016e191ab5356d1d65748ba62caa4768dfb21650f78a0b3a7b
+  finalization_fingerprint: d1863c714a5038c467f36749dc872d4e0064c7f20caf9fb6617d3a1ea2f88411
   outcome: VERIFINGER_PREFLIGHT_PASS
   selected_candidate: neurotechnology_verifinger_2025_2_1to1
 

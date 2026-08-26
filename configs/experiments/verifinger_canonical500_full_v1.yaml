@@ -45,7 +45,7 @@ require_verified_checksums: true
 # binding reviewable in a diff rather than only in code (spec section 1).
 # ---------------------------------------------------------------------------
 stage11a:
-  finalization_fingerprint: d1863c714a5038c467f36749dc872d4e0064c7f20caf9fb6617d3a1ea2f88411
+  finalization_fingerprint: 7aaa1047e50f14ee74fbdfca0eba669466b19bf8a3d62918294d14c20716f171
   outcome: VERIFINGER_PREFLIGHT_PASS
   selected_candidate: neurotechnology_verifinger_2025_2_1to1
   algorithm_slot: algorithm_4

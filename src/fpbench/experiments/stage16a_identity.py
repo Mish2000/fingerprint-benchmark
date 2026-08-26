@@ -683,7 +683,7 @@ BOUND_MARKERS: tuple[dict[str, str], ...] = (
     {
         "stage": "8E",
         "finalization_fingerprint": (
-            "35f700ff74902e9d5a54a819a006f4b86940003c6563d3ef2b4da50ef3a2575f"
+            "8d5731bbc20ae3570cdd6b4f95ebf314e7d7e23da89f8fb18f36d121989f0307"
         ),
         "outcome": "RESEARCH_ONLY_THIRD_PARTY_POLICY_READY",
         "why": "the third-party research-use policy, reused and not reopened",

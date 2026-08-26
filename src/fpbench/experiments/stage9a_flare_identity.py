@@ -148,7 +148,7 @@ REQUIRED_EVIDENCE_FILES = (
 # module under src/fpbench/third_party/ or src/fpbench/core/third_party_*.py is
 # edited either (spec section 3).
 STAGE8E_FINALIZATION_FINGERPRINT = (
-    "35f700ff74902e9d5a54a819a006f4b86940003c6563d3ef2b4da50ef3a2575f"
+    "8d5731bbc20ae3570cdd6b4f95ebf314e7d7e23da89f8fb18f36d121989f0307"
 )
 STAGE8E_OUTCOME = "RESEARCH_ONLY_THIRD_PARTY_POLICY_READY"
 STAGE8E_PURPOSE_FINGERPRINT = (

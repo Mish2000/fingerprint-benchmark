@@ -2,7 +2,7 @@
   "schema": "stage_9a_qualification_report_v1",
   "algorithm_candidate": "flare_fdd_d6_dualpose_dualenh_maxcosine",
   "outcome": "FLARE_FULL_ROUTE_BLOCKED",
-  "qualification_fingerprint": "3b7557cd5c0722d420470eb10d487950aef1987fd76c1f24d0535702e6c96c59",
+  "qualification_fingerprint": "b44e614f5549537696414772ef7dc38acf22a31afbbb6b0d715906ff610eab5f",
   "gates": {
     "all_required_artifacts_identity_established": false,
     "all_required_artifacts_locally_verified": false,

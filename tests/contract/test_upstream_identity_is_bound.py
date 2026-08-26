@@ -761,15 +761,48 @@ def test_a_package_coordinate_must_be_canonical_in_a_known_scheme() -> None:
 
 
 def test_a_real_maven_coordinate_passes() -> None:
+    """A canonical coordinate *and* the enumeration of what resolving it gave.
+
+    The coordinate alone used to be enough, which made this the one method that
+    rested on nothing: parsing says the string has the shape of a coordinate,
+    not that anyone resolved it or that the notices came from what it resolved
+    to.
+    """
     identity = _identity(locator="com.machinezoo.sourceafis:sourceafis", commit=None)
     bound = _bind(
         _observation_at("file:///elsewhere/LICENSE"),
         identity,
         attestation=_attestation(
-            identity, method=AttestationMethod.PACKAGE_COORDINATE
+            identity,
+            method=AttestationMethod.PACKAGE_COORDINATE,
+            references=(
+                _ref(
+                    AttestationReferenceRole.ENUMERATION,
+                    path="integrations/sourceafis-java/THIRD_PARTY_NOTICES.md",
+                ),
+            ),
         ),
     )
     assert bound.identity_link_basis is IdentityLinkBasis.PUBLISHER_ASSERTION
+
+
+def test_a_coordinate_with_no_enumeration_is_refused() -> None:
+    """Parsing is not evidence."""
+    identity = _identity(locator="com.machinezoo.sourceafis:sourceafis", commit=None)
+    with pytest.raises(ThirdPartyUsageError, match="ENUMERATION role"):
+        _bind(
+            _observation_at("file:///elsewhere/LICENSE"),
+            identity,
+            attestation=_attestation(
+                identity,
+                method=AttestationMethod.PACKAGE_COORDINATE,
+                references=(
+                    _ref(
+                        AttestationReferenceRole.ARTIFACT_DIGEST, digest="b" * 64
+                    ),
+                ),
+            ),
+        )
 
 
 def test_out_of_band_delivery_needs_the_bytes_it_delivered() -> None:

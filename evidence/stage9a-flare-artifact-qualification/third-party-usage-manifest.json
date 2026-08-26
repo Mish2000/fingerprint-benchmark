@@ -64,7 +64,105 @@
       "identity_link_basis": "DERIVED_FROM_UPSTREAM_COMMIT",
       "publisher_attestation": null,
       "binding_fingerprint": "d8880deb9fba5f97c6e48eea02108f0308dc3f82f9213329664cd05d62b6f465",
-      "usage_fingerprint": "648899efa3731e0e4a52ba2f6ed5a24750240bbc2bbd809379f56a7077a57c04"
+      "usage_fingerprint": "648899efa3731e0e4a52ba2f6ed5a24750240bbc2bbd809379f56a7077a57c04",
+      "observation": {
+        "observation_id": "flare_desc_configs_observation",
+        "component_kind": "OTHER_ARTIFACT",
+        "subject": "model_weights/desc_configs.yaml: PPI 500, middle_shape 512×512, tar_shape 256×256, ndim_feat 6, input_norm false",
+        "status": "CONFLICTING_NOTICES",
+        "declared_license_names": [
+          "Academic Research License",
+          "Apache License 2.0"
+        ],
+        "spdx_identifiers": [
+          "Apache-2.0"
+        ],
+        "evidence": [
+          {
+            "locator": "https://github.com/Yu-Yy/FLARE/blob/7d13ca727d55cf43642f9fe1e67df785091fd7c2/LICENSE",
+            "description": "the repository's LICENSE file, the unmodified Apache License 2.0 text",
+            "document_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+          },
+          {
+            "locator": "https://github.com/Yu-Yy/FLARE/blob/7d13ca727d55cf43642f9fe1e67df785091fd7c2/README.md",
+            "description": "the repository README, which states the work is for academic research and educational purposes only and that commercial use is strictly prohibited",
+            "document_sha256": "9fe8a2f01270d7abe09375d2a413c60cc5b448047233ec9b711e5571910878f4"
+          }
+        ],
+        "stated_restrictions": [
+          "Apache-2.0 requires notices to be retained in a distribution.",
+          "The README limits use to academic research and educational purposes and prohibits commercial use."
+        ],
+        "notes": [],
+        "observation_fingerprint": "44aab40ee023e7c934f4450b9dcfcdf67b50d0e8d66f504140ffee4e7603de3c",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flare_desc_configs_research_use",
+        "observation_fingerprint": "44aab40ee023e7c934f4450b9dcfcdf67b50d0e8d66f504140ffee4e7603de3c",
+        "component_kind": "OTHER_ARTIFACT",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+        "basis": "The repository carries a permissive LICENSE file and a README that limits use to academic research and education. Stage 9A does not decide which governs. Under every plausible reading, local non-commercial educational research that redistributes nothing is permitted, so the intersection contains this project's exact operation (docs/adr/0082).",
+        "intended_use_permission_status": "ESTABLISHED",
+        "non_blocking_restrictions": [
+          "ACADEMIC_OR_RESEARCH_ONLY",
+          "ATTRIBUTION_AND_NOTICE_RETENTION",
+          "COMMERCIAL_LICENSE_REQUIRED_FOR_COMMERCIAL_DEPLOYMENT",
+          "EDUCATIONAL_ONLY",
+          "NON_COMMERCIAL_ONLY",
+          "NOTICE_CONFLICT_WITH_PERMISSIVE_INTERSECTION"
+        ],
+        "blockers": [],
+        "intersection_permits_intended_use": true,
+        "owner_risk_acceptance": null,
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "5d2a5060b88a07c5b5c6f459bc585756709e8221074dd7a7240c59ea0a5681f3",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flare_desc_configs",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "OTHER_ARTIFACT",
+        "upstream_identity": {
+          "upstream_name": "Yu-Yy/FLARE",
+          "upstream_locator": "https://raw.githubusercontent.com/Yu-Yy/FLARE/7d13ca727d55cf43642f9fe1e67df785091fd7c2/model_weights/desc_configs.yaml",
+          "exact_version": "7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+          "upstream_commit": "7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+          "artifact_filename": "desc_configs.yaml",
+          "artifact_sha256": "616df359c8820efeb57ac7bacc7ba349c4403766bcbea3729ebe667c1ba6ecb9",
+          "artifact_size_bytes": 201,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "44aab40ee023e7c934f4450b9dcfcdf67b50d0e8d66f504140ffee4e7603de3c",
+        "license_observation_status": "CONFLICTING_NOTICES",
+        "license_evidence_locators": [
+          "https://github.com/Yu-Yy/FLARE/blob/7d13ca727d55cf43642f9fe1e67df785091fd7c2/LICENSE",
+          "https://github.com/Yu-Yy/FLARE/blob/7d13ca727d55cf43642f9fe1e67df785091fd7c2/README.md"
+        ],
+        "research_use_decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+        "research_use_basis": "The repository carries a permissive LICENSE file and a README that limits use to academic research and education. Stage 9A does not decide which governs. Under every plausible reading, local non-commercial educational research that redistributes nothing is permitted, so the intersection contains this project's exact operation (docs/adr/0082).",
+        "research_use_assessment_fingerprint": "5d2a5060b88a07c5b5c6f459bc585756709e8221074dd7a7240c59ea0a5681f3",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "CONDITIONAL",
+          "basis": "Apache-2.0 would permit redistribution with notices retained; the README would not permit commercial redistribution at all. This project redistributes nothing, so the two readings do not have to be reconciled (docs/adr/0083).",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [],
+        "upstream_identity_fingerprint": "5c16bed29c5118ba098e6dbc57f67c24cb8de52e8108d103f1a3d7ab1e1eacec",
+        "identity_link_basis": "DERIVED_FROM_UPSTREAM_COMMIT",
+        "publisher_attestation": null,
+        "binding_fingerprint": "d8880deb9fba5f97c6e48eea02108f0308dc3f82f9213329664cd05d62b6f465",
+        "usage_fingerprint": "648899efa3731e0e4a52ba2f6ed5a24750240bbc2bbd809379f56a7077a57c04",
+        "schema_version": "2"
+      }
     },
     {
       "record_id": "flare_enh_source_archive",
@@ -109,7 +207,105 @@
       "identity_link_basis": "DERIVED_FROM_UPSTREAM_COMMIT",
       "publisher_attestation": null,
       "binding_fingerprint": "1e5485541b0631d403b7ba59be6c1c6e32652d977df0602b87e8cf1053dd5274",
-      "usage_fingerprint": "baff063be7d33101a8e264154b29606575b9bbf99f5c3e4ef12d308a16dc8cf5"
+      "usage_fingerprint": "baff063be7d33101a8e264154b29606575b9bbf99f5c3e4ef12d308a16dc8cf5",
+      "observation": {
+        "observation_id": "flare_enh_source_archive_observation",
+        "component_kind": "SOURCE_CODE",
+        "subject": "the UNetEnh and PriorEnh source at the pinned commit",
+        "status": "CONFLICTING_NOTICES",
+        "declared_license_names": [
+          "Academic Research License",
+          "Apache License 2.0"
+        ],
+        "spdx_identifiers": [
+          "Apache-2.0"
+        ],
+        "evidence": [
+          {
+            "locator": "https://github.com/Yu-Yy/FLARE_ENH/blob/ee735b03669aa0d9e086b50c7d9b1771913a2ba4/LICENSE",
+            "description": "the repository's LICENSE file, the unmodified Apache License 2.0 text",
+            "document_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+          },
+          {
+            "locator": "https://github.com/Yu-Yy/FLARE_ENH/blob/ee735b03669aa0d9e086b50c7d9b1771913a2ba4/README.md",
+            "description": "the repository README, which states the work is for academic research and educational purposes only and that commercial use is strictly prohibited",
+            "document_sha256": "4013b73a2459a0c0b8c136701e03e558519331f35be08c63b56887a152aa2e90"
+          }
+        ],
+        "stated_restrictions": [
+          "Apache-2.0 requires notices to be retained in a distribution.",
+          "The README limits use to academic research and educational purposes and prohibits commercial use."
+        ],
+        "notes": [],
+        "observation_fingerprint": "dcfaac173c6afd08425c58c42e7f6af8d713d15dd595e622fdfdd60f83830e61",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flare_enh_source_archive_research_use",
+        "observation_fingerprint": "dcfaac173c6afd08425c58c42e7f6af8d713d15dd595e622fdfdd60f83830e61",
+        "component_kind": "SOURCE_CODE",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+        "basis": "The repository carries a permissive LICENSE file and a README that limits use to academic research and education. Stage 9A does not decide which governs. Under every plausible reading, local non-commercial educational research that redistributes nothing is permitted, so the intersection contains this project's exact operation (docs/adr/0082).",
+        "intended_use_permission_status": "ESTABLISHED",
+        "non_blocking_restrictions": [
+          "ACADEMIC_OR_RESEARCH_ONLY",
+          "ATTRIBUTION_AND_NOTICE_RETENTION",
+          "COMMERCIAL_LICENSE_REQUIRED_FOR_COMMERCIAL_DEPLOYMENT",
+          "EDUCATIONAL_ONLY",
+          "NON_COMMERCIAL_ONLY",
+          "NOTICE_CONFLICT_WITH_PERMISSIVE_INTERSECTION"
+        ],
+        "blockers": [],
+        "intersection_permits_intended_use": true,
+        "owner_risk_acceptance": null,
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "134f2e53f4aa506163cf58a7071af6278cfb7b785a91c91020a7ebb5c8fab8ef",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flare_enh_source_archive",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "SOURCE_CODE",
+        "upstream_identity": {
+          "upstream_name": "Yu-Yy/FLARE_ENH",
+          "upstream_locator": "https://codeload.github.com/Yu-Yy/FLARE_ENH/tar.gz/ee735b03669aa0d9e086b50c7d9b1771913a2ba4",
+          "exact_version": "ee735b03669aa0d9e086b50c7d9b1771913a2ba4",
+          "upstream_commit": "ee735b03669aa0d9e086b50c7d9b1771913a2ba4",
+          "artifact_filename": "FLARE_ENH-ee735b03.tar.gz",
+          "artifact_sha256": "ff85e815ddaf92bb03373d7b3475db20dc85403758252cb8148706e22cfbb981",
+          "artifact_size_bytes": 33181,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "dcfaac173c6afd08425c58c42e7f6af8d713d15dd595e622fdfdd60f83830e61",
+        "license_observation_status": "CONFLICTING_NOTICES",
+        "license_evidence_locators": [
+          "https://github.com/Yu-Yy/FLARE_ENH/blob/ee735b03669aa0d9e086b50c7d9b1771913a2ba4/LICENSE",
+          "https://github.com/Yu-Yy/FLARE_ENH/blob/ee735b03669aa0d9e086b50c7d9b1771913a2ba4/README.md"
+        ],
+        "research_use_decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+        "research_use_basis": "The repository carries a permissive LICENSE file and a README that limits use to academic research and education. Stage 9A does not decide which governs. Under every plausible reading, local non-commercial educational research that redistributes nothing is permitted, so the intersection contains this project's exact operation (docs/adr/0082).",
+        "research_use_assessment_fingerprint": "134f2e53f4aa506163cf58a7071af6278cfb7b785a91c91020a7ebb5c8fab8ef",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "CONDITIONAL",
+          "basis": "Apache-2.0 would permit redistribution with notices retained; the README would not permit commercial redistribution at all. This project redistributes nothing, so the two readings do not have to be reconciled (docs/adr/0083).",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [],
+        "upstream_identity_fingerprint": "448ebf914882ed22bf072d28bdde8b937aa5df640887506d7245d31b6e723ca4",
+        "identity_link_basis": "DERIVED_FROM_UPSTREAM_COMMIT",
+        "publisher_attestation": null,
+        "binding_fingerprint": "1e5485541b0631d403b7ba59be6c1c6e32652d977df0602b87e8cf1053dd5274",
+        "usage_fingerprint": "baff063be7d33101a8e264154b29606575b9bbf99f5c3e4ef12d308a16dc8cf5",
+        "schema_version": "2"
+      }
     },
     {
       "record_id": "flare_fdd_checkpoint",
@@ -146,7 +342,90 @@
       "identity_link_basis": "UNRESOLVED_UPSTREAM_DOCUMENTED_ONLY",
       "publisher_attestation": null,
       "binding_fingerprint": "70c438f4ee169d711b306ca01bf8d7fd198b04ed5ae808815f98291c12b0e82e",
-      "usage_fingerprint": "697a0d5f929d6d8f88443e28bd6058534eabec77831659f8ff91ab409fd789b3"
+      "usage_fingerprint": "697a0d5f929d6d8f88443e28bd6058534eabec77831659f8ff91ab409fd789b3",
+      "observation": {
+        "observation_id": "flare_fdd_checkpoint_observation",
+        "component_kind": "MODEL_WEIGHTS",
+        "subject": "desc_model.pth.tar, the Fixed-length Dense Representation Network",
+        "status": "UNKNOWN",
+        "declared_license_names": [],
+        "spdx_identifiers": [],
+        "evidence": [],
+        "stated_restrictions": [],
+        "notes": [
+          "Hosted outside the repository that documents it. The Drive file id is a locator, not an identity."
+        ],
+        "observation_fingerprint": "1c8de33a6cb682044833dae8e3d35f8b4ef677a1fa3669147bf8f2c856cbc508",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flare_fdd_checkpoint_research_use",
+        "observation_fingerprint": "1c8de33a6cb682044833dae8e3d35f8b4ef677a1fa3669147bf8f2c856cbc508",
+        "component_kind": "MODEL_WEIGHTS",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "BLOCKED",
+        "basis": "The checkpoint is hosted separately from the repository, on a Google Drive link named in the official README. No checkpoint-specific notice has been inspected and recorded here, and a repository licence does not automatically license separately hosted weights (docs/adr/0063). The project owner accepts the risk of executing it locally; that is not a finding that the use is permitted (docs/adr/0068).",
+        "intended_use_permission_status": "UNRESOLVED",
+        "non_blocking_restrictions": [],
+        "blockers": [
+          "ARTIFACT_IDENTITY_NOT_ESTABLISHED"
+        ],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": {
+          "published_intentionally_by_official_authors": true,
+          "publicly_obtainable_without_circumvention": true,
+          "intended_operation_is_local_research_only": true,
+          "no_located_term_expressly_prohibits_the_use": true,
+          "no_bytes_will_be_redistributed": true,
+          "accepted_by": "the fpbench project owner",
+          "basis": "The artifact was published intentionally by its official authors, is publicly obtainable without circumventing any access control, is executed only locally for personal educational research, is not expressly prohibited by any located term, and no byte of it is redistributed by this project. The owner accepts the risk of proceeding on that basis; nobody established a right (docs/adr/0084)."
+        },
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "e2bd69ccf70bf20910955b3bb5d83d5285da0d3e9d70f6c82fbfe1a740039dcf",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flare_fdd_checkpoint",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "MODEL_WEIGHTS",
+        "upstream_identity": {
+          "upstream_name": "FLARE FDD model",
+          "upstream_locator": "google-drive-file:1zvAI57L0TDC7q6kQgNh5_DwSbicjJ4hs",
+          "exact_version": "7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+          "upstream_commit": "7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+          "artifact_filename": "desc_model.pth.tar",
+          "artifact_sha256": null,
+          "artifact_size_bytes": null,
+          "identity_established": false
+        },
+        "license_observation_fingerprint": "1c8de33a6cb682044833dae8e3d35f8b4ef677a1fa3669147bf8f2c856cbc508",
+        "license_observation_status": "UNKNOWN",
+        "license_evidence_locators": [],
+        "research_use_decision": "BLOCKED",
+        "research_use_basis": "The checkpoint is hosted separately from the repository, on a Google Drive link named in the official README. No checkpoint-specific notice has been inspected and recorded here, and a repository licence does not automatically license separately hosted weights (docs/adr/0063). The project owner accepts the risk of executing it locally; that is not a finding that the use is permitted (docs/adr/0068).",
+        "research_use_assessment_fingerprint": "e2bd69ccf70bf20910955b3bb5d83d5285da0d3e9d70f6c82fbfe1a740039dcf",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "NOT_ESTABLISHED",
+          "basis": "Nothing was established either way, and this project publishes no checkpoint byte, no state dict, no tensor sample and no descriptor.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [
+          "extract_FDD.py builds FDD, wraps it in DataParallel and calls load_model on this path. The load is present, active and official."
+        ],
+        "upstream_identity_fingerprint": "624d4b95493e4619ef9cd983fb40cffdb383496c6467b2e343ff80aa316b9a1c",
+        "identity_link_basis": "UNRESOLVED_UPSTREAM_DOCUMENTED_ONLY",
+        "publisher_attestation": null,
+        "binding_fingerprint": "70c438f4ee169d711b306ca01bf8d7fd198b04ed5ae808815f98291c12b0e82e",
+        "usage_fingerprint": "697a0d5f929d6d8f88443e28bd6058534eabec77831659f8ff91ab409fd789b3",
+        "schema_version": "2"
+      }
     },
     {
       "record_id": "flare_prior_codebook_checkpoint",
@@ -183,7 +462,90 @@
       "identity_link_basis": "UNRESOLVED_UPSTREAM_DOCUMENTED_ONLY",
       "publisher_attestation": null,
       "binding_fingerprint": "5f0b7730bf02d1b666f655e22456191371d0be16810a64d55cfb04f68b5899c3",
-      "usage_fingerprint": "359e7518fd7a3b34e63ca1dda40a373bee4cbc6fdbeb1d3b642c751f4e80efc7"
+      "usage_fingerprint": "359e7518fd7a3b34e63ca1dda40a373bee4cbc6fdbeb1d3b642c751f4e80efc7",
+      "observation": {
+        "observation_id": "flare_prior_codebook_checkpoint_observation",
+        "component_kind": "MODEL_WEIGHTS",
+        "subject": "Prior.ckpt, the frozen VQ-VAE codebook and high-resolution decoder",
+        "status": "UNKNOWN",
+        "declared_license_names": [],
+        "spdx_identifiers": [],
+        "evidence": [],
+        "stated_restrictions": [],
+        "notes": [
+          "Hosted outside the repository that documents it. The Drive file id is a locator, not an identity."
+        ],
+        "observation_fingerprint": "44fd9f4abb52dbe4e5e39577ed3eca712475cb759f2a2171e6cb03439d54cda5",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flare_prior_codebook_checkpoint_research_use",
+        "observation_fingerprint": "44fd9f4abb52dbe4e5e39577ed3eca712475cb759f2a2171e6cb03439d54cda5",
+        "component_kind": "MODEL_WEIGHTS",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "BLOCKED",
+        "basis": "The checkpoint is hosted separately from the repository, on a Google Drive link named in the official README. No checkpoint-specific notice has been inspected and recorded here, and a repository licence does not automatically license separately hosted weights (docs/adr/0063). The project owner accepts the risk of executing it locally; that is not a finding that the use is permitted (docs/adr/0068).",
+        "intended_use_permission_status": "UNRESOLVED",
+        "non_blocking_restrictions": [],
+        "blockers": [
+          "ARTIFACT_IDENTITY_NOT_ESTABLISHED"
+        ],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": {
+          "published_intentionally_by_official_authors": true,
+          "publicly_obtainable_without_circumvention": true,
+          "intended_operation_is_local_research_only": true,
+          "no_located_term_expressly_prohibits_the_use": true,
+          "no_bytes_will_be_redistributed": true,
+          "accepted_by": "the fpbench project owner",
+          "basis": "The artifact was published intentionally by its official authors, is publicly obtainable without circumventing any access control, is executed only locally for personal educational research, is not expressly prohibited by any located term, and no byte of it is redistributed by this project. The owner accepts the risk of proceeding on that basis; nobody established a right (docs/adr/0084)."
+        },
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "ce2a09f662a5dd4f6b631cc0b65586571d93a5dd09eb91cba65d68fd9623e410",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flare_prior_codebook_checkpoint",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "MODEL_WEIGHTS",
+        "upstream_identity": {
+          "upstream_name": "FLARE Prior model",
+          "upstream_locator": "google-drive-file:14c0A4qRo_lrqa83e-_UpBvu79qEGkK5q",
+          "exact_version": "ee735b03669aa0d9e086b50c7d9b1771913a2ba4",
+          "upstream_commit": "ee735b03669aa0d9e086b50c7d9b1771913a2ba4",
+          "artifact_filename": "Prior.ckpt",
+          "artifact_sha256": null,
+          "artifact_size_bytes": null,
+          "identity_established": false
+        },
+        "license_observation_fingerprint": "44fd9f4abb52dbe4e5e39577ed3eca712475cb759f2a2171e6cb03439d54cda5",
+        "license_observation_status": "UNKNOWN",
+        "license_evidence_locators": [],
+        "research_use_decision": "BLOCKED",
+        "research_use_basis": "The checkpoint is hosted separately from the repository, on a Google Drive link named in the official README. No checkpoint-specific notice has been inspected and recorded here, and a repository licence does not automatically license separately hosted weights (docs/adr/0063). The project owner accepts the risk of executing it locally; that is not a finding that the use is permitted (docs/adr/0068).",
+        "research_use_assessment_fingerprint": "ce2a09f662a5dd4f6b631cc0b65586571d93a5dd09eb91cba65d68fd9623e410",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "NOT_ESTABLISHED",
+          "basis": "Nothing was established either way, and this project publishes no checkpoint byte, no state dict, no tensor sample and no descriptor.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [
+          "Named by vq.yaml's ckpt_path, not by a README download list. VQFPEnhancer_PCNN is constructed with it, so PriorEnh does not exist without it (spec section 11)."
+        ],
+        "upstream_identity_fingerprint": "7d559d3d571fd85c287b5c9decc1eee55a995a87de849af989a51e4dec9e835d",
+        "identity_link_basis": "UNRESOLVED_UPSTREAM_DOCUMENTED_ONLY",
+        "publisher_attestation": null,
+        "binding_fingerprint": "5f0b7730bf02d1b666f655e22456191371d0be16810a64d55cfb04f68b5899c3",
+        "usage_fingerprint": "359e7518fd7a3b34e63ca1dda40a373bee4cbc6fdbeb1d3b642c751f4e80efc7",
+        "schema_version": "2"
+      }
     },
     {
       "record_id": "flare_priorenh_checkpoint",
@@ -220,7 +582,88 @@
       "identity_link_basis": "UNRESOLVED_UPSTREAM_DOCUMENTED_ONLY",
       "publisher_attestation": null,
       "binding_fingerprint": "f001e4dee6d2ac63811df9a6a70c5121c743b0ff1dfff9ecd1f08db46d0f0a71",
-      "usage_fingerprint": "ff764989dd23b87ec2f09116bb8f30ca3471117f3be2125fc2d424d9dd62f171"
+      "usage_fingerprint": "ff764989dd23b87ec2f09116bb8f30ca3471117f3be2125fc2d424d9dd62f171",
+      "observation": {
+        "observation_id": "flare_priorenh_checkpoint_observation",
+        "component_kind": "MODEL_WEIGHTS",
+        "subject": "priorenh.pth, the VQFPEnhancer_PCNN enhancement network",
+        "status": "UNKNOWN",
+        "declared_license_names": [],
+        "spdx_identifiers": [],
+        "evidence": [],
+        "stated_restrictions": [],
+        "notes": [
+          "Hosted outside the repository that documents it. The Drive file id is a locator, not an identity."
+        ],
+        "observation_fingerprint": "3d417ee7d8de8088dd9858924e8edacb22e7a63af9b3edfcf391d7afb0e0cbdb",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flare_priorenh_checkpoint_research_use",
+        "observation_fingerprint": "3d417ee7d8de8088dd9858924e8edacb22e7a63af9b3edfcf391d7afb0e0cbdb",
+        "component_kind": "MODEL_WEIGHTS",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "BLOCKED",
+        "basis": "The checkpoint is hosted separately from the repository, on a Google Drive link named in the official README. No checkpoint-specific notice has been inspected and recorded here, and a repository licence does not automatically license separately hosted weights (docs/adr/0063). The project owner accepts the risk of executing it locally; that is not a finding that the use is permitted (docs/adr/0068).",
+        "intended_use_permission_status": "UNRESOLVED",
+        "non_blocking_restrictions": [],
+        "blockers": [
+          "ARTIFACT_IDENTITY_NOT_ESTABLISHED"
+        ],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": {
+          "published_intentionally_by_official_authors": true,
+          "publicly_obtainable_without_circumvention": true,
+          "intended_operation_is_local_research_only": true,
+          "no_located_term_expressly_prohibits_the_use": true,
+          "no_bytes_will_be_redistributed": true,
+          "accepted_by": "the fpbench project owner",
+          "basis": "The artifact was published intentionally by its official authors, is publicly obtainable without circumventing any access control, is executed only locally for personal educational research, is not expressly prohibited by any located term, and no byte of it is redistributed by this project. The owner accepts the risk of proceeding on that basis; nobody established a right (docs/adr/0084)."
+        },
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "72ec3609dd12e28015efe6ffc633b12e90ab5d01be1a9b3f93253bf3db53cc44",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flare_priorenh_checkpoint",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "MODEL_WEIGHTS",
+        "upstream_identity": {
+          "upstream_name": "FLARE PriorEnh model",
+          "upstream_locator": "google-drive-file:1h3JD6ZhS_TUaCmBhINqKZ0Pb1ad-FRao",
+          "exact_version": "ee735b03669aa0d9e086b50c7d9b1771913a2ba4",
+          "upstream_commit": "ee735b03669aa0d9e086b50c7d9b1771913a2ba4",
+          "artifact_filename": "priorenh.pth",
+          "artifact_sha256": null,
+          "artifact_size_bytes": null,
+          "identity_established": false
+        },
+        "license_observation_fingerprint": "3d417ee7d8de8088dd9858924e8edacb22e7a63af9b3edfcf391d7afb0e0cbdb",
+        "license_observation_status": "UNKNOWN",
+        "license_evidence_locators": [],
+        "research_use_decision": "BLOCKED",
+        "research_use_basis": "The checkpoint is hosted separately from the repository, on a Google Drive link named in the official README. No checkpoint-specific notice has been inspected and recorded here, and a repository licence does not automatically license separately hosted weights (docs/adr/0063). The project owner accepts the risk of executing it locally; that is not a finding that the use is permitted (docs/adr/0068).",
+        "research_use_assessment_fingerprint": "72ec3609dd12e28015efe6ffc633b12e90ab5d01be1a9b3f93253bf3db53cc44",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "NOT_ESTABLISHED",
+          "basis": "Nothing was established either way, and this project publishes no checkpoint byte, no state dict, no tensor sample and no descriptor.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [],
+        "upstream_identity_fingerprint": "5178db4cf108d30f6d30dc200bf8fd5e643524fd80565b568ae6729e6ba81f32",
+        "identity_link_basis": "UNRESOLVED_UPSTREAM_DOCUMENTED_ONLY",
+        "publisher_attestation": null,
+        "binding_fingerprint": "f001e4dee6d2ac63811df9a6a70c5121c743b0ff1dfff9ecd1f08db46d0f0a71",
+        "usage_fingerprint": "ff764989dd23b87ec2f09116bb8f30ca3471117f3be2125fc2d424d9dd62f171",
+        "schema_version": "2"
+      }
     },
     {
       "record_id": "flare_priorenh_vq_config",
@@ -265,7 +708,107 @@
       "identity_link_basis": "DERIVED_FROM_UPSTREAM_COMMIT",
       "publisher_attestation": null,
       "binding_fingerprint": "55f4cfa330b94b866012b3a97077fa392340ba229ac25e22d76096b87bda0dbf",
-      "usage_fingerprint": "554e78eca1889582fef6b932b8ee5e95bb8c81f8d3627f84730ec5301bb974b4"
+      "usage_fingerprint": "554e78eca1889582fef6b932b8ee5e95bb8c81f8d3627f84730ec5301bb974b4",
+      "observation": {
+        "observation_id": "flare_priorenh_vq_config_observation",
+        "component_kind": "OTHER_ARTIFACT",
+        "subject": "pretrained_model/priorenh/vq.yaml: codebook size, embedding dimension, the encoder and decoder configurations, and the path of the Prior artifact",
+        "status": "CONFLICTING_NOTICES",
+        "declared_license_names": [
+          "Academic Research License",
+          "Apache License 2.0"
+        ],
+        "spdx_identifiers": [
+          "Apache-2.0"
+        ],
+        "evidence": [
+          {
+            "locator": "https://github.com/Yu-Yy/FLARE_ENH/blob/ee735b03669aa0d9e086b50c7d9b1771913a2ba4/LICENSE",
+            "description": "the repository's LICENSE file, the unmodified Apache License 2.0 text",
+            "document_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+          },
+          {
+            "locator": "https://github.com/Yu-Yy/FLARE_ENH/blob/ee735b03669aa0d9e086b50c7d9b1771913a2ba4/README.md",
+            "description": "the repository README, which states the work is for academic research and educational purposes only and that commercial use is strictly prohibited",
+            "document_sha256": "4013b73a2459a0c0b8c136701e03e558519331f35be08c63b56887a152aa2e90"
+          }
+        ],
+        "stated_restrictions": [
+          "Apache-2.0 requires notices to be retained in a distribution.",
+          "The README limits use to academic research and educational purposes and prohibits commercial use."
+        ],
+        "notes": [],
+        "observation_fingerprint": "4309b2e1909639328ff841d829eeea2571a348432de0fc1e6d07c77a4e46d056",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flare_priorenh_vq_config_research_use",
+        "observation_fingerprint": "4309b2e1909639328ff841d829eeea2571a348432de0fc1e6d07c77a4e46d056",
+        "component_kind": "OTHER_ARTIFACT",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+        "basis": "The repository carries a permissive LICENSE file and a README that limits use to academic research and education. Stage 9A does not decide which governs. Under every plausible reading, local non-commercial educational research that redistributes nothing is permitted, so the intersection contains this project's exact operation (docs/adr/0082).",
+        "intended_use_permission_status": "ESTABLISHED",
+        "non_blocking_restrictions": [
+          "ACADEMIC_OR_RESEARCH_ONLY",
+          "ATTRIBUTION_AND_NOTICE_RETENTION",
+          "COMMERCIAL_LICENSE_REQUIRED_FOR_COMMERCIAL_DEPLOYMENT",
+          "EDUCATIONAL_ONLY",
+          "NON_COMMERCIAL_ONLY",
+          "NOTICE_CONFLICT_WITH_PERMISSIVE_INTERSECTION"
+        ],
+        "blockers": [],
+        "intersection_permits_intended_use": true,
+        "owner_risk_acceptance": null,
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "095202258cd9b42ed0d7116a3444b616e1807ad73d234d1d5235e0a080c41d84",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flare_priorenh_vq_config",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "OTHER_ARTIFACT",
+        "upstream_identity": {
+          "upstream_name": "Yu-Yy/FLARE_ENH",
+          "upstream_locator": "https://raw.githubusercontent.com/Yu-Yy/FLARE_ENH/ee735b03669aa0d9e086b50c7d9b1771913a2ba4/pretrained_model/priorenh/vq.yaml",
+          "exact_version": "ee735b03669aa0d9e086b50c7d9b1771913a2ba4",
+          "upstream_commit": "ee735b03669aa0d9e086b50c7d9b1771913a2ba4",
+          "artifact_filename": "vq.yaml",
+          "artifact_sha256": "e14e32f77116aef6e692915712f7fd9f70322aaa86209f158868747e61db8fac",
+          "artifact_size_bytes": 551,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "4309b2e1909639328ff841d829eeea2571a348432de0fc1e6d07c77a4e46d056",
+        "license_observation_status": "CONFLICTING_NOTICES",
+        "license_evidence_locators": [
+          "https://github.com/Yu-Yy/FLARE_ENH/blob/ee735b03669aa0d9e086b50c7d9b1771913a2ba4/LICENSE",
+          "https://github.com/Yu-Yy/FLARE_ENH/blob/ee735b03669aa0d9e086b50c7d9b1771913a2ba4/README.md"
+        ],
+        "research_use_decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+        "research_use_basis": "The repository carries a permissive LICENSE file and a README that limits use to academic research and education. Stage 9A does not decide which governs. Under every plausible reading, local non-commercial educational research that redistributes nothing is permitted, so the intersection contains this project's exact operation (docs/adr/0082).",
+        "research_use_assessment_fingerprint": "095202258cd9b42ed0d7116a3444b616e1807ad73d234d1d5235e0a080c41d84",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "CONDITIONAL",
+          "basis": "Apache-2.0 would permit redistribution with notices retained; the README would not permit commercial redistribution at all. This project redistributes nothing, so the two readings do not have to be reconciled (docs/adr/0083).",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [
+          "Ships inside the FLARE_ENH source tree, so its identity follows from the pinned commit. It is enumerated separately because it is what the transitive traversal reads."
+        ],
+        "upstream_identity_fingerprint": "06ab2c92e848601a997dc08254532c34f3ae823f8fa673a45df22d9f78064630",
+        "identity_link_basis": "DERIVED_FROM_UPSTREAM_COMMIT",
+        "publisher_attestation": null,
+        "binding_fingerprint": "55f4cfa330b94b866012b3a97077fa392340ba229ac25e22d76096b87bda0dbf",
+        "usage_fingerprint": "554e78eca1889582fef6b932b8ee5e95bb8c81f8d3627f84730ec5301bb974b4",
+        "schema_version": "2"
+      }
     },
     {
       "record_id": "flare_regression_pose_checkpoint",
@@ -302,7 +845,88 @@
       "identity_link_basis": "UNRESOLVED_UPSTREAM_DOCUMENTED_ONLY",
       "publisher_attestation": null,
       "binding_fingerprint": "1190c8d78b2f85e24fbb3963c51d1e5dda133308d9bc32b496061a52fbab53b2",
-      "usage_fingerprint": "bed521d169097c586cc3cb907b17e4e72d16d4318050a45af1083a1b9ce8bbf9"
+      "usage_fingerprint": "bed521d169097c586cc3cb907b17e4e72d16d4318050a45af1083a1b9ce8bbf9",
+      "observation": {
+        "observation_id": "flare_regression_pose_checkpoint_observation",
+        "component_kind": "MODEL_WEIGHTS",
+        "subject": "RegressionPose.pth, the FingerPose_2D_Single regression estimator",
+        "status": "UNKNOWN",
+        "declared_license_names": [],
+        "spdx_identifiers": [],
+        "evidence": [],
+        "stated_restrictions": [],
+        "notes": [
+          "Hosted outside the repository that documents it. The Drive file id is a locator, not an identity."
+        ],
+        "observation_fingerprint": "e03b684d35937e01af0da9abfdf538c53681eb981d8df655bcb9c46c9dddacca",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flare_regression_pose_checkpoint_research_use",
+        "observation_fingerprint": "e03b684d35937e01af0da9abfdf538c53681eb981d8df655bcb9c46c9dddacca",
+        "component_kind": "MODEL_WEIGHTS",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "BLOCKED",
+        "basis": "The checkpoint is hosted separately from the repository, on a Google Drive link named in the official README. No checkpoint-specific notice has been inspected and recorded here, and a repository licence does not automatically license separately hosted weights (docs/adr/0063). The project owner accepts the risk of executing it locally; that is not a finding that the use is permitted (docs/adr/0068).",
+        "intended_use_permission_status": "UNRESOLVED",
+        "non_blocking_restrictions": [],
+        "blockers": [
+          "ARTIFACT_IDENTITY_NOT_ESTABLISHED"
+        ],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": {
+          "published_intentionally_by_official_authors": true,
+          "publicly_obtainable_without_circumvention": true,
+          "intended_operation_is_local_research_only": true,
+          "no_located_term_expressly_prohibits_the_use": true,
+          "no_bytes_will_be_redistributed": true,
+          "accepted_by": "the fpbench project owner",
+          "basis": "The artifact was published intentionally by its official authors, is publicly obtainable without circumventing any access control, is executed only locally for personal educational research, is not expressly prohibited by any located term, and no byte of it is redistributed by this project. The owner accepts the risk of proceeding on that basis; nobody established a right (docs/adr/0084)."
+        },
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "19b9aefb8c27c36c925f4e4858109e7e2242ef7a86e407dd4239c51ca773fcd2",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flare_regression_pose_checkpoint",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "MODEL_WEIGHTS",
+        "upstream_identity": {
+          "upstream_name": "FLARE RegressionPose model",
+          "upstream_locator": "google-drive-file:1AXpN8GBSqhlIXDilqPLfZf9n4Dc0pEpj",
+          "exact_version": "7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+          "upstream_commit": "7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+          "artifact_filename": "RegressionPose.pth",
+          "artifact_sha256": null,
+          "artifact_size_bytes": null,
+          "identity_established": false
+        },
+        "license_observation_fingerprint": "e03b684d35937e01af0da9abfdf538c53681eb981d8df655bcb9c46c9dddacca",
+        "license_observation_status": "UNKNOWN",
+        "license_evidence_locators": [],
+        "research_use_decision": "BLOCKED",
+        "research_use_basis": "The checkpoint is hosted separately from the repository, on a Google Drive link named in the official README. No checkpoint-specific notice has been inspected and recorded here, and a repository licence does not automatically license separately hosted weights (docs/adr/0063). The project owner accepts the risk of executing it locally; that is not a finding that the use is permitted (docs/adr/0068).",
+        "research_use_assessment_fingerprint": "19b9aefb8c27c36c925f4e4858109e7e2242ef7a86e407dd4239c51ca773fcd2",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "NOT_ESTABLISHED",
+          "basis": "Nothing was established either way, and this project publishes no checkpoint byte, no state dict, no tensor sample and no descriptor.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [],
+        "upstream_identity_fingerprint": "653105adf2961a7b47d7f17182d542b2d045c4e1928222326ff61b64a677cd09",
+        "identity_link_basis": "UNRESOLVED_UPSTREAM_DOCUMENTED_ONLY",
+        "publisher_attestation": null,
+        "binding_fingerprint": "1190c8d78b2f85e24fbb3963c51d1e5dda133308d9bc32b496061a52fbab53b2",
+        "usage_fingerprint": "bed521d169097c586cc3cb907b17e4e72d16d4318050a45af1083a1b9ce8bbf9",
+        "schema_version": "2"
+      }
     },
     {
       "record_id": "flare_source_archive",
@@ -347,7 +971,107 @@
       "identity_link_basis": "DERIVED_FROM_UPSTREAM_COMMIT",
       "publisher_attestation": null,
       "binding_fingerprint": "8ca9dc602cf8bbe16501c3f5201e7886a358b2eeb195d118c6f5a8bf80531d36",
-      "usage_fingerprint": "6e221d8c3744727d9b2e2aa2546a4c38d8bf6ffb9f1f8d76bff008d4db02eeb1"
+      "usage_fingerprint": "6e221d8c3744727d9b2e2aa2546a4c38d8bf6ffb9f1f8d76bff008d4db02eeb1",
+      "observation": {
+        "observation_id": "flare_source_archive_observation",
+        "component_kind": "SOURCE_CODE",
+        "subject": "the FLARE-Align and FLARE-Desc source at the pinned commit",
+        "status": "CONFLICTING_NOTICES",
+        "declared_license_names": [
+          "Academic Research License",
+          "Apache License 2.0"
+        ],
+        "spdx_identifiers": [
+          "Apache-2.0"
+        ],
+        "evidence": [
+          {
+            "locator": "https://github.com/Yu-Yy/FLARE/blob/7d13ca727d55cf43642f9fe1e67df785091fd7c2/LICENSE",
+            "description": "the repository's LICENSE file, the unmodified Apache License 2.0 text",
+            "document_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+          },
+          {
+            "locator": "https://github.com/Yu-Yy/FLARE/blob/7d13ca727d55cf43642f9fe1e67df785091fd7c2/README.md",
+            "description": "the repository README, which states the work is for academic research and educational purposes only and that commercial use is strictly prohibited",
+            "document_sha256": "9fe8a2f01270d7abe09375d2a413c60cc5b448047233ec9b711e5571910878f4"
+          }
+        ],
+        "stated_restrictions": [
+          "Apache-2.0 requires notices to be retained in a distribution.",
+          "The README limits use to academic research and educational purposes and prohibits commercial use."
+        ],
+        "notes": [],
+        "observation_fingerprint": "81d55d88dbae34b3f5d9658c96ee213ff9f28fe265f8f42244e1b5c80a1b3218",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flare_source_archive_research_use",
+        "observation_fingerprint": "81d55d88dbae34b3f5d9658c96ee213ff9f28fe265f8f42244e1b5c80a1b3218",
+        "component_kind": "SOURCE_CODE",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+        "basis": "The repository carries a permissive LICENSE file and a README that limits use to academic research and education. Stage 9A does not decide which governs. Under every plausible reading, local non-commercial educational research that redistributes nothing is permitted, so the intersection contains this project's exact operation (docs/adr/0082).",
+        "intended_use_permission_status": "ESTABLISHED",
+        "non_blocking_restrictions": [
+          "ACADEMIC_OR_RESEARCH_ONLY",
+          "ATTRIBUTION_AND_NOTICE_RETENTION",
+          "COMMERCIAL_LICENSE_REQUIRED_FOR_COMMERCIAL_DEPLOYMENT",
+          "EDUCATIONAL_ONLY",
+          "NON_COMMERCIAL_ONLY",
+          "NOTICE_CONFLICT_WITH_PERMISSIVE_INTERSECTION"
+        ],
+        "blockers": [],
+        "intersection_permits_intended_use": true,
+        "owner_risk_acceptance": null,
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "daf2f60a99bf09fc40ee317ad6f9c91acf1b4af7c5886026c895fe5b70efb8e1",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flare_source_archive",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "SOURCE_CODE",
+        "upstream_identity": {
+          "upstream_name": "Yu-Yy/FLARE",
+          "upstream_locator": "https://codeload.github.com/Yu-Yy/FLARE/tar.gz/7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+          "exact_version": "7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+          "upstream_commit": "7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+          "artifact_filename": "FLARE-7d13ca72.tar.gz",
+          "artifact_sha256": "4b11d6f32a5a0984e505517768f11fc56dcd2b5711789b20cf0e08be5595145e",
+          "artifact_size_bytes": 725804,
+          "identity_established": true
+        },
+        "license_observation_fingerprint": "81d55d88dbae34b3f5d9658c96ee213ff9f28fe265f8f42244e1b5c80a1b3218",
+        "license_observation_status": "CONFLICTING_NOTICES",
+        "license_evidence_locators": [
+          "https://github.com/Yu-Yy/FLARE/blob/7d13ca727d55cf43642f9fe1e67df785091fd7c2/LICENSE",
+          "https://github.com/Yu-Yy/FLARE/blob/7d13ca727d55cf43642f9fe1e67df785091fd7c2/README.md"
+        ],
+        "research_use_decision": "ALLOWED_UNDER_RESTRICTIVE_INTERSECTION",
+        "research_use_basis": "The repository carries a permissive LICENSE file and a README that limits use to academic research and education. Stage 9A does not decide which governs. Under every plausible reading, local non-commercial educational research that redistributes nothing is permitted, so the intersection contains this project's exact operation (docs/adr/0082).",
+        "research_use_assessment_fingerprint": "daf2f60a99bf09fc40ee317ad6f9c91acf1b4af7c5886026c895fe5b70efb8e1",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "CONDITIONAL",
+          "basis": "Apache-2.0 would permit redistribution with notices retained; the README would not permit commercial redistribution at all. This project redistributes nothing, so the two readings do not have to be reconciled (docs/adr/0083).",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [
+          "Two independent acquisitions from the same locator produced byte-identical archives, which is what makes a generated tarball usable as an identity here (spec section 14)."
+        ],
+        "upstream_identity_fingerprint": "222449337898a91b396931ee3269895e6ad3be6e364aa3dccd1aab5801f342fd",
+        "identity_link_basis": "DERIVED_FROM_UPSTREAM_COMMIT",
+        "publisher_attestation": null,
+        "binding_fingerprint": "8ca9dc602cf8bbe16501c3f5201e7886a358b2eeb195d118c6f5a8bf80531d36",
+        "usage_fingerprint": "6e221d8c3744727d9b2e2aa2546a4c38d8bf6ffb9f1f8d76bff008d4db02eeb1",
+        "schema_version": "2"
+      }
     },
     {
       "record_id": "flare_unetenh_checkpoint",
@@ -384,7 +1108,88 @@
       "identity_link_basis": "UNRESOLVED_UPSTREAM_DOCUMENTED_ONLY",
       "publisher_attestation": null,
       "binding_fingerprint": "a213e9394384c7dfadb479e5a844b45ce2d615ab3108f467e5eadb39830757e2",
-      "usage_fingerprint": "2a6b048f4a80ff0d1df0738db64c41e750b6b9b35dd12848a570ad1c37a47a8c"
+      "usage_fingerprint": "2a6b048f4a80ff0d1df0738db64c41e750b6b9b35dd12848a570ad1c37a47a8c",
+      "observation": {
+        "observation_id": "flare_unetenh_checkpoint_observation",
+        "component_kind": "MODEL_WEIGHTS",
+        "subject": "unetenh.pth, the SqueezeUNet enhancement network",
+        "status": "UNKNOWN",
+        "declared_license_names": [],
+        "spdx_identifiers": [],
+        "evidence": [],
+        "stated_restrictions": [],
+        "notes": [
+          "Hosted outside the repository that documents it. The Drive file id is a locator, not an identity."
+        ],
+        "observation_fingerprint": "1fdda1c84c2eabcddc50f19c0e3be775cd8f559bcef89f86f4e54e42ca14183c",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flare_unetenh_checkpoint_research_use",
+        "observation_fingerprint": "1fdda1c84c2eabcddc50f19c0e3be775cd8f559bcef89f86f4e54e42ca14183c",
+        "component_kind": "MODEL_WEIGHTS",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "BLOCKED",
+        "basis": "The checkpoint is hosted separately from the repository, on a Google Drive link named in the official README. No checkpoint-specific notice has been inspected and recorded here, and a repository licence does not automatically license separately hosted weights (docs/adr/0063). The project owner accepts the risk of executing it locally; that is not a finding that the use is permitted (docs/adr/0068).",
+        "intended_use_permission_status": "UNRESOLVED",
+        "non_blocking_restrictions": [],
+        "blockers": [
+          "ARTIFACT_IDENTITY_NOT_ESTABLISHED"
+        ],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": {
+          "published_intentionally_by_official_authors": true,
+          "publicly_obtainable_without_circumvention": true,
+          "intended_operation_is_local_research_only": true,
+          "no_located_term_expressly_prohibits_the_use": true,
+          "no_bytes_will_be_redistributed": true,
+          "accepted_by": "the fpbench project owner",
+          "basis": "The artifact was published intentionally by its official authors, is publicly obtainable without circumventing any access control, is executed only locally for personal educational research, is not expressly prohibited by any located term, and no byte of it is redistributed by this project. The owner accepts the risk of proceeding on that basis; nobody established a right (docs/adr/0084)."
+        },
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "6a59d696f547c9543756713659141c4149b82768db58f7241f4b7af0bb194783",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flare_unetenh_checkpoint",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "MODEL_WEIGHTS",
+        "upstream_identity": {
+          "upstream_name": "FLARE UNetEnh model",
+          "upstream_locator": "google-drive-file:1U0uP8XoxWc90IPlEGnt2KIe0ATAA2VKl",
+          "exact_version": "ee735b03669aa0d9e086b50c7d9b1771913a2ba4",
+          "upstream_commit": "ee735b03669aa0d9e086b50c7d9b1771913a2ba4",
+          "artifact_filename": "unetenh.pth",
+          "artifact_sha256": null,
+          "artifact_size_bytes": null,
+          "identity_established": false
+        },
+        "license_observation_fingerprint": "1fdda1c84c2eabcddc50f19c0e3be775cd8f559bcef89f86f4e54e42ca14183c",
+        "license_observation_status": "UNKNOWN",
+        "license_evidence_locators": [],
+        "research_use_decision": "BLOCKED",
+        "research_use_basis": "The checkpoint is hosted separately from the repository, on a Google Drive link named in the official README. No checkpoint-specific notice has been inspected and recorded here, and a repository licence does not automatically license separately hosted weights (docs/adr/0063). The project owner accepts the risk of executing it locally; that is not a finding that the use is permitted (docs/adr/0068).",
+        "research_use_assessment_fingerprint": "6a59d696f547c9543756713659141c4149b82768db58f7241f4b7af0bb194783",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "NOT_ESTABLISHED",
+          "basis": "Nothing was established either way, and this project publishes no checkpoint byte, no state dict, no tensor sample and no descriptor.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [],
+        "upstream_identity_fingerprint": "494b0520588f2dbe03001bb39cc11fcc96e4910740317ea44b96eeeda22d6827",
+        "identity_link_basis": "UNRESOLVED_UPSTREAM_DOCUMENTED_ONLY",
+        "publisher_attestation": null,
+        "binding_fingerprint": "a213e9394384c7dfadb479e5a844b45ce2d615ab3108f467e5eadb39830757e2",
+        "usage_fingerprint": "2a6b048f4a80ff0d1df0738db64c41e750b6b9b35dd12848a570ad1c37a47a8c",
+        "schema_version": "2"
+      }
     },
     {
       "record_id": "flare_voting_pose_checkpoint",
@@ -421,7 +1226,88 @@
       "identity_link_basis": "UNRESOLVED_UPSTREAM_DOCUMENTED_ONLY",
       "publisher_attestation": null,
       "binding_fingerprint": "5bc4642c0305148e17104d0d3c3907ae37ebcac82d4fd4e7edbda90f4827f167",
-      "usage_fingerprint": "932cdb5d2cef0bd68d750a5d041f091e1a0315d857afa521ad3c8bdea10f9c8b"
+      "usage_fingerprint": "932cdb5d2cef0bd68d750a5d041f091e1a0315d857afa521ad3c8bdea10f9c8b",
+      "observation": {
+        "observation_id": "flare_voting_pose_checkpoint_observation",
+        "component_kind": "MODEL_WEIGHTS",
+        "subject": "VotingPose.pth, the GRIDNET4 voting pose estimator",
+        "status": "UNKNOWN",
+        "declared_license_names": [],
+        "spdx_identifiers": [],
+        "evidence": [],
+        "stated_restrictions": [],
+        "notes": [
+          "Hosted outside the repository that documents it. The Drive file id is a locator, not an identity."
+        ],
+        "observation_fingerprint": "1ff36e050dfa6e851a8399b21af30109e57366a6a27f3d5bbb25fea0a5b01dee",
+        "schema_version": "1"
+      },
+      "assessment": {
+        "assessment_id": "flare_voting_pose_checkpoint_research_use",
+        "observation_fingerprint": "1ff36e050dfa6e851a8399b21af30109e57366a6a27f3d5bbb25fea0a5b01dee",
+        "component_kind": "MODEL_WEIGHTS",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "intended_operation": "local execution on the project owner's own machine, for personal educational research, publishing no third-party bytes",
+        "decision": "BLOCKED",
+        "basis": "The checkpoint is hosted separately from the repository, on a Google Drive link named in the official README. No checkpoint-specific notice has been inspected and recorded here, and a repository licence does not automatically license separately hosted weights (docs/adr/0063). The project owner accepts the risk of executing it locally; that is not a finding that the use is permitted (docs/adr/0068).",
+        "intended_use_permission_status": "UNRESOLVED",
+        "non_blocking_restrictions": [],
+        "blockers": [
+          "ARTIFACT_IDENTITY_NOT_ESTABLISHED"
+        ],
+        "intersection_permits_intended_use": false,
+        "owner_risk_acceptance": {
+          "published_intentionally_by_official_authors": true,
+          "publicly_obtainable_without_circumvention": true,
+          "intended_operation_is_local_research_only": true,
+          "no_located_term_expressly_prohibits_the_use": true,
+          "no_bytes_will_be_redistributed": true,
+          "accepted_by": "the fpbench project owner",
+          "basis": "The artifact was published intentionally by its official authors, is publicly obtainable without circumventing any access control, is executed only locally for personal educational research, is not expressly prohibited by any located term, and no byte of it is redistributed by this project. The owner accepts the risk of proceeding on that basis; nobody established a right (docs/adr/0084)."
+        },
+        "dataset_access_terms_satisfied": null,
+        "assessment_fingerprint": "a441c8f43790fe31571a70c5e77b1e08658e361dae885906c3a69854ba78bf7b",
+        "schema_version": "1"
+      },
+      "usage_record": {
+        "record_id": "flare_voting_pose_checkpoint",
+        "purpose": "PERSONAL_EDUCATIONAL_RESEARCH",
+        "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
+        "component_kind": "MODEL_WEIGHTS",
+        "upstream_identity": {
+          "upstream_name": "FLARE VotingPose model",
+          "upstream_locator": "google-drive-file:1Zg4duNJ8mg-fkTACTzpPPK7DgNb9NRvA",
+          "exact_version": "7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+          "upstream_commit": "7d13ca727d55cf43642f9fe1e67df785091fd7c2",
+          "artifact_filename": "VotingPose.pth",
+          "artifact_sha256": null,
+          "artifact_size_bytes": null,
+          "identity_established": false
+        },
+        "license_observation_fingerprint": "1ff36e050dfa6e851a8399b21af30109e57366a6a27f3d5bbb25fea0a5b01dee",
+        "license_observation_status": "UNKNOWN",
+        "license_evidence_locators": [],
+        "research_use_decision": "BLOCKED",
+        "research_use_basis": "The checkpoint is hosted separately from the repository, on a Google Drive link named in the official README. No checkpoint-specific notice has been inspected and recorded here, and a repository licence does not automatically license separately hosted weights (docs/adr/0063). The project owner accepts the risk of executing it locally; that is not a finding that the use is permitted (docs/adr/0068).",
+        "research_use_assessment_fingerprint": "a441c8f43790fe31571a70c5e77b1e08658e361dae885906c3a69854ba78bf7b",
+        "owner_risk_acceptance": false,
+        "redistribution": {
+          "decision": "NOT_ESTABLISHED",
+          "basis": "Nothing was established either way, and this project publishes no checkpoint byte, no state dict, no tensor sample and no descriptor.",
+          "redistributed_by_fpbench": false
+        },
+        "storage_class": "LOCAL_ARTIFACT_STORE",
+        "stored_in_git": false,
+        "stored_in_ci_artifacts": false,
+        "notes": [],
+        "upstream_identity_fingerprint": "05cad1227cf8ca64ccef93bdad7b00645b9c5b1c7795722a86aa4f74ed48991c",
+        "identity_link_basis": "UNRESOLVED_UPSTREAM_DOCUMENTED_ONLY",
+        "publisher_attestation": null,
+        "binding_fingerprint": "5bc4642c0305148e17104d0d3c3907ae37ebcac82d4fd4e7edbda90f4827f167",
+        "usage_fingerprint": "932cdb5d2cef0bd68d750a5d041f091e1a0315d857afa521ad3c8bdea10f9c8b",
+        "schema_version": "2"
+      }
     }
   ],
   "notes": [

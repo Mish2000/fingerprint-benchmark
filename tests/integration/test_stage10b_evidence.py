@@ -341,9 +341,13 @@ def test_the_self_rule_is_published_even_though_nothing_ran() -> None:
 
 
 def test_the_stage_changed_only_its_own_surface() -> None:
-    document = _marker()
+    """Over Stage 10B's own span; see docs/adr/0067."""
+    from fpbench.experiments.stage10b_finalization import (
+        STAGE_10B_PUBLICATION_COMMIT,
+    )
+
     verify_stage10b_workspace_boundaries(
-        REPOSITORY_ROOT, span_end_commit=document["verifier_source_commit"]
+        REPOSITORY_ROOT, span_end_commit=STAGE_10B_PUBLICATION_COMMIT
     )
 
 

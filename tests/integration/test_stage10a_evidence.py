@@ -383,9 +383,18 @@ def test_the_published_bytes_have_not_moved_since_finalization() -> None:
 
 
 def test_stage10a_stayed_inside_its_own_span() -> None:
-    document = _marker()
+    """The span ends where Stage 10A ended, not at whatever the marker names now.
+
+    ``verifier_source_commit`` moves when the marker is re-issued, so reading
+    the span's end from it widens the audit to every stage committed since
+    (docs/adr/0067).
+    """
+    from fpbench.experiments.stage10a_finalization import (
+        STAGE_10A_PUBLICATION_COMMIT,
+    )
+
     verify_stage10a_workspace_boundaries(
-        REPOSITORY_ROOT, span_end_commit=document["verifier_source_commit"]
+        REPOSITORY_ROOT, span_end_commit=STAGE_10A_PUBLICATION_COMMIT
     )
 
 
@@ -402,8 +411,17 @@ def test_the_closed_stages_are_byte_for_byte_what_they_published() -> None:
     Measured across Stage 10A's own span rather than from an arbitrary point,
     for the reason docs/adr/0067 gives: a comparison against something outside
     the span attributes somebody else's commits to this stage.
+
+    That is what the docstring said while the code compared against ``HEAD``,
+    which is the same thing only until somebody commits. Stage 8E being
+    re-issued afterwards is exactly the case it was describing and exactly the
+    case it did not implement.
     """
     import subprocess
+
+    from fpbench.experiments.stage10a_finalization import (
+        STAGE_10A_PUBLICATION_COMMIT,
+    )
 
     completed = subprocess.run(
         (
@@ -413,7 +431,7 @@ def test_the_closed_stages_are_byte_for_byte_what_they_published() -> None:
             "diff",
             "--name-only",
             STAGE_10A_BASELINE_COMMIT,
-            "HEAD",
+            STAGE_10A_PUBLICATION_COMMIT,
             "--",
             "evidence/stage8e-research-only-policy",
             "evidence/stage9a-flare-artifact-qualification",

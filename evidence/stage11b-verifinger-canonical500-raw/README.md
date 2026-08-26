@@ -23,7 +23,7 @@ VeriFinger 2025.2, official Java binding   verify(reference, candidate)
       v
 6,000 stored raw outcomes                  immutable, and never a threshold
 
-run_9a410a17fdde / plan_4e17726e9be9 / resultset_b43a0681d16b
+run_978cbb8cf367 / plan_ab6b8264fa7b / resultset_d5cbf39cc374
 ```
 
 Aligned row for row against `run_4c59fa02a6ab` — the same pair manifest
@@ -72,17 +72,27 @@ recorded at all — a licence that was refused, a model file that moved, an engi
 fault or a JVM that died would each have blocked the result set.
 
 Timings, per comparison, including JVM startup, licence acquisition, engine
-construction, two extractions and one match: median 1,883 ms, p95 4,531 ms,
-p99 5,292 ms, max 147,449 ms, against a 180-second job deadline chosen from
-qualification and smoke timings before SD300 was opened. Wall clock 14,427 s.
+construction, two extractions and one match: median 1,743 ms, p95 1,910 ms,
+p99 1,971 ms, max 2,319 ms, against a 180-second job deadline chosen from
+qualification and smoke timings before SD300 was opened. Wall clock 10,377 s.
 
-The tail is the machine, not the route. A network adapter changed power state
-partway through the run, name resolution went down for 86 seconds, and the
-licensing service stayed slow for about a quarter of an hour after it came
-back. The maximum is one licence acquisition waiting on a host that could not
-be resolved, and it still finished inside the job deadline. Every score here is
-identical to the run this one replaces — which is what establishes that the
-tail cost wall clock and nothing else.
+**The tail is the machine, not the route**, and this run is the evidence for
+it. The run this one replaces carried a long tail and a maximum two orders of
+magnitude above its median: a network adapter changed power state, name
+resolution went down for 86 seconds, and one licence acquisition sat waiting on
+a host that could not be resolved. Nothing about the route changed here, the
+machine stayed on a wired link, and the tail is simply absent — every quantile
+above sits inside a single second of the median. Its figures are in the marker
+that run published and are deliberately not repeated here: this document
+describes the run it belongs to.
+
+What did not change is every number that means anything. All 6,000 pairs
+match the previous run on status, raw score and failure reason — 5,919 scores
+and the same 81 refusals, pair for pair. This run exists because Stage 11A's
+fingerprint moved when the third-party upstream binding was closed, and an
+`algorithm_fingerprint` that names a different Stage 11A is a different
+algorithm. Re-publishing the old results under the new identity would have
+been the one thing the fingerprint is for.
 
 ## The runtime this rests on
 
@@ -136,7 +146,7 @@ finalization that refuses to publish a document carrying a forbidden key.
 | `canonical-run-binding.json` | the reference run, plan, pairs and inputs |
 | `operational-summary.json` | counts, codes and timings — and no score |
 | `stage-11b-finalization.json` | the marker |
-| `run_9a410a17fdde.json` | the shared engine's own research receipt |
+| `run_978cbb8cf367.json` | the shared engine's own research receipt |
 
 The run definition, the plan and the result set stay in the engine's structure
 and are not copied out under a Stage 11B name.

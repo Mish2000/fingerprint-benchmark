@@ -91,15 +91,22 @@ def _basis(record: dict) -> IdentityLinkBasis:
     upstream = str(identity.get("upstream_locator") or "").strip()
     if upstream:
         for locator in locators:
-            if (
-                locator == upstream
-                or locator.startswith(upstream.rstrip("/") + "/")
-                or upstream.startswith(locator.rstrip("/") + "/")
-            ):
+            # One direction only, matching the derivation. Evidence at a
+            # *parent* of the upstream reads a repository-wide LICENSE as proof
+            # of identity for every component beneath it, which is the mistaken
+            # pairing the binding exists to detect. This re-implementation used
+            # to accept it and was therefore weaker than the code it checks.
+            if locator == upstream or locator.startswith(upstream.rstrip("/") + "/"):
                 return IdentityLinkBasis.EVIDENCE_LOCATOR
     commit = str(identity.get("upstream_commit") or "").strip()
     if len(commit) >= 40 and any(commit in locator for locator in locators):
         return IdentityLinkBasis.UPSTREAM_COMMIT
+    if identity.get("identity_established") is False:
+        # Nothing links the two documents and nothing was acquired. That is a
+        # fourth state, not an assertion: there is no act to attest to, and
+        # counting it as one would put six components that nobody downloaded
+        # on a list of things somebody vouched for.
+        return IdentityLinkBasis.UNRESOLVED_DOCUMENTATION_ONLY
     return IdentityLinkBasis.PUBLISHER_ASSERTION
 
 
@@ -213,3 +220,25 @@ def test_at_least_one_record_derives_its_link_each_way(basis: IdentityLinkBasis)
         if _basis(record) is basis
     ]
     assert found, f"no published record derives its link by {basis.value}"
+
+
+def test_the_published_basis_is_the_one_the_evidence_derives() -> None:
+    """The strongest form: two derivations over the same bytes must agree.
+
+    This file re-derives the basis from the published JSON; the record carries
+    the basis its publisher derived from the live documents. Comparing them
+    catches drift in either -- a re-implementation that quietly stops matching
+    reads exactly like a repository in which nothing is wrong.
+    """
+    mismatches = []
+    for path, record in _records():
+        published = record.get("identity_link_basis")
+        if published is None:
+            continue
+        rederived = _basis(record).value
+        if published != rederived:
+            mismatches.append(
+                f"{path.name}: {record.get('record_id', '?')} publishes "
+                f"{published} and its own evidence derives {rederived}"
+            )
+    assert not mismatches, mismatches

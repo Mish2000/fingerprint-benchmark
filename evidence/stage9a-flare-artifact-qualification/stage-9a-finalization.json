@@ -3,8 +3,8 @@
   "kind": "stage_9a_finalization",
   "outcome": "FLARE_FULL_ROUTE_BLOCKED",
   "algorithm_candidate": "flare_fdd_d6_dualpose_dualenh_maxcosine",
-  "stage8e_policy_fingerprint": "35f700ff74902e9d5a54a819a006f4b86940003c6563d3ef2b4da50ef3a2575f",
-  "stage9a_source_fingerprint": "fdfe9c7cecff5adcb7d9817851dc55c53f9ef6f9a6c5e6e6cb7c84a0294c01b0",
+  "stage8e_policy_fingerprint": "8d5731bbc20ae3570cdd6b4f95ebf314e7d7e23da89f8fb18f36d121989f0307",
+  "stage9a_source_fingerprint": "e123883424f2268e18582868fc84582ab87c02e23a46d53e0ed88289182b7747",
   "required_source_repositories": 2,
   "required_pose_estimators": 2,
   "required_enhancers": 2,
@@ -94,15 +94,15 @@
     "paper-route-contract.json": "181e8c2dd668e640207759ce85ec4b370d9f6e75218799806e9f1b29f1aba8bd",
     "public-code-route-audit.json": "895981f1297a28296c5f866e8709d28f350bcf99bf012f82eac3999594192010",
     "qualification-report.json": "698bc0a49d2a115edcc447082a1d2f575871782d53a1ec7800655df00b9fe508",
-    "third-party-usage-manifest.json": "c961c23496649248b1deb9b52ca224e1489835655d6f5e668a737055bd5147e4",
+    "third-party-usage-manifest.json": "ce9108008fc2af6d0825eb01def7ee37ed4bdff729f966c2ab514366d5996ae4",
     "training-provenance.json": "d92f7ffa37a9402b445fd6c75f4217df7bb251db065d04fd304006c6f6e854d9",
     "transform-graph-resolution.json": "7afe0c76f8acdb2363ef1b4c86a28a3e17915726b1bfca8963a441c8746abe67",
     "upstream-source-manifest.json": "2768e2cb037ff4a0f088afd520e26325f64a067e2d506073b37c2de2aa25331d"
   },
-  "source_commit": "5beefc4f95fb91f53fda5b5a83fcb2a7ecdd98e3",
+  "source_commit": "01bf845235c7d82c820103d8a12de4e1f83f2075",
   "source_tree_clean": true,
-  "verifier_source_commit": "5beefc4f95fb91f53fda5b5a83fcb2a7ecdd98e3",
+  "verifier_source_commit": "01bf845235c7d82c820103d8a12de4e1f83f2075",
   "verifier_source_tree_clean": true,
-  "stage_9a_finalization_fingerprint": "c931139066537dc69472b856cf9fc3316f554948d1d1bccfc4c155034f28ec42",
-  "created_utc": "2026-08-26T10:08:02Z"
+  "stage_9a_finalization_fingerprint": "495c74e3fc741ef3d68fa9d66b06405b293085022968758d78d772580f97b08a",
+  "created_utc": "2026-08-26T16:55:29Z"
 }

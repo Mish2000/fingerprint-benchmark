@@ -1,12 +1,12 @@
 {
   "schema": "stage_11b_canonical_run_binding_v1",
   "experiment_id": "verifinger_canonical500_full_v1",
-  "run_id": "run_9a410a17fdde",
-  "run_fingerprint": "9a410a17fddee478ff3397544b1447ec28603f7c2a7c3c3e4c704a7c56e195ac",
-  "plan_id": "plan_4e17726e9be9",
-  "plan_fingerprint": "4e17726e9be988575b234a5d13089beb27cc82d25bd59dd23ad8cc7cec7e1aef",
-  "algorithm_fingerprint": "84e1c78442c550a34f2a0fde7e3b9c14d3cb489a7da6b36b961fd52a123ab9a5",
-  "environment_fingerprint": "c98bc58cb698c6cc1277c4f3c9ee39c335fbf4ed672ad29585d4c52d2d8ec80c",
+  "run_id": "run_978cbb8cf367",
+  "run_fingerprint": "978cbb8cf3679a693db443b0b71c8def5f3360682fd860c089468e795689ca93",
+  "plan_id": "plan_ab6b8264fa7b",
+  "plan_fingerprint": "ab6b8264fa7b1837e20b2c03cf0722e282c5ef762185d854f7463760e606f2a8",
+  "algorithm_fingerprint": "d0314adddbb232dcd3f8de2acbda714c97c84acb1e26e2893bcd61439973ca55",
+  "environment_fingerprint": "4988479fda5e08fcc73d5a5b8d49677dcfeb95756f9e6b57071677fbafca542e",
   "reference": {
     "run_id": "run_4c59fa02a6ab",
     "plan_id": "plan_b4ae66e91923",
@@ -23,7 +23,7 @@
     "target_ppi": 500
   },
   "alignment": {
-    "fingerprint": "95082d1305aa7ded5e5463be87fe5f29586741df490966b1a6e04e286f3109a3",
+    "fingerprint": "278cc52e5559731f3431fc13413dd932fbb26b8eba7a02e366e77e46286892c9",
     "is_clean": true,
     "issues": 0,
     "equal_pair_ids": 6000,

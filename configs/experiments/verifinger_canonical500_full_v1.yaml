@@ -62,7 +62,7 @@ algorithm:
   adapter_version: "1"
   implementation_version: "2025.2"
   vendor: Neurotechnology
-  profile_fingerprint: 914f9ab9c44b4d7618e08e1d42451ffc6c7b37d8a6d33f3186e29fa229551ac8
+  profile_fingerprint: 6c763fcdb88ae6c98a8b9408f0dd9ad34387d4a590211392339c615bec8f06e0
 
 # ---------------------------------------------------------------------------
 # The runtime closure. Seventeen components: seven native libraries, two model

@@ -9,19 +9,19 @@
   "blocker": "BOOLEAN_OR_THRESHOLD_ONLY_OUTPUT",
   "bound_markers": [
     {
-      "finalization_fingerprint": "a618ff1e77bf9525f6206524669cf52612098ce31653a5bdf70f41a33b44c879",
+      "finalization_fingerprint": "fdce77176b0aa4dca1732141f88811175ab33e124610a8370dd89917da4c9fe7",
       "outcome": "FINGERFLOW_ROUTE_CLOSURE_FAIL",
       "stage": "16A",
       "why": "the predecessor candidate, closed at its route gate. It left Algorithm 5 open with no reserve named, which is why this stage exists"
     },
     {
-      "finalization_fingerprint": "e5763dd81d8b1fb46dc923d67565bac947153c9eac603f4c733c9697180dbe4c",
+      "finalization_fingerprint": "3e3d7daf8cd2a6546fb04ed011a8da5035287a2f6918847bcee36b74dfe11c39",
       "outcome": "FINGERPRINTS_MATCHING_CANONICAL500_RAW_COMPLETE",
       "stage": "15A",
       "why": "the algorithm whose slot is still contested. Bound and never read for its scores"
     },
     {
-      "finalization_fingerprint": "35f700ff74902e9d5a54a819a006f4b86940003c6563d3ef2b4da50ef3a2575f",
+      "finalization_fingerprint": "8d5731bbc20ae3570cdd6b4f95ebf314e7d7e23da89f8fb18f36d121989f0307",
       "outcome": "RESEARCH_ONLY_THIRD_PARTY_POLICY_READY",
       "stage": "8E",
       "why": "the third-party research-use policy, reused and not reopened"
@@ -31,7 +31,7 @@
   "calibration_roster": [],
   "candidate_id": "fingerprintmatcher_1_0_6",
   "canonical_run_executed": false,
-  "created_utc": "2026-08-26T15:14:48Z",
+  "created_utc": "2026-08-26T21:09:27Z",
   "decision_profile_produced": false,
   "display_name": "fingerprintMatcher 1.0.6",
   "entry_point": "fingerprintmatcher.fingerprintMatcher.match_fingerprints",
@@ -95,10 +95,10 @@
   "sd300_images_opened": 0,
   "self_service_acquisition": true,
   "source_artifact_sha256": "50692faf63ca8bccb83ea8a2adfac7284e389b05bc19347c86a513a85f868411",
-  "source_commit": "df49fba3bdd44de5713f0e2e142381df83e6e737",
+  "source_commit": "ebe193fa33078e0e036bf92a7933717559a36e7d",
   "source_tree_clean": true,
-  "stage17a_source_fingerprint": "a21e2b6218bcacc9601c5c8768ef6c23a2f5b5c52f882ed8b3de1290d47bf32d",
-  "stage_17a_finalization_fingerprint": "e9aeb5c3c35e3bb69186df5a8162856841cc09e52619e8593d245f6c7ded5963",
+  "stage17a_source_fingerprint": "f6ee201e8b4f91dfc52712876ded4e32d1a474af26997d345b40506c5f0682d8",
+  "stage_17a_finalization_fingerprint": "c2a9e381b2a5f8a10792745996c3c3db2442bbb52bb7d220cd81897a57352857",
   "stdout_parsed_for_a_score": false,
   "stored_outcomes": 0,
   "third_party_bytes_added_to_git": false,

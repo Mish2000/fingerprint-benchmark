@@ -13,7 +13,7 @@
   ],
   "immutable": [
     {
-      "finalization_fingerprint": "275ace8da5cf1490cb2c5ddbe27dd615c7f9d0c0fb6d6375b79d568628c943ab",
+      "finalization_fingerprint": "9edb3c20a84f7aeefa9c1f576cfd4fbda35f58f5ce06ed999850c277505a0ebe",
       "outcome": "VERIFINGER_CANONICAL500_RAW_COMPLETE",
       "stage": "11B",
       "why": "Algorithm 4's 6,000 published outcomes. Bound and never read: this stage consults no prior algorithm's scores"
@@ -29,7 +29,7 @@
   ],
   "predecessor": {
     "failure_class": "OPERATIONAL_TRIAL_ENTITLEMENT_NOT_ESTABLISHED",
-    "finalization_fingerprint": "cce18eeacaa65cb222871f2fc00a5e2a65e884bd51d22427e98a9a6442348ceb",
+    "finalization_fingerprint": "80af426cc0a19b93d514d23558609744e58c805c7bf247f58ca471757e2b72a8",
     "outcome": "FINGERCELL_PREFLIGHT_FAIL",
     "stage": "13A",
     "what_it_established": "that the FingerCell trial archive was obtained, pinned and compiled against, and that its trial entitlement could not be established in the qualified environment. No extraction, match or score was ever produced, and the marker reopened the Algorithm 5 search",

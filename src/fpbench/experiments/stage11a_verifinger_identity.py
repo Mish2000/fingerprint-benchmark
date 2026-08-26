@@ -1534,7 +1534,7 @@ FORBIDDEN_PUBLISHED_KEYS: frozenset[str] = frozenset(
 #: rather than the directory is what makes "Stage 10B was not edited" checkable
 #: instead of asserted.
 STAGE_10B_FINALIZATION_FINGERPRINT = (
-    "78f3a435449da6f3a6e63712cd90a6ab94f2b3f6bf41fc68d5c8b81e2b914d86"
+    "29172b845f8cb0409ed07b72443caeb8c08856f9bd56062b3037fb2bd216f8a5"
 )
 STAGE_10B_OUTCOME = "ID3_FINGER_SDK_PREFLIGHT_FAIL"
 

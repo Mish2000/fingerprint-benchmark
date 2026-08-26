@@ -3,9 +3,9 @@
   "kind": "stage_11a_finalization",
   "outcome": "VERIFINGER_PREFLIGHT_PASS",
   "algorithm_slot": "algorithm_4",
-  "predecessor_stage_10b_fingerprint": "78f3a435449da6f3a6e63712cd90a6ab94f2b3f6bf41fc68d5c8b81e2b914d86",
-  "stage8e_policy_fingerprint": "35f700ff74902e9d5a54a819a006f4b86940003c6563d3ef2b4da50ef3a2575f",
-  "stage11a_source_fingerprint": "11d8b6e238497773f744dc0637281441efe2253bde18cd95fd50ad71294a578e",
+  "predecessor_stage_10b_fingerprint": "29172b845f8cb0409ed07b72443caeb8c08856f9bd56062b3037fb2bd216f8a5",
+  "stage8e_policy_fingerprint": "8d5731bbc20ae3570cdd6b4f95ebf314e7d7e23da89f8fb18f36d121989f0307",
+  "stage11a_source_fingerprint": "df1c06b0ab4bc717a257a33fa11306c53d4b0b80374f23617986b00b347b1555",
   "observations_fingerprint": "cb81f913e01f711802cb8bb23cb500afcb6f67479915b2a3d99c2970f647d019",
   "preflight_fingerprint": "f29839407ad9204a48ba107a225ab12d9c06c4e21a5e5446ef877e3a2adbf9a6",
   "candidate_verdict": "VERIFINGER_PREFLIGHT_PASS",
@@ -85,7 +85,7 @@
     "README.md": "ab054b3437cf0b4fb97b7c9989e57e052982128e6e6a91717eeec53776d33889",
     "acquisition-manifest.json": "41b18de67e6dcbf9e7fe99dad67c35d03f68921847544afdd38541e27c655574",
     "artifact-manifest.json": "6ac6faff20f3e66484a5d779671bb65209a872700f9591725e61ce5f35470816",
-    "candidate-identity.json": "61ca902ffdc296a3e87a395dd369e32ca5dc8412d3334fbd8f527f7964835d46",
+    "candidate-identity.json": "84650ab829cab2e602418ebd6ec41040148349bda594e18c0c5e68f74b7d76e4",
     "determinism-report.json": "37982fb75386a8b119f5378d012a281323fe7d4da7ded3afa569c0cb36b86cad",
     "extraction-profile.json": "ecca41176f3167e4f24a7cdce591c69e3b8e5909dee77a0777fb2d76ad53016a",
     "input-domain-contract.json": "49eb53ec37a5c4aba9bf56ed486c458f8b689e59f38cdb596ee033fc4d8e643b",
@@ -99,10 +99,10 @@
     "third-party-usage-binding.json": "62d714bd273350c29f0b6f05a9c49be66e0d505333a9b376e60669caec81381a",
     "training-provenance.json": "415937cf21450fe89411594da44289586b1dbcf3ad22efd647a372386f4991d1"
   },
-  "source_commit": "b8b6b30d30cb307245137b9cc334b7e6d8703442",
+  "source_commit": "903f464aa32d938a2e6b76df8c4ce70cb74af2dc",
   "source_tree_clean": true,
-  "verifier_source_commit": "b8b6b30d30cb307245137b9cc334b7e6d8703442",
+  "verifier_source_commit": "903f464aa32d938a2e6b76df8c4ce70cb74af2dc",
   "verifier_source_tree_clean": true,
-  "stage_11a_finalization_fingerprint": "7aaa1047e50f14ee74fbdfca0eba669466b19bf8a3d62918294d14c20716f171",
-  "created_utc": "2026-08-26T10:10:59Z"
+  "stage_11a_finalization_fingerprint": "40a0ed9a7ddab0d8a13c7fdf0bfb7eab98401ab24a90e09b192c58f791ed056b",
+  "created_utc": "2026-08-26T16:56:07Z"
 }

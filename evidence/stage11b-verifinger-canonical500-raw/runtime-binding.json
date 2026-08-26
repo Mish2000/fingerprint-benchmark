@@ -4,7 +4,7 @@
   "sdk_archive_sha256": "e30a0b603e453fe0a08157ed2331de71f8a3d3cdc6dcf001df649a36a69bafdc",
   "runtime_manifest_fingerprint": "0f2aed19753c71ffb9981f187790a5f861ddc949d32dc63d6258c4a1ef45404d",
   "runtime_policy_id": "stage11b_verifinger_runtime_policy_v1",
-  "runtime_policy_fingerprint": "72c0f3a01ca8e95b2457ddc2b850f690017b18abf0e966466520c58e187efd91",
+  "runtime_policy_fingerprint": "b1bc01d5264b7fc55307313bd9fa9e1a40820f83198e54c0f516a6ef57eb10e1",
   "closure": {
     "components": 17,
     "native_libraries": 7,

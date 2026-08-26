@@ -1,8 +1,8 @@
 {
   "schema": "stage_11b_operational_summary_v1",
   "experiment_id": "verifinger_canonical500_full_v1",
-  "run_id": "run_978cbb8cf367",
-  "plan_id": "plan_ab6b8264fa7b",
+  "run_id": "run_a76145fb5ab2",
+  "plan_id": "plan_c32e4b7b0c8a",
   "attempts": {
     "comparison_attempts": 6000,
     "expected": 6000,
@@ -44,13 +44,13 @@
   "timings": {
     "adapter_ms": {
       "count": 6000,
-      "min": 1236.27,
-      "median": 1743.382,
-      "p95": 1910.445,
-      "p99": 1970.667,
-      "max": 2319.319
+      "min": 1271.286,
+      "median": 1803.748,
+      "p95": 2042.689,
+      "p99": 2316.755,
+      "max": 3610.489
     },
-    "wall_clock_span_seconds": 10376.902
+    "wall_clock_span_seconds": 10794.93
   },
   "execution": {
     "sequential": true,
@@ -58,7 +58,7 @@
     "retries": 0,
     "job_deadline_seconds": 180
   },
-  "validation_fingerprint": "626798a847009b49f4fc1c97a4924c2e0837ad72831dd781e154c3b91eccfe36",
+  "validation_fingerprint": "6c8328c2b8ad6a0a510d63a522bf9b4a3fc1bee09cd72923d6a8ab929fc4c9bb",
   "score_statistics_published": false,
   "biometric_metrics_published": false,
   "threshold_produced": false,

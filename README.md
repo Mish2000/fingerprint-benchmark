@@ -2097,7 +2097,7 @@ pairs, in the same order, over the same 3,000 immutable 500 ppi PNGs.
 ```
 6,000 planned      6,000 stored      0 missing        0 duplicate
 5,919 scores       81 algorithm failures              0 infrastructure failures
-run_978cbb8cf367 / plan_ab6b8264fa7b / resultset_d5cbf39cc374
+run_a76145fb5ab2 / plan_c32e4b7b0c8a / resultset_73fd6c6d4673
 ```
 
 **Six thousand outcomes, not six thousand scores.** The 81 are VeriFinger

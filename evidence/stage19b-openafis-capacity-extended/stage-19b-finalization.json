@@ -25,19 +25,19 @@
   },
   "bound_markers": [
     {
-      "finalization_fingerprint": "8508d7240af9e68e40fa99e03be30ef7f99662a984cf7121827a72917aec8824",
+      "finalization_fingerprint": "e220789a990c2091c7f243927dd04d5b91c74cedeb418f8ef5ef627294a7304d",
       "outcome": "MINDTCT_OPENAFIS_CANONICAL500_RAW_COMPLETE",
       "stage": "19A",
       "why": "the unmodified route this stage extends, and the source of Gate A's 1,583 baseline scores"
     },
     {
-      "finalization_fingerprint": "0d884f62664fb20c12eb0b556d4198316bc0a2fbf16cdbe9cd9a76de45e86e62",
+      "finalization_fingerprint": "17c9857fb7aa82664ef286c4bf17039f66b0d8cb5862738bbcb3b4b8f2c21357",
       "outcome": "SECU_GEN_OPENAFIS_PRIVATE_RAW_COMPLETE",
       "stage": "18A",
       "why": "the private reference that produced the OpenAFIS build and the raw 1:1 bridge this stage patched"
     },
     {
-      "finalization_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
+      "finalization_fingerprint": "35f700ff74902e9d5a54a819a006f4b86940003c6563d3ef2b4da50ef3a2575f",
       "outcome": "RESEARCH_ONLY_THIRD_PARTY_POLICY_READY",
       "stage": "8E",
       "why": "the third-party research-use policy, under which a modified upstream is recorded rather than hidden"
@@ -79,7 +79,7 @@
   "shares_extractor_with": "nbis_mindtct_bozorth3",
   "stage": "19B",
   "stage19b_source_fingerprint": "4ac87b07b17a78112e5493d6d5271d4cadf46832757fb58c74169c95473ca9a0",
-  "stage_19b_finalization_fingerprint": "a67e50ec91ea5622dca1b975112eddb2cb40a28d7ecd49243aa3d9450a4d28a1",
+  "stage_19b_finalization_fingerprint": "9f712b0ad5208b8cc7eb42ea6d2375bf94e7a491088252c4a23f4ebbd6b4bfdd",
   "stored_outcomes": 6000,
   "supervisor_disclosure": "NBIS MINDTCT + OpenAFIS (capacity-extended variant) — composition defined by the project. It shares the MINDTCT extractor with the NBIS/BOZORTH3 method and differs primarily in the matcher. The OpenAFIS source was minimally modified to permit CSV templates containing more than the upstream limit of 128 minutiae; the original behavior was verified unchanged on all 1,583 previously accepted comparisons.",
   "threshold": null,

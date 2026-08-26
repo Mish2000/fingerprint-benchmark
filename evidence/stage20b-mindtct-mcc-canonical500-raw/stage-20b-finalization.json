@@ -10,13 +10,13 @@
       "why": "the stage that qualified this SDK, closed the route and fixed the score contract; its runtime smoke is what Gate A reproduces"
     },
     {
-      "finalization_fingerprint": "a67e50ec91ea5622dca1b975112eddb2cb40a28d7ecd49243aa3d9450a4d28a1",
+      "finalization_fingerprint": "9f712b0ad5208b8cc7eb42ea6d2375bf94e7a491088252c4a23f4ebbd6b4bfdd",
       "outcome": "MINDTCT_OPENAFIS_CAPACITY_EXTENDED_CANONICAL_RAW_COMPLETE",
       "stage": "19B",
       "why": "the incumbent fifth method, which this route may displace for a reason frozen before either run's scores were read"
     },
     {
-      "finalization_fingerprint": "c08648dece292603eb9d4b6fff0b3412523af0730da59141b6e7a32ee02540e8",
+      "finalization_fingerprint": "35f700ff74902e9d5a54a819a006f4b86940003c6563d3ef2b4da50ef3a2575f",
       "outcome": "RESEARCH_ONLY_THIRD_PARTY_POLICY_READY",
       "stage": "8E",
       "why": "the third-party research-use policy, under which a licence-restricted vendor artifact is used without being redistributed"
@@ -89,7 +89,7 @@
   "shares_extractor_with": "nbis_mindtct_bozorth3",
   "stage": "20B",
   "stage20b_source_fingerprint": "0a359461ce4b72eb14f118a62a9c3bf2c05e8b5d476c6140554aa41e0fbdfcad",
-  "stage_20b_finalization_fingerprint": "3cbfde3e7dbae1e17b89be7df8da0d253769cbdf483ff8b4bcd662362dcd2f5a",
+  "stage_20b_finalization_fingerprint": "6326a24a3f265982b37598a8ac166ab8a3af597da00e9c83013aa28351f04f00",
   "stored_outcomes": 6000,
   "supervisor_disclosure": "NBIS MINDTCT + MCC SDK v2.0 — a composition defined by this project. It shares the MINDTCT extractor with the NBIS/BOZORTH3 method and differs in the matcher: minutiae are passed to the official Minutia Cylinder-Code SDK v2.0 published by the University of Bologna, unmodified and at its own optimal parameters. The SDK contains no image extractor, which is why the extractor is named in the method. Scores are the SDK's raw similarity in [0,1]; no threshold, calibration or decision was applied.",
   "third_party_bytes_added_to_git": false,

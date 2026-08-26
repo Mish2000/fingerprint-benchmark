@@ -10,7 +10,7 @@
       "why": "the stage that qualified this SDK, closed the route and fixed the score contract; its runtime smoke is what Gate A reproduces"
     },
     {
-      "finalization_fingerprint": "9f712b0ad5208b8cc7eb42ea6d2375bf94e7a491088252c4a23f4ebbd6b4bfdd",
+      "finalization_fingerprint": "d4fa55185df1bce74f33d5f3d9ee4f2aa3e52d91d833195a759d4c583743987a",
       "outcome": "MINDTCT_OPENAFIS_CAPACITY_EXTENDED_CANONICAL_RAW_COMPLETE",
       "stage": "19B",
       "why": "the incumbent fifth method, which this route may displace for a reason frozen before either run's scores were read"
@@ -89,7 +89,7 @@
   "shares_extractor_with": "nbis_mindtct_bozorth3",
   "stage": "20B",
   "stage20b_source_fingerprint": "0a359461ce4b72eb14f118a62a9c3bf2c05e8b5d476c6140554aa41e0fbdfcad",
-  "stage_20b_finalization_fingerprint": "6326a24a3f265982b37598a8ac166ab8a3af597da00e9c83013aa28351f04f00",
+  "stage_20b_finalization_fingerprint": "c2656c99b528af7fbe29ad791105668e146f79902827358caa2b03734ecddb55",
   "stored_outcomes": 6000,
   "supervisor_disclosure": "NBIS MINDTCT + MCC SDK v2.0 — a composition defined by this project. It shares the MINDTCT extractor with the NBIS/BOZORTH3 method and differs in the matcher: minutiae are passed to the official Minutia Cylinder-Code SDK v2.0 published by the University of Bologna, unmodified and at its own optimal parameters. The SDK contains no image extractor, which is why the extractor is named in the method. Scores are the SDK's raw similarity in [0,1]; no threshold, calibration or decision was applied.",
   "third_party_bytes_added_to_git": false,

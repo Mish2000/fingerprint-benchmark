@@ -15,13 +15,13 @@
   "algorithm_slot": "algorithm_5",
   "bound_markers": [
     {
-      "finalization_fingerprint": "17c9857fb7aa82664ef286c4bf17039f66b0d8cb5862738bbcb3b4b8f2c21357",
+      "finalization_fingerprint": "380968feb49b7ec5f09532fce417958ff707bb00e117b57b17eff137cd8bb451",
       "outcome": "SECU_GEN_OPENAFIS_PRIVATE_RAW_COMPLETE",
       "stage": "18A",
       "why": "the private reference that produced the working OpenAFIS build, the raw 1:1 bridge and the proven score contract. Bound, and never read for its scores"
     },
     {
-      "finalization_fingerprint": "6f70613172186dbd033904bfdd067008b89c3183b624c04eea3fd99de35f7b39",
+      "finalization_fingerprint": "e9aeb5c3c35e3bb69186df5a8162856841cc09e52619e8593d245f6c7ded5963",
       "outcome": "FINGERPRINTMATCHER_SCORE_CONTRACT_FAIL",
       "stage": "17A",
       "why": "the predecessor candidate, closed at its score-contract gate, which left Algorithm 5 open"
@@ -83,7 +83,7 @@
   "shares_extractor_with": "nbis_mindtct_bozorth3",
   "stage": "19A",
   "stage19a_source_fingerprint": "366e72b014edd36709cfd0067b31497301b28c79226de268a075a024c7b9e01c",
-  "stage_19a_finalization_fingerprint": "e220789a990c2091c7f243927dd04d5b91c74cedeb418f8ef5ef627294a7304d",
+  "stage_19a_finalization_fingerprint": "23fba460ebf8a913de50157c7e624d8389dee7680ee1ea9928761de8e5e7e019",
   "stored_outcomes": 6000,
   "threshold": null,
   "unique_ordinals": 6000,

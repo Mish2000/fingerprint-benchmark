@@ -102,7 +102,7 @@ ALGORITHM_SLOT = "algorithm_4"
 #: The qualification this stage rests on. If it moves, Stage 11B refuses to run
 #: until somebody looks at why (spec section 1).
 STAGE_11A_FINALIZATION_FINGERPRINT = (
-    "7aaa1047e50f14ee74fbdfca0eba669466b19bf8a3d62918294d14c20716f171"
+    "40a0ed9a7ddab0d8a13c7fdf0bfb7eab98401ab24a90e09b192c58f791ed056b"
 )
 STAGE_11A_OUTCOME = "VERIFINGER_PREFLIGHT_PASS"
 STAGE_11A_SELECTED_CANDIDATE = "neurotechnology_verifinger_2025_2_1to1"

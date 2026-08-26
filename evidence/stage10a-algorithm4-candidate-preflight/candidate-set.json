@@ -121,8 +121,8 @@
     "subject": "every third-party component Stage 10A obtained: one official source archive, and no checkpoint of either candidate",
     "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
     "policy_fingerprint": "de9cdbaa23522c4a15337d86b0ec2df8af8b79383a1f8014294e8c7855bf972a",
-    "manifest_fingerprint": "ba4b3d801618edffd948afafb1498718074cd7051aaecc5ebfed53ff4d77969f",
-    "audit_fingerprint": "b1439cb1473d27b019e514b92ac9dad51f193b58a52434e196005f6e56899d17",
+    "manifest_fingerprint": "e1b9a4a6562728d800b82719ba4750d25d0598ee30a934b59d73e69638b19f20",
+    "audit_fingerprint": "5bb44c46799f4c43d6d348868291a433098be53d509ddc76afc167f965095f98",
     "opens_execution": true,
     "records": [
       {
@@ -145,7 +145,21 @@
         "storage_class": "LOCAL_ARTIFACT_STORE",
         "stored_in_git": false,
         "stored_in_ci_artifacts": false,
-        "usage_fingerprint": "a33287e3459541f22c92cb6485ffa0bc274d015bb268c027fdc935024c3214a1"
+        "upstream_identity": {
+          "upstream_name": "XiongjunGuan/JIPNet",
+          "upstream_locator": "https://codeload.github.com/XiongjunGuan/JIPNet/tar.gz/40d8445c5b3afa55b409ae3221377e54e3ace53f",
+          "exact_version": "40d8445c5b3afa55b409ae3221377e54e3ace53f",
+          "upstream_commit": "40d8445c5b3afa55b409ae3221377e54e3ace53f",
+          "artifact_filename": "JIPNet-40d8445c.tar.gz",
+          "artifact_sha256": "79924b66d1a194415931b86f65ada4505714e19e76ffb805aa622f17f952cf44",
+          "artifact_size_bytes": 2583931,
+          "identity_established": true
+        },
+        "upstream_identity_fingerprint": "4a65e76ed4ec6fb86916799faefb537a7a2dec88c09b71751482fd310f27baba",
+        "identity_link_basis": "DERIVED_FROM_UPSTREAM_COMMIT",
+        "publisher_attestation": null,
+        "binding_fingerprint": "7d38a9dc3589f72be4616c32378014db26b96647077ad58a18548baf14f2e7d2",
+        "usage_fingerprint": "a2aa2b13a1d440b6b9a585649ec727654e82a29fe3bb70b0d1247d9b077dbc5d"
       }
     ],
     "checkpoints_acquired": 0,

@@ -5,13 +5,13 @@
   "predecessor": {
     "stage": "11B",
     "outcome": "VERIFINGER_CANONICAL500_RAW_COMPLETE",
-    "finalization_fingerprint": "9edb3c20a84f7aeefa9c1f576cfd4fbda35f58f5ce06ed999850c277505a0ebe",
+    "finalization_fingerprint": "98ff570630409d430235fc4c489ea29797fdc38d907539ba42a5daf60da5d877",
     "what_it_established": "6,000 canonical raw 1:1 outcomes under VeriFinger 2025.2 as Algorithm 4, and a marker that opens a search for Algorithm 5"
   },
   "policy": {
     "stage": "8E",
     "outcome": "RESEARCH_ONLY_THIRD_PARTY_POLICY_READY",
-    "finalization_fingerprint": "35f700ff74902e9d5a54a819a006f4b86940003c6563d3ef2b4da50ef3a2575f",
+    "finalization_fingerprint": "8d5731bbc20ae3570cdd6b4f95ebf314e7d7e23da89f8fb18f36d121989f0307",
     "purpose_fingerprint": "a62ab45681bdbd9cc4e741e1e5522583746b5d29f1fe911fa687fc7fee405443",
     "policy_fingerprint": "de9cdbaa23522c4a15337d86b0ec2df8af8b79383a1f8014294e8c7855bf972a",
     "reused_not_reopened": true

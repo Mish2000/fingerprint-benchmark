@@ -3,7 +3,7 @@
   "gate": "RESEARCH_USE_AND_LICENSE",
   "gate_status": "NOT_REACHED",
   "stage8e_policy_fingerprint": "de9cdbaa23522c4a15337d86b0ec2df8af8b79383a1f8014294e8c7855bf972a",
-  "stage8e_finalization_fingerprint": "35f700ff74902e9d5a54a819a006f4b86940003c6563d3ef2b4da50ef3a2575f",
+  "stage8e_finalization_fingerprint": "8d5731bbc20ae3570cdd6b4f95ebf314e7d7e23da89f8fb18f36d121989f0307",
   "four_separate_questions": [
     "package_obtainable",
     "research_use_permitted",

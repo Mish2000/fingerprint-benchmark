@@ -72,9 +72,9 @@ recorded at all — a licence that was refused, a model file that moved, an engi
 fault or a JVM that died would each have blocked the result set.
 
 Timings, per comparison, including JVM startup, licence acquisition, engine
-construction, two extractions and one match: median 1,743 ms, p95 1,910 ms,
-p99 1,971 ms, max 2,319 ms, against a 180-second job deadline chosen from
-qualification and smoke timings before SD300 was opened. Wall clock 10,377 s.
+construction, two extractions and one match: median 1,804 ms, p95 2,043 ms,
+p99 2,317 ms, max 3,610 ms, against a 180-second job deadline chosen from
+qualification and smoke timings before SD300 was opened. Wall clock 10,795 s.
 
 **The tail is the machine, not the route**, and this run is the evidence for
 it. The run this one replaces carried a long tail and a maximum two orders of

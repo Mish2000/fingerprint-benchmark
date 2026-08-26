@@ -2121,7 +2121,7 @@ makes a cross-comparison cache, a representation cache and a score cache
 impossible rather than merely absent, and it makes restart determinism the
 ordinary behaviour of every job rather than a property somebody has to test for.
 6,000 processes, 12,000 logical extractions, 6,000 `verify` calls, median
-1,743 ms each including JVM startup and licence acquisition.
+1,804 ms each including JVM startup and licence acquisition.
 
 **Seventeen pinned runtime components.** Stage 11A pinned ten — five DLLs, two
 model data files and three jars. The engine reports *seven* loaded modules, and

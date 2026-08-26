@@ -51,6 +51,7 @@ from fpbench.experiments.stage9a_flare_identity import (
 
 __all__ = [
     "STAGE_9A_BASELINE_COMMIT",
+    "STAGE_9A_PUBLICATION_COMMIT",
     "Stage9AFinalization",
     "stage_9a_finalization_fingerprint",
     "stage9a_source_fingerprint",
@@ -67,6 +68,18 @@ __all__ = [
 
 #: Stage 9A began here: the approved HEAD that closed Stage 8E.
 STAGE_9A_BASELINE_COMMIT = "c74b219f5125a4fd91fafcdec0d9ad6c660611cd"
+
+#: The commit that first published this stage, and the end of the span its
+#: boundary audit covers.
+#:
+#: Separate from ``source_commit``/``verifier_source_commit``, which name the
+#: commit a *publication* is made at and therefore move when a marker is
+#: re-issued. Reading the span's end from those was correct while this stage
+#: was the newest one and wrong afterwards: re-publishing today would audit
+#: this stage against every stage committed since, and refuse. Work after the
+#: publication is neither this stage's to permit nor this stage's to forbid
+#: (docs/adr/0067). Stage 11A settled this first; the shape is Stage 8A's.
+STAGE_9A_PUBLICATION_COMMIT = "6baecfaafcb151fce1e985f96d3cd21044d51eda"
 
 #: Commits inside Stage 9A's span that are **not** Stage 9A's work. These two
 #: repair earlier-stage regression guards and therefore are excluded explicitly
@@ -1032,7 +1045,9 @@ def write_stage9a_evidence(
             "committed bytes of the other nine documents; commit them first"
         )
     commit = _head_commit(repository_root)
-    verify_stage9a_workspace_boundaries(repository_root, span_end_commit=commit)
+    verify_stage9a_workspace_boundaries(
+        repository_root, span_end_commit=STAGE_9A_PUBLICATION_COMMIT
+    )
 
     hashed = tuple(
         name for name in REQUIRED_EVIDENCE_FILES if name != "stage-9a-finalization.json"

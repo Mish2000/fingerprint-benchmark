@@ -34,6 +34,7 @@ The dataclasses live in ``core`` because the storage layer persists them and
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Iterable, Mapping, Sequence
@@ -69,6 +70,12 @@ __all__ = [
     "TransformationClassification",
     "ProjectPurposeDeclaration",
     "UpstreamIdentity",
+    "IdentityLinkBasis",
+    "AttestationMethod",
+    "AttestationReference",
+    "AttestationReferenceRole",
+    "PublisherAttestation",
+    "BoundUpstreamComponent",
     "LicenseEvidence",
     "LicenseObservation",
     "OwnerRiskAcceptance",
@@ -80,6 +87,16 @@ __all__ = [
     "LocalArtifactPlacement",
     "UpstreamTransformation",
     "project_purpose_fingerprint",
+    "publisher_attestation_fingerprint",
+    "upstream_identity_fingerprint",
+    "upstream_binding_fingerprint",
+    "derive_identity_link",
+    "require_binding_state_is_coherent",
+    "require_method_has_its_facts",
+    "attestation_reference_paths",
+    "record_may_open_execution",
+    "record_has_execution_eligible_identity",
+    "PACKAGE_COORDINATE_SCHEMES",
     "license_observation_fingerprint",
     "research_use_assessment_fingerprint",
     "third_party_usage_fingerprint",
@@ -113,7 +130,7 @@ __all__ = [
 PROJECT_PURPOSE_SCHEMA_VERSION = "1"
 LICENSE_OBSERVATION_SCHEMA_VERSION = "1"
 RESEARCH_USE_ASSESSMENT_SCHEMA_VERSION = "1"
-THIRD_PARTY_USAGE_SCHEMA_VERSION = "1"
+THIRD_PARTY_USAGE_SCHEMA_VERSION = "2"
 THIRD_PARTY_POLICY_SCHEMA_VERSION = "1"
 
 _HEX = frozenset("0123456789abcdef")
@@ -1148,6 +1165,767 @@ def research_use_assessment_fingerprint(
     )
 
 
+# ------------------------------------------------------- the upstream binding
+
+
+class IdentityLinkBasis(str, Enum):
+    """How a licence observation was tied to the upstream identity beside it.
+
+    The point of publishing this is that a reader can tell the two apart. A
+    record whose licence was read *from the upstream's own locator* proves its
+    own pairing; a record whose licence was read from a local evidence file
+    beside an artifact fetched from a package index does not, and rests on the
+    publisher having checked. Both are legitimate; only one is self-evident.
+    """
+
+    #: An evidence locator is the upstream locator, or sits under it. The
+    #: notices were read from the upstream artifact itself.
+    EVIDENCE_LOCATOR = "DERIVED_FROM_EVIDENCE_LOCATOR"
+    #: An evidence locator carries the upstream's exact commit. The notices
+    #: were read at the revision the identity names.
+    UPSTREAM_COMMIT = "DERIVED_FROM_UPSTREAM_COMMIT"
+    #: Nothing in the two documents links them, and the artifact *was*
+    #: acquired, so the publisher can say what they checked. A
+    #: :class:`PublisherAttestation` is required.
+    PUBLISHER_ASSERTION = "ASSERTED_BY_THE_PUBLISHER"
+    #: Nothing links them and nothing was acquired: upstream's own
+    #: documentation names an artifact at a locator, no byte of it was ever
+    #: fetched, and no digest pins it. This is **not** an assertion --- there is
+    #: no act to attest to --- it is an unresolved identity, and a component in
+    #: this state is blocked and may not open execution.
+    UNRESOLVED_DOCUMENTATION_ONLY = "UNRESOLVED_UPSTREAM_DOCUMENTED_ONLY"
+
+    @property
+    def is_derived(self) -> bool:
+        """Whether the two documents prove their own pairing."""
+        return self in (
+            IdentityLinkBasis.EVIDENCE_LOCATOR,
+            IdentityLinkBasis.UPSTREAM_COMMIT,
+        )
+
+    @property
+    def requires_attestation(self) -> bool:
+        """Whether a :class:`PublisherAttestation` is required, and legal."""
+        return self is IdentityLinkBasis.PUBLISHER_ASSERTION
+
+    @property
+    def may_open_execution(self) -> bool:
+        """Whether *the basis alone* leaves execution open.
+
+        Necessary and **not** sufficient. Whether the artifact was ever
+        acquired is a separate question with its own answer --- see
+        :attr:`ThirdPartyUsageRecord.may_open_execution`, which is the one a
+        gate should ask. Reading only this property is how an unacquired
+        component whose licence happened to sit at its own upstream locator
+        derived ``DERIVED_FROM_EVIDENCE_LOCATOR`` and opened a manifest.
+        """
+        return self is not IdentityLinkBasis.UNRESOLVED_DOCUMENTATION_ONLY
+
+
+class AttestationMethod(str, Enum):
+    """How a pairing that cannot be derived was established instead.
+
+    A closed vocabulary rather than free prose, for the reason every other
+    vocabulary here is closed: a reader can count these, and a new kind of
+    assertion has to be added deliberately. Each member names something the
+    repository *documents*, not something a person remembers doing --- the
+    accompanying ``basis`` says which document, and
+    :attr:`PublisherAttestation.evidence_references` points at it.
+    """
+
+    #: A package coordinate resolves to the upstream project the notices were
+    #: read at. The coordinate is pinned here; the resolution is the index's.
+    PACKAGE_COORDINATE = "PACKAGE_COORDINATE_NAMES_THE_UPSTREAM"
+    #: This repository's own build enumerated the component --- a shade
+    #: plugin's output, a wheel lock --- and the enumeration is committed here.
+    BUILD_ENUMERATION = "ENUMERATED_BY_THIS_REPOSITORYS_BUILD"
+    #: Produced on this machine from source this repository pins, so the
+    #: pairing is the build's rather than a claim about somebody else's bytes.
+    BUILT_HERE = "BUILT_HERE_FROM_PINNED_SOURCE"
+    #: The bytes are pinned by digest and size in this repository, and the
+    #: licence position was taken over the artifact those bytes are.
+    PINNED_ARTIFACT_DIGEST = "ARTIFACT_DIGEST_PINNED_BY_THIS_REPOSITORY"
+    #: Delivered to the publisher outside any locator this repository can
+    #: resolve --- media, an account, a form --- under terms recorded here.
+    OUT_OF_BAND_DELIVERY = "DELIVERED_TO_THE_PUBLISHER_OUT_OF_BAND"
+
+
+class AttestationReferenceRole(str, Enum):
+    """What a reference is *doing* in an attestation.
+
+    Two arbitrary paths are not proof of anything. A method that claims a local
+    build has to name the definition that built it *and* what it was built
+    from, and a reader has to be able to tell which is which without guessing
+    from the filename. The role is that answer, and it is inside the
+    attestation fingerprint.
+    """
+
+    #: The file that performs the build --- a pom, a Makefile, a lock.
+    BUILD_DEFINITION = "BUILD_DEFINITION"
+    #: What the build consumed: a pinned source tree, an archive, a manifest of
+    #: exact versions.
+    SOURCE_PIN = "SOURCE_PIN"
+    #: A committed enumeration of what a component contains.
+    ENUMERATION = "ENUMERATION"
+    #: The document recording the terms an out-of-band delivery arrived under.
+    TERMS_RECORD = "TERMS_RECORD"
+    #: An immutable digest of the bytes themselves.
+    ARTIFACT_DIGEST = "ARTIFACT_DIGEST"
+
+
+#: Roles a *digest* may play. ``SOURCE_PIN`` is here because what a local build
+#: consumed is often an artifact rather than a document --- NBIS was compiled
+#: from a sealed release archive, and that archive's digest is a stronger pin
+#: than any file in this repository could be. The document roles are not: a
+#: build definition, an enumeration or a terms record is a file this repository
+#: carries, and a digest in their place would name bytes nobody can open.
+_DIGEST_BEARING_ROLES = frozenset(
+    {
+        AttestationReferenceRole.ARTIFACT_DIGEST,
+        AttestationReferenceRole.SOURCE_PIN,
+    }
+)
+
+
+@dataclass(frozen=True, slots=True)
+class AttestationReference:
+    """One thing an attestation rests on, pinned so it cannot drift.
+
+    A path alone was not enough. ``integrations/x/pom.xml`` names a file whose
+    content changes with every commit, so an attestation resting on "the pom"
+    rests on whatever the pom says today. A path **and** the commit its blob
+    sits at names bytes, and those never change.
+
+    Exactly one of the two forms:
+
+    * ``path`` + ``commit`` --- a file this repository carries, at a revision;
+    * ``digest`` --- bytes identified directly, for an artifact rather than a
+      document.
+    """
+
+    role: AttestationReferenceRole
+    path: str | None = None
+    commit: str | None = None
+    digest: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.role, AttestationReferenceRole):
+            raise ThirdPartyUsageError("role must be an AttestationReferenceRole")
+
+        has_path = self.path is not None
+        has_digest = self.digest is not None
+        if has_path == has_digest:
+            raise ThirdPartyUsageError(
+                "an attestation reference is either a repository path pinned at "
+                "a commit or a digest, and this one is "
+                + ("both" if has_path else "neither")
+            )
+
+        if has_digest:
+            object.__setattr__(
+                self, "digest", require_digest(self.digest, "digest")
+            )
+            if self.commit is not None:
+                raise ThirdPartyUsageError(
+                    "a digest identifies bytes on its own and needs no commit"
+                )
+            if self.role not in _DIGEST_BEARING_ROLES:
+                raise ThirdPartyUsageError(
+                    f"a digest reference plays the {self.role.value} role, which "
+                    "is a role for a file in this repository"
+                )
+            return
+
+        path = require_text(self.path, "path")
+        if not _is_a_repository_document(path):
+            raise ThirdPartyUsageError(
+                f"{path!r} is not a normalised, relative path to a file in this "
+                "repository"
+            )
+        object.__setattr__(self, "path", path)
+        commit = require_text(self.commit, "commit")
+        if len(commit) != 40 or not set(commit) <= set("0123456789abcdef"):
+            raise ThirdPartyUsageError(
+                f"{path!r} must be pinned at a full 40-character commit, and "
+                f"{commit!r} is not one. A path with no revision names whatever "
+                "the file says today"
+            )
+        object.__setattr__(self, "commit", commit)
+        if self.role is AttestationReferenceRole.ARTIFACT_DIGEST:
+            raise ThirdPartyUsageError(
+                "ARTIFACT_DIGEST is a role for bytes, not for a file path"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class PublisherAttestation:
+    """The publisher's statement of a pairing the documents do not prove.
+
+    Replaces the ``bool`` this used to be. A boolean argument is a condition
+    decided by the caller and believed on arrival; this is a document, it is
+    refused when it says nothing, and every field of it is inside the binding
+    fingerprint --- so an assertion cannot be edited, re-scoped or moved to
+    another upstream without the binding changing.
+    """
+
+    method: AttestationMethod
+    basis: str
+    evidence_references: tuple[AttestationReference, ...]
+    #: The digest of the identity this attestation is *about*, not its name.
+    #: A name is free text and the same sentence can be filed against two
+    #: different upstreams; a fingerprint cannot. Checked against the identity
+    #: it is attached to, so an attestation cannot be recycled.
+    asserted_upstream_identity_fingerprint: str
+
+    attestation_fingerprint: str = ""
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.method, AttestationMethod):
+            raise ThirdPartyUsageError("method must be an AttestationMethod")
+        object.__setattr__(self, "basis", require_text(self.basis, "basis"))
+        object.__setattr__(
+            self,
+            "asserted_upstream_identity_fingerprint",
+            require_digest(
+                self.asserted_upstream_identity_fingerprint,
+                "asserted_upstream_identity_fingerprint",
+            ),
+        )
+        references = tuple(self.evidence_references or ())
+        for reference in references:
+            if not isinstance(reference, AttestationReference):
+                raise ThirdPartyUsageError(
+                    "every evidence reference is an AttestationReference: a role "
+                    "and either a repository path pinned at a commit or a digest"
+                )
+        if not references:
+            raise ThirdPartyUsageError(
+                "an attestation names what it rests on: a pinned document or a "
+                "digest. An assertion with nothing behind it is the silence this "
+                "type replaced"
+            )
+        object.__setattr__(self, "evidence_references", references)
+
+        expected = publisher_attestation_fingerprint(self)
+        if self.attestation_fingerprint and (
+            require_digest(self.attestation_fingerprint, "attestation_fingerprint")
+            != expected
+        ):
+            raise ThirdPartyUsageError(
+                "attestation_fingerprint does not cover the attestation"
+            )
+        object.__setattr__(self, "attestation_fingerprint", expected)
+
+
+def publisher_attestation_fingerprint(
+    attestation: "PublisherAttestation | Mapping[str, Any]",
+) -> str:
+    return _fingerprint(
+        "third_party_publisher_attestation_v1",
+        attestation,
+        drop=("attestation_fingerprint",),
+    )
+
+
+def upstream_identity_fingerprint(identity: UpstreamIdentity) -> str:
+    """A digest of exactly which upstream thing an identity names.
+
+    Derived rather than stored on :class:`UpstreamIdentity`, whose own shape is
+    inside several published markers. A function computes the same value and
+    moves nothing.
+    """
+    if not isinstance(identity, UpstreamIdentity):
+        raise ThirdPartyUsageError("an upstream identity fingerprint needs one")
+    return _fingerprint("third_party_upstream_identity_v1", identity)
+
+
+def derive_identity_link(
+    evidence_locators: Iterable[str], identity: UpstreamIdentity
+) -> IdentityLinkBasis:
+    """Read the pairing out of the two documents, where it is there to read.
+
+    Deliberately narrow, and deliberately not a name match. It answers "do
+    these two documents *themselves* say they are about one component", and
+    returns :attr:`IdentityLinkBasis.PUBLISHER_ASSERTION` whenever they do not.
+    Guessing from a fuzzy name would turn an unproven pairing into a
+    proven-looking one, which is the whole failure being addressed.
+
+    Takes locators rather than an observation so that the same derivation runs
+    over a live :class:`LicenseObservation` and over a record read back from
+    disk. Two implementations would eventually disagree, and the one that
+    disagreed would be the one guarding the published evidence.
+    """
+    if not isinstance(identity, UpstreamIdentity):
+        raise ThirdPartyUsageError("deriving a link needs an upstream identity")
+    locators = tuple(
+        str(item).strip() for item in evidence_locators if str(item).strip()
+    )
+
+    upstream = str(identity.upstream_locator or "").strip()
+    if upstream:
+        for locator in locators:
+            if locator == upstream:
+                return IdentityLinkBasis.EVIDENCE_LOCATOR
+            # A licence file inside the artifact the identity names. The
+            # separator matters: ".../flx/data" must not match
+            # ".../flx/database".
+            #
+            # One direction only. The reverse --- evidence at a *parent* of the
+            # upstream --- reads a repository-wide LICENSE as proof of identity
+            # for every component beneath it, so a notice at ``/vendor`` would
+            # "derive" the pairing for ``/vendor/unrelated-component``. That is
+            # the mistaken pairing this concern exists to detect, arrived at by
+            # string handling.
+            if locator.startswith(upstream.rstrip("/") + "/"):
+                return IdentityLinkBasis.EVIDENCE_LOCATOR
+
+    commit = str(identity.upstream_commit or "").strip()
+    if len(commit) >= 40 and any(commit in locator for locator in locators):
+        return IdentityLinkBasis.UPSTREAM_COMMIT
+
+    # Nothing links them. Which of the two undetermined states it is follows
+    # from whether the artifact exists here at all: an identity with no digest
+    # and no size was never acquired, so there is nothing anyone could have
+    # checked and no assertion anyone could honestly make.
+    if not identity.identity_established:
+        return IdentityLinkBasis.UNRESOLVED_DOCUMENTATION_ONLY
+
+    return IdentityLinkBasis.PUBLISHER_ASSERTION
+
+
+def upstream_binding_fingerprint(
+    *,
+    component_kind: ThirdPartyComponentKind,
+    observation_fingerprint: str,
+    assessment_fingerprint: str,
+    identity_fingerprint: str,
+    identity_link_basis: IdentityLinkBasis,
+    attestation_fingerprint: str | None,
+) -> str:
+    """The one digest that covers all three parts and how they were tied.
+
+    Every argument is a *derived* value. There is no overload that takes the
+    documents, because a fingerprint assembled from fields a caller supplied is
+    a caller-supplied condition wearing a digest.
+    """
+    return stable_hash(
+        {
+            "schema": "third_party_component_binding_v3",
+            "component_kind": component_kind.value,
+            "observation": observation_fingerprint,
+            "assessment": assessment_fingerprint,
+            "upstream_identity": identity_fingerprint,
+            "identity_link_basis": identity_link_basis.value,
+            "publisher_attestation": attestation_fingerprint,
+        },
+        length=64,
+    )
+
+
+#: The coordinate schemes a ``PACKAGE_COORDINATE`` attestation may name, each
+#: in its canonical form. A closed set: a coordinate this repository cannot
+#: parse is a coordinate nobody can resolve back to an upstream, and
+#: ``garbage:thing`` matched every loose pattern tried before this one. The
+#: Maven group id is a reverse domain and therefore carries a dot, which is
+#: what separates a real coordinate from two words and a colon.
+PACKAGE_COORDINATE_SCHEMES: Mapping[str, Any] = {
+    "maven": re.compile(
+        r"^[a-z0-9]+(?:\.[a-z0-9][a-z0-9_-]*)+:[a-z0-9][a-z0-9._-]*$"
+    ),
+}
+
+#: A reference to a file this repository carries: relative, normalised, and
+#: with a directory component. ``garbage`` is a legal relative path and is not
+#: a reference to anything, so at least one separator is required. Whether the
+#: path is actually *tracked* is checked by
+#: :func:`fpbench.third_party.manifest.require_attestation_references_are_tracked`,
+#: which runs where Git is available; ``core`` must construct on a machine with
+#: no checkout.
+_REPOSITORY_REFERENCE = re.compile(r"^[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)+$")
+
+_DIGEST_REFERENCE = re.compile(r"^[0-9a-f]{64}$")
+
+
+def _is_a_repository_document(reference: str) -> bool:
+    """Whether a reference names a file this repository carries.
+
+    Form only, and deliberately so: this runs inside a model that must
+    construct without a checkout. What it settles is that the reference is a
+    normalised relative path with a directory component rather than a URL, a
+    machine path or a word.
+    """
+    text = str(reference).strip()
+    if not text or "://" in text or text.startswith("file:"):
+        return False
+    if text.startswith("/") or text.startswith("~") or ":" in text:
+        return False
+    if any(segment in ("", ".", "..") for segment in text.split("/")):
+        return False
+    return bool(_REPOSITORY_REFERENCE.match(text))
+
+
+def _is_a_digest(reference: str) -> bool:
+    return bool(_DIGEST_REFERENCE.match(str(reference).strip()))
+
+
+def attestation_reference_paths(
+    attestation: "PublisherAttestation",
+) -> tuple[tuple[str, str], ...]:
+    """Every ``(commit, path)`` an attestation pins, for a Git-aware checker.
+
+    ``core`` states the pairs; it does not resolve them. Whether the blob is
+    really there is
+    :func:`fpbench.third_party.manifest.require_attestation_references_are_tracked`,
+    which runs where Git is available --- a model that reached for a repository
+    would not construct on a machine that has none.
+    """
+    return tuple(
+        (str(item.commit), str(item.path))
+        for item in attestation.evidence_references
+        if item.path is not None
+    )
+
+
+def require_method_has_its_facts(
+    *, upstream_identity: UpstreamIdentity, attestation: PublisherAttestation
+) -> None:
+    """Refuse a method whose defining fact is absent.
+
+    Without this the vocabulary is decoration: ``PINNED_ARTIFACT_DIGEST`` reads
+    as "the bytes are pinned by digest" and was accepted over an identity
+    carrying no digest at all. Each member below names the fact that makes its
+    own sentence true, and is refused without it.
+
+    Raises:
+        ThirdPartyUsageError: the method claims something the documents beside
+            it do not support.
+    """
+    method = attestation.method
+    references = attestation.evidence_references
+
+    def roles(*wanted: AttestationReferenceRole) -> tuple[AttestationReference, ...]:
+        return tuple(item for item in references if item.role in wanted)
+
+    def require_role(role: AttestationReferenceRole, why: str) -> None:
+        if not roles(role):
+            raise ThirdPartyUsageError(
+                f"{upstream_identity.upstream_name!r}: {method.value} {why}, and "
+                f"no evidence reference plays the {role.value} role"
+            )
+
+    def require_the_artifact_digest() -> None:
+        digest = upstream_identity.artifact_sha256
+        if digest is None:
+            raise ThirdPartyUsageError(
+                f"{upstream_identity.upstream_name!r}: {method.value} over an "
+                "identity that pins no digest. The method is the claim that the "
+                "bytes are pinned; there are no bytes pinned"
+            )
+        named = {item.digest for item in roles(AttestationReferenceRole.ARTIFACT_DIGEST)}
+        if digest not in named:
+            raise ThirdPartyUsageError(
+                f"{upstream_identity.upstream_name!r}: {method.value} must name "
+                "the identity's own digest as an ARTIFACT_DIGEST reference, so a "
+                "reader can see which bytes were checked"
+            )
+
+    if method is AttestationMethod.PINNED_ARTIFACT_DIGEST:
+        require_the_artifact_digest()
+        return
+
+    if method is AttestationMethod.PACKAGE_COORDINATE:
+        locator = str(upstream_identity.upstream_locator).strip()
+        if not any(
+            pattern.match(locator) for pattern in PACKAGE_COORDINATE_SCHEMES.values()
+        ):
+            raise ThirdPartyUsageError(
+                f"{upstream_identity.upstream_name!r}: {method.value} says the "
+                f"upstream is named by a package coordinate, and {locator!r} is "
+                "not one in any scheme this repository resolves "
+                f"({sorted(PACKAGE_COORDINATE_SCHEMES)}). A coordinate nobody "
+                "can resolve names no upstream"
+            )
+        return
+
+    if method is AttestationMethod.OUT_OF_BAND_DELIVERY:
+        # Delivered outside any locator this repository can resolve, so the only
+        # thing that can identify what arrived is the bytes themselves --- and
+        # the terms it arrived under have to be written down somewhere here.
+        require_the_artifact_digest()
+        require_role(
+            AttestationReferenceRole.TERMS_RECORD,
+            "rests on the terms this repository recorded",
+        )
+        return
+
+    if method is AttestationMethod.BUILT_HERE:
+        # Two facts with two roles, not two paths. "A document exists" is what
+        # the previous form accepted, and a build definition is not a source
+        # pin however many files sit beside it.
+        require_role(
+            AttestationReferenceRole.BUILD_DEFINITION,
+            "claims a local build",
+        )
+        require_role(
+            AttestationReferenceRole.SOURCE_PIN,
+            "claims a build from pinned source",
+        )
+        return
+
+    if method is AttestationMethod.BUILD_ENUMERATION:
+        require_role(
+            AttestationReferenceRole.ENUMERATION,
+            "rests on an enumeration this repository carries",
+        )
+        return
+
+    raise ThirdPartyUsageError(  # pragma: no cover - the enum is closed
+        f"no precondition is declared for {method.value}"
+    )
+
+
+def require_binding_state_is_coherent(
+    *,
+    upstream_identity: UpstreamIdentity,
+    identity_link_basis: IdentityLinkBasis,
+    publisher_attestation: "PublisherAttestation | None",
+    research_use_decision: ResearchUseDecision,
+    blockers: "tuple | None" = None,
+) -> None:
+    """Refuse a binding whose four parts do not describe one situation.
+
+    One function rather than one copy per holder. :class:`BoundUpstreamComponent`
+    and :class:`ThirdPartyUsageRecord` both carry the same four, and two
+    implementations of one rule would eventually disagree --- with the published
+    record following whichever was weaker.
+
+    The three states and what each one demands:
+
+    * **derived** --- the documents prove their own pairing. An attestation
+      would be a statement nothing checks, so one is refused.
+    * **asserted** --- they do not, but the artifact was acquired, so there is
+      something to attest to. An attestation is required, it must be filed
+      against *this* identity, and its method must have the fact that makes it
+      true.
+    * **unresolved documentation-only** --- they do not and nothing was
+      acquired. There is no act to attest to, so an attestation is refused, and
+      the component must be ``BLOCKED`` on
+      ``ARTIFACT_IDENTITY_NOT_ESTABLISHED``. This is the state that must never
+      open execution: without it, a component nobody has ever downloaded could
+      carry ``ALLOWED`` and open a manifest.
+
+    Raises:
+        ThirdPartyUsageError: the four do not agree.
+    """
+    # ---- first, and regardless of the basis: were the bytes ever obtained?
+    #
+    # This used to live inside the documentation-only branch, which made it
+    # reachable only when nothing linked the two documents. An unacquired
+    # component whose licence happened to sit at its own upstream locator
+    # therefore derived DERIVED_FROM_EVIDENCE_LOCATOR, skipped every check
+    # below, took a decision of ALLOWED and opened a manifest.
+    #
+    # The two questions are independent and both have to be asked. "Do these
+    # documents say they are about one component?" is the basis. "Do we have
+    # that component?" is this, and a licence position about bytes nobody
+    # obtained cannot open execution however well the pairing is proven.
+    # The blocker and the flag are two statements of one fact, so they agree in
+    # both directions or one of them is wrong. Only the "not established" half
+    # used to be checked, which accepted an assessment blocking on
+    # ARTIFACT_IDENTITY_NOT_ESTABLISHED beside an identity that claimed to be
+    # established --- a record saying the identity is both settled and not.
+    if blockers is not None:
+        blocks_on_identity = (
+            ResearchUseBlocker.ARTIFACT_IDENTITY_NOT_ESTABLISHED in tuple(blockers)
+        )
+        if blocks_on_identity is upstream_identity.identity_established:
+            raise ThirdPartyUsageError(
+                f"{upstream_identity.upstream_name!r}: the identity says "
+                f"established={upstream_identity.identity_established} and the "
+                f"assessment beside it "
+                f"{'blocks' if blocks_on_identity else 'does not block'} on "
+                "ARTIFACT_IDENTITY_NOT_ESTABLISHED. Those are the same fact and "
+                "they disagree"
+            )
+
+    if not upstream_identity.identity_established:
+        if (
+            upstream_identity.artifact_sha256 is not None
+            or upstream_identity.artifact_size_bytes is not None
+        ):
+            raise ThirdPartyUsageError(
+                f"{upstream_identity.upstream_name!r} has no established identity "
+                "and carries a digest or a size. Bytes that were measured were "
+                "acquired; this state is for bytes that were not"
+            )
+        if research_use_decision is not ResearchUseDecision.BLOCKED:
+            raise ThirdPartyUsageError(
+                f"{upstream_identity.upstream_name!r} has an unresolved identity "
+                f"and a decision of {research_use_decision.value}. An artifact "
+                "nobody has obtained cannot be cleared for execution; it is "
+                "BLOCKED on ARTIFACT_IDENTITY_NOT_ESTABLISHED"
+            )
+
+    if identity_link_basis.is_derived:
+        if publisher_attestation is not None:
+            raise ThirdPartyUsageError(
+                f"{upstream_identity.upstream_name!r} derives its link "
+                f"({identity_link_basis.value}), so an attestation would be a "
+                "statement nothing checks. Remove it"
+            )
+        return
+
+    if identity_link_basis is IdentityLinkBasis.UNRESOLVED_DOCUMENTATION_ONLY:
+        if publisher_attestation is not None:
+            raise ThirdPartyUsageError(
+                f"{upstream_identity.upstream_name!r} was never acquired --- no "
+                "byte fetched, no digest pinned --- so there is no act to attest "
+                "to. An attestation here would be a positive claim about an "
+                "identity nobody has established"
+            )
+        if upstream_identity.identity_established:
+            raise ThirdPartyUsageError(  # pragma: no cover - the derivation
+                f"{upstream_identity.upstream_name!r} is documentation-only and "
+                "claims an established identity"
+            )
+        return
+
+    if not isinstance(publisher_attestation, PublisherAttestation):
+        raise ThirdPartyUsageError(
+            "nothing in the licence evidence for "
+            f"{upstream_identity.upstream_name!r} says which upstream it was "
+            "read over, so the pairing needs a PublisherAttestation. An unbound "
+            "pairing is what this rule exists to stop"
+        )
+    if not upstream_identity.identity_established:
+        raise ThirdPartyUsageError(  # pragma: no cover - the derivation
+            f"{upstream_identity.upstream_name!r} has no established identity, "
+            "so its state is documentation-only rather than asserted"
+        )
+
+    filed_against = upstream_identity_fingerprint(upstream_identity)
+    if publisher_attestation.asserted_upstream_identity_fingerprint != filed_against:
+        raise ThirdPartyUsageError(
+            f"this attestation was made about upstream identity "
+            f"{publisher_attestation.asserted_upstream_identity_fingerprint[:12]}"
+            f"... and is attached to {filed_against[:12]}... "
+            f"({upstream_identity.upstream_name!r}). An attestation is about one "
+            "component and does not transfer to another"
+        )
+    require_method_has_its_facts(
+        upstream_identity=upstream_identity, attestation=publisher_attestation
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class BoundUpstreamComponent:
+    """One component: its observation, its assessment and its identity, tied.
+
+    Constructed by :func:`fpbench.third_party.manifest.bind_component` and by
+    nothing else, so the three cannot be assembled from different sources and
+    passed on together. Every derived value on it is recomputed here, so an
+    instance built by hand out of mismatched parts does not survive
+    construction --- which is what makes it safe for
+    :func:`fpbench.third_party.manifest.build_usage_record` to trust one.
+    """
+
+    component_kind: ThirdPartyComponentKind
+    observation: LicenseObservation
+    assessment: ResearchUseAssessment
+    upstream_identity: UpstreamIdentity
+
+    identity_link_basis: IdentityLinkBasis
+    publisher_attestation: PublisherAttestation | None = None
+
+    observation_fingerprint: str = ""
+    assessment_fingerprint: str = ""
+    upstream_identity_fingerprint: str = ""
+    binding_fingerprint: str = ""
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.observation, LicenseObservation):
+            raise ThirdPartyUsageError(
+                "a bound component needs a recorded observation"
+            )
+        if not isinstance(self.assessment, ResearchUseAssessment):
+            raise ThirdPartyUsageError("a bound component needs a derived assessment")
+        if not isinstance(self.upstream_identity, UpstreamIdentity):
+            raise ThirdPartyUsageError("a bound component needs an upstream identity")
+        if not isinstance(self.component_kind, ThirdPartyComponentKind):
+            raise ThirdPartyUsageError(
+                "component_kind must be a ThirdPartyComponentKind"
+            )
+
+        if self.component_kind is not self.observation.component_kind:
+            raise ThirdPartyUsageError(
+                f"the binding is about a {self.component_kind.value} and the "
+                f"observation about a {self.observation.component_kind.value}"
+            )
+        if self.assessment.component_kind is not self.observation.component_kind:
+            raise ThirdPartyUsageError(
+                f"the observation is about a "
+                f"{self.observation.component_kind.value} and the assessment "
+                f"about a {self.assessment.component_kind.value}"
+            )
+        if self.assessment.observation_fingerprint != (
+            self.observation.observation_fingerprint
+        ):
+            raise ThirdPartyUsageError(
+                "the assessment was taken over observation "
+                f"{self.assessment.observation_fingerprint[:12]}... and the "
+                "observation offered is "
+                f"{self.observation.observation_fingerprint[:12]}..."
+            )
+
+        basis = derive_identity_link(
+            tuple(item.locator for item in self.observation.evidence),
+            self.upstream_identity,
+        )
+        if self.identity_link_basis is not basis:
+            raise ThirdPartyUsageError(
+                f"the binding claims {self.identity_link_basis.value} and the "
+                f"two documents derive {basis.value}. The basis is read out of "
+                "the evidence, never declared"
+            )
+        object.__setattr__(self, "identity_link_basis", basis)
+
+        attestation = self.publisher_attestation
+        require_binding_state_is_coherent(
+            upstream_identity=self.upstream_identity,
+            identity_link_basis=basis,
+            publisher_attestation=attestation,
+            research_use_decision=self.assessment.decision,
+            blockers=self.assessment.blockers,
+        )
+
+        identity_fingerprint = upstream_identity_fingerprint(self.upstream_identity)
+        object.__setattr__(
+            self,
+            "observation_fingerprint",
+            self.observation.observation_fingerprint,
+        )
+        object.__setattr__(
+            self, "assessment_fingerprint", self.assessment.assessment_fingerprint
+        )
+        object.__setattr__(self, "upstream_identity_fingerprint", identity_fingerprint)
+        object.__setattr__(
+            self,
+            "binding_fingerprint",
+            upstream_binding_fingerprint(
+                component_kind=self.component_kind,
+                observation_fingerprint=self.observation.observation_fingerprint,
+                assessment_fingerprint=self.assessment.assessment_fingerprint,
+                identity_fingerprint=identity_fingerprint,
+                identity_link_basis=basis,
+                attestation_fingerprint=(
+                    None
+                    if attestation is None
+                    else attestation.attestation_fingerprint
+                ),
+            ),
+        )
+
+
 # ------------------------------------------------------------- redistribution
 
 
@@ -1214,6 +1992,21 @@ class ThirdPartyUsageRecord:
     stored_in_git: bool = False
     stored_in_ci_artifacts: bool = False
     notes: tuple[str, ...] = ()
+
+    #: Which upstream thing, as a digest. Recomputed in ``__post_init__`` from
+    #: ``upstream_identity``; a caller may pass it, and is refused if it
+    #: disagrees.
+    upstream_identity_fingerprint: str = ""
+    #: How the observation was tied to that identity. Never declared: derived
+    #: from ``license_evidence_locators`` and ``upstream_identity``, and a
+    #: value that disagrees with the derivation is refused. This is what stops
+    #: a caller re-signing an assertion as derived.
+    identity_link_basis: IdentityLinkBasis | None = None
+    #: Required exactly when the basis is ``ASSERTED_BY_THE_PUBLISHER``.
+    publisher_attestation: PublisherAttestation | None = None
+    #: The digest over all four of the above plus the two document
+    #: fingerprints. Swapping any one of them changes it.
+    binding_fingerprint: str = ""
 
     usage_fingerprint: str = ""
     schema_version: str = THIRD_PARTY_USAGE_SCHEMA_VERSION
@@ -1298,8 +2091,74 @@ class ThirdPartyUsageRecord:
                 "bytes, and bytes live in the local artifact store"
             )
 
+        identity_fingerprint = upstream_identity_fingerprint(self.upstream_identity)
+        if self.upstream_identity_fingerprint and (
+            require_digest(
+                self.upstream_identity_fingerprint, "upstream_identity_fingerprint"
+            )
+            != identity_fingerprint
+        ):
+            raise ThirdPartyUsageError(
+                f"{self.record_id}: upstream_identity_fingerprint does not cover "
+                "the identity beside it"
+            )
+        object.__setattr__(
+            self, "upstream_identity_fingerprint", identity_fingerprint
+        )
+
+        basis = derive_identity_link(
+            self.license_evidence_locators, self.upstream_identity
+        )
+        if (
+            self.identity_link_basis is not None
+            and self.identity_link_basis is not basis
+        ):
+            raise ThirdPartyUsageError(
+                f"{self.record_id}: the record claims "
+                f"{self.identity_link_basis.value} and its own evidence derives "
+                f"{basis.value}. The basis is read out of the evidence, never "
+                "declared"
+            )
+        object.__setattr__(self, "identity_link_basis", basis)
+
+        if self.publisher_attestation is not None and not isinstance(
+            self.publisher_attestation, PublisherAttestation
+        ):
+            raise ThirdPartyUsageError(
+                f"{self.record_id}: publisher_attestation must be a "
+                "PublisherAttestation"
+            )
+        require_binding_state_is_coherent(
+            upstream_identity=self.upstream_identity,
+            identity_link_basis=basis,
+            publisher_attestation=self.publisher_attestation,
+            research_use_decision=self.research_use_decision,
+            blockers=None,
+        )
+
+        binding = upstream_binding_fingerprint(
+            component_kind=self.component_kind,
+            observation_fingerprint=self.license_observation_fingerprint,
+            assessment_fingerprint=self.research_use_assessment_fingerprint,
+            identity_fingerprint=identity_fingerprint,
+            identity_link_basis=basis,
+            attestation_fingerprint=(
+                None
+                if self.publisher_attestation is None
+                else self.publisher_attestation.attestation_fingerprint
+            ),
+        )
+        if self.binding_fingerprint and (
+            require_digest(self.binding_fingerprint, "binding_fingerprint") != binding
+        ):
+            raise ThirdPartyUsageError(
+                f"{self.record_id}: binding_fingerprint does not cover the "
+                "binding this record carries"
+            )
+        object.__setattr__(self, "binding_fingerprint", binding)
+
         expected = third_party_usage_fingerprint(self)
-        if self.usage_fingerprint and (
+        if self.usage_fingerprint and (  # noqa: E501 - see may_open_execution below
             require_digest(self.usage_fingerprint, "usage_fingerprint") != expected
         ):
             raise ThirdPartyUsageError(
@@ -1308,11 +2167,41 @@ class ThirdPartyUsageRecord:
         object.__setattr__(self, "usage_fingerprint", expected)
 
 
+def record_has_execution_eligible_identity(record: "ThirdPartyUsageRecord") -> bool:
+    """Whether the *identity* leaves execution open --- not the licence.
+
+    Two questions, both about which bytes this is: the basis has to leave
+    execution open, and the artifact has to have been obtained. Asking only the
+    first is the bypass this exists to make unavailable, since an unacquired
+    component whose licence sat at its own upstream locator derives a proven
+    basis.
+
+    Deliberately **not** the whole answer, and named so. A record can have a
+    perfectly eligible identity and a decision of ``BLOCKED``; that is
+    :func:`record_may_open_execution`. Keeping them apart is what lets a gate
+    refuse with the reason that actually applies instead of one message for two
+    unrelated situations.
+    """
+    return (
+        record.identity_link_basis is not None
+        and record.identity_link_basis.may_open_execution
+        and record.upstream_identity.identity_established
+    )
+
+
+def record_may_open_execution(record: "ThirdPartyUsageRecord") -> bool:
+    """Whether this component may be executed at all: identity *and* licence."""
+    return (
+        record_has_execution_eligible_identity(record)
+        and record.research_use_decision.opens_execution
+    )
+
+
 def third_party_usage_fingerprint(
     record: ThirdPartyUsageRecord | Mapping[str, Any],
 ) -> str:
     return _fingerprint(
-        "third_party_usage_record_v1", record, drop=("usage_fingerprint",)
+        "third_party_usage_record_v2", record, drop=("usage_fingerprint",)
     )
 
 
@@ -1883,6 +2772,62 @@ def _read_upstream_identity(document: Mapping[str, Any]) -> UpstreamIdentity:
     )
 
 
+def _read_publisher_attestation(value: Any) -> "PublisherAttestation | None":
+    """Read the attestation, or ``None`` where the link derives itself.
+
+    ``null`` is a legal published value and means "this link needed no
+    assertion". It is not a missing field: ``require_exact_keys`` above still
+    demands the key, so a record that simply dropped the attestation is refused
+    rather than read as a derived link.
+    """
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError("publisher_attestation must be a JSON object or null")
+    require_exact_keys(
+        value,
+        (
+            "method",
+            "basis",
+            "evidence_references",
+            "asserted_upstream_identity_fingerprint",
+            "attestation_fingerprint",
+        ),
+        what="a publisher attestation",
+    )
+    raw_references = value.get("evidence_references")
+    if not isinstance(raw_references, list):
+        raise ValueError("evidence_references must be a JSON array")
+    references = []
+    for item in raw_references:
+        if not isinstance(item, dict):
+            raise ValueError("every evidence reference must be a JSON object")
+        require_exact_keys(
+            item,
+            ("role", "path", "commit", "digest"),
+            what="an attestation reference",
+        )
+        references.append(
+            AttestationReference(
+                role=read_enum(item, "role", AttestationReferenceRole),
+                path=None if item["path"] is None else read_str(item, "path"),
+                commit=None if item["commit"] is None else read_str(item, "commit"),
+                digest=(
+                    None if item["digest"] is None else read_digest(item, "digest")
+                ),
+            )
+        )
+    return PublisherAttestation(
+        method=read_enum(value, "method", AttestationMethod),
+        basis=read_str(value, "basis"),
+        evidence_references=tuple(references),
+        asserted_upstream_identity_fingerprint=read_digest(
+            value, "asserted_upstream_identity_fingerprint"
+        ),
+        attestation_fingerprint=read_digest(value, "attestation_fingerprint"),
+    )
+
+
 def read_third_party_usage_record(
     document: Mapping[str, Any],
 ) -> ThirdPartyUsageRecord:
@@ -1907,6 +2852,10 @@ def read_third_party_usage_record(
             "stored_in_git",
             "stored_in_ci_artifacts",
             "notes",
+            "upstream_identity_fingerprint",
+            "identity_link_basis",
+            "publisher_attestation",
+            "binding_fingerprint",
             "usage_fingerprint",
         ),
         what="a third-party usage record",
@@ -1955,6 +2904,16 @@ def read_third_party_usage_record(
         stored_in_git=read_bool(document, "stored_in_git"),
         stored_in_ci_artifacts=read_bool(document, "stored_in_ci_artifacts"),
         notes=read_str_tuple(document, "notes"),
+        upstream_identity_fingerprint=read_digest(
+            document, "upstream_identity_fingerprint"
+        ),
+        identity_link_basis=read_enum(
+            document, "identity_link_basis", IdentityLinkBasis
+        ),
+        publisher_attestation=_read_publisher_attestation(
+            document.get("publisher_attestation")
+        ),
+        binding_fingerprint=read_digest(document, "binding_fingerprint"),
         usage_fingerprint=read_digest(document, "usage_fingerprint"),
     )
 

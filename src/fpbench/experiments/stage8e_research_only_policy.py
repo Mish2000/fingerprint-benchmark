@@ -30,7 +30,7 @@ any of it.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 
@@ -53,11 +53,21 @@ from fpbench.core.third_party_models import (
     ResearchUseDecision,
     ThirdPartyComponentKind,
     ThirdPartyUsageManifest,
+    AttestationMethod,
+    AttestationReference,
+    AttestationReferenceRole,
+    PublisherAttestation,
     ThirdPartyUsageRecord,
     UpstreamIdentity,
+    upstream_identity_fingerprint,
 )
 from fpbench.experiments import stage8e_identity as frozen
-from fpbench.third_party.manifest import build_usage_manifest, build_usage_record
+from fpbench.third_party.manifest import (
+    bind_component,
+    build_usage_manifest,
+    build_usage_record,
+    require_bound_component_references_are_tracked,
+)
 from fpbench.third_party.policy import (
     PlausibleReading,
     assess_research_use,
@@ -367,6 +377,79 @@ def _assessment_for(
     )
 
 
+def _upstream_identity_for(component: frozen.LegacyComponent) -> UpstreamIdentity:
+    return UpstreamIdentity(
+        upstream_name=component.upstream_name,
+        upstream_locator=component.upstream_locator,
+        exact_version=component.exact_version,
+        upstream_commit=component.upstream_commit,
+        artifact_filename=component.artifact_filename,
+        artifact_sha256=component.artifact_sha256,
+        artifact_size_bytes=component.artifact_size_bytes,
+        identity_established=True,
+    )
+
+
+def _digest_for(token: str, component: frozen.LegacyComponent) -> str:
+    """Resolve a frozen digest token to the digest it names.
+
+    Two tokens, both resolving to a value already in
+    :mod:`fpbench.experiments.stage8e_identity`. Spelling the digest out a
+    second time in the attestation table would be a second authority for one
+    fact, and the two would eventually disagree.
+    """
+    if token == "sha256":
+        digest = component.artifact_sha256
+        if digest is None:
+            raise Stage8EFinalizationError(
+                f"{component.record_id}: its attestation rests on a digest and "
+                "the component pins none"
+            )
+        return digest
+    if token == "nbis_release_sha256":
+        for other in frozen.LEGACY_COMPONENTS:
+            if other.record_id == "nbis_release_archive":
+                if other.artifact_sha256 is None:  # pragma: no cover - it pins one
+                    break
+                return other.artifact_sha256
+        raise Stage8EFinalizationError(  # pragma: no cover - the component exists
+            "the NBIS release archive is not among the frozen components"
+        )
+    raise Stage8EFinalizationError(  # pragma: no cover - the table is closed
+        f"unknown attestation digest token {token!r}"
+    )
+
+
+def _attestation_for(
+    component: frozen.LegacyComponent, identity: UpstreamIdentity
+) -> PublisherAttestation | None:
+    """The publisher's statement, for a component whose link is not derivable.
+
+    ``None`` for the three whose licence was read at the upstream's own locator
+    or at its exact commit: those prove their own pairing, and
+    :func:`bind_component` refuses an attestation that nothing checks.
+    """
+    entry = frozen.LEGACY_ATTESTATIONS.get(component.record_id)
+    if entry is None:
+        return None
+    method, basis, references = entry
+    roles = frozen.LEGACY_ATTESTATION_ROLES[component.record_id]
+    return PublisherAttestation(
+        method=AttestationMethod[method],
+        basis=basis,
+        evidence_references=tuple(
+            AttestationReference(
+                role=AttestationReferenceRole[role],
+                path=path,
+                commit=commit,
+                digest=None if token is None else _digest_for(token, component),
+            )
+            for role, (path, commit, token) in zip(roles, references)
+        ),
+        asserted_upstream_identity_fingerprint=upstream_identity_fingerprint(identity),
+    )
+
+
 def build_legacy_audit(repository_root: Path | None = None) -> LegacyAudit:
     """Map every legacy component, then verify each mapping re-derives.
 
@@ -388,20 +471,18 @@ def build_legacy_audit(repository_root: Path | None = None) -> LegacyAudit:
     for component in frozen.LEGACY_COMPONENTS:
         observation = _observation_for(component)
         assessment = _assessment_for(component, observation)
-        record = build_usage_record(
-            record_id=component.record_id,
+        identity = _upstream_identity_for(component)
+        bound = bind_component(
             observation=observation,
             assessment=assessment,
-            upstream_identity=UpstreamIdentity(
-                upstream_name=component.upstream_name,
-                upstream_locator=component.upstream_locator,
-                exact_version=component.exact_version,
-                upstream_commit=component.upstream_commit,
-                artifact_filename=component.artifact_filename,
-                artifact_sha256=component.artifact_sha256,
-                artifact_size_bytes=component.artifact_size_bytes,
-                identity_established=True,
-            ),
+            upstream_identity=identity,
+            publisher_attestation=_attestation_for(component, identity),
+        )
+        if repository_root is not None:
+            require_bound_component_references_are_tracked(repository_root, bound)
+        record = build_usage_record(
+            record_id=component.record_id,
+            component=bound,
             redistribution_decision=component.redistribution,
             redistribution_basis=component.redistribution_basis,
             notes=component.notes,
@@ -651,6 +732,53 @@ def _acceptance(**overrides: Any) -> OwnerRiskAcceptance:
     }
     fields.update(overrides)
     return OwnerRiskAcceptance(**fields)
+
+
+def _fixture_usage_record(permissive: ResearchUseAssessment) -> ThirdPartyUsageRecord:
+    """A coherent record, so the refusal beside it can be about one thing.
+
+    The observation is the one ``permissive`` was actually taken over. Building
+    a record from an assessment of *another* observation refuses on the
+    mismatch, which is a real rule and not the rule the case beside this is
+    named for.
+    """
+    observation = _observation(
+        LicenseObservationStatus.OPEN_SOURCE_PERMISSIVE,
+        names=("Apache License 2.0",),
+        restrictions=("Retain notices in a distribution.",),
+    )
+    identity = UpstreamIdentity(
+        upstream_name="a fixture",
+        upstream_locator="https://example.invalid/fixture",
+        exact_version="1",
+    )
+    return build_usage_record(
+        record_id="fixture_in_git",
+        component=bind_component(
+            observation=observation,
+            assessment=permissive,
+            upstream_identity=identity,
+            publisher_attestation=PublisherAttestation(
+                method=AttestationMethod.PACKAGE_COORDINATE,
+                basis=(
+                    "a fixture used only by this catalogue; nothing upstream is "
+                    "named and nothing was acquired"
+                ),
+                evidence_references=(
+                    AttestationReference(
+                        role=AttestationReferenceRole.ENUMERATION,
+                        path="docs/policy/third-party-usage.md",
+                        commit=_FIXTURE_COMMIT,
+                    ),
+                ),
+                asserted_upstream_identity_fingerprint=(
+                    upstream_identity_fingerprint(identity)
+                ),
+            ),
+        ),
+        redistribution_decision=RedistributionDecision.ALLOWED,
+        redistribution_basis="permitted and not exercised",
+    )
 
 
 def _refusal_case(case_id: str, claim: str, expected: type, call) -> PolicyCase:
@@ -1196,21 +1324,8 @@ def run_policy_qualification() -> PolicyQualification:
             "a_usage_record_may_not_say_it_is_stored_in_git",
             "there is no code path that puts a third-party byte in the repository",
             ThirdPartyUsageError,
-            lambda: build_usage_record(
-                record_id="fixture_in_git",
-                observation=_observation(
-                    LicenseObservationStatus.OPEN_SOURCE_PERMISSIVE,
-                    observation_id="fixture_in_git_observation",
-                    names=("MIT License",),
-                ),
-                assessment=permissive,
-                upstream_identity=UpstreamIdentity(
-                    upstream_name="a fixture",
-                    upstream_locator="https://example.invalid/fixture",
-                    exact_version="1",
-                ),
-                redistribution_decision=RedistributionDecision.ALLOWED,
-                redistribution_basis="permitted and not exercised",
+            lambda: replace(
+                _fixture_usage_record(permissive), stored_in_git=True
             ),
         )
     )
@@ -1234,6 +1349,11 @@ def run_policy_qualification() -> PolicyQualification:
             length=64,
         ),
     )
+
+
+#: The commit whose blob a catalogue fixture points at. A fixture reference
+#: still has to resolve: the rule under test is not weaker here.
+_FIXTURE_COMMIT = "328bae7d09af01a9a20aaf57a096ebb6c42e89e3"
 
 
 # ------------------------------------------------------------ contract report

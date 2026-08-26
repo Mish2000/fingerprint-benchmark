@@ -66,6 +66,14 @@ from fpbench.third_party import (
     transformation_over_bytes,
     verify_usage_record,
 )
+from fpbench.core.third_party_models import (
+    AttestationMethod,
+    AttestationReference,
+    AttestationReferenceRole,
+    PublisherAttestation,
+    upstream_identity_fingerprint,
+)
+from fpbench.third_party.manifest import bind_component
 from fpbench.third_party.artifacts import THIRD_PARTY_ROOT_ENV, verify_placed_artifact
 
 pytestmark = pytest.mark.stage8e_contract
@@ -603,13 +611,49 @@ def identity() -> UpstreamIdentity:
     )
 
 
+#: A tracked blob, for fixtures that need an attestation to be well formed.
+FIXTURE_PATH = "docs/policy/third-party-usage.md"
+FIXTURE_COMMIT = "328bae7d09af01a9a20aaf57a096ebb6c42e89e3"
+
+
+def fixture_attestation(upstream: UpstreamIdentity) -> PublisherAttestation:
+    """What a fixture upstream needs to be bindable.
+
+    ``https://example.invalid/fixture`` shares no locator with any observation
+    here, so every fixture pairing rests on the publisher and needs a statement
+    saying so. The method is the weakest one that is true of a fixture: a
+    document in this repository enumerates it, and nothing else does.
+    """
+    return PublisherAttestation(
+        method=AttestationMethod.BUILD_ENUMERATION,
+        basis="a fixture used only by this contract suite",
+        evidence_references=(
+            AttestationReference(
+                role=AttestationReferenceRole.ENUMERATION,
+                path=FIXTURE_PATH,
+                commit=FIXTURE_COMMIT,
+            ),
+        ),
+        asserted_upstream_identity_fingerprint=upstream_identity_fingerprint(upstream),
+    )
+
+
+def bound(observation, assessment, upstream: UpstreamIdentity | None = None):
+    """Bind a fixture triple the way production does."""
+    upstream = identity() if upstream is None else upstream
+    return bind_component(
+        observation=observation,
+        assessment=assessment,
+        upstream_identity=upstream,
+        publisher_attestation=fixture_attestation(upstream),
+    )
+
+
 def test_a_usage_record_binds_its_observation_and_its_assessment() -> None:
     source, assessment = permissive_pair()
     record = build_usage_record(
         record_id="fixture_record",
-        observation=source,
-        assessment=assessment,
-        upstream_identity=identity(),
+        component=bound(source, assessment),
         redistribution_decision=RedistributionDecision.CONDITIONAL,
         redistribution_basis="permitted with notices retained; not exercised",
     )
@@ -631,14 +675,7 @@ def test_a_record_over_a_different_observation_is_refused() -> None:
         names=("BSD 3-Clause License",),
     )
     with pytest.raises(ThirdPartyUsageError, match="assessment was taken over"):
-        build_usage_record(
-            record_id="fixture_mismatch",
-            observation=other,
-            assessment=assessment,
-            upstream_identity=identity(),
-            redistribution_decision=RedistributionDecision.ALLOWED,
-            redistribution_basis="permitted and not exercised",
-        )
+        bound(other, assessment)
 
 
 def test_nothing_can_claim_this_project_redistributes() -> None:
@@ -665,9 +702,7 @@ def test_weights_may_not_be_declared_repository_metadata() -> None:
     with pytest.raises(ThirdPartyUsageError, match="bytes live in the local"):
         build_usage_record(
             record_id="fixture_weights_in_repo",
-            observation=source,
-            assessment=assessment,
-            upstream_identity=identity(),
+            component=bound(source, assessment),
             redistribution_decision=RedistributionDecision.NOT_ESTABLISHED,
             redistribution_basis="not established and not exercised",
             storage_class=ArtifactStorageClass.REPOSITORY_METADATA,
@@ -712,9 +747,7 @@ def test_a_manifest_with_a_blocked_component_does_not_open_execution() -> None:
     source, assessment = permissive_pair()
     good = build_usage_record(
         record_id="fixture_good",
-        observation=source,
-        assessment=assessment,
-        upstream_identity=identity(),
+        component=bound(source, assessment),
         redistribution_decision=RedistributionDecision.ALLOWED,
         redistribution_basis="permitted and not exercised",
     )
@@ -731,9 +764,7 @@ def test_a_manifest_with_a_blocked_component_does_not_open_execution() -> None:
     )
     blocked = build_usage_record(
         record_id="fixture_blocked",
-        observation=blocked_source,
-        assessment=blocked_assessment,
-        upstream_identity=identity(),
+        component=bound(blocked_source, blocked_assessment),
         redistribution_decision=RedistributionDecision.NOT_ESTABLISHED,
         redistribution_basis="not established",
     )
@@ -755,9 +786,7 @@ def test_a_usage_record_round_trips_through_its_strict_reader() -> None:
     source, assessment = permissive_pair()
     record = build_usage_record(
         record_id="fixture_record",
-        observation=source,
-        assessment=assessment,
-        upstream_identity=identity(),
+        component=bound(source, assessment),
         redistribution_decision=RedistributionDecision.CONDITIONAL,
         redistribution_basis="permitted with notices retained; not exercised",
     )

@@ -75,6 +75,7 @@ from fpbench.experiments.stage14a_griaule_identity import (
 
 __all__ = [
     "STAGE_14A_BASELINE_COMMIT",
+    "STAGE_14A_PUBLICATION_COMMIT",
     "Stage14AFinalization",
     "stage_14a_finalization_fingerprint",
     "stage14a_source_fingerprint",
@@ -91,6 +92,16 @@ __all__ = [
 
 #: Stage 14A began here: the commit that republished Stage 13A's final marker.
 STAGE_14A_BASELINE_COMMIT = "db9cfce269705b542681e38f12e41b93a1601ec0"
+
+#: The commit that published this stage's evidence, and the end of the span its
+#: boundary audit covers.
+#:
+#: Stage 14A is PENDING_ACCESS and has no finalization marker, so this is the
+#: commit that last wrote its evidence directory rather than a value read back
+#: out of a marker. The reason for pinning it is the same either way: reading
+#: the span's end from the commit being published is correct while this stage
+#: is the newest one and wrong afterwards (docs/adr/0067).
+STAGE_14A_PUBLICATION_COMMIT = "8fc557c026c14a28e8ea4bf93c43973492480064"
 
 #: Commits inside Stage 14A's span that are **not** Stage 14A's work. Empty
 #: today and kept because it will not be (docs/adr/0067).
@@ -1118,7 +1129,9 @@ def write_stage14a_evidence(
             "committed bytes of every other document; commit them first"
         )
     commit = _head_commit(repository_root)
-    verify_stage14a_workspace_boundaries(repository_root, span_end_commit=commit)
+    verify_stage14a_workspace_boundaries(
+        repository_root, span_end_commit=STAGE_14A_PUBLICATION_COMMIT
+    )
     byte_audit = _byte_audit(repository_root)
 
     hashed = tuple(

@@ -494,11 +494,23 @@ def _evidence_directory(repository_root: Path) -> Path:
 
 
 def _write_json(path: Path, document: Mapping[str, Any]) -> None:
+    r"""Write one evidence document as bytes, with ``\n`` line endings.
+
+    Not ``write_text``. On Windows that translates ``\n`` to ``\r\n``, and this
+    stage's marker hashes its evidence over raw bytes, so a document published
+    here and the same document in any other checkout are different files. The
+    marker then agrees with exactly one machine, which is what happened: six of
+    Stage 15A's content hashes were computed over CRLF, and the gate was green
+    on the machine that wrote them and red in every clean clone.
+
+    Repairing the published hashes did not repair this. The next publication
+    would have reintroduced them, because the writer was never the thing that
+    changed. Stage 8E's ``write_evidence_json`` learned the same lesson, and
+    ``.gitattributes`` pins this directory to LF to match.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(document, indent=2, sort_keys=True, default=str) + "\n",
-        encoding="utf-8",
-    )
+    payload = json.dumps(document, indent=2, sort_keys=True, default=str) + "\n"
+    path.write_bytes(payload.encode("utf-8"))
 
 
 def publish_stage15a_evidence(

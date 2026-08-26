@@ -53,6 +53,9 @@ from fpbench.core.third_party_models import (
 )
 from fpbench.experiments import stage10a_candidate_evidence as observed
 from fpbench.experiments import stage10a_candidate_identity as frozen
+# Stage 8E's package exports are closed, so the binder comes from the module
+# that owns it rather than from an ``__init__`` that stage published.
+from fpbench.third_party.manifest import bind_component
 from fpbench.third_party import (
     assess_research_use,
     build_placement,
@@ -271,11 +274,16 @@ def build_usage_audit() -> UsageAudit:
         ),
         identity_established=True,
     )
-    record = build_usage_record(
-        record_id=_SOURCE_ARCHIVE_ID,
+    # The archive's licence was read at the upstream's own exact commit, so the
+    # two documents prove their own pairing and no attestation is legal.
+    bound = bind_component(
         observation=observation,
         assessment=assessment,
         upstream_identity=_source_upstream_identity(),
+    )
+    record = build_usage_record(
+        record_id=_SOURCE_ARCHIVE_ID,
+        component=bound,
         redistribution_decision=RedistributionDecision.CONDITIONAL,
         redistribution_basis=_SOURCE_REDISTRIBUTION_BASIS,
         notes=(
@@ -1437,6 +1445,53 @@ def require_no_candidate_bytes_in_git(repository_root: Path) -> TrackedByteAudit
     return audit
 
 
+def published_binding(record) -> dict:
+    """Everything a reader needs to re-derive a record's upstream binding.
+
+    The full identity rather than a reference to one, the three fingerprints,
+    how the pairing was established, and the attestation where there is one.
+    Published inline: a sidecar would add a resolution step and a way for the
+    document to be read as "nothing to check here" when the sidecar is missing.
+    """
+    attestation = record.publisher_attestation
+    return {
+        "upstream_identity": {
+            "upstream_name": record.upstream_identity.upstream_name,
+            "upstream_locator": record.upstream_identity.upstream_locator,
+            "exact_version": record.upstream_identity.exact_version,
+            "upstream_commit": record.upstream_identity.upstream_commit,
+            "artifact_filename": record.upstream_identity.artifact_filename,
+            "artifact_sha256": record.upstream_identity.artifact_sha256,
+            "artifact_size_bytes": record.upstream_identity.artifact_size_bytes,
+            "identity_established": record.upstream_identity.identity_established,
+        },
+        "upstream_identity_fingerprint": record.upstream_identity_fingerprint,
+        "identity_link_basis": record.identity_link_basis.value,
+        "publisher_attestation": (
+            None
+            if attestation is None
+            else {
+                "method": attestation.method.value,
+                "basis": attestation.basis,
+                "evidence_references": [
+                    {
+                        "role": reference.role.value,
+                        "path": reference.path,
+                        "commit": reference.commit,
+                        "digest": reference.digest,
+                    }
+                    for reference in attestation.evidence_references
+                ],
+                "asserted_upstream_identity_fingerprint": (
+                    attestation.asserted_upstream_identity_fingerprint
+                ),
+                "attestation_fingerprint": attestation.attestation_fingerprint,
+            }
+        ),
+        "binding_fingerprint": record.binding_fingerprint,
+    }
+
+
 def usage_manifest_document(audit: UsageAudit) -> Mapping[str, Any]:
     """The Stage 8E record for what Stage 10A obtained, in Stage 8E's vocabulary."""
     return {
@@ -1480,6 +1535,7 @@ def usage_manifest_document(audit: UsageAudit) -> Mapping[str, Any]:
                 "storage_class": audit.record.storage_class.value,
                 "stored_in_git": audit.record.stored_in_git,
                 "stored_in_ci_artifacts": audit.record.stored_in_ci_artifacts,
+                **published_binding(audit.record),
                 "usage_fingerprint": audit.record.usage_fingerprint,
             }
         ],

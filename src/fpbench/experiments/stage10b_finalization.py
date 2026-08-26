@@ -65,6 +65,7 @@ from fpbench.experiments.stage10b_id3_identity import (
 
 __all__ = [
     "STAGE_10B_BASELINE_COMMIT",
+    "STAGE_10B_PUBLICATION_COMMIT",
     "Stage10BFinalization",
     "stage_10b_finalization_fingerprint",
     "stage10b_source_fingerprint",
@@ -83,6 +84,18 @@ __all__ = [
 #: Stage 10B began here: the commit that re-closed Stage 10A over its two
 #: corrective fixes.
 STAGE_10B_BASELINE_COMMIT = "6b7284bd1b420f8203552c75d8f15196825e1685"
+
+#: The commit that first published this stage, and the end of the span its
+#: boundary audit covers.
+#:
+#: Separate from ``source_commit``/``verifier_source_commit``, which name the
+#: commit a *publication* is made at and therefore move when a marker is
+#: re-issued. Reading the span's end from those was correct while this stage
+#: was the newest one and wrong afterwards: re-publishing today would audit
+#: this stage against every stage committed since, and refuse. Work after the
+#: publication is neither this stage's to permit nor this stage's to forbid
+#: (docs/adr/0067). Stage 11A settled this first; the shape is Stage 8A's.
+STAGE_10B_PUBLICATION_COMMIT = "73aff87a5996c0cf3edb67753ca95b96705309dc"
 
 #: Commits inside Stage 10B's span that are **not** Stage 10B's work. Empty
 #: today and kept because it will not be: every stage so far has had at least
@@ -1197,7 +1210,9 @@ def write_stage10b_evidence(
             "committed bytes of every other document; commit them first"
         )
     commit = _head_commit(repository_root)
-    verify_stage10b_workspace_boundaries(repository_root, span_end_commit=commit)
+    verify_stage10b_workspace_boundaries(
+        repository_root, span_end_commit=STAGE_10B_PUBLICATION_COMMIT
+    )
     byte_audit = engine.require_no_id3_bytes_in_git(repository_root)
 
     hashed = tuple(

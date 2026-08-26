@@ -52,6 +52,7 @@ from fpbench.experiments.stage8e_identity import (
 
 __all__ = [
     "STAGE_8E_BASELINE_COMMIT",
+    "STAGE_8E_PUBLICATION_COMMIT",
     "Stage8EFinalization",
     "stage_8e_finalization_fingerprint",
     "third_party_model_fingerprint",
@@ -69,6 +70,18 @@ __all__ = [
 
 #: Stage 8E began here: the approved HEAD that closed Stage 8D.
 STAGE_8E_BASELINE_COMMIT = "2ad4698da5dd74a2aa5673ff08ffe71e69a750f0"
+
+#: The commit that first published this stage, and the end of the span its
+#: boundary audit covers.
+#:
+#: Separate from ``source_commit``/``verifier_source_commit``, which name the
+#: commit a *publication* is made at and therefore move when a marker is
+#: re-issued. Reading the span's end from those was correct while this stage
+#: was the newest one and wrong afterwards: re-publishing today would audit
+#: this stage against every stage committed since, and refuse. Work after the
+#: publication is neither this stage's to permit nor this stage's to forbid
+#: (docs/adr/0067). Stage 11A settled this first; the shape is Stage 8A's.
+STAGE_8E_PUBLICATION_COMMIT = "9955034271266556c5e6373b5cbec6a8132b1eb6"
 
 #: Commits inside Stage 8E's span that are **not** Stage 8E's work.
 #:

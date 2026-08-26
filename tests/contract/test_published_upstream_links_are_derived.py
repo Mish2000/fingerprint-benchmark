@@ -191,9 +191,16 @@ def test_no_record_reads_its_licence_out_of_another_components_upstream() -> Non
     assert not offending, offending
 
 
-@pytest.mark.parametrize(
-    "basis", [b for b in IdentityLinkBasis if b is not IdentityLinkBasis.PUBLISHER_ASSERTION]
+#: Only the two states that are *derivations*. ``PUBLISHER_ASSERTION`` and
+#: ``UNRESOLVED_DOCUMENTATION_ONLY`` are what the derivation returns when it
+#: finds nothing, which is the opposite of a route being exercised.
+_DERIVATION_ROUTES = (
+    IdentityLinkBasis.EVIDENCE_LOCATOR,
+    IdentityLinkBasis.UPSTREAM_COMMIT,
 )
+
+
+@pytest.mark.parametrize("basis", _DERIVATION_ROUTES)
 def test_at_least_one_record_derives_its_link_each_way(basis: IdentityLinkBasis) -> None:
     """Both derivation routes are exercised by real published data.
 

@@ -793,3 +793,144 @@ def all_frozen_identifiers() -> tuple[str, ...]:
     for identifier in identifiers:
         validate_id(identifier)
     return identifiers
+
+
+# --------------------------------------------------------------- attestations
+
+#: How each component whose licence evidence does not name its own upstream was
+#: tied to that upstream anyway.
+#:
+#: Nine of the twelve are here. The other three read their licence at the
+#: upstream's own locator or at its exact commit, so the two documents prove
+#: their own pairing and an attestation would be a statement nothing checks.
+#:
+#: Every entry says what was checked and points at something this repository
+#: carries, pinned at the commit its bytes sit at. None of them describes an act
+#: that is not already recorded here: where the only honest answer is a digest
+#: frozen in this file, the digest is the answer.
+
+#: Documents these attestations rest on, each pinned at the commit its bytes
+#: sit at. A path with no revision names whatever the file says today.
+_PINNED = {
+    "notices": (
+        "integrations/sourceafis-java/THIRD_PARTY_NOTICES.md",
+        "16073f93587f1a135266849fc90f2a31cccef98c",
+    ),
+    "pom": (
+        "integrations/sourceafis-java/pom.xml",
+        "16073f93587f1a135266849fc90f2a31cccef98c",
+    ),
+    "bridge_main": (
+        "integrations/sourceafis-java/src/main/java/org/fpbench/sourceafisbridge/BridgeMain.java",
+        "16073f93587f1a135266849fc90f2a31cccef98c",
+    ),
+    "flx_manifest": (
+        "evidence/stage8b-flx-runtime-qualification/runtime-manifest.json",
+        "2c8dc13aeaad7f8060c5898174963b0ecc412bed",
+    ),
+    "nbis_note": (
+        "docs/experiments/nbis-canonical500-raw.md",
+        "809d8023becd58e26bb4d2f3025780e9f885aeef",
+    ),
+    "sd300_readme": (
+        "data/README.md",
+        "693c5c8c80fb7413ac250ac77fa98c7a5c4250a9",
+    ),
+}
+
+LEGACY_ATTESTATIONS: dict[str, tuple[str, str, tuple[tuple[str, str | None, str | None], ...]]] = {
+    "sourceafis_java_library": (
+        "PACKAGE_COORDINATE",
+        "The Maven coordinate this repository pins resolves to the upstream "
+        "project whose notices were read. Nothing is fetched from a URL here: "
+        "the coordinate is the identity, and the bundled-artifact enumeration "
+        "committed beside the build records what resolving it produced.",
+        ((_PINNED["notices"][0], _PINNED["notices"][1], None),),
+    ),
+    "sourceafis_shaded_dependency_closure": (
+        "BUILD_ENUMERATION",
+        "The closure is not a thing anyone downloaded; it is what this "
+        "repository's own shade plugin produced from the pinned direct "
+        "dependencies. The enumeration committed here is that output, artifact "
+        "by artifact with its version and declared licence.",
+        ((_PINNED["notices"][0], _PINNED["notices"][1], None),),
+    ),
+    "sourceafis_bridge_shaded_jar": (
+        "BUILT_HERE",
+        "The jar is produced on this machine from sources committed in this "
+        "repository. The pom is the definition that builds it and pins every "
+        "dependency version; the bridge entry point is the source it compiles. "
+        "No jar was received from anyone.",
+        (
+            (_PINNED["pom"][0], _PINNED["pom"][1], None),
+            (_PINNED["bridge_main"][0], _PINNED["bridge_main"][1], None),
+        ),
+    ),
+    "nbis_release_archive": (
+        "PINNED_ARTIFACT_DIGEST",
+        "The archive is pinned by SHA-256 and by size in this repository, and "
+        "the licence position was taken over the archive those bytes are. The "
+        "digest is the identity: a different download with the same URL and a "
+        "different digest is a different component.",
+        ((None, None, "sha256"),),
+    ),
+    "nbis_test_archive": (
+        "PINNED_ARTIFACT_DIGEST",
+        "As with the release archive: pinned by SHA-256 and size here, and the "
+        "licence position is over exactly those bytes.",
+        ((None, None, "sha256"),),
+    ),
+    "nbis_certified_build": (
+        "BUILT_HERE",
+        "The binaries are compiled on this machine from the sealed NIST release "
+        "archive, whose digest this repository pins. The source pin is that "
+        "digest rather than a document, because what the build consumed is an "
+        "artifact and not a file committed here; the experiment note is the "
+        "definition that describes the build.",
+        (
+            (_PINNED["nbis_note"][0], _PINNED["nbis_note"][1], None),
+            (None, None, "nbis_release_sha256"),
+        ),
+    ),
+    "flx_checkpoint": (
+        "PINNED_ARTIFACT_DIGEST",
+        "The checkpoint was fetched once from the Drive file the upstream "
+        "repository names, and this repository pins the resulting bytes by "
+        "SHA-256 and size. No licence accompanied it, which is recorded "
+        "separately as the observation; what the digest establishes is which "
+        "bytes the owner accepted the risk of executing.",
+        ((None, None, "sha256"),),
+    ),
+    "flx_cpu_runtime_bundle": (
+        "BUILD_ENUMERATION",
+        "The bundle is a set of wheels this project resolved and locked, not an "
+        "artifact anyone published under that name. The Stage 8B runtime "
+        "manifest committed here enumerates every wheel by name, version and "
+        "digest, with the lock digest that pins the set.",
+        ((_PINNED["flx_manifest"][0], _PINNED["flx_manifest"][1], None),),
+    ),
+    "nist_sd300": (
+        "OUT_OF_BAND_DELIVERY",
+        "SD 300 is not served from a locator this repository can resolve; it "
+        "was obtained from NIST under the terms the dataset README records, and "
+        "those terms are committed here. What identifies the delivery is the "
+        "digest this repository pins over it.",
+        (
+            (_PINNED["sd300_readme"][0], _PINNED["sd300_readme"][1], None),
+            (None, None, "sha256"),
+        ),
+    ),
+}
+
+#: Which reference role each attestation's entries play, in order.
+LEGACY_ATTESTATION_ROLES: dict[str, tuple[str, ...]] = {
+    "sourceafis_java_library": ("ENUMERATION",),
+    "sourceafis_shaded_dependency_closure": ("ENUMERATION",),
+    "sourceafis_bridge_shaded_jar": ("BUILD_DEFINITION", "SOURCE_PIN"),
+    "nbis_release_archive": ("ARTIFACT_DIGEST",),
+    "nbis_test_archive": ("ARTIFACT_DIGEST",),
+    "nbis_certified_build": ("BUILD_DEFINITION", "SOURCE_PIN"),
+    "flx_checkpoint": ("ARTIFACT_DIGEST",),
+    "flx_cpu_runtime_bundle": ("ENUMERATION",),
+    "nist_sd300": ("TERMS_RECORD", "ARTIFACT_DIGEST"),
+}

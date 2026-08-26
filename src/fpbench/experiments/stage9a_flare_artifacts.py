@@ -78,6 +78,10 @@ from fpbench.third_party import (
 # ``file_sha256`` is not among the names Stage 8E's package re-exports, and
 # Stage 8E is closed: widening its ``__init__`` to suit this stage is exactly
 # the edit spec section 3 forbids. Importing the submodule is the alternative.
+# Same reason as ``file_sha256`` below: Stage 8E's package exports are closed,
+# so the binder is imported from the module that owns it rather than added
+# to an ``__init__`` that stage published.
+from fpbench.third_party.manifest import bind_component
 from fpbench.third_party.artifacts import file_sha256
 
 __all__ = [
@@ -461,24 +465,33 @@ def build_flare_usage_audit() -> FlareUsageAudit:
     for artifact in frozen.REQUIRED_ARTIFACTS:
         observation = observation_for(artifact)
         assessment = assessment_for(artifact, observation)
-        record = build_usage_record(
-            record_id=artifact.artifact_id,
+        identity = UpstreamIdentity(
+            upstream_name=artifact.upstream_name,
+            upstream_locator=artifact.locator,
+            exact_version=_repository_for(artifact).commit,
+            upstream_commit=_repository_for(artifact).commit,
+            artifact_filename=PurePosixPath(
+                artifact.upstream_relative_path
+            ).name
+            if artifact.upstream_relative_path != "."
+            else _repository_for(artifact).archive_filename,
+            artifact_sha256=artifact.expected_sha256,
+            artifact_size_bytes=artifact.expected_size_bytes,
+            identity_established=artifact.identity_established,
+        )
+        # No attestation is passed and none is legal here. Four of the ten read
+        # their licence at the upstream's exact commit and prove their own
+        # pairing; the other six were never acquired, so there is no act to
+        # attest to -- bind_component derives that state and refuses a positive
+        # statement over it.
+        bound = bind_component(
             observation=observation,
             assessment=assessment,
-            upstream_identity=UpstreamIdentity(
-                upstream_name=artifact.upstream_name,
-                upstream_locator=artifact.locator,
-                exact_version=_repository_for(artifact).commit,
-                upstream_commit=_repository_for(artifact).commit,
-                artifact_filename=PurePosixPath(
-                    artifact.upstream_relative_path
-                ).name
-                if artifact.upstream_relative_path != "."
-                else _repository_for(artifact).archive_filename,
-                artifact_sha256=artifact.expected_sha256,
-                artifact_size_bytes=artifact.expected_size_bytes,
-                identity_established=artifact.identity_established,
-            ),
+            upstream_identity=identity,
+        )
+        record = build_usage_record(
+            record_id=artifact.artifact_id,
+            component=bound,
             redistribution_decision=(
                 RedistributionDecision.NOT_ESTABLISHED
                 if artifact.artifact_id in _RISK_ACCEPTED_ARTIFACTS
@@ -1065,6 +1078,53 @@ def artifact_manifest(inventory: ArtifactInventory) -> Mapping[str, object]:
     }
 
 
+def published_binding(record) -> dict:
+    """Everything a reader needs to re-derive a record's upstream binding.
+
+    The full identity rather than a reference to one, the three fingerprints,
+    how the pairing was established, and the attestation where there is one.
+    Published inline: a sidecar would add a resolution step and a way for the
+    document to be read as "nothing to check here" when the sidecar is missing.
+    """
+    attestation = record.publisher_attestation
+    return {
+        "upstream_identity": {
+            "upstream_name": record.upstream_identity.upstream_name,
+            "upstream_locator": record.upstream_identity.upstream_locator,
+            "exact_version": record.upstream_identity.exact_version,
+            "upstream_commit": record.upstream_identity.upstream_commit,
+            "artifact_filename": record.upstream_identity.artifact_filename,
+            "artifact_sha256": record.upstream_identity.artifact_sha256,
+            "artifact_size_bytes": record.upstream_identity.artifact_size_bytes,
+            "identity_established": record.upstream_identity.identity_established,
+        },
+        "upstream_identity_fingerprint": record.upstream_identity_fingerprint,
+        "identity_link_basis": record.identity_link_basis.value,
+        "publisher_attestation": (
+            None
+            if attestation is None
+            else {
+                "method": attestation.method.value,
+                "basis": attestation.basis,
+                "evidence_references": [
+                    {
+                        "role": reference.role.value,
+                        "path": reference.path,
+                        "commit": reference.commit,
+                        "digest": reference.digest,
+                    }
+                    for reference in attestation.evidence_references
+                ],
+                "asserted_upstream_identity_fingerprint": (
+                    attestation.asserted_upstream_identity_fingerprint
+                ),
+                "attestation_fingerprint": attestation.attestation_fingerprint,
+            }
+        ),
+        "binding_fingerprint": record.binding_fingerprint,
+    }
+
+
 def third_party_usage_manifest_document(
     audit: FlareUsageAudit,
 ) -> Mapping[str, object]:
@@ -1122,6 +1182,7 @@ def third_party_usage_manifest_document(
                 "storage_class": mapping.record.storage_class.value,
                 "stored_in_git": mapping.record.stored_in_git,
                 "stored_in_ci_artifacts": mapping.record.stored_in_ci_artifacts,
+                **published_binding(mapping.record),
                 "usage_fingerprint": mapping.record.usage_fingerprint,
             }
             for mapping in audit.mappings

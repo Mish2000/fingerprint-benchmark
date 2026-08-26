@@ -355,11 +355,21 @@ def test_an_unexpected_published_file_is_a_finding() -> None:
 
 @requires_publication
 def test_the_stage_stayed_inside_its_own_span() -> None:
-    """docs/adr/0067: the span ends at the commit the marker names as its verifier."""
+    """docs/adr/0067: the span ends where Stage 8E ended, not where HEAD is.
+
+    It used to end at the commit the marker names as its verifier, which is the
+    same thing only until the marker is re-issued. Re-publishing Stage 8E at a
+    current commit widened the audited span to every stage committed since, and
+    the audit refused over work Stage 8E neither permitted nor forbade.
+    """
     from fpbench.experiments.stage8e_finalization import (
         verify_stage8e_workspace_boundaries,
     )
 
+    from fpbench.experiments.stage8e_finalization import (
+        STAGE_8E_PUBLICATION_COMMIT,
+    )
+
     verify_stage8e_workspace_boundaries(
-        REPOSITORY_ROOT, span_end_commit=read_marker().verifier_source_commit
+        REPOSITORY_ROOT, span_end_commit=STAGE_8E_PUBLICATION_COMMIT
     )

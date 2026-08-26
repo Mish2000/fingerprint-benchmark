@@ -5,6 +5,12 @@ cites, runs the decision table again over the facts the assessment recorded, and
 compares — the decision, the permission status, the identities, and the three
 flags that say this project publishes nothing.
 
+It also re-derives the **binding**: which upstream the observation was taken
+over, how that was established, and the digest covering all of it. That part
+used to be missing, so a record could pass every check here while naming
+somebody else's bytes — the two documents it compared were the only two it
+knew about.
+
 Two kinds of disagreement, deliberately not the same kind of event.
 
 **These documents do not belong together.** A record citing an observation with a
@@ -27,12 +33,18 @@ from fpbench.core.third_party_errors import ThirdPartyUsageError
 from fpbench.core.third_party_models import (
     LicenseObservation,
     ResearchUseAssessment,
+    ResearchUseBlocker,
     ResearchUseDecision,
     ThirdPartyUsageManifest,
     ThirdPartyUsageRecord,
+    derive_identity_link,
     license_observation_fingerprint,
+    record_has_execution_eligible_identity,
+    publisher_attestation_fingerprint,
     research_use_assessment_fingerprint,
     third_party_usage_fingerprint,
+    upstream_binding_fingerprint,
+    upstream_identity_fingerprint,
 )
 from fpbench.third_party.manifest import storage_class_for
 from fpbench.third_party.policy import decide, needs_intersection, third_party_policy
@@ -61,6 +73,10 @@ class UsageVerificationReport:
     purpose_binding_holds: bool
     storage_class_follows_policy: bool
     publishes_nothing: bool
+    #: The three parts still describe one component, and the digest that says
+    #: so re-derives. Without this in the conjunction, a record whose identity
+    #: had been swapped verified as long as its other seven flags held.
+    upstream_binding_reproduced: bool = True
 
     findings: tuple[str, ...] = field(default_factory=tuple)
 
@@ -74,6 +90,7 @@ class UsageVerificationReport:
             and self.purpose_binding_holds
             and self.storage_class_follows_policy
             and self.publishes_nothing
+            and self.upstream_binding_reproduced
             and not self.findings
         )
 
@@ -141,6 +158,8 @@ def verify_usage_record(
     if not record_ok:
         findings.append("the record does not fingerprint to what it carries")
 
+    binding_ok = _reproduce_the_binding(record, observation, assessment, findings)
+
     recomputed, permission = decide(
         blockers=assessment.blockers,
         owner_risk_accepted=assessment.owner_risk_acceptance is not None,
@@ -201,8 +220,118 @@ def verify_usage_record(
         purpose_binding_holds=purpose_ok,
         storage_class_follows_policy=storage_ok,
         publishes_nothing=publishes_nothing,
+        upstream_binding_reproduced=binding_ok,
         findings=tuple(findings),
     )
+
+
+def _reproduce_the_binding(
+    record: ThirdPartyUsageRecord,
+    observation: LicenseObservation,
+    assessment: ResearchUseAssessment,
+    findings: list[str],
+) -> bool:
+    """Re-derive every part of the binding from the documents, not the record.
+
+    Four separate questions, because a single "the binding fingerprint matches"
+    would pass on a record that had been rewritten consistently. The digest is
+    checked *last*, over values this function computed rather than values the
+    record supplied:
+
+    * the identity fingerprint, from the identity beside the record;
+    * the evidence locators, against the observation the record cites --- a
+      record that quietly edited its own copy could otherwise derive a basis
+      the observation does not support;
+    * the basis, from those locators and that identity;
+    * the attestation's own fingerprint, where there is one.
+    """
+    findings_before = len(findings)
+
+    identity_fingerprint = upstream_identity_fingerprint(record.upstream_identity)
+    if record.upstream_identity_fingerprint != identity_fingerprint:
+        findings.append(
+            "the upstream identity fingerprint does not cover the identity the "
+            "record carries"
+        )
+
+    published_locators = tuple(record.license_evidence_locators)
+    observed_locators = tuple(item.locator for item in observation.evidence)
+    if published_locators != observed_locators:
+        findings.append(
+            "the record's licence evidence locators are not the observation's: "
+            f"{list(published_locators)} against {list(observed_locators)}"
+        )
+
+    basis = derive_identity_link(observed_locators, record.upstream_identity)
+    if record.identity_link_basis is not basis:
+        findings.append(
+            f"the record publishes {record.identity_link_basis.value} and the "
+            f"observation and identity derive {basis.value}"
+        )
+
+    attestation = record.publisher_attestation
+    attestation_fingerprint = None
+    if attestation is not None:
+        attestation_fingerprint = attestation.attestation_fingerprint
+        if publisher_attestation_fingerprint(attestation) != attestation_fingerprint:
+            findings.append(
+                "the publisher attestation does not fingerprint to what it says"
+            )
+    if not basis.requires_attestation and attestation is not None:
+        findings.append(
+            f"the record is {basis.value} and carries an attestation nothing checks"
+        )
+    if basis.requires_attestation and attestation is None:
+        findings.append(
+            "the record rests on the publisher's assertion and carries none"
+        )
+    if attestation is not None:
+        filed_against = upstream_identity_fingerprint(record.upstream_identity)
+        if attestation.asserted_upstream_identity_fingerprint != filed_against:
+            findings.append(
+                "the attestation was made about a different upstream identity "
+                "than the one this record carries"
+            )
+    blocks_on_identity = (
+        ResearchUseBlocker.ARTIFACT_IDENTITY_NOT_ESTABLISHED in assessment.blockers
+    )
+    if blocks_on_identity is record.upstream_identity.identity_established:
+        findings.append(
+            "the identity says established="
+            f"{record.upstream_identity.identity_established} and the assessment "
+            f"{'blocks' if blocks_on_identity else 'does not block'} on "
+            "ARTIFACT_IDENTITY_NOT_ESTABLISHED, which are the same fact"
+        )
+    if not record_has_execution_eligible_identity(record):
+        if record.research_use_decision is not ResearchUseDecision.BLOCKED:
+            findings.append(
+                "the record has an unresolved upstream identity and a decision "
+                f"of {record.research_use_decision.value}"
+            )
+        if (
+            record.upstream_identity.artifact_sha256 is not None
+            or record.upstream_identity.artifact_size_bytes is not None
+        ):
+            findings.append(
+                "the record has an unresolved upstream identity and measured "
+                "bytes, which cannot both be true"
+            )
+
+    expected = upstream_binding_fingerprint(
+        component_kind=record.component_kind,
+        observation_fingerprint=observation.observation_fingerprint,
+        assessment_fingerprint=record.research_use_assessment_fingerprint,
+        identity_fingerprint=identity_fingerprint,
+        identity_link_basis=basis,
+        attestation_fingerprint=attestation_fingerprint,
+    )
+    if record.binding_fingerprint != expected:
+        findings.append(
+            "the binding fingerprint does not cover the three documents this "
+            "record ties together"
+        )
+
+    return len(findings) == findings_before
 
 
 def verify_usage_manifest(

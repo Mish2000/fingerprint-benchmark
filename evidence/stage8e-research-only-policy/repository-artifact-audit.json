@@ -31,7 +31,7 @@
     "findings": []
   },
   "workflows": {
-    "workflow_count": 15,
+    "workflow_count": 23,
     "scanned_tokens": [
       "actions/upload-artifact",
       "docker/build-push-action",

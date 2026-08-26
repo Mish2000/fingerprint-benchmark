@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "statement": "Every third-party component this project already depends on, mapped into the Stage 8E vocabulary by the same engine a future algorithm will use. No historical evidence was rewritten, no licence question was resolved, and nothing here is upstream content.",
-  "audit_fingerprint": "e167d0ff84e02c845f5bc99a9bd6d29031b8567adcbdd0a6d1cbe9d7c155cc0d",
+  "audit_fingerprint": "0aa8c47e4f6f2ac93b50c6b5e82b230e570ab7b1197e390200bdd6fc48ad645b",
   "component_count": 12,
   "by_route": {
     "dataset": 1,
@@ -35,28 +35,28 @@
     {
       "manifest_id": "sourceafis_third_party_usage",
       "subject": "every third-party component of the sourceafis route",
-      "manifest_fingerprint": "ef42b279d373147fb1845f41e6a5cb0cbd5df2dd15b6cabc7fd8ba6ddeb57d5e",
+      "manifest_fingerprint": "b91ab7a23dba37d57c3cf26a5861bcb4a5dffc3573cf4d6891b2eae2d30b2c3a",
       "record_count": 3,
       "opens_execution": true
     },
     {
       "manifest_id": "nbis_third_party_usage",
       "subject": "every third-party component of the nbis route",
-      "manifest_fingerprint": "efe03d46f8da7361aad8920de957e006247d750a34bd01990ba170defa054ed0",
+      "manifest_fingerprint": "3d497bf005077ae672dfed6d8dcb269f213778fdfa5ff1e6244a8c287637d1b5",
       "record_count": 3,
       "opens_execution": true
     },
     {
       "manifest_id": "flx_third_party_usage",
       "subject": "every third-party component of the flx route",
-      "manifest_fingerprint": "7837503693f461c106c68b973bace421f26fcccbaa3292320a8f136aa2ad510f",
+      "manifest_fingerprint": "1c445d9d952cde34f78c6f4980bc2cbdeb0b38341de92ff0a2357e0633c30cef",
       "record_count": 5,
       "opens_execution": true
     },
     {
       "manifest_id": "dataset_third_party_usage",
       "subject": "every third-party component of the dataset route",
-      "manifest_fingerprint": "40f309b4b5b067979ac00754163e1005e2ac2debdb6c8ec66b21129ce0fcc828",
+      "manifest_fingerprint": "f568ff28537493e7b120ca7d775b0b72088f15cc283e168ecdf9ea9246d1ecf3",
       "record_count": 1,
       "opens_execution": true
     }
@@ -140,8 +140,25 @@
           "Stage 8A's LICENSE_BLOCKED and Stage 8B's weights_license_status: unresolved stand exactly as published; this record sits beside them.",
           "Upstream training provenance is unresolved — the state dict exposes 8000 classifier classes and the paper text reports a conflicting identity count. No training dataset was obtained or used here."
         ],
-        "usage_fingerprint": "2ae3d1aefc3e7aa45e71637b7a1cd04990b3d9bd22b14b23f7131d11fd066856",
-        "schema_version": "1"
+        "upstream_identity_fingerprint": "7bd82a24c082e5f5ce711784e52008ebb3ea6a5d17d341c7bc68a23303808617",
+        "identity_link_basis": "ASSERTED_BY_THE_PUBLISHER",
+        "publisher_attestation": {
+          "method": "ARTIFACT_DIGEST_PINNED_BY_THIS_REPOSITORY",
+          "basis": "The checkpoint was fetched once from the Drive file the upstream repository names, and this repository pins the resulting bytes by SHA-256 and size. No licence accompanied it, which is recorded separately as the observation; what the digest establishes is which bytes the owner accepted the risk of executing.",
+          "evidence_references": [
+            {
+              "role": "ARTIFACT_DIGEST",
+              "path": null,
+              "commit": null,
+              "digest": "2683a04427bacd54adc00cfdc97474625b1e11e5a9e6672c5129f033018f8a28"
+            }
+          ],
+          "asserted_upstream_identity_fingerprint": "7bd82a24c082e5f5ce711784e52008ebb3ea6a5d17d341c7bc68a23303808617",
+          "attestation_fingerprint": "2275611fe24ae1b1ae33b6e796ff796794762b3a50195cbfa164b65ddbee23c8"
+        },
+        "binding_fingerprint": "df33d0804fe4e2ecedaf17992c9832612a8448a42a83252089cec73728db090f",
+        "usage_fingerprint": "e8b7680cc6713e2443a5eb5316e3a38d1f6f70ad7bdfb9ac176c9e3c17929743",
+        "schema_version": "2"
       }
     },
     {
@@ -232,8 +249,25 @@
         "notes": [
           "artifact_sha256 here is the dependency-lock digest, which is what pins the set. There is no filename and no size because the bundle is a directory of wheels rather than one file."
         ],
-        "usage_fingerprint": "9f445ef98c0b032b21fcb05085945e6e87fa1fb6131378a214749b8ce0805484",
-        "schema_version": "1"
+        "upstream_identity_fingerprint": "15eb09849a0b05fb3118e29f7eca507d6ef391474816e667ba9738a5725bd743",
+        "identity_link_basis": "ASSERTED_BY_THE_PUBLISHER",
+        "publisher_attestation": {
+          "method": "ENUMERATED_BY_THIS_REPOSITORYS_BUILD",
+          "basis": "The bundle is a set of wheels this project resolved and locked, not an artifact anyone published under that name. The Stage 8B runtime manifest committed here enumerates every wheel by name, version and digest, with the lock digest that pins the set.",
+          "evidence_references": [
+            {
+              "role": "ENUMERATION",
+              "path": "evidence/stage8b-flx-runtime-qualification/runtime-manifest.json",
+              "commit": "2c8dc13aeaad7f8060c5898174963b0ecc412bed",
+              "digest": null
+            }
+          ],
+          "asserted_upstream_identity_fingerprint": "15eb09849a0b05fb3118e29f7eca507d6ef391474816e667ba9738a5725bd743",
+          "attestation_fingerprint": "e2c429186a73710bf320b1e220aec25df8420b088b7e71df5e544b29e6b8da1f"
+        },
+        "binding_fingerprint": "3631183fc72dbb175119b5c726428acd58650fe8ea6539ef3c98b6771beaca0b",
+        "usage_fingerprint": "4184deca69745e7f0d50c17d3b79e19a5e84503602dbde3c793cd7e77d230cd2",
+        "schema_version": "2"
       }
     },
     {
@@ -316,8 +350,12 @@
         "stored_in_git": false,
         "stored_in_ci_artifacts": false,
         "notes": [],
-        "usage_fingerprint": "d274df56548ad7841d65a0c8bd33a51bfd67de39a109a1fe3793c0e8798d1ef3",
-        "schema_version": "1"
+        "upstream_identity_fingerprint": "a3d0640b301f16d4c8573121dc7707c8ecaacd0b5937731074d0e98b0066655f",
+        "identity_link_basis": "DERIVED_FROM_EVIDENCE_LOCATOR",
+        "publisher_attestation": null,
+        "binding_fingerprint": "34d52385ea02cf1a4c41ed3692c38779cddf6783ec51bf40b3333df3d360a5ae",
+        "usage_fingerprint": "59ec8781b6cf80eb0be25f0b5dee96d9fda889059bf0fb52cfad937844efe10f",
+        "schema_version": "2"
       }
     },
     {
@@ -400,8 +438,12 @@
         "stored_in_git": false,
         "stored_in_ci_artifacts": false,
         "notes": [],
-        "usage_fingerprint": "07d790b1d9a7486df86725db2fdcd504c25f3d58fa6911e9aac67c4d90470467",
-        "schema_version": "1"
+        "upstream_identity_fingerprint": "c27a9a0413a98c4b79adb28f537238465f128e1d21a6149550282469afa9dc9f",
+        "identity_link_basis": "DERIVED_FROM_EVIDENCE_LOCATOR",
+        "publisher_attestation": null,
+        "binding_fingerprint": "1d8b2f58b4485fcf69fd56d5146fc89acf1744c1a38bb8749f86b6279a602816",
+        "usage_fingerprint": "4a83f382e822309d4bdc5d2b1506f8c0231b6ff658166282762b1c3206096712",
+        "schema_version": "2"
       }
     },
     {
@@ -485,8 +527,12 @@
         "stored_in_git": false,
         "stored_in_ci_artifacts": false,
         "notes": [],
-        "usage_fingerprint": "ef70d362ece9e7da7d0c9258c8df26b16a25023159ba032cc4f64089f4d61ca9",
-        "schema_version": "1"
+        "upstream_identity_fingerprint": "2a0183958f225b84b4e8527b1870d0acc28923e7aee7a5a9c8e0fae8a778fede",
+        "identity_link_basis": "DERIVED_FROM_UPSTREAM_COMMIT",
+        "publisher_attestation": null,
+        "binding_fingerprint": "c3c03be59dd164254678eb08903f57cc363925a64727a73c55d32c72b68e8ed5",
+        "usage_fingerprint": "71237b43ab9f069accbe565a28bab234ceb35b6d68cf951916dfa1efd53e7695",
+        "schema_version": "2"
       }
     },
     {
@@ -565,8 +611,31 @@
         "notes": [
           "The patch series is empty: series.json records no modification to upstream source, which is the first rung of the modification ladder."
         ],
-        "usage_fingerprint": "f6867d73165af42af15d1c74c9c202905aa15f4fc3c034e9f5aceaf956a085c7",
-        "schema_version": "1"
+        "upstream_identity_fingerprint": "1d6df72fdfe5f70d8e1c8beff4ab0d3f19fdee63dc3cd1dc84b1294712fc0ca8",
+        "identity_link_basis": "ASSERTED_BY_THE_PUBLISHER",
+        "publisher_attestation": {
+          "method": "BUILT_HERE_FROM_PINNED_SOURCE",
+          "basis": "The binaries are compiled on this machine from the sealed NIST release archive, whose digest this repository pins. The source pin is that digest rather than a document, because what the build consumed is an artifact and not a file committed here; the experiment note is the definition that describes the build.",
+          "evidence_references": [
+            {
+              "role": "BUILD_DEFINITION",
+              "path": "docs/experiments/nbis-canonical500-raw.md",
+              "commit": "809d8023becd58e26bb4d2f3025780e9f885aeef",
+              "digest": null
+            },
+            {
+              "role": "SOURCE_PIN",
+              "path": null,
+              "commit": null,
+              "digest": "0adf8ab0f6b0e4208de50ca00ba21d3d77112ecd66288757ddfed21f6bee92c3"
+            }
+          ],
+          "asserted_upstream_identity_fingerprint": "1d6df72fdfe5f70d8e1c8beff4ab0d3f19fdee63dc3cd1dc84b1294712fc0ca8",
+          "attestation_fingerprint": "5dd935faaafda7b15a1ece5e3b7f2480b5c6c45f850b0727c70cfacb3e9125a0"
+        },
+        "binding_fingerprint": "c32aeb78982318fdbb40f74a4290e1b648e9f3c6a08e841514882e4e28375f90",
+        "usage_fingerprint": "fdd206ee3b5df58ad52c40e70b982c9c5cf91c629b154ed0fa47b21768750c14",
+        "schema_version": "2"
       }
     },
     {
@@ -645,8 +714,25 @@
         "notes": [
           "integrations/nbis/README.md refuses any source but NIST's own distribution: not a distribution package, not a fork, not a third-party image."
         ],
-        "usage_fingerprint": "ed30bf610512c1110723fa4d9d46117a5452f27527bb5091ea2c9bfaa609b9b4",
-        "schema_version": "1"
+        "upstream_identity_fingerprint": "18af6b31f30140ae870b12da24779a26fd74e572c1d84f78999eef039d75df64",
+        "identity_link_basis": "ASSERTED_BY_THE_PUBLISHER",
+        "publisher_attestation": {
+          "method": "ARTIFACT_DIGEST_PINNED_BY_THIS_REPOSITORY",
+          "basis": "The archive is pinned by SHA-256 and by size in this repository, and the licence position was taken over the archive those bytes are. The digest is the identity: a different download with the same URL and a different digest is a different component.",
+          "evidence_references": [
+            {
+              "role": "ARTIFACT_DIGEST",
+              "path": null,
+              "commit": null,
+              "digest": "0adf8ab0f6b0e4208de50ca00ba21d3d77112ecd66288757ddfed21f6bee92c3"
+            }
+          ],
+          "asserted_upstream_identity_fingerprint": "18af6b31f30140ae870b12da24779a26fd74e572c1d84f78999eef039d75df64",
+          "attestation_fingerprint": "61cee2419dc996f3b369fdb0bd1e06406f08d55f6b48814640a5b74fb941ea45"
+        },
+        "binding_fingerprint": "807a5c2d8a90411a397f179e664cc480c2b65e8e92a5af8fb84bcac227ba5f96",
+        "usage_fingerprint": "c229aebc34e6e14fd60db66e77559a911de2475a6f4c8b2fc38ed12261311cfc",
+        "schema_version": "2"
       }
     },
     {
@@ -721,8 +807,25 @@
         "stored_in_git": false,
         "stored_in_ci_artifacts": false,
         "notes": [],
-        "usage_fingerprint": "7fc1f7acb661d3db4dcdbb490cbb483ecd562d0df3d96394ebc8529188c0e002",
-        "schema_version": "1"
+        "upstream_identity_fingerprint": "9f10a9cea651c2dbf5c83d81e6abdbbc5e344ae251993e60a8be6600485c23fe",
+        "identity_link_basis": "ASSERTED_BY_THE_PUBLISHER",
+        "publisher_attestation": {
+          "method": "ARTIFACT_DIGEST_PINNED_BY_THIS_REPOSITORY",
+          "basis": "As with the release archive: pinned by SHA-256 and size here, and the licence position is over exactly those bytes.",
+          "evidence_references": [
+            {
+              "role": "ARTIFACT_DIGEST",
+              "path": null,
+              "commit": null,
+              "digest": "5a1e0f7cb06ecb3ab7936e39bde97802a364f1398e37054ed195bff052b9ff00"
+            }
+          ],
+          "asserted_upstream_identity_fingerprint": "9f10a9cea651c2dbf5c83d81e6abdbbc5e344ae251993e60a8be6600485c23fe",
+          "attestation_fingerprint": "c8e38172f2a43694f3d62be5effa5b584701468af4dc0152fd7a4028ff909798"
+        },
+        "binding_fingerprint": "ea27bf3d4548700e9eda6097589fc091233c4b692a10a3c8a8bab4fed399e5cf",
+        "usage_fingerprint": "c093e9bd3cd1af9c524f49607d1dd2bf066c0ab30f2fe61f39b722e0514e0487",
+        "schema_version": "2"
       }
     },
     {
@@ -814,8 +917,31 @@
         "notes": [
           "artifact_sha256 here is the image-manifest hash of the audited delivery, which is the only identity this project gave the dataset."
         ],
-        "usage_fingerprint": "2e2ac0c2b5942765d29a75fa932ecd7ee361d039c2f8c22205de14a5f7efc4fc",
-        "schema_version": "1"
+        "upstream_identity_fingerprint": "6499c8f052eb06651845191b87f4b634d2df4d4777280c31bf58b01447294b1c",
+        "identity_link_basis": "ASSERTED_BY_THE_PUBLISHER",
+        "publisher_attestation": {
+          "method": "DELIVERED_TO_THE_PUBLISHER_OUT_OF_BAND",
+          "basis": "SD 300 is not served from a locator this repository can resolve; it was obtained from NIST under the terms the dataset README records, and those terms are committed here. What identifies the delivery is the digest this repository pins over it.",
+          "evidence_references": [
+            {
+              "role": "TERMS_RECORD",
+              "path": "data/README.md",
+              "commit": "693c5c8c80fb7413ac250ac77fa98c7a5c4250a9",
+              "digest": null
+            },
+            {
+              "role": "ARTIFACT_DIGEST",
+              "path": null,
+              "commit": null,
+              "digest": "c2ab03a5bb20ccef2c00e5f0522b641941cb93e2676a506eae192b6251813ba9"
+            }
+          ],
+          "asserted_upstream_identity_fingerprint": "6499c8f052eb06651845191b87f4b634d2df4d4777280c31bf58b01447294b1c",
+          "attestation_fingerprint": "52ce4e7e30611c5406c7becccdeaa35917a9e42e54eea52911dd5aa18733b079"
+        },
+        "binding_fingerprint": "1abac59bc8ed407e474d30c1a4221cb80e556d2c67ab1500de7a2cb47acee800",
+        "usage_fingerprint": "ce0114e5a281686b548436d05a742e20bc32ccf836c9eac7cf99eaede5834569",
+        "schema_version": "2"
       }
     },
     {
@@ -904,8 +1030,31 @@
         "notes": [
           "27 MB of compiled bytes; a committed jar would be a binary nobody could review."
         ],
-        "usage_fingerprint": "6ccfabebff607ea2b090820a991853eb4aefaa99c910a13d2e3e90bec070d4c3",
-        "schema_version": "1"
+        "upstream_identity_fingerprint": "f6465db1a7edd0cb5b5bb62b15570a3c457906fdc89580f806f8132a80faf79b",
+        "identity_link_basis": "ASSERTED_BY_THE_PUBLISHER",
+        "publisher_attestation": {
+          "method": "BUILT_HERE_FROM_PINNED_SOURCE",
+          "basis": "The jar is produced on this machine from sources committed in this repository. The pom is the definition that builds it and pins every dependency version; the bridge entry point is the source it compiles. No jar was received from anyone.",
+          "evidence_references": [
+            {
+              "role": "BUILD_DEFINITION",
+              "path": "integrations/sourceafis-java/pom.xml",
+              "commit": "16073f93587f1a135266849fc90f2a31cccef98c",
+              "digest": null
+            },
+            {
+              "role": "SOURCE_PIN",
+              "path": "integrations/sourceafis-java/src/main/java/org/fpbench/sourceafisbridge/BridgeMain.java",
+              "commit": "16073f93587f1a135266849fc90f2a31cccef98c",
+              "digest": null
+            }
+          ],
+          "asserted_upstream_identity_fingerprint": "f6465db1a7edd0cb5b5bb62b15570a3c457906fdc89580f806f8132a80faf79b",
+          "attestation_fingerprint": "0577a219acc543c12260b49c4c7c09f5a969294fa61e09db49e3bde3822b96d4"
+        },
+        "binding_fingerprint": "e92b12cde81c14bde6391a9bd1cafe37cf44f14b880be4cb288e720a9b55a90c",
+        "usage_fingerprint": "83092e88b8553762db1278b8f33e2993e5633ebff3cef126a00833b1548bd8d2",
+        "schema_version": "2"
       }
     },
     {
@@ -994,8 +1143,25 @@
         "stored_in_git": false,
         "stored_in_ci_artifacts": false,
         "notes": [],
-        "usage_fingerprint": "98ab87027bf8fde0e10ec99db538d31b6a1a548b2a4f6487738b8b93b7435a65",
-        "schema_version": "1"
+        "upstream_identity_fingerprint": "5c29b17f8704a0737c0295ca2b336c1a13109a53251a8db73e76dd22c229ea08",
+        "identity_link_basis": "ASSERTED_BY_THE_PUBLISHER",
+        "publisher_attestation": {
+          "method": "PACKAGE_COORDINATE_NAMES_THE_UPSTREAM",
+          "basis": "The Maven coordinate this repository pins resolves to the upstream project whose notices were read. Nothing is fetched from a URL here: the coordinate is the identity, and the bundled-artifact enumeration committed beside the build records what resolving it produced.",
+          "evidence_references": [
+            {
+              "role": "ENUMERATION",
+              "path": "integrations/sourceafis-java/THIRD_PARTY_NOTICES.md",
+              "commit": "16073f93587f1a135266849fc90f2a31cccef98c",
+              "digest": null
+            }
+          ],
+          "asserted_upstream_identity_fingerprint": "5c29b17f8704a0737c0295ca2b336c1a13109a53251a8db73e76dd22c229ea08",
+          "attestation_fingerprint": "aaa752a69c099e404ecab5dfd241e9f6f896348401dfb648cb3b75b3ca4471c7"
+        },
+        "binding_fingerprint": "6a65a61fa77445b796bba899b83a01d6ff2f86d307dd00b94256ad560f8c0a20",
+        "usage_fingerprint": "4097d3a290f9e4707ba50dc452542b5dac6158cb75d052b640d940c287cf60aa",
+        "schema_version": "2"
       }
     },
     {
@@ -1086,8 +1252,25 @@
         "stored_in_git": false,
         "stored_in_ci_artifacts": false,
         "notes": [],
-        "usage_fingerprint": "ed08a32d0ba31f74ed36dfc18b33cfd5a351ccb53ae09872ab7f6c107e12cc7c",
-        "schema_version": "1"
+        "upstream_identity_fingerprint": "f8e446c5bb634abcccd0abccd796d464eaeb055b1fbd7290468238efab569350",
+        "identity_link_basis": "ASSERTED_BY_THE_PUBLISHER",
+        "publisher_attestation": {
+          "method": "ENUMERATED_BY_THIS_REPOSITORYS_BUILD",
+          "basis": "The closure is not a thing anyone downloaded; it is what this repository's own shade plugin produced from the pinned direct dependencies. The enumeration committed here is that output, artifact by artifact with its version and declared licence.",
+          "evidence_references": [
+            {
+              "role": "ENUMERATION",
+              "path": "integrations/sourceafis-java/THIRD_PARTY_NOTICES.md",
+              "commit": "16073f93587f1a135266849fc90f2a31cccef98c",
+              "digest": null
+            }
+          ],
+          "asserted_upstream_identity_fingerprint": "f8e446c5bb634abcccd0abccd796d464eaeb055b1fbd7290468238efab569350",
+          "attestation_fingerprint": "942d8fe50ceb25cf18adc9b6ba43df5725895f558d5a2f4ff3e22fc7fe341955"
+        },
+        "binding_fingerprint": "b555d99cb2983058abef621b177208e87c8db94139d922ba7d4ea022e9b0ff50",
+        "usage_fingerprint": "ae3bf9e5e864968ce1ea5ea4910272f97304df8a932112eea52120b9ea4bae89",
+        "schema_version": "2"
       }
     }
   ]

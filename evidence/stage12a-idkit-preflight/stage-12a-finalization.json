@@ -96,10 +96,10 @@
     "score-contract.json": "fcea3c4a49450be3ea9d535a8e23cebc096bfac05ceebdffe753520fee7435eb",
     "training-provenance.json": "1e180922c7a59cfe06fc1b562f97c706fea0f3d66b4dea7676a6454df4bec8d4"
   },
-  "source_commit": "70e4c6150a27b15d338d80dc047612d18eb32869",
+  "source_commit": "9c857350a3ebf46b90c8dd89f2268fc89d3db216",
   "source_tree_clean": true,
-  "verifier_source_commit": "70e4c6150a27b15d338d80dc047612d18eb32869",
+  "verifier_source_commit": "9c857350a3ebf46b90c8dd89f2268fc89d3db216",
   "verifier_source_tree_clean": true,
-  "stage_12a_finalization_fingerprint": "1e1e109037fa066387620469d920125f4d0e5a72b65fa58ff3c02cdd0d1f749f",
-  "created_utc": "2026-08-26T14:37:45Z"
+  "stage_12a_finalization_fingerprint": "e032d5b81150d020edfe0b437952f09f9d6ba102a22a6c184a2dc930a75cfcf0",
+  "created_utc": "2026-08-26T14:37:56Z"
 }

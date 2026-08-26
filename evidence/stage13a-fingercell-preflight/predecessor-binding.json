@@ -12,7 +12,7 @@
   ],
   "immutable": [
     {
-      "finalization_fingerprint": "275ace8da5cf1490cb2c5ddbe27dd615c7f9d0c0fb6d6375b79d568628c943ab",
+      "finalization_fingerprint": "9edb3c20a84f7aeefa9c1f576cfd4fbda35f58f5ce06ed999850c277505a0ebe",
       "outcome": "VERIFINGER_CANONICAL500_RAW_COMPLETE",
       "stage": "11B",
       "why": "Algorithm 4's 6,000 published outcomes. Bound and never read: this stage consults no prior algorithm's scores, and its candidate happens to come from the same vendor"
@@ -28,7 +28,7 @@
   ],
   "predecessor": {
     "failure_class": "VENDOR_ACCESS_REFUSED",
-    "finalization_fingerprint": "e032d5b81150d020edfe0b437952f09f9d6ba102a22a6c184a2dc930a75cfcf0",
+    "finalization_fingerprint": "49db5eb319d5242a2beefaf7c8f5c08c5b87b954152b3e5d313c5eaa93ba1a1a",
     "outcome": "IDKIT_PREFLIGHT_FAIL",
     "stage": "12A",
     "what_it_established": "an Innovatrics refusal at the acquisition gate, no package, no execution, and a marker that reopened the Algorithm 5 search",

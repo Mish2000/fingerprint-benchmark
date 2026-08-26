@@ -658,7 +658,7 @@ BOUND_MARKERS: tuple[dict[str, str], ...] = (
     {
         "stage": "15A",
         "finalization_fingerprint": (
-            "16092882ee944d1d02316de08ecd0672854dd768e4fd9f6d75e76e58019464c1"
+            "e5763dd81d8b1fb46dc923d67565bac947153c9eac603f4c733c9697180dbe4c"
         ),
         "outcome": PREDECESSOR_OUTCOME,
         "why": (

@@ -140,8 +140,22 @@ def test_no_absolute_path_reaches_the_environment_report(adapter) -> None:
 # ------------------------------------------------------------------ the smoke
 
 
-def test_the_production_smoke_establishes_every_claim(installation: Path) -> None:
-    """The whole of spec section 23, run against the real SDK."""
+def test_the_production_smoke_establishes_every_claim(
+    adapter, installation: Path
+) -> None:
+    """The whole of spec section 23, run against the real SDK.
+
+    ``adapter`` is requested and never used. It is this file's skip
+    condition: the fixture builds the production adapter and skips unless
+    ``validate_environment`` reports READY, so every missing prerequisite
+    skips here the way it does in every other test of this file. Asking for
+    ``installation`` alone skipped on absent artifacts and on nothing else,
+    which turned an unbuilt bridge jar — and, on a machine that has built
+    one, a Java off ``PATH`` — into a red general suite: ``make test`` does
+    not deselect ``verifinger_artifact``. Two prerequisites reached the same
+    failure by different routes, which is why the condition belongs in the
+    environment report rather than in a check for either one.
+    """
     from fpbench.experiments.verifinger_smoke import run_production_smoke
 
     report = run_production_smoke(

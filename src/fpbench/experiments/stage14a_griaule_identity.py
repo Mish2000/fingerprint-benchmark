@@ -859,7 +859,7 @@ STAGE_13A_EVIDENCE_DIRECTORY = "/".join(
 #: Algorithm 4's 6,000 published outcomes. Bound and never read.
 STAGE_11B_OUTCOME = "VERIFINGER_CANONICAL500_RAW_COMPLETE"
 STAGE_11B_FINALIZATION_FINGERPRINT = (
-    "275ace8da5cf1490cb2c5ddbe27dd615c7f9d0c0fb6d6375b79d568628c943ab"
+    "9edb3c20a84f7aeefa9c1f576cfd4fbda35f58f5ce06ed999850c277505a0ebe"
 )
 
 #: The third-party research-use policy, reused and not reopened. It is applied to

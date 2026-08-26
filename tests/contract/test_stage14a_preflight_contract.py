@@ -899,7 +899,7 @@ def test_the_baseline_is_the_stage_13a_republish_commit() -> None:
 
 def test_the_bound_predecessor_is_the_corrected_stage_13a_marker() -> None:
     assert frozen.STAGE_13A_FINALIZATION_FINGERPRINT == (
-        "9c31aa1d5fb5cf1ab0d3a648d962a2d007c217661c417a50540c390422e4732b"
+        "cce18eeacaa65cb222871f2fc00a5e2a65e884bd51d22427e98a9a6442348ceb"
     )
     assert frozen.STAGE_13A_OUTCOME == "FINGERCELL_PREFLIGHT_FAIL"
     assert frozen.STAGE_13A_FAILURE_CLASS == (

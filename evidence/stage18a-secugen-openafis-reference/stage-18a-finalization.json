@@ -5,19 +5,19 @@
   "algorithm_slot": "algorithm_5",
   "bound_markers": [
     {
-      "finalization_fingerprint": "e9aeb5c3c35e3bb69186df5a8162856841cc09e52619e8593d245f6c7ded5963",
+      "finalization_fingerprint": "c2a9e381b2a5f8a10792745996c3c3db2442bbb52bb7d220cd81897a57352857",
       "outcome": "FINGERPRINTMATCHER_SCORE_CONTRACT_FAIL",
       "stage": "17A",
       "why": "the predecessor candidate, closed at its score-contract gate. It left Algorithm 5 open, which is why OpenAFIS was revisited"
     },
     {
-      "finalization_fingerprint": "e5763dd81d8b1fb46dc923d67565bac947153c9eac603f4c733c9697180dbe4c",
+      "finalization_fingerprint": "3e3d7daf8cd2a6546fb04ed011a8da5035287a2f6918847bcee36b74dfe11c39",
       "outcome": "FINGERPRINTS_MATCHING_CANONICAL500_RAW_COMPLETE",
       "stage": "15A",
       "why": "the algorithm whose slot is still contested. Bound and never read for its scores"
     },
     {
-      "finalization_fingerprint": "35f700ff74902e9d5a54a819a006f4b86940003c6563d3ef2b4da50ef3a2575f",
+      "finalization_fingerprint": "8d5731bbc20ae3570cdd6b4f95ebf314e7d7e23da89f8fb18f36d121989f0307",
       "outcome": "RESEARCH_ONLY_THIRD_PARTY_POLICY_READY",
       "stage": "8E",
       "why": "the third-party research-use policy, reused and not reopened"
@@ -82,7 +82,7 @@
   "scores_in_evidence": false,
   "stage": "18A",
   "stage18a_source_fingerprint": "bb93ad42cddc24ea4e599d3fb18e2d425d43919c0072978cb7c224694bbde7a8",
-  "stage_18a_finalization_fingerprint": "380968feb49b7ec5f09532fce417958ff707bb00e117b57b17eff137cd8bb451",
+  "stage_18a_finalization_fingerprint": "fe4408cb9eca7d1cf850ff94953f4567df379204248ff8a570fb3fb42e0a67fb",
   "stored_pair_outcomes": 6000,
   "threshold_applied": false,
   "vendor_binaries_in_git": false,

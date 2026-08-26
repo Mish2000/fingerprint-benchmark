@@ -49,7 +49,7 @@
   "predecessor": {
     "stage": "stage_10b",
     "outcome": "ID3_FINGER_SDK_PREFLIGHT_FAIL",
-    "finalization_fingerprint": "78f3a435449da6f3a6e63712cd90a6ab94f2b3f6bf41fc68d5c8b81e2b914d86",
+    "finalization_fingerprint": "29172b845f8cb0409ed07b72443caeb8c08856f9bd56062b3037fb2bd216f8a5",
     "relation": "Stage 10B preflighted the id3 Finger SDK, failed at its acquisition gate, reserved Stage 10C for that candidate and opened a candidate search. Stage 11A is that search's next candidate and adds nothing to Stage 10B.",
     "stage_10b_evidence_modified_by_stage_11a": false
   },

@@ -1,8 +1,8 @@
 {
   "schema_version": "1",
   "statement": "The structural facts the Stage 8E contract suite enforces. Everything here is a property of the source or of the public repository, not a measurement, and none of it is upstream content.",
-  "third_party_model_fingerprint": "385d2562347f1a49dd2dd2fb4c6fb7bdfc2807cbce50d33e6d0102a5a2395349",
-  "policy_engine_fingerprint": "80bc4bc0658ceb1da62c411cdf3acbc34173a8f27c09ceeef698688affe33b5d",
+  "third_party_model_fingerprint": "ebb2757de66ec34eb2c0f0ccc81024b189ae73b7c75e073d42c8b8d5c91f3c52",
+  "policy_engine_fingerprint": "6fa55b5709a6e06b0b80b5dab666c8686f6112c18fef64c4810c32131559d1f5",
   "third_party_package": {
     "modules": [
       "__init__.py",
@@ -18,7 +18,7 @@
       "__init__.py": "498d584a624f7b2e7079e9ce4f2894cab52b2a1d0f045a35da190e8f38003543",
       "purpose.py": "5026a6d0705aa17b0741616d4b0a958ff4276c5682a849665ebbab9c96d3e9d5",
       "policy.py": "6a1d46c328ac1fba5757f01e98c52a1e8cd893825dc54b58ecf9361a62771f3b",
-      "manifest.py": "e2f15047351d89e98dff8d759770383ff4f1cf795b748ed3182692b6cc6e5fb2",
+      "manifest.py": "a3754740687df709479b331a56d9e116b57343b3f8a18e8b407b7c0f79319935",
       "artifacts.py": "484eb0a0a6c7060cc2c8ed01fd89ee5c08244d306abde7de7bb79061d8b81841",
       "transformations.py": "c875c8e835a62c1e4660c340ccf0b729646845ed21c7ddd1cd6a40edf1169d7e",
       "repository_guard.py": "3a7d2d3f01e9f44a48ca15bb8703d9b54eb126e5ae7d9c58150360c384cc3cc5",

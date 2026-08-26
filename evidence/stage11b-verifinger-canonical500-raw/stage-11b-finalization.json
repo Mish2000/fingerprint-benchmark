@@ -63,7 +63,7 @@
   "opens_algorithm_5_search": true,
   "opens_common_calibration": false,
   "evidence_content_hashes": {
-    "README.md": "f06a7702d641278258ab8d49acc3ed17b97435fd26a4209a292b1839e5d56a8d",
+    "README.md": "927ed2f60b389706f1f46df99159da77755fa6acaf6e091acb7aca3bd12790b5",
     "adapter-profile.json": "f0e4020991af517dd2afe1fd2f1431e3e59c8e5bae5214b1fed8b9b48d1efbcf",
     "adapter-smoke.json": "3b3502289f8ed060caff9e2a3ee8fa9ddb03458a5b1c5cbf0a8123e219b8bd99",
     "algorithm-profile.json": "1cbf3c56a7f4edb050d9eded4396b33483cb6978829c261fc7d136e7421f3e03",
@@ -72,8 +72,8 @@
     "operational-summary.json": "42bc24298f70153cc6b04b8e578465a4657e39716ae889a26354586d844e1594",
     "runtime-binding.json": "2efdc260bac2e34f700c87786ec4b5ee90c0aa309f14ba595429960fe83fc322"
   },
-  "source_commit": "33624c859f4530d9b056044547e21a459b78793f",
+  "source_commit": "0effc0ede638643016f19e9bf4a8a75c282aeb69",
   "source_tree_clean": true,
-  "created_utc": "2026-08-26T14:36:41Z",
-  "stage_11b_finalization_fingerprint": "275ace8da5cf1490cb2c5ddbe27dd615c7f9d0c0fb6d6375b79d568628c943ab"
+  "created_utc": "2026-08-26T15:12:52Z",
+  "stage_11b_finalization_fingerprint": "9edb3c20a84f7aeefa9c1f576cfd4fbda35f58f5ce06ed999850c277505a0ebe"
 }

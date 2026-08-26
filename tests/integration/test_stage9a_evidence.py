@@ -272,9 +272,18 @@ def test_the_published_bytes_have_not_moved_since_finalization() -> None:
 
 
 def test_stage9a_stayed_inside_its_own_span() -> None:
-    document = _marker()
+    """The span ends where Stage 9A ended, not at whatever the marker names now.
+
+    ``verifier_source_commit`` moves when the marker is re-issued, so reading
+    the span's end from it widened the audit to every stage committed since and
+    refused over work Stage 9A neither permitted nor forbade (docs/adr/0067).
+    """
+    from fpbench.experiments.stage9a_flare_finalization import (
+        STAGE_9A_PUBLICATION_COMMIT,
+    )
+
     verify_stage9a_workspace_boundaries(
-        REPOSITORY_ROOT, span_end_commit=document["verifier_source_commit"]
+        REPOSITORY_ROOT, span_end_commit=STAGE_9A_PUBLICATION_COMMIT
     )
 
 
@@ -296,8 +305,13 @@ def test_the_stage8e_evidence_is_byte_for_byte_what_stage8e_published() -> None:
 
     from fpbench.experiments.stage9a_flare_finalization import (
         STAGE_9A_BASELINE_COMMIT,
+        STAGE_9A_PUBLICATION_COMMIT,
     )
 
+    # Stage 9A's span, not "everything since Stage 9A". The question is whether
+    # *this stage* edited Stage 8E's surface while it was being built; a later
+    # stage re-issuing Stage 8E deliberately and in the open is not that, and
+    # diffing to HEAD answered the second question while claiming the first.
     completed = subprocess.run(
         (
             "git",
@@ -306,7 +320,7 @@ def test_the_stage8e_evidence_is_byte_for_byte_what_stage8e_published() -> None:
             "diff",
             "--name-only",
             STAGE_9A_BASELINE_COMMIT,
-            "HEAD",
+            STAGE_9A_PUBLICATION_COMMIT,
             "--",
             "evidence/stage8e-research-only-policy",
             "src/fpbench/third_party",

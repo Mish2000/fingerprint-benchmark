@@ -5,9 +5,9 @@
   "algorithm_slot": "algorithm_5",
   "candidate": "innovatrics_idkit_fingerprint_1to1",
   "stage11b_outcome": "VERIFINGER_CANONICAL500_RAW_COMPLETE",
-  "stage11b_finalization_fingerprint": "275ace8da5cf1490cb2c5ddbe27dd615c7f9d0c0fb6d6375b79d568628c943ab",
+  "stage11b_finalization_fingerprint": "9edb3c20a84f7aeefa9c1f576cfd4fbda35f58f5ce06ed999850c277505a0ebe",
   "stage8e_policy_fingerprint": "35f700ff74902e9d5a54a819a006f4b86940003c6563d3ef2b4da50ef3a2575f",
-  "stage12a_source_fingerprint": "b88770993c6142b8bc8ed81ca0977a72d1706e2903d856bc8d10faf55bed923c",
+  "stage12a_source_fingerprint": "225e2fae12672d3072bc360e71f0e819f896dde6f073b7b87c6ed4fe425b2813",
   "observations_fingerprint": "a4ffd1c978f3b9242a0bc30c3bf26d54c2021944cf5a83b0e7f4a463e556419a",
   "preflight_fingerprint": "38d2d7a275c01b6e553e5f535c67c929510b2053c737f33b63bb508618f6014c",
   "gate_count_defined": 10,
@@ -88,7 +88,7 @@
     "fingerprint-route-profile.json": "fcfa2cbfc09c087da4de79eef7d609fdab65378932c35f143ad19ca72f7f88dc",
     "input-route.json": "087c3da0eae442073db238dc3c2a84879ce92067d850281de882b3ae3701729a",
     "package-manifest.json": "ec07a467897cd29f9c5b666bd2685c032903d2b72e9b1e9fce74467318f9d7e1",
-    "predecessor-binding.json": "c94ac0f60805163ccdd69b4213c723211e80c1cc796c5b158c369c3e4f10026d",
+    "predecessor-binding.json": "48e1ba084172e914f37dd04b78dd070e4770111f917930d01e071e46e1076b8c",
     "preflight-report.json": "e0469420267bf7cf39e109f7d0a9e5d856460660001c9cc579176ba8f9002e61",
     "qualification-run.json": "e840cd4a4421ad197a55fddbbb2245b6b65be28a45391f64925eb44333ed1cfb",
     "research-use-license.json": "84d8fdf8325ba9ee3a892f8df530ed6143c4af3754b12d6792f347e6d9abd366",
@@ -96,10 +96,10 @@
     "score-contract.json": "fcea3c4a49450be3ea9d535a8e23cebc096bfac05ceebdffe753520fee7435eb",
     "training-provenance.json": "1e180922c7a59cfe06fc1b562f97c706fea0f3d66b4dea7676a6454df4bec8d4"
   },
-  "source_commit": "9c857350a3ebf46b90c8dd89f2268fc89d3db216",
+  "source_commit": "c610efb13c06f424c087405ec59e6c09cae5271e",
   "source_tree_clean": true,
-  "verifier_source_commit": "9c857350a3ebf46b90c8dd89f2268fc89d3db216",
+  "verifier_source_commit": "c610efb13c06f424c087405ec59e6c09cae5271e",
   "verifier_source_tree_clean": true,
-  "stage_12a_finalization_fingerprint": "e032d5b81150d020edfe0b437952f09f9d6ba102a22a6c184a2dc930a75cfcf0",
-  "created_utc": "2026-08-26T14:37:56Z"
+  "stage_12a_finalization_fingerprint": "49db5eb319d5242a2beefaf7c8f5c08c5b87b954152b3e5d313c5eaa93ba1a1a",
+  "created_utc": "2026-08-26T15:13:14Z"
 }

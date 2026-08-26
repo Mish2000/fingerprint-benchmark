@@ -37,7 +37,7 @@ from fpbench.core.algorithm4_errors import (
     PreflightGateError,
     Stage10AFinalizationError,
 )
-from fpbench.core.serialization import stable_hash
+from fpbench.core.serialization import stable_hash, to_plain
 from fpbench.core.third_party_models import (
     LicenseEvidence,
     LicenseObservation,
@@ -1445,6 +1445,28 @@ def require_no_candidate_bytes_in_git(repository_root: Path) -> TrackedByteAudit
     return audit
 
 
+def published_triplet(observation, assessment, record) -> dict:
+    """The three documents a reader needs to verify a record without this code.
+
+    Not a projection of them. ``verify_usage_record`` takes an observation, an
+    assessment and a record, re-derives every fingerprint and re-runs the
+    decision table; a document that publishes only the fingerprints lets a
+    reader compare digests they cannot recompute, which is a receipt rather
+    than evidence.
+
+    Stage 8E published the full three from the start. Stage 9A and Stage 10A
+    published a flattened summary, so eleven of the twenty-three records could
+    not be checked from the disk at all -- and the scan that was supposed to
+    catch that asserted the *presence of fields*, which is one level shallower
+    than the property it was written for.
+    """
+    return {
+        "observation": to_plain(observation),
+        "assessment": to_plain(assessment),
+        "usage_record": to_plain(record),
+    }
+
+
 def published_binding(record) -> dict:
     """Everything a reader needs to re-derive a record's upstream binding.
 
@@ -1537,6 +1559,9 @@ def usage_manifest_document(audit: UsageAudit) -> Mapping[str, Any]:
                 "stored_in_ci_artifacts": audit.record.stored_in_ci_artifacts,
                 **published_binding(audit.record),
                 "usage_fingerprint": audit.record.usage_fingerprint,
+                **published_triplet(
+                    audit.observation, audit.assessment, audit.record
+                ),
             }
         ],
         "checkpoints_acquired": 0,

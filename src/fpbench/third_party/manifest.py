@@ -264,24 +264,38 @@ def require_attestation_references_are_tracked(
     """
     root = Path(repository_root)
     for commit, path in attestation_reference_paths(attestation):
-        try:
-            completed = subprocess.run(
-                ["git", "cat-file", "-e", f"{commit}:{path}"],
-                cwd=str(root),
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-        except OSError as exc:  # pragma: no cover - Git is present in CI
-            raise ThirdPartyUsageError(
-                f"cannot check {path!r} at {commit[:12]}...: {exc}"
-            ) from exc
-        if completed.returncode != 0:
-            raise ThirdPartyUsageError(
-                f"this attestation rests on {path!r} at commit {commit[:12]}..., "
-                "and that blob is not in this repository. A reference nobody can "
-                "resolve is a reference to nothing"
-            )
+        # Two questions, and ``cat-file -e`` answers neither on its own: it
+        # reports that *an object* exists, so a directory passes as happily as a
+        # file and a tag would pass as a commit. Ask for the type instead.
+        for revision, wanted, what in (
+            (commit, "commit", "a commit"),
+            (f"{commit}:{path}", "blob", "a file"),
+        ):
+            try:
+                completed = subprocess.run(
+                    ["git", "cat-file", "-t", revision],
+                    cwd=str(root),
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+            except OSError as exc:  # pragma: no cover - Git is present in CI
+                raise ThirdPartyUsageError(
+                    f"cannot check {path!r} at {commit[:12]}...: {exc}"
+                ) from exc
+            if completed.returncode != 0:
+                raise ThirdPartyUsageError(
+                    f"this attestation rests on {path!r} at commit "
+                    f"{commit[:12]}..., and {what} is not in this repository. A "
+                    "reference nobody can resolve is a reference to nothing"
+                )
+            found = completed.stdout.strip()
+            if found != wanted:
+                raise ThirdPartyUsageError(
+                    f"this attestation rests on {path!r} at commit "
+                    f"{commit[:12]}..., and that names a {found} where {what} "
+                    f"was required. A {found} is not something a reader can open"
+                )
 
 
 def require_bound_component_references_are_tracked(

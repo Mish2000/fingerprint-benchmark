@@ -43,7 +43,7 @@ from pathlib import Path, PurePosixPath
 from typing import Iterable, Mapping
 
 from fpbench.core.flare_errors import FlareArtifactError, Stage9AFinalizationError
-from fpbench.core.serialization import stable_hash
+from fpbench.core.serialization import stable_hash, to_plain
 from fpbench.core.third_party_models import (
     LicenseEvidence,
     LicenseObservation,
@@ -1078,6 +1078,28 @@ def artifact_manifest(inventory: ArtifactInventory) -> Mapping[str, object]:
     }
 
 
+def published_triplet(observation, assessment, record) -> dict:
+    """The three documents a reader needs to verify a record without this code.
+
+    Not a projection of them. ``verify_usage_record`` takes an observation, an
+    assessment and a record, re-derives every fingerprint and re-runs the
+    decision table; a document that publishes only the fingerprints lets a
+    reader compare digests they cannot recompute, which is a receipt rather
+    than evidence.
+
+    Stage 8E published the full three from the start. Stage 9A and Stage 10A
+    published a flattened summary, so eleven of the twenty-three records could
+    not be checked from the disk at all -- and the scan that was supposed to
+    catch that asserted the *presence of fields*, which is one level shallower
+    than the property it was written for.
+    """
+    return {
+        "observation": to_plain(observation),
+        "assessment": to_plain(assessment),
+        "usage_record": to_plain(record),
+    }
+
+
 def published_binding(record) -> dict:
     """Everything a reader needs to re-derive a record's upstream binding.
 
@@ -1184,6 +1206,9 @@ def third_party_usage_manifest_document(
                 "stored_in_ci_artifacts": mapping.record.stored_in_ci_artifacts,
                 **published_binding(mapping.record),
                 "usage_fingerprint": mapping.record.usage_fingerprint,
+                **published_triplet(
+                    mapping.observation, mapping.assessment, mapping.record
+                ),
             }
             for mapping in audit.mappings
         ],

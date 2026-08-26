@@ -1645,6 +1645,14 @@ def require_method_has_its_facts(
                 f"({sorted(PACKAGE_COORDINATE_SCHEMES)}). A coordinate nobody "
                 "can resolve names no upstream"
             )
+        # Parsing is not evidence. A well-formed coordinate says the string has
+        # the shape of a coordinate, not that anything resolved it or that the
+        # notices beside it came from what it resolved to -- and this method was
+        # the only one accepting a reference that pointed at neither.
+        require_role(
+            AttestationReferenceRole.ENUMERATION,
+            "rests on what resolving the coordinate produced",
+        )
         return
 
     if method is AttestationMethod.OUT_OF_BAND_DELIVERY:

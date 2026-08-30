@@ -1,0 +1,18 @@
+{
+  "all_pair_ids_unchanged": true,
+  "cohort_id": "sd300_50_subjects_test_22f8d52a7478",
+  "count": 6000,
+  "expected_count": 6000,
+  "expected_pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "generator_regeneration_exact": true,
+  "kind": "stage_21a_legacy_protocol_invariance",
+  "manifest_self_hash_recomputed": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "ordered_rows_sha256": "95e2f662a916f3ae9526e30073e0732e0215cb187114462610e02d1de75fdfa8",
+  "ordering_unchanged": true,
+  "pair_ids_sha256": "c1020b43de6693c7d2b2c8a6c94ce1e3f8867da75a541043d2c8cd6a2ec39721",
+  "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "pass": true,
+  "protocol_config": "configs/protocols/sd300_50_subjects.yaml",
+  "protocol_config_sha256": "e57d6f6d5d01b0ea068a032c56c308456846a6b5558f85c1bc597e2f3bbbfdd4",
+  "protocol_id": "sd300_50_subjects"
+}

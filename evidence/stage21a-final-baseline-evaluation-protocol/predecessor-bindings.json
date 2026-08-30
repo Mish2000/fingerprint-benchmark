@@ -1,0 +1,97 @@
+{
+  "all_documents_sha256_bound": true,
+  "documents": [
+    {
+      "path": "configs/comparisons/final_baseline_roster_v1.yaml",
+      "sha256": "224e4f6ea3140a78aa0face21caf6a0b6df3f33d29f4d005c48a82e93936ecc5",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "configs/algorithms/sourceafis_java_3_18_1.yaml",
+      "sha256": "2b6446118a2e9cb09b864e63980e197619263841c9d32d21488d1609cf904a1f",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "evidence/sourceafis-canonical500-full/run_4c59fa02a6ab.json",
+      "sha256": "002cb800ee9346361a3523666814ae5ffde290286b70fb95150a993adcb0ca52",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "workspace/results/run_4c59fa02a6ab/research-finalization.json",
+      "sha256": "f2480aa5a27cc3c867c07ef000d11af3bcf32b30156aecd48d2e5c76013a33be",
+      "workspace_metadata_only": true
+    },
+    {
+      "path": "configs/algorithms/nbis_mindtct_bozorth3_5_0_0_v1.yaml",
+      "sha256": "6bc5356ae86783dfffb9a31b2470b80fb3ccc96d8ce11e7d6264a61932323503",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "evidence/nbis-canonical500-raw/run_f0468f28ffba.json",
+      "sha256": "cc470bdbb3f064a4c36c283dfa52f5a07bb14e8001ff2e795ed5916e969731dd",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "evidence/nbis-canonical500-raw/stage-7c-finalization.json",
+      "sha256": "386d6d7df9b2ef181e77e4dbeb49e27117a3b92f0183e0a255d0474783d035e0",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "configs/algorithms/flx_deepprint_texminu_512_without_localization_v1.yaml",
+      "sha256": "1a8dcf0df7f362380e06916af5ef5892f0b43245c5eb2b15c25a147a21f463f0",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "evidence/flx-canonical500-raw/run_902136b3b8ae.json",
+      "sha256": "6640f4c3adb76c0cc40ad663093997c70c50e46d913f5d1f4e1b626fbd98ccae",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "evidence/flx-canonical500-raw/stage-8c-finalization.json",
+      "sha256": "d65a2ca2e721b07ee227077e9b1a7e10705fdbcec266086e8eb110c1cda8130b",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "configs/algorithms/verifinger_2025_2_1to1_v1.yaml",
+      "sha256": "ec1146e7dabf0503c9b00d43ba3e0eeb0d65e724ee82a8babb9e22e4612ac12e",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "evidence/stage11b-verifinger-canonical500-raw/run_a76145fb5ab2.json",
+      "sha256": "fb4b020f7004d87f3f2bca56091274dfee80a1ca9eb225dc29ff91764af7e08c",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "evidence/stage11b-verifinger-canonical500-raw/stage-11b-finalization.json",
+      "sha256": "a665edfbefec920999dcfd40ff3188fd62688e5ef2c65b81825a72335655e173",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "evidence/stage20b-mindtct-mcc-canonical500-raw/algorithm-identity.json",
+      "sha256": "c48e6199e091263479f2aaf1c2280bb19f8404121718ea245f534348cfb780bb",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "evidence/stage20b-mindtct-mcc-canonical500-raw/stage-20b-finalization.json",
+      "sha256": "6c94b52cc4cbe85736db54e1afb63b20e8b1bcab7c70a295ef4e740e075dd112",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "evidence/stage19b-openafis-capacity-extended/variant-identity.json",
+      "sha256": "c6fc70791eb8b1c564bcc60a47ca7abfbce1f39372e7a7a38c29da76d3b979d4",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "evidence/stage19b-openafis-capacity-extended/stage-19b-finalization.json",
+      "sha256": "1b63dacd9606788365fbfd5e9edbcd32a82dbcff26c66bc457746447ef155ae0",
+      "workspace_metadata_only": false
+    },
+    {
+      "path": "evidence/stage15a-fingerprints-matching/stage-15a-finalization.json",
+      "sha256": "dba389e9b954d8396cdb863f2f599da7c1fe3b637c2fa512256208bad0901edc",
+      "workspace_metadata_only": false
+    }
+  ],
+  "kind": "stage_21a_predecessor_bindings",
+  "raw_score_files_opened": 0
+}

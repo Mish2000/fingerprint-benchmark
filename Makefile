@@ -32,7 +32,8 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
         stage17a-contract stage17a-evidence stage17a-acquire stage17a-artifacts \
         stage17a-score stage17a-verify stage17a-documents stage17a-publish \
         stage20b-contract stage20b-evidence stage20b-build stage20b-gate-a \
-        stage20b-gate-b stage20b-environment stage20b-run stage20b-publish
+        stage20b-gate-b stage20b-environment stage20b-run stage20b-publish \
+        stage21a-contract stage21a-evidence stage21a-freeze stage21a-verify
 
 help:
 	@echo "test                    unit + integration, no dataset, no Java, no full run"
@@ -149,6 +150,10 @@ help:
 	@echo "stage20b-gate-b         prove this route's MINDTCT is Algorithm 2's, byte for byte"
 	@echo "stage20b-run            the 6,000 canonical comparisons under MINDTCT + MCC SDK v2.0"
 	@echo "stage20b-publish        diagnostics, the eight evidence documents and the marker"
+	@echo "stage21a-contract       verify cross-subject generation and TAR/FAR/FRR sweeps on synthetic data"
+	@echo "stage21a-evidence       verify the committed protocol-freeze evidence without workspace data"
+	@echo "stage21a-freeze         regenerate the 73,500-pair manifest and Stage 21A evidence from metadata"
+	@echo "stage21a-verify         verify Stage 21A evidence hashes and frozen source identities"
 	@echo "stage15a-contract       the fingerprints-matching qualification: six gates, the route contract, the failure split"
 	@echo "stage15a-evidence       verify the committed Stage 15A evidence"
 	@echo "stage15a-acquire        fetch the two published PyPI artifacts and check both digests"
@@ -1170,3 +1175,18 @@ stage20b-run:
 
 stage20b-publish:
 	python scripts/stage20b_publish.py
+
+# --------------------------------------------------------------------- Stage 21A
+# Protocol freeze only: metadata and pair generation, never an algorithm run.
+
+stage21a-contract:
+	pytest -m "stage21a_contract" -q
+
+stage21a-evidence:
+	pytest -m "stage21a" -q
+
+stage21a-freeze:
+	python scripts/stage21a_freeze.py --source-tree-clean-attested
+
+stage21a-verify:
+	python scripts/stage21a_freeze.py --verify

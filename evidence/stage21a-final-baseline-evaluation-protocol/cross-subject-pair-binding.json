@@ -1,0 +1,38 @@
+{
+  "algorithm_runs_performed": 0,
+  "cohort_id": "sd300_cross_subject_non_mated_v1_test_aa23881bd8ca",
+  "cohort_membership_equal_to_legacy": true,
+  "cohort_role": "test",
+  "deterministic_regeneration": true,
+  "directed_pairs": true,
+  "generation_config": "configs/protocols/sd300_cross_subject_non_mated_v1.yaml",
+  "generation_config_fingerprint": "173204ce102dc22bc1f8d74f3ee74312ab8185a77523f48c5997dea41a7b5e25",
+  "generation_config_sha256": "0bc02fee2cb52962f81abbc7aac6338546aa980aec1091262446a945489c7ffb",
+  "kind": "stage_21a_cross_subject_pair_binding",
+  "legacy_manifest_replaced": false,
+  "legacy_pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "manifest_logical_path": "manifests/protocols/sd300_cross_subject_non_mated_v1/cohorts/sd300_cross_subject_non_mated_v1_test_aa23881bd8ca/pairs.parquet",
+  "manifest_self_hash_recomputed": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
+  "ordered_rows_sha256": "62f0f3ee1886533b4437974144771632ec701d32024c7e6fb2fa6d43d74f9a30",
+  "ordering": [
+    "release",
+    "left_subject",
+    "right_subject",
+    "finger_position"
+  ],
+  "pair_count": 73500,
+  "pair_ids_sha256": "46d7390cfdd8f5c678d7f7df997066029c37afc9c1e5854a90063c0d0162bc4f",
+  "pair_manifest_hash": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
+  "population": "plain_roll_cross_subject_non_mated",
+  "protocol_id": "sd300_cross_subject_non_mated_v1",
+  "releases": [
+    "SD300A",
+    "SD300B",
+    "SD300C"
+  ],
+  "sampling_performed": false,
+  "score_values_read": 0,
+  "source_cohort_id": "sd300_50_subjects_test_22f8d52a7478",
+  "source_protocol_id": "sd300_50_subjects",
+  "subject_count": 50
+}

@@ -1,0 +1,34 @@
+{
+  "config": "configs/research/high_resolution_test_reservation_v1.yaml",
+  "config_sha256": "2c76a42e0d06cd08dbdf8af6cd9bcd39cad951ea2c37f1f723495618b64372db",
+  "frozen": true,
+  "kind": "stage_21a_high_resolution_test_reservation",
+  "reservation": {
+    "cohort_role": "future_test",
+    "dataset": "NIST_SD300",
+    "dependence_disclosure": "SD300B and SD300C derive from the same physical cards. SD300C may not be used for training or tuning while SD300B is claimed as an independent test.",
+    "future_method_lane": {
+      "development_started_by_stage21a": false,
+      "input_resolution": "native_1000ppi_or_higher"
+    },
+    "legacy_lane": {
+      "changed_by_this_reservation": false,
+      "preparation_profile": "canonical500"
+    },
+    "native_ppi": 1000,
+    "parameter_tuning_allowed": false,
+    "primary_release": "SD300B",
+    "reservation_id": "high_resolution_test_reservation_v1",
+    "schema_version": 1,
+    "source_cohort_id": "sd300_50_subjects_test_22f8d52a7478",
+    "subjects": "same_frozen_50",
+    "supplementary_release": {
+      "independent_development_set": false,
+      "native_ppi": 2000,
+      "release": "SD300C",
+      "role": "supplementary_evaluation"
+    },
+    "threshold_tuning_allowed": false,
+    "training_allowed": false
+  }
+}

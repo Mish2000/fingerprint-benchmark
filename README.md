@@ -2391,9 +2391,9 @@ registry version and its own legal and runtime qualification. No later stage may
 weaken Stage 8A retroactively or use SD300 to repair a missing preprocessing,
 threshold or runtime claim.
 
-Also outstanding from earlier stages: a real FMR needs a cross-subject
-negative-pair design chosen for estimation — a new pair manifest and a new run,
-not a new metric over this one.
+Stage 21A has now frozen the required cross-subject negative-pair design as a
+separate 73,500-row manifest. The legacy 6,000-row protocol remains unchanged;
+the new population has not yet been run by any matcher.
 
 ## Stage 18A — the SecuGen/OpenAFIS private reference
 
@@ -2545,25 +2545,43 @@ third-party bytes entered Git.
 
 Evidence: [`evidence/stage20b-mindtct-mcc-canonical500-raw/`](evidence/stage20b-mindtct-mcc-canonical500-raw/).
 
-## Longer-term backlog from earlier stages
+## Stage 21A — final baseline evaluation protocol freeze
 
-1. metrics over the three views — FMR, FNMR and the conditional PLAIN–ROLL report — with
-   the one thing that makes them honest written down first: what happens to a failed
-   comparison and to an `UNDETERMINED` finger in each denominator;
-2. a development cohort and a calibration manifest, so that a *calibrated* threshold
-   becomes possible without touching the 50 test subjects
-   ([ADR 0021](docs/adr/0021-decision-profiles-are-immutable-and-external.md));
-3. failure analysis over the algorithmic failure codes the run recorded;
-4. **stage 7E** — a sensitivity analysis over a pre-registered grid of documented
-   thresholds, with no winner chosen from it and no change to stage 7D's primary result.
-   Calibrating both algorithms to a common FMR is a different and larger piece of work:
-   it needs an independent development cohort, a calibration manifest, a ban on touching
-   the SD300 test cohort, and a new evaluation under a new profile
-   ([ADR 0058](docs/adr/0058-cross-algorithm-operating-points-are-not-equated.md));
-5. the persistent-JVM decision, on the strength of the full run's operational summary
-   rather than a guess ([ADR 0015](docs/adr/0015-sourceafis-uses-stateless-java-bridge.md));
-6. a better negative set, if a real false-match rate is ever wanted: cross-subject, and
-   either exhaustive or a stated sample
-   ([ADR 0025](docs/adr/0025-same-subject-different-finger-is-a-sanity-check.md));
-7. parallel execution, a retry policy keyed to the failure taxonomy, and a CLI over all
-   of it.
+Stage 21A closes the methodology before a new score exists. The final comparison
+roster contains the five primary baselines plus the completed, publication-eligible
+OpenAFIS capacity-extended route as an additional experimentally evaluated method.
+Every method is bound to its immutable 6,000-outcome identity, canonical preparation
+set, pair-manifest hash, finalization fingerprint and operational counts without
+reading score values.
+
+The new `plain_roll_cross_subject_non_mated` population is exhaustive and directed:
+PLAIN from subject A is compared with ROLL from every different subject B at the same
+anatomical finger position, within one release. That is 50 × 49 × 10 = 24,500 pairs
+per release and 73,500 across SD300A/B/C. The audit reports zero duplicates, legacy-id
+collisions, same-subject pairs, different-finger pairs, cross-release pairs, unknown
+subjects and unknown images. The old same-subject/different-finger negatives remain a
+sanity population and are not the primary FAR denominator.
+
+Final reporting is limited to TAR, FAR and FRR. The primary all-attempt view uses all
+1,500 existing genuine attempts and all 73,500 new impostor attempts, with no SELF
+eligibility filtering. A scoreless genuine attempt is not accepted and contributes to
+FRR; a scoreless impostor attempt is not a false accept but stays in the FAR
+denominator. Operational counts are displayed separately.
+
+Each method is swept over its own unique raw scores with ties moving together. No
+score normalization, cross-method raw-score comparison, interpolation, calibration,
+threshold profile or reusable operating threshold is created. Results are selected
+for reporting at FAR ≤ 1%, FAR ≤ 0.1% (primary) and FAR ≤ 0.01%. SD300A/B/C and pooled
+are reported, with pooled numerators and denominators summed rather than release rates
+averaged. A common-score population across all six methods is secondary only.
+
+SD300B at native 1000 ppi is reserved as the future test lane for the pore-aware
+method; training, parameter tuning and threshold tuning are forbidden. SD300C may be
+supplementary 2000 ppi evaluation but is not an independent development set, because
+both releases derive from the same physical cards. `canonical500` is unchanged.
+
+Evidence: [`evidence/stage21a-final-baseline-evaluation-protocol/`](evidence/stage21a-final-baseline-evaluation-protocol/).
+
+The next stage is Stage 21B: run only the 73,500 new cross-subject attempts for every
+roster method over the existing canonical500 images. Stage 21C will then apply the
+frozen score sweeps and publish TAR/FAR/FRR at the same FAR targets.

@@ -1,0 +1,46 @@
+schema_version: 1
+report_id: final_baseline_reporting_v1
+comparison_ref: configs/comparisons/final_baseline_tar_far_frr_v1.yaml
+
+biometric_columns: [TAR, FAR, FRR]
+scopes: [SD300A, SD300B, SD300C, pooled]
+primary_table: same_target_far
+primary_far_target: 0.001
+show_requested_and_observed_far: true
+show_operational_counts: true
+interpolation: false
+
+pooled:
+  aggregation: sum_numerators_and_denominators
+  interpretation: descriptive_summary
+  release_dependence_disclosure: >-
+    SD300A, SD300B and SD300C are digitizations at different resolutions of
+    the same physical fingerprint cards; they are not independent biometric
+    populations or three independent experiments.
+
+secondary_view:
+  id: common_score_population
+  primary_result: false
+  membership: pairs_scored_by_every_roster_method
+
+legacy_negative_population:
+  id: plain_roll_non_mated
+  label: same-subject different-finger negative sanity
+  used_as_primary_far_denominator: false
+
+native_documented_rules:
+  purpose: separate_context_table_only
+  direct_cross_algorithm_ranking: forbidden
+  methods:
+    sourceafis_java:
+      rule: score_greater_than_or_equal_to_40
+    nbis_mindtct_bozorth3:
+      rule: score_greater_than_40
+    flx_deepprint_texminu_512_without_localization:
+      rule: none
+    verifinger_1to1:
+      rule: none_unless_formally_authorized_as_native_documented_rule
+    nbis_mindtct_mcc_sdk_v2:
+      rule: none
+    nbis_mindtct_openafis_capacity_extended:
+      rule: none

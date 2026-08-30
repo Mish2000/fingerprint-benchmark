@@ -36,6 +36,7 @@ _STAGE_SOURCE_LISTS = (
     ("fpbench.experiments.stage19b_finalization", "_SOURCE_FILES"),
     ("fpbench.experiments.stage20a_mcc_sdk", "SOURCE_FILES"),
     ("fpbench.experiments.stage20b_finalization", "SOURCE_FILES"),
+    ("fpbench.experiments.stage21a_finalization", "_SOURCE_PATHS"),
 )
 
 

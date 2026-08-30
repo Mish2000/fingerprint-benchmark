@@ -130,3 +130,25 @@ src/fpbench/experiments/stage20b_mcc_runtime.py text eol=lf
 src/fpbench/experiments/stage20b_run_support.py text eol=lf
 tests/test_stage20b_contract.py text eol=lf
 tests/test_stage20b_evidence.py text eol=lf
+
+# Stage 21A final-baseline protocol source fingerprint.
+configs/comparisons/final_baseline_*.yaml text eol=lf
+configs/protocols/sd300_50_subjects.yaml text eol=lf
+configs/protocols/sd300_cross_subject_non_mated_v1.yaml text eol=lf
+configs/reports/final_baseline_reporting_v1.yaml text eol=lf
+configs/research/high_resolution_test_reservation_v1.yaml text eol=lf
+scripts/stage21a_freeze.py text eol=lf
+src/fpbench/baseline_evaluation/** text eol=lf
+src/fpbench/core/__init__.py text eol=lf
+src/fpbench/core/enums.py text eol=lf
+src/fpbench/core/models.py text eol=lf
+src/fpbench/execution/planner.py text eol=lf
+src/fpbench/experiments/stage21a_finalization.py text eol=lf
+src/fpbench/experiments/stage_registry.py text eol=lf
+src/fpbench/protocols/__init__.py text eol=lf
+src/fpbench/protocols/cross_subject.py text eol=lf
+src/fpbench/storage/schemas.py text eol=lf
+tests/regression/test_stage21a_real_manifests.py text eol=lf
+tests/test_stage21a_evidence.py text eol=lf
+tests/unit/test_baseline_*.py text eol=lf
+tests/unit/test_cross_subject_protocol.py text eol=lf

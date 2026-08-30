@@ -1,0 +1,38 @@
+# Stage 21A extension.  This file adds one separately identified population;
+# it does not alter configs/protocols/sd300_50_subjects.yaml or its 6,000 rows.
+
+schema_version: 1
+
+protocol:
+  id: sd300_cross_subject_non_mated_v1
+  extends_config: configs/protocols/sd300_50_subjects.yaml
+  extends_protocol_id: sd300_50_subjects
+
+dataset:
+  id: sd300
+
+cohort:
+  source_cohort_id: sd300_50_subjects_test_22f8d52a7478
+  role: test
+  subjects: 50
+  releases: [SD300A, SD300B, SD300C]
+  legacy_pair_manifest_hash: ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b
+
+population:
+  id: plain_roll_cross_subject_non_mated
+  left_impression: plain
+  right_impression: roll
+  subject_relation: different
+  finger_relation: same_anatomical_position
+  release_relation: same_release
+  ground_truth: non_mated
+  directed: true
+  exhaustive: true
+  sampling: forbidden
+  ordering: [release, left_subject, right_subject, finger_position]
+
+expected:
+  total_pairs: 73500
+  pairs_per_release: 24500
+  pairs_per_finger_per_release: 2450
+  appearances_per_side_per_subject_per_release: 490

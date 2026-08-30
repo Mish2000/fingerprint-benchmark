@@ -26,7 +26,7 @@ from __future__ import annotations
 import datetime as _dt
 from typing import Iterable, Mapping
 
-from fpbench.core.enums import ProtocolStage
+from fpbench.core.enums import BaselineProtocolStage, ProtocolStage
 from fpbench.core.errors import PlanningError
 from fpbench.core.execution_models import FINGERPRINT_LENGTH
 from fpbench.core.execution_plan_models import (
@@ -48,11 +48,12 @@ __all__ = ["build_execution_plan", "STAGE_ORDER", "canonical_pair_order"]
 
 #: The order stages are executed in. SELF comparisons come first so that a
 #: partial run is still informative.
-STAGE_ORDER: Mapping[ProtocolStage, int] = {
+STAGE_ORDER: Mapping[ProtocolStage | BaselineProtocolStage, int] = {
     ProtocolStage.PLAIN_SELF: 0,
     ProtocolStage.ROLL_SELF: 1,
     ProtocolStage.PLAIN_ROLL_MATED: 2,
     ProtocolStage.PLAIN_ROLL_NON_MATED: 3,
+    BaselineProtocolStage.PLAIN_ROLL_CROSS_SUBJECT_NON_MATED: 4,
 }
 
 

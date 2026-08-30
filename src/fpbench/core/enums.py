@@ -15,6 +15,7 @@ __all__ = [
     "FingerprintPosition",
     "GroundTruth",
     "ProtocolStage",
+    "BaselineProtocolStage",
     "CohortRole",
     "ChecksumStatus",
     "ScoreDirection",
@@ -127,6 +128,26 @@ class ProtocolStage(str, Enum):
     @property
     def is_self(self) -> bool:
         return self in (ProtocolStage.PLAIN_SELF, ProtocolStage.ROLL_SELF)
+
+
+class BaselineProtocolStage(str, Enum):
+    """Protocol stages introduced by the final-baseline extension.
+
+    This is deliberately separate from :class:`ProtocolStage`.  Iterating the
+    legacy enum is part of the frozen 6,000-pair protocol in several callers;
+    adding a fifth member there would silently change their expected shape.
+    The execution and storage layers accept both vocabularies, while the legacy
+    generator remains byte-for-byte invariant.
+    """
+
+    PLAIN_ROLL_CROSS_SUBJECT_NON_MATED = (
+        "plain_roll_cross_subject_non_mated"
+    )
+
+    @property
+    def is_self(self) -> bool:
+        """Keep generic pair utilities compatible without changing legacy enum size."""
+        return False
 
 
 class CohortRole(str, Enum):

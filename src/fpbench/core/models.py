@@ -19,6 +19,7 @@ from types import MappingProxyType
 from typing import Mapping
 
 from fpbench.core.enums import (
+    BaselineProtocolStage,
     CohortRole,
     ChecksumStatus,
     FingerprintPosition,
@@ -138,7 +139,7 @@ class ComparisonPair:
     left_image_id: ImageId
     right_image_id: ImageId
     ground_truth: GroundTruth
-    protocol_stage: ProtocolStage
+    protocol_stage: ProtocolStage | BaselineProtocolStage
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,0 +1,47 @@
+# Frozen before any cross-subject score is produced.  This is reporting, not
+# calibration: observed cuts are not algorithm parameters and are never reused.
+
+schema_version: 1
+
+comparison:
+  id: final_baseline_tar_far_frr_v1
+  roster_ref: configs/comparisons/final_baseline_roster_v1.yaml
+
+metrics:
+  allowed: [TAR, FAR, FRR]
+
+populations:
+  genuine: plain_roll_mated
+  impostor: plain_roll_cross_subject_non_mated
+  eligibility_filtering: forbidden
+  self_role: diagnostic_only
+
+primary_view:
+  denominator: all_planned_attempts
+  genuine_failure: not_accepted
+  impostor_failure: not_false_accept
+  operational_counts:
+    - planned_attempts
+    - score_bearing_attempts
+    - algorithm_failures
+
+threshold_evaluation:
+  mode: exhaustive_score_sweep
+  calibration: false
+  create_operational_threshold: false
+  create_threshold_profile: false
+  interpolation: forbidden
+  ties: move_together
+  score_normalization: forbidden
+  cross_algorithm_raw_score_comparison: forbidden
+  algorithm_parameters_changed: false
+
+far_targets:
+  primary: 0.001
+  secondary: [0.01, 0.0001]
+
+reporting:
+  per_release: true
+  pooled: true
+  pooled_aggregation: sum_numerators_and_denominators
+  common_score_secondary: true

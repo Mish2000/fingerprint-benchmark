@@ -1,0 +1,29 @@
+schema_version: 1
+reservation_id: high_resolution_test_reservation_v1
+dataset: NIST_SD300
+primary_release: SD300B
+native_ppi: 1000
+cohort_role: future_test
+source_cohort_id: sd300_50_subjects_test_22f8d52a7478
+subjects: same_frozen_50
+training_allowed: false
+parameter_tuning_allowed: false
+threshold_tuning_allowed: false
+
+supplementary_release:
+  release: SD300C
+  native_ppi: 2000
+  role: supplementary_evaluation
+  independent_development_set: false
+
+dependence_disclosure: >-
+  SD300B and SD300C derive from the same physical cards. SD300C may not be
+  used for training or tuning while SD300B is claimed as an independent test.
+
+legacy_lane:
+  preparation_profile: canonical500
+  changed_by_this_reservation: false
+
+future_method_lane:
+  input_resolution: native_1000ppi_or_higher
+  development_started_by_stage21a: false

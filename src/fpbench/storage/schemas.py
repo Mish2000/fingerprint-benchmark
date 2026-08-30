@@ -16,6 +16,7 @@ from typing import Any, Iterable, Mapping, Sequence
 import pyarrow as pa
 
 from fpbench.core.enums import (
+    BaselineProtocolStage,
     ChecksumStatus,
     FingerprintPosition,
     GroundTruth,
@@ -238,10 +239,18 @@ def table_to_pairs(table: pa.Table) -> list[ComparisonPair]:
             left_image_id=ImageId(row["left_image_id"]),
             right_image_id=ImageId(row["right_image_id"]),
             ground_truth=GroundTruth(row["ground_truth"]),
-            protocol_stage=ProtocolStage(row["protocol_stage"]),
+            protocol_stage=_protocol_stage(row["protocol_stage"]),
         )
         for row in table.to_pylist()
     ]
+
+
+def _protocol_stage(value: str) -> ProtocolStage | BaselineProtocolStage:
+    """Decode either the frozen legacy vocabulary or its Stage 21 extension."""
+    try:
+        return ProtocolStage(value)
+    except ValueError:
+        return BaselineProtocolStage(value)
 
 
 # ------------------------------------------------------------ SELF decisions

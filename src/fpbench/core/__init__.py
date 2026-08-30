@@ -6,6 +6,7 @@ library. Every other package may import core; core imports none of them.
 
 from fpbench.core.enums import (
     ALL_POSITIONS,
+    BaselineProtocolStage,
     ChecksumStatus,
     CohortRole,
     EnvironmentStatus,
@@ -48,6 +49,7 @@ __all__ = [
     "ALL_POSITIONS",
     "AlgorithmDescriptor",
     "ArtifactReference",
+    "BaselineProtocolStage",
     "ChecksumStatus",
     "Cohort",
     "CohortId",

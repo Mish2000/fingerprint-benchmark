@@ -1,0 +1,29 @@
+# Six completed, comparison-eligible methods.  The first five are the frozen
+# primary baselines; the sixth is retained under the user's explicit allowance
+# for more than five completed methods.
+
+schema_version: 1
+roster_id: final_baseline_roster_v1
+selection_uses_score_values: false
+methods:
+  - algorithm_id: sourceafis_java
+    role: primary_baseline
+  - algorithm_id: nbis_mindtct_bozorth3
+    role: primary_baseline
+  - algorithm_id: flx_deepprint_texminu_512_without_localization
+    role: primary_baseline
+  - algorithm_id: verifinger_1to1
+    role: primary_baseline
+  - algorithm_id: nbis_mindtct_mcc_sdk_v2
+    role: primary_baseline
+  - algorithm_id: nbis_mindtct_openafis_capacity_extended
+    role: additional_experimentally_evaluated_method
+
+common_score_population:
+  membership: all_roster_methods
+  primary_result: false
+
+excluded_completed_routes:
+  - algorithm_id: fingerprints_matching_0_1_0
+    reason: published_evidence_says_score_coverage_is_not_a_basis_for_comparison
+    decision_uses_score_values: false

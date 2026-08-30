@@ -1,0 +1,72 @@
+{
+  "clean": true,
+  "cohort_id": "sd300_cross_subject_non_mated_v1_test_aa23881bd8ca",
+  "cross_release_pairs": 0,
+  "deterministic_regeneration": true,
+  "duplicate_pair_ids": 0,
+  "expected_appearances_per_side_per_subject_per_release": 490,
+  "expected_pairs_per_finger_per_release": 2450,
+  "expected_pairs_per_release": 24500,
+  "expected_total_pairs": 73500,
+  "images_outside_cohort": 0,
+  "kind": "stage_21a_cross_subject_pair_audit",
+  "left_appearance_violations": 0,
+  "left_not_plain": 0,
+  "legacy_pair_id_collisions": 0,
+  "pair_manifest_hash": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
+  "pair_release_mismatches": 0,
+  "pairs_per_finger_per_release": {
+    "SD300A": {
+      "f01": 2450,
+      "f02": 2450,
+      "f03": 2450,
+      "f04": 2450,
+      "f05": 2450,
+      "f06": 2450,
+      "f07": 2450,
+      "f08": 2450,
+      "f09": 2450,
+      "f10": 2450
+    },
+    "SD300B": {
+      "f01": 2450,
+      "f02": 2450,
+      "f03": 2450,
+      "f04": 2450,
+      "f05": 2450,
+      "f06": 2450,
+      "f07": 2450,
+      "f08": 2450,
+      "f09": 2450,
+      "f10": 2450
+    },
+    "SD300C": {
+      "f01": 2450,
+      "f02": 2450,
+      "f03": 2450,
+      "f04": 2450,
+      "f05": 2450,
+      "f06": 2450,
+      "f07": 2450,
+      "f08": 2450,
+      "f09": 2450,
+      "f10": 2450
+    }
+  },
+  "pairs_with_different_finger_position": 0,
+  "pairs_with_same_subject": 0,
+  "population": "plain_roll_cross_subject_non_mated",
+  "protocol_id": "sd300_cross_subject_non_mated_v1",
+  "release_counts": {
+    "SD300A": 24500,
+    "SD300B": 24500,
+    "SD300C": 24500
+  },
+  "right_appearance_violations": 0,
+  "right_not_roll": 0,
+  "total_pairs": 73500,
+  "unknown_images": 0,
+  "unknown_subjects": 0,
+  "wrong_ground_truth": 0,
+  "wrong_protocol_stage": 0
+}

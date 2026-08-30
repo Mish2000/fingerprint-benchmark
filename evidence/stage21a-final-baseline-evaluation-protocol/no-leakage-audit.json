@@ -1,0 +1,18 @@
+{
+  "algorithm_parameter_changed": false,
+  "algorithm_ranking_used_for_policy": false,
+  "algorithm_runs_performed": 0,
+  "calibration_performed": false,
+  "existing_raw_score_values_read": false,
+  "kind": "stage_21a_no_leakage_audit",
+  "new_cross_subject_scores_read": false,
+  "new_results_computed": 0,
+  "operational_threshold_selected": false,
+  "pass": true,
+  "score_distribution_used_for_far_targets": false,
+  "score_distribution_used_for_pair_design": false,
+  "sd300_used_for_future_method_parameter_tuning": false,
+  "sd300_used_for_future_method_training": false,
+  "threshold_parameter_selected": false,
+  "threshold_profile_created": false
+}

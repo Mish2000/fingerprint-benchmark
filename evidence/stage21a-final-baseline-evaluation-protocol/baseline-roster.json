@@ -1,0 +1,157 @@
+{
+  "common_score_population_membership": "all_roster_methods",
+  "common_score_population_primary_result": false,
+  "excluded_completed_routes": [
+    {
+      "algorithm_failures": 5611,
+      "algorithm_id": "fingerprints_matching_0_1_0",
+      "attempts": 6000,
+      "reason": "published Stage 15A evidence explicitly says its score-bearing coverage is not a basis for comparison",
+      "reason_code": "published_evidence_says_score_coverage_is_not_a_basis_for_comparison",
+      "score_bearing_results": 389,
+      "score_values_read_for_exclusion": false
+    }
+  ],
+  "kind": "stage_21a_final_baseline_roster",
+  "method_count": 6,
+  "methods": [
+    {
+      "adapter_id": "sourceafis_java_subprocess",
+      "algorithm_failures": 0,
+      "algorithm_id": "sourceafis_java",
+      "attempts": 6000,
+      "canonical_preparation_set_id": "prepset_be560e047991",
+      "display_name": "SourceAFIS Java 3.18.1",
+      "finalization_fingerprint": "7e2c46b69aecc937dce79cfe58c1b8e1ced8e642974b858fda22a46efeaaa0c1",
+      "implementation_version": "3.18.1",
+      "integration_id": "sourceafis_java_research_v1",
+      "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+      "raw_result_identity": {
+        "result_set_fingerprint": "087b084fb8a8001eb92e20d4900dfc759dc5abbc9d5346144c83f5298f61e38b",
+        "result_set_id": "resultset_087b084fb8a8",
+        "run_fingerprint": "4c59fa02a6ab0471bdd46e134c61d74a7b6463276bf7c1bb6bd2e217622ceb5a",
+        "run_id": "run_4c59fa02a6ab"
+      },
+      "role": "primary_baseline",
+      "score_bearing_results": 6000,
+      "score_direction": "higher_is_better",
+      "upstream_artifact": "com.machinezoo.sourceafis:sourceafis:3.18.1",
+      "upstream_commit": null
+    },
+    {
+      "adapter_id": "nbis_mindtct_bozorth3_subprocess",
+      "algorithm_failures": 0,
+      "algorithm_id": "nbis_mindtct_bozorth3",
+      "attempts": 6000,
+      "canonical_preparation_set_id": "prepset_be560e047991",
+      "display_name": "NBIS MINDTCT 5.0.0 + BOZORTH3",
+      "finalization_fingerprint": "76a678adefef2c070161d15ccae1e1689ac85cefcbc83700fdbd36e7d906fb7e",
+      "implementation_version": "5.0.0",
+      "integration_id": "nbis_mindtct_bozorth3_research_v1",
+      "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+      "raw_result_identity": {
+        "result_set_fingerprint": "73a9d93a8528e95322b69c64af416a234e7bd100cbb6556e66f1ae8c1cdd7fff",
+        "result_set_id": "resultset_73a9d93a8528",
+        "run_fingerprint": "f0468f28ffba544fc7f2df0d4e9844cc0c6f0ed8e5359fd338d49ab6e8022c9f",
+        "run_id": "run_f0468f28ffba"
+      },
+      "role": "primary_baseline",
+      "score_bearing_results": 6000,
+      "score_direction": "higher_is_better",
+      "upstream_artifact": "NIST NBIS Release 5.0.0 (with NBIS Test 5.0.0)",
+      "upstream_commit": null
+    },
+    {
+      "adapter_id": "flx_pytorch_subprocess",
+      "algorithm_failures": 0,
+      "algorithm_id": "flx_deepprint_texminu_512_without_localization",
+      "attempts": 6000,
+      "canonical_preparation_set_id": "prepset_be560e047991",
+      "display_name": "FLX DeepPrint TexMinu 512 without localization",
+      "finalization_fingerprint": "87690c967a9cd939cbad63d92edf5e117a9a6d0e8bf20eb3cd11c33c7369ad0a",
+      "implementation_version": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+      "integration_id": "flx_deepprint_texminu_research_v1",
+      "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+      "raw_result_identity": {
+        "result_set_fingerprint": "d63e523e04369ee4e7d57ed63bac3980e656425a832759b71315ca3fc155be5a",
+        "result_set_id": "resultset_d63e523e0436",
+        "run_fingerprint": "902136b3b8ae72747959395fb06bd9586a911505adb8b9e7a1d1e13bb32da884",
+        "run_id": "run_902136b3b8ae"
+      },
+      "role": "primary_baseline",
+      "score_bearing_results": 6000,
+      "score_direction": "higher_is_better",
+      "upstream_artifact": null,
+      "upstream_commit": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13"
+    },
+    {
+      "adapter_id": "verifinger_java_subprocess",
+      "algorithm_failures": 81,
+      "algorithm_id": "verifinger_1to1",
+      "attempts": 6000,
+      "canonical_preparation_set_id": "prepset_be560e047991",
+      "display_name": "VeriFinger 2025.2",
+      "finalization_fingerprint": "98ff570630409d430235fc4c489ea29797fdc38d907539ba42a5daf60da5d877",
+      "implementation_version": "2025.2",
+      "integration_id": "verifinger_2025_2_1to1_research_v1",
+      "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+      "raw_result_identity": {
+        "result_set_fingerprint": "73fd6c6d46730e93a245b2fda9fad1c088ea6aa45333664565510ea7e2bd0ae3",
+        "result_set_id": "resultset_73fd6c6d4673",
+        "run_fingerprint": "a76145fb5ab253ebf9057fae0632a79de6af22c367addd7ddbbd6e822f0ba5be",
+        "run_id": "run_a76145fb5ab2"
+      },
+      "role": "primary_baseline",
+      "score_bearing_results": 5919,
+      "score_direction": "higher_is_better",
+      "upstream_artifact": null,
+      "upstream_commit": null
+    },
+    {
+      "adapter_id": "nbis_mindtct_mcc_sdk_v2_subprocess",
+      "algorithm_failures": 0,
+      "algorithm_id": "nbis_mindtct_mcc_sdk_v2",
+      "attempts": 6000,
+      "canonical_preparation_set_id": "prepset_be560e047991",
+      "display_name": "NBIS MINDTCT + MCC SDK v2.0",
+      "finalization_fingerprint": "5164621d1f1c6c67681846ad0fdb044080b290719f0f520a9500065ef1514db1",
+      "implementation_version": "NBIS 5.0.0 + MCC SDK 2.0.0.0",
+      "integration_id": null,
+      "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+      "raw_result_identity": {
+        "run_id": "run_stage20b_canonical500"
+      },
+      "role": "primary_baseline",
+      "score_bearing_results": 6000,
+      "score_direction": "higher_is_better",
+      "upstream_artifact": "MccSdk, Version=2.0.0.0, Culture=neutral, PublicKeyToken=494f31afeacaf3f4",
+      "upstream_commit": null
+    },
+    {
+      "adapter_id": "nbis_mindtct_openafis_capacity_extended_subprocess",
+      "algorithm_failures": 0,
+      "algorithm_id": "nbis_mindtct_openafis_capacity_extended",
+      "attempts": 6000,
+      "canonical_preparation_set_id": "prepset_be560e047991",
+      "display_name": "NBIS MINDTCT + OpenAFIS (capacity-extended)",
+      "finalization_fingerprint": "0d6f715228696ef29fc7fedbd7e1cbb7a450cb3ee1d264fcb7a953cf3e09eff9",
+      "implementation_version": "NBIS 5.0.0 + OpenAFIS capacity extension",
+      "integration_id": null,
+      "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+      "raw_result_identity": {
+        "kind": "immutable_outcome_store_sha256",
+        "sha256": "3e0c2c54c77bdd42745c802522c75866b64b6cc9944af72541fa706edc9de2f2"
+      },
+      "role": "additional_experimentally_evaluated_method",
+      "score_bearing_results": 6000,
+      "score_direction": "higher_is_better",
+      "upstream_artifact": "project-modified OpenAFIS capacity variant",
+      "upstream_commit": "3ae1c757c6dafea977a33ef51380e37f1715e626"
+    }
+  ],
+  "more_than_five_allowed_by_user_correction": true,
+  "roster_config": "configs/comparisons/final_baseline_roster_v1.yaml",
+  "roster_config_sha256": "224e4f6ea3140a78aa0face21caf6a0b6df3f33d29f4d005c48a82e93936ecc5",
+  "roster_id": "final_baseline_roster_v1",
+  "score_values_read_for_roster": false
+}

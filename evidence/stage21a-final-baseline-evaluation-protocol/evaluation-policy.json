@@ -1,0 +1,58 @@
+{
+  "accept_all_score_bearing_endpoint": true,
+  "accept_none_endpoint": true,
+  "algorithm_parameters_changed": false,
+  "allowed_biometric_metrics": [
+    "TAR",
+    "FAR",
+    "FRR"
+  ],
+  "calibration_performed": false,
+  "common_score_secondary": true,
+  "comparison_config_sha256": "4735335bf58c42974007a76bc13c3d44abff29f7a8c460b98fb1cf4f4f366022",
+  "comparison_id": "final_baseline_tar_far_frr_v1",
+  "cross_algorithm_raw_score_comparison": false,
+  "far_targets": [
+    "1/1000",
+    "1/100",
+    "1/10000"
+  ],
+  "genuine_failure_semantics": "not_accepted_and_in_frr",
+  "genuine_population": "plain_roll_mated",
+  "implementation_files": {
+    "models.py": "9f2cf5aacacc14d546a761438297abd0129158e9500523e6b0cde4ffb1997d97",
+    "policy.py": "3b6bde669af115855ac4aafaf810050c139167493ce2b7d9a32ebce64c37c154",
+    "roster.py": "8b13b1421d880ffbb2cc3aced2badc2befb2b4cd95b2047cb580e6c5dd96e9e2",
+    "sweep.py": "1f0ea4aac43d1c345cdffdbc65d03e12d76efa0b8cf2987818cee532ea62bbbb"
+  },
+  "impostor_failure_semantics": "not_false_accept_and_in_far_denominator",
+  "impostor_population": "plain_roll_cross_subject_non_mated",
+  "interpolation": false,
+  "kind": "stage_21a_evaluation_policy",
+  "legacy_negative_is_primary_far_denominator": false,
+  "legacy_negative_label": "same-subject different-finger negative sanity",
+  "native_documented_rules_separate": true,
+  "operational_counts": [
+    "planned_attempts",
+    "score_bearing_attempts",
+    "algorithm_failures"
+  ],
+  "operational_threshold_created": false,
+  "pooled_aggregation": "sum_numerators_and_denominators",
+  "primary_far_target": "1/1000",
+  "primary_view": "all_planned_attempts",
+  "release_scopes": [
+    "SD300A",
+    "SD300B",
+    "SD300C",
+    "pooled"
+  ],
+  "reporting_config_sha256": "31c1f693ed3ac281ed14267932d9efd9175282916b884bebc255195a869140d0",
+  "roster_config_sha256": "224e4f6ea3140a78aa0face21caf6a0b6df3f33d29f4d005c48a82e93936ecc5",
+  "score_normalization": false,
+  "score_sweep": "all_unique_raw_scores",
+  "self_eligibility_filtering": false,
+  "threshold_parameter_selected": false,
+  "threshold_profile_created": false,
+  "ties_move_together": true
+}

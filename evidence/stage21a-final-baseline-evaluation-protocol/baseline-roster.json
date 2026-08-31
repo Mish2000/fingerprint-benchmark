@@ -115,7 +115,7 @@
       "canonical_preparation_set_id": "prepset_be560e047991",
       "display_name": "NBIS MINDTCT + MCC SDK v2.0",
       "finalization_fingerprint": "5164621d1f1c6c67681846ad0fdb044080b290719f0f520a9500065ef1514db1",
-      "implementation_version": "NBIS 5.0.0 + MCC SDK 2.0.0.0",
+      "implementation_version": "nbis-5.0.0+mcc-sdk-2.0.0.0",
       "integration_id": null,
       "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
       "raw_result_identity": {
@@ -135,7 +135,7 @@
       "canonical_preparation_set_id": "prepset_be560e047991",
       "display_name": "NBIS MINDTCT + OpenAFIS (capacity-extended)",
       "finalization_fingerprint": "0d6f715228696ef29fc7fedbd7e1cbb7a450cb3ee1d264fcb7a953cf3e09eff9",
-      "implementation_version": "NBIS 5.0.0 + OpenAFIS capacity extension",
+      "implementation_version": "nbis-5.0.0+openafis-3ae1c757+capacity-extended",
       "integration_id": null,
       "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
       "raw_result_identity": {

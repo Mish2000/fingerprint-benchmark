@@ -37,13 +37,13 @@
     "strategy_selected_without_score_values": true,
     "tar_definition_frozen": true
   },
-  "created_utc": "2026-08-31T19:23:09.433415+00:00",
+  "created_utc": "2026-08-31T20:02:07.782540+00:00",
   "cross_subject_pair_count": 73500,
   "cross_subject_pair_manifest_hash": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
   "cross_subject_strategy_decision_fingerprint": "9741dbf03faa268e87b5c89f7e8441fc575351860fd77149445db122346e9977",
   "evidence_content_hashes": {
     "README.md": "21d627ee3b552a0ab1b1318dcc99990d6d9a8a7896d78c5a156558d08575d381",
-    "baseline-roster.json": "97c1aa450c2664874cfb866b65fb747f320ec576121a72e744cc53892cf00518",
+    "baseline-roster.json": "a7c4526d433751395cbbb2e3352b0d02c6adda0815e5976897b4d827d4e19426",
     "cross-subject-pair-audit.json": "d101ad34ad7b6daba6c7b86b7210c3312ef18bc3d68ba113e4d8256b60c91ef7",
     "cross-subject-pair-binding.json": "f8efbdf2ee36e81da2defb312af42145cef5d0a3f0c9420099291d8edfa57db6",
     "cross-subject-strategy-decision.json": "9defde80910fe08b3b2f35b5af5ef8a1d4174fed8dd214a4afd1b7efb45e89df",
@@ -64,6 +64,6 @@
   "source_tree_clean": true,
   "source_tree_clean_attestation_scope": "the repository was clean before the self-contained Stage 21A change set and the finalized source set is content-fingerprinted",
   "stage": "21A",
-  "stage21a_source_fingerprint": "cdc3e5c0654516018a5cbb920da6e5aa17c30087e953e725c366eaf7b79af590",
-  "stage_21a_finalization_fingerprint": "40915b74e07582feceabbdb06352a0a6ebbd5646153a396fa335b313e0e35044"
+  "stage21a_source_fingerprint": "0bfbeaa441a26a54cf761573d70400e4d206e4af240ec7bf8968cbb054169841",
+  "stage_21a_finalization_fingerprint": "4b179dad7053ae1ada3cb2dd1fede4e37531c20b2b07b67ebc4a90173c860c86"
 }

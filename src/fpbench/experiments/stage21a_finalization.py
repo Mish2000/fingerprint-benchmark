@@ -599,7 +599,9 @@ def _build_roster(
             "role": "primary_baseline",
             "adapter_id": mcc["adapter_id"],
             "integration_id": None,
-            "implementation_version": "NBIS 5.0.0 + MCC SDK 2.0.0.0",
+            "implementation_version": (
+                f"nbis-5.0.0+mcc-sdk-{mcc_identity['mcc_sdk_version']}"
+            ),
             "upstream_commit": None,
             "upstream_artifact": mcc_identity["mcc_sdk_assembly"],
             "raw_result_identity": {"run_id": "run_stage20b_canonical500"},
@@ -628,7 +630,10 @@ def _build_roster(
             "role": "additional_experimentally_evaluated_method",
             "adapter_id": openafis["adapter_id"],
             "integration_id": None,
-            "implementation_version": "NBIS 5.0.0 + OpenAFIS capacity extension",
+            "implementation_version": (
+                "nbis-5.0.0+openafis-"
+                f"{openafis['base_openafis_commit'][:8]}+capacity-extended"
+            ),
             "upstream_commit": openafis["base_openafis_commit"],
             "upstream_artifact": "project-modified OpenAFIS capacity variant",
             "raw_result_identity": {

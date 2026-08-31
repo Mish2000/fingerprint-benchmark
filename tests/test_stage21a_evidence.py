@@ -72,6 +72,12 @@ def test_the_roster_contains_five_primary_methods_plus_openafis() -> None:
     ]
     assert sum(method["role"] == "primary_baseline" for method in methods) == 5
     assert methods[-1]["role"] == "additional_experimentally_evaluated_method"
+    assert methods[4]["implementation_version"] == (
+        "nbis-5.0.0+mcc-sdk-2.0.0.0"
+    )
+    assert methods[5]["implementation_version"] == (
+        "nbis-5.0.0+openafis-3ae1c757+capacity-extended"
+    )
     for method in methods:
         assert method["attempts"] == 6_000
         assert method["score_bearing_results"] + method["algorithm_failures"] == 6_000

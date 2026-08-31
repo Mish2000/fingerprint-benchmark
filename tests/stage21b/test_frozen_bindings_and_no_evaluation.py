@@ -99,6 +99,42 @@ def test_local_predecessor_closure_carries_all_six_finalizations() -> None:
         assert algorithm.predecessor_finalization_fingerprint in route_digests
 
 
+@pytest.mark.parametrize(
+    ("algorithm_id", "expected_asset_digests"),
+    (
+        (
+            "nbis_mindtct_mcc_sdk_v2",
+            {
+                # Shared, certified NBIS extractor and build record.
+                "9ccbcaae35f446b35e9c94f177b9cd1d26854a0aed5ded8e8bbbdd5ce371e847",
+                "dcb44c0b9a341c159dc43a713e99d63bb20fb2c28f64cc0a7241bd13eadcde5f",
+                # Stage 20B's bridge and the official MCC SDK assembly.
+                "68fd85b06b5b4fdf0fd3f81a2cdc6a175c78ccaaf890851a97110d44246a51a5",
+                "7267ea9f2ea4c32bdeef30a49e648a516381941b531c59960517a87e5cd2eb01",
+            },
+        ),
+        (
+            "nbis_mindtct_openafis_capacity_extended",
+            {
+                # The same shared NBIS extractor and build record.
+                "9ccbcaae35f446b35e9c94f177b9cd1d26854a0aed5ded8e8bbbdd5ce371e847",
+                "dcb44c0b9a341c159dc43a713e99d63bb20fb2c28f64cc0a7241bd13eadcde5f",
+                # The exact Stage 19B capacity-extended bridge binary.
+                "7a16311f7034d922e3cbaad4f5dba7e0f4591b5b307dd0611050cd1ed509fd0b",
+            },
+        ),
+    ),
+)
+def test_composed_routes_bind_every_score_deciding_predecessor_asset(
+    algorithm_id: str, expected_asset_digests: set[str]
+) -> None:
+    binding = load_stage21a_binding(ROOT)
+    route_digests = accepted_predecessor_digests(
+        ROOT, binding=binding.algorithm(algorithm_id)
+    )
+    assert expected_asset_digests <= route_digests
+
+
 def test_frozen_execution_policy_exactly_covers_stage21a_roster() -> None:
     binding = load_stage21a_binding(ROOT)
     policy = load_execution_policy(ROOT / EXECUTION_POLICY_PATH)

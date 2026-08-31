@@ -266,8 +266,65 @@ def accepted_predecessor_digests(
         except (OSError, ValueError):
             continue
         _collect_digests(value, found)
+        _collect_hash_bound_evidence(path, value, found)
         found.add(str(row.get("sha256", "")))
     return frozenset(item for item in found if _is_digest(item))
+
+
+def _collect_hash_bound_evidence(
+    document_path: Path, document: Any, found: set[str]
+) -> None:
+    """Collect digests from same-directory evidence signed by a finalization.
+
+    Stage 19B and Stage 20B keep runtime identities in supporting JSON files,
+    while their selected finalization documents bind those files through
+    ``evidence_content_hashes``.  Follow only those explicit, verified links;
+    never scan an evidence directory or trust an unbound neighbouring file.
+    """
+    if not isinstance(document, Mapping):
+        return
+    if (document.get("stage"), document.get("kind")) not in {
+        ("19B", "stage_19b_finalization"),
+        ("20B", "stage_20b_finalization"),
+    }:
+        return
+    hashes = document.get("evidence_content_hashes")
+    if not isinstance(hashes, Mapping):
+        return
+    for name, claimed_digest in hashes.items():
+        child_name = str(name)
+        expected = str(claimed_digest).strip().lower()
+        if not _is_digest(expected):
+            raise Stage21BPreflightError(
+                f"{document_path}: invalid hash-bound evidence digest for {child_name!r}"
+            )
+        child = document_path.parent / child_name
+        if (
+            Path(child_name).name != child_name
+            or child.suffix.lower() != ".json"
+            or not child.is_file()
+        ):
+            # README files and any absent optional prose do not carry runtime
+            # identities.  A named JSON document, however, is part of the
+            # machine-readable predecessor closure and must be present.
+            if child_name.lower().endswith(".json"):
+                raise Stage21BPreflightError(
+                    f"hash-bound predecessor evidence is missing: {child}"
+                )
+            continue
+        actual = _sha256(child)
+        if actual != expected:
+            raise Stage21BPreflightError(
+                f"hash-bound predecessor evidence changed: {child}"
+            )
+        try:
+            child_value = json.loads(child.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise Stage21BPreflightError(
+                f"cannot read hash-bound predecessor evidence {child}: {exc}"
+            ) from exc
+        found.add(expected)
+        _collect_digests(child_value, found)
 
 
 def _document_belongs_to_route(relative: str, adapter_id: str) -> bool:
@@ -292,9 +349,11 @@ def _document_belongs_to_route(relative: str, adapter_id: str) -> bool:
         ),
         "nbis_mindtct_mcc_sdk_v2_subprocess": (
             "stage20b-mindtct-mcc-canonical500-raw",
+            "nbis-canonical500-raw",
         ),
         "nbis_mindtct_openafis_capacity_extended_subprocess": (
             "stage19b-openafis-capacity-extended",
+            "nbis-canonical500-raw",
         ),
     }
     try:

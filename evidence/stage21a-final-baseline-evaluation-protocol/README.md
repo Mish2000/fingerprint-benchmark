@@ -54,6 +54,16 @@ finger position. `cross-subject-pair-audit.json` re-derives impression,
 subject, finger, release, ground truth, membership, uniqueness, collision and
 balance invariants from image metadata.
 
+`cross-subject-strategy-decision.json` records that this exhaustive design was
+selected before any cross-subject score existed. It also records the sampled
+alternatives considered and the exact one-false-accept FAR increment for every
+alternative. The 1/24,500 per-release and 1/73,500 pooled values describe only
+the granularity of observed FAR on these fixed denominators; they are not a
+claim of statistical precision, confidence-interval width or population-level
+accuracy. Exhaustive enumeration was chosen because it removes opponent-sample
+selection and gives the finest observed-FAR step available in the frozen
+50-subject cohort.
+
 ## Frozen reporting semantics
 
 Only TAR, FAR and FRR are biometric result columns. The primary view uses every
@@ -86,10 +96,15 @@ separate contextual table and are not treated as equal operating points.
 ## Future high-resolution method reservation
 
 SD300B at native 1000 ppi and the same frozen 50 subjects is reserved as a
-future test set. Training, parameter tuning and threshold tuning are forbidden.
-SD300C may be supplementary 2000 ppi evaluation, but it is not an independent
-development set because it derives from the same cards. `canonical500` remains
-unchanged; any future pore-aware method uses a separate native-resolution lane.
+future test set. Its population is now explicitly bound to 500 genuine
+plain-roll/mated pairs from the unchanged legacy manifest and 24,500
+cross-subject impostor pairs from the unchanged exhaustive manifest. Both
+ordered pair-set IDs and fingerprints are derived from those two already-frozen
+manifests; this re-issue creates no biometric manifest. Training, parameter
+tuning and threshold tuning are forbidden. SD300C may be supplementary 2000
+ppi evaluation, but it is not an independent development set because it derives
+from the same cards. `canonical500` remains unchanged; any future pore-aware
+method uses a separate native-resolution lane.
 
 ## Evidence map
 
@@ -98,6 +113,7 @@ unchanged; any future pore-aware method uses a separate native-resolution lane.
 - `legacy-protocol-invariance.json` — exact 6,000-row regression binding
 - `cross-subject-pair-binding.json` — new manifest identity and generation bind
 - `cross-subject-pair-audit.json` — the complete 73,500-row structural audit
+- `cross-subject-strategy-decision.json` — pre-score exhaustive-design decision
 - `evaluation-policy.json` — TAR/FAR/FRR, failure and sweep semantics
 - `high-resolution-test-reservation.json` — protected SD300B reservation
 - `no-leakage-audit.json` — explicit absence of runs, scores and tuning

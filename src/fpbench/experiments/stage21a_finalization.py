@@ -49,6 +49,21 @@ LEGACY_COHORT_ID = "sd300_50_subjects_test_22f8d52a7478"
 LEGACY_PAIR_MANIFEST_HASH = (
     "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b"
 )
+CROSS_SUBJECT_PAIR_MANIFEST_HASH = (
+    "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505"
+)
+FUTURE_GENUINE_PAIR_IDS_SHA256 = (
+    "2aaebeedf5249ab9304fbceab5cf7083497e7fc4c9a5aa0fdc5194274258354d"
+)
+FUTURE_GENUINE_PAIR_SET_FINGERPRINT = (
+    "bda93e4798293a5da28f2f2e6cc75dad73f86057903739f7c222bab7196b5d3d"
+)
+FUTURE_IMPOSTOR_PAIR_IDS_SHA256 = (
+    "2d7e936c86c23aae9d8efedca1a58aeec8781af9d13f0ec851f728d30750224a"
+)
+FUTURE_IMPOSTOR_PAIR_SET_FINGERPRINT = (
+    "c112288b01b581cf55f7afed8bc4d4d15fe30d30bc5be099de7ad30ba0011999"
+)
 PREPARATION_SET_ID = "prepset_be560e047991"
 EVIDENCE_DOCUMENTS = (
     "README.md",
@@ -57,6 +72,7 @@ EVIDENCE_DOCUMENTS = (
     "legacy-protocol-invariance.json",
     "cross-subject-pair-binding.json",
     "cross-subject-pair-audit.json",
+    "cross-subject-strategy-decision.json",
     "evaluation-policy.json",
     "high-resolution-test-reservation.json",
     "no-leakage-audit.json",
@@ -273,6 +289,8 @@ def _cross_subject_binding(
     )
     if len(canonical.pairs) != 73_500:
         raise Stage21AError("stored cross-subject manifest is not 73,500 rows")
+    if metadata["pair_manifest_hash"] != CROSS_SUBJECT_PAIR_MANIFEST_HASH:
+        raise Stage21AError("the frozen 73,500-row pair-manifest hash changed")
 
     binding = {
         "kind": "stage_21a_cross_subject_pair_binding",
@@ -319,6 +337,108 @@ def _cross_subject_binding(
         }
     )
     return binding, audit_document
+
+
+def _observed_far_increment(denominator: int) -> dict[str, Any]:
+    increment = Fraction(1, denominator)
+    return {
+        "one_additional_false_accept": 1,
+        "impostor_attempt_denominator": denominator,
+        "exact_fraction": str(increment),
+        "decimal": format(float(increment), ".17g"),
+    }
+
+
+def _cross_subject_strategy_decision(
+    cross_binding: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Freeze the exhaustive choice without consulting a result or score."""
+    per_release = 24_500
+    pooled = 73_500
+    alternatives = [
+        {
+            "strategy_id": "exhaustive_directed_all_other_subjects",
+            "selected": True,
+            "opponents_per_left_subject_and_finger": 49,
+            "pair_count_per_release": per_release,
+            "pooled_pair_count": pooled,
+            "observed_far_increment": {
+                "per_release": _observed_far_increment(per_release),
+                "pooled": _observed_far_increment(pooled),
+            },
+            "disposition": (
+                "selected because it removes opponent-sampling degrees of freedom, "
+                "uses every eligible ordered cross-subject pair, and provides the "
+                "finest observed-FAR step available from the frozen 50-subject cohort"
+            ),
+        },
+        {
+            "strategy_id": "deterministic_ten_opponents_per_left_subject_and_finger",
+            "selected": False,
+            "opponents_per_left_subject_and_finger": 10,
+            "pair_count_per_release": 5_000,
+            "pooled_pair_count": 15_000,
+            "observed_far_increment": {
+                "per_release": _observed_far_increment(5_000),
+                "pooled": _observed_far_increment(15_000),
+            },
+            "disposition": (
+                "rejected because it introduces an unnecessary opponent-selection "
+                "rule and yields a coarser observed-FAR step"
+            ),
+        },
+        {
+            "strategy_id": "deterministic_one_opponent_per_left_subject_and_finger",
+            "selected": False,
+            "opponents_per_left_subject_and_finger": 1,
+            "pair_count_per_release": 500,
+            "pooled_pair_count": 1_500,
+            "observed_far_increment": {
+                "per_release": _observed_far_increment(500),
+                "pooled": _observed_far_increment(1_500),
+            },
+            "disposition": (
+                "rejected because it is dominated by the exhaustive design in this "
+                "fixed cohort and has the coarsest observed-FAR step"
+            ),
+        },
+    ]
+    decision: dict[str, Any] = {
+        "schema_version": "1",
+        "kind": "stage_21a_cross_subject_strategy_decision",
+        "decision_id": "sd300_cross_subject_strategy_exhaustive_v1",
+        "decision_status": "frozen_before_cross_subject_scores",
+        "selected_strategy_id": "exhaustive_directed_all_other_subjects",
+        "selected_pair_count_per_release": per_release,
+        "selected_pooled_pair_count": pooled,
+        "selected_pair_manifest_hash": cross_binding["pair_manifest_hash"],
+        "selected_pair_ids_sha256": cross_binding["pair_ids_sha256"],
+        "alternatives_considered": alternatives,
+        "selection_justification": (
+            "The exhaustive 50 x 49 x 10 directed design was selected because all "
+            "eligible different-subject opponents are already fixed and tractable. "
+            "It avoids a post hoc sampling choice and freezes 24,500 comparisons per "
+            "release, 73,500 pooled, before any cross-subject score exists."
+        ),
+        "observed_far_granularity": {
+            "per_release": _observed_far_increment(per_release),
+            "pooled": _observed_far_increment(pooled),
+            "interpretation": (
+                "These increments are the smallest changes in observed FAR caused by "
+                "one additional false accept in the fixed evaluation denominators. "
+                "They are granularity statements only, not claims of statistical "
+                "precision, confidence-interval width, or population-level accuracy."
+            ),
+        },
+        "observed_far_granularity_not_statistical_precision": True,
+        "statistical_precision_claimed": False,
+        "confidence_interval_precision_claimed": False,
+        "selected_without_score_values": True,
+        "score_values_read": 0,
+        "algorithm_runs_performed": 0,
+    }
+    decision["strategy_decision_fingerprint"] = _canonical_json_hash(decision)
+    return decision
 
 
 def _source_record(
@@ -773,7 +893,11 @@ def _evaluation_policy(repository_root: Path) -> dict[str, Any]:
     }
 
 
-def _reservation(repository_root: Path) -> dict[str, Any]:
+def _reservation(
+    repository_root: Path,
+    store: ManifestStore,
+    cross_binding: Mapping[str, Any],
+) -> dict[str, Any]:
     path = (
         repository_root / "configs/research/high_resolution_test_reservation_v1.yaml"
     )
@@ -796,11 +920,12 @@ def _reservation(repository_root: Path) -> dict[str, Any]:
             "dependence_disclosure",
             "legacy_lane",
             "future_method_lane",
+            "future_test_population",
         },
         where=str(path),
     )
     if (
-        reservation["schema_version"] != 1
+        reservation["schema_version"] != 2
         or reservation["reservation_id"] != "high_resolution_test_reservation_v1"
         or reservation["dataset"] != "NIST_SD300"
         or reservation["primary_release"] != "SD300B"
@@ -848,11 +973,116 @@ def _reservation(repository_root: Path) -> dict[str, Any]:
         or future_lane["development_started_by_stage21a"] is not False
     ):
         raise Stage21AError("the future native-resolution lane changed")
+
+    release = "SD300B"
+    legacy_pairs = [
+        pair
+        for pair in store.read_pairs(LEGACY_PROTOCOL_ID, LEGACY_COHORT_ID)
+        if pair.release == release and pair.protocol_stage.value == "plain_roll_mated"
+    ]
+    cross_pairs = [
+        pair
+        for pair in store.read_pairs(
+            str(cross_binding["protocol_id"]), str(cross_binding["cohort_id"])
+        )
+        if pair.release == release
+    ]
+    if len(legacy_pairs) != 500:
+        raise Stage21AError("the frozen SD300B genuine subset is not exactly 500 pairs")
+    if len(cross_pairs) != 24_500:
+        raise Stage21AError(
+            "the frozen SD300B cross-subject subset is not exactly 24,500 pairs"
+        )
+    if any(
+        pair.ground_truth.value != "mated"
+        or pair.protocol_stage.value != "plain_roll_mated"
+        for pair in legacy_pairs
+    ):
+        raise Stage21AError("the future challenger genuine subset is not plain-roll mated")
+    if any(
+        pair.ground_truth.value != "non_mated"
+        or pair.protocol_stage.value != "plain_roll_cross_subject_non_mated"
+        for pair in cross_pairs
+    ):
+        raise Stage21AError(
+            "the future challenger impostor subset is not cross-subject non-mated"
+        )
+
+    genuine = {
+        "population": "plain_roll_mated",
+        "ground_truth": "mated",
+        "source_protocol_id": LEGACY_PROTOCOL_ID,
+        "source_cohort_id": LEGACY_COHORT_ID,
+        "source_pair_manifest_hash": LEGACY_PAIR_MANIFEST_HASH,
+        "selection": (
+            "release_equals_SD300B_and_protocol_stage_equals_plain_roll_mated"
+        ),
+        "pair_count": len(legacy_pairs),
+        "pair_ids_sha256": stable_hash(
+            [str(pair.pair_id) for pair in legacy_pairs], length=64
+        ),
+        "pair_set_fingerprint_schema": "stage21a_ordered_pair_rows_v1",
+        "pair_set_fingerprint": stable_hash(_pair_rows(legacy_pairs), length=64),
+    }
+    impostor = {
+        "population": "plain_roll_cross_subject_non_mated",
+        "ground_truth": "non_mated",
+        "source_protocol_id": str(cross_binding["protocol_id"]),
+        "source_cohort_id": str(cross_binding["cohort_id"]),
+        "source_pair_manifest_hash": str(cross_binding["pair_manifest_hash"]),
+        "selection": "release_equals_SD300B",
+        "pair_count": len(cross_pairs),
+        "pair_ids_sha256": stable_hash(
+            [str(pair.pair_id) for pair in cross_pairs], length=64
+        ),
+        "pair_set_fingerprint_schema": "stage21a_ordered_pair_rows_v1",
+        "pair_set_fingerprint": stable_hash(_pair_rows(cross_pairs), length=64),
+    }
+    if (
+        genuine["pair_ids_sha256"] != FUTURE_GENUINE_PAIR_IDS_SHA256
+        or genuine["pair_set_fingerprint"]
+        != FUTURE_GENUINE_PAIR_SET_FINGERPRINT
+        or impostor["pair_ids_sha256"] != FUTURE_IMPOSTOR_PAIR_IDS_SHA256
+        or impostor["pair_set_fingerprint"]
+        != FUTURE_IMPOSTOR_PAIR_SET_FINGERPRINT
+    ):
+        raise Stage21AError("a frozen future-challenger pair-set identity changed")
+    population_schema = "stage21a_future_challenger_population_v1"
+    population_fingerprint = stable_hash(
+        {
+            "schema": population_schema,
+            "release": release,
+            "genuine": genuine,
+            "impostor": impostor,
+        },
+        length=64,
+    )
+    expected_population = {
+        "release": release,
+        "planned_evaluation_comparisons": len(legacy_pairs) + len(cross_pairs),
+        "biometric_manifest_created_by_this_reservation": False,
+        "population_fingerprint_schema": population_schema,
+        "population_fingerprint": population_fingerprint,
+        "genuine": genuine,
+        "impostor": impostor,
+    }
+    configured_population = _exact_mapping(
+        reservation["future_test_population"],
+        set(expected_population),
+        where=f"{path}: future_test_population",
+    )
+    if dict(configured_population) != expected_population:
+        raise Stage21AError(
+            "the future challenger population does not match the two frozen manifests"
+        )
     return {
         "kind": "stage_21a_high_resolution_test_reservation",
         "config": "configs/research/high_resolution_test_reservation_v1.yaml",
         "config_sha256": _sha256(path),
         "reservation": reservation,
+        "future_challenger_population_fingerprint": population_fingerprint,
+        "population_derived_from_existing_frozen_manifests": True,
+        "new_biometric_manifest_created": False,
         "frozen": True,
     }
 
@@ -863,6 +1093,7 @@ def _no_leakage() -> dict[str, Any]:
         "new_cross_subject_scores_read": False,
         "existing_raw_score_values_read": False,
         "score_distribution_used_for_pair_design": False,
+        "cross_subject_strategy_selected_from_score_values": False,
         "score_distribution_used_for_far_targets": False,
         "algorithm_ranking_used_for_policy": False,
         "calibration_performed": False,
@@ -909,7 +1140,8 @@ def freeze_stage21a(
     )
     roster, predecessors = _build_roster(root, workspace)
     policy = _evaluation_policy(root)
-    reservation = _reservation(root)
+    strategy = _cross_subject_strategy_decision(cross_binding)
+    reservation = _reservation(root, store, cross_binding)
     leakage = _no_leakage()
     documents: dict[str, Mapping[str, Any]] = {
         "baseline-roster.json": roster,
@@ -917,6 +1149,7 @@ def freeze_stage21a(
         "legacy-protocol-invariance.json": legacy,
         "cross-subject-pair-binding.json": cross_binding,
         "cross-subject-pair-audit.json": cross_audit,
+        "cross-subject-strategy-decision.json": strategy,
         "evaluation-policy.json": policy,
         "high-resolution-test-reservation.json": reservation,
         "no-leakage-audit.json": leakage,
@@ -934,6 +1167,17 @@ def freeze_stage21a(
         "cross_subject_pair_manifest_created": True,
         "cross_subject_pair_count_exact_73500": cross_binding["pair_count"] == 73_500,
         "cross_subject_pair_audit_clean": cross_audit["clean"],
+        "cross_subject_strategy_selected_and_justified": (
+            strategy["selected_strategy_id"]
+            == "exhaustive_directed_all_other_subjects"
+            and bool(strategy["selection_justification"])
+            and strategy["selected_pooled_pair_count"] == 73_500
+        ),
+        "strategy_selected_without_score_values": (
+            strategy["selected_without_score_values"] is True
+            and strategy["score_values_read"] == 0
+            and strategy["algorithm_runs_performed"] == 0
+        ),
         "genuine_population_fixed": True,
         "impostor_population_fixed": True,
         "tar_definition_frozen": True,
@@ -958,6 +1202,30 @@ def freeze_stage21a(
             leakage["algorithm_parameter_changed"] is False
         ),
         "high_resolution_test_reservation_frozen": reservation["frozen"],
+        "future_challenger_genuine_pairs_frozen": (
+            reservation["reservation"]["future_test_population"]["genuine"][
+                "pair_count"
+            ]
+            == 500
+        ),
+        "future_challenger_impostor_pairs_frozen": (
+            reservation["reservation"]["future_test_population"]["impostor"][
+                "pair_count"
+            ]
+            == 24_500
+        ),
+        "future_challenger_population_bound_to_frozen_manifests": (
+            reservation["population_derived_from_existing_frozen_manifests"] is True
+            and reservation["new_biometric_manifest_created"] is False
+            and reservation["reservation"]["future_test_population"]["genuine"][
+                "source_pair_manifest_hash"
+            ]
+            == LEGACY_PAIR_MANIFEST_HASH
+            and reservation["reservation"]["future_test_population"]["impostor"][
+                "source_pair_manifest_hash"
+            ]
+            == cross_binding["pair_manifest_hash"]
+        ),
         "no_algorithm_run_performed": leakage["algorithm_runs_performed"] == 0,
         "no_new_scores_consulted": leakage["new_cross_subject_scores_read"] is False,
         "all_contract_tests_pass": True,
@@ -971,7 +1239,7 @@ def freeze_stage21a(
         name: _sha256(evidence / name) for name in EVIDENCE_DOCUMENTS
     }
     marker: dict[str, Any] = {
-        "schema_version": "1",
+        "schema_version": "2",
         "kind": "stage_21a_finalization",
         "stage": "21A",
         "outcome": OUTCOME,
@@ -982,6 +1250,12 @@ def freeze_stage21a(
         "legacy_pair_manifest_hash": LEGACY_PAIR_MANIFEST_HASH,
         "cross_subject_pair_manifest_hash": cross_binding["pair_manifest_hash"],
         "cross_subject_pair_count": cross_binding["pair_count"],
+        "cross_subject_strategy_decision_fingerprint": strategy[
+            "strategy_decision_fingerprint"
+        ],
+        "future_challenger_population_fingerprint": reservation[
+            "future_challenger_population_fingerprint"
+        ],
         "stage21a_source_fingerprint": stage21a_source_fingerprint(root),
         "source_tree_clean": bool(source_tree_clean_attested),
         "source_tree_clean_attestation_scope": (
@@ -1015,9 +1289,26 @@ def verify_stage21a_evidence(repository_root: Path) -> dict[str, Any]:
         raise Stage21AError("Stage 21A finalization fingerprint does not cover marker")
     if marker.get("outcome") != OUTCOME:
         raise Stage21AError(f"Stage 21A outcome is {marker.get('outcome')!r}")
+    if marker.get("schema_version") != "2":
+        raise Stage21AError("Stage 21A is not the re-issued contract")
     if not all(marker.get("conditions", {}).values()):
         raise Stage21AError("Stage 21A marker carries a failed condition")
-    for name, digest in marker.get("evidence_content_hashes", {}).items():
+    required_conditions = {
+        "cross_subject_strategy_selected_and_justified",
+        "strategy_selected_without_score_values",
+        "future_challenger_genuine_pairs_frozen",
+        "future_challenger_impostor_pairs_frozen",
+        "future_challenger_population_bound_to_frozen_manifests",
+    }
+    conditions = marker.get("conditions", {})
+    if not required_conditions.issubset(conditions) or not all(
+        conditions[name] is True for name in required_conditions
+    ):
+        raise Stage21AError("Stage 21A re-issue conditions are absent or failed")
+    hashes = marker.get("evidence_content_hashes", {})
+    if set(hashes) != set(EVIDENCE_DOCUMENTS):
+        raise Stage21AError("Stage 21A marker does not bind the exact evidence set")
+    for name, digest in hashes.items():
         if _sha256(directory / name) != digest:
             raise Stage21AError(f"Stage 21A evidence digest changed: {name}")
     if marker.get("stage21a_source_fingerprint") != stage21a_source_fingerprint(root):
@@ -1025,7 +1316,87 @@ def verify_stage21a_evidence(repository_root: Path) -> dict[str, Any]:
     audit = _read_json(directory / "cross-subject-pair-audit.json")
     if not audit.get("clean") or audit.get("total_pairs") != 73_500:
         raise Stage21AError("published cross-subject audit is not clean")
+    pair_binding = _read_json(directory / "cross-subject-pair-binding.json")
+    if (
+        pair_binding.get("pair_count") != 73_500
+        or pair_binding.get("pair_manifest_hash")
+        != CROSS_SUBJECT_PAIR_MANIFEST_HASH
+        or marker.get("cross_subject_pair_manifest_hash")
+        != CROSS_SUBJECT_PAIR_MANIFEST_HASH
+    ):
+        raise Stage21AError("published cross-subject pair binding changed")
+    strategy = _read_json(directory / "cross-subject-strategy-decision.json")
+    strategy_fingerprint = strategy.pop("strategy_decision_fingerprint", None)
+    strategy_recomputed = _canonical_json_hash(strategy)
+    strategy["strategy_decision_fingerprint"] = strategy_fingerprint
+    alternatives = strategy.get("alternatives_considered")
+    if (
+        strategy_fingerprint != strategy_recomputed
+        or marker.get("cross_subject_strategy_decision_fingerprint")
+        != strategy_fingerprint
+        or strategy.get("selected_strategy_id")
+        != "exhaustive_directed_all_other_subjects"
+        or strategy.get("selected_pooled_pair_count") != 73_500
+        or strategy.get("selected_pair_manifest_hash")
+        != CROSS_SUBJECT_PAIR_MANIFEST_HASH
+        or strategy.get("selected_without_score_values") is not True
+        or strategy.get("score_values_read") != 0
+        or strategy.get("algorithm_runs_performed") != 0
+        or strategy.get("observed_far_granularity_not_statistical_precision")
+        is not True
+        or strategy.get("statistical_precision_claimed") is not False
+        or not isinstance(alternatives, list)
+        or len(alternatives) < 2
+        or sum(row.get("selected") is True for row in alternatives) != 1
+        or any(
+            not isinstance(row.get("observed_far_increment"), Mapping)
+            or set(row["observed_far_increment"]) != {"per_release", "pooled"}
+            for row in alternatives
+        )
+    ):
+        raise Stage21AError("published cross-subject strategy decision is invalid")
+    reservation = _read_json(directory / "high-resolution-test-reservation.json")
+    future = reservation.get("reservation", {}).get("future_test_population", {})
+    genuine = future.get("genuine", {})
+    impostor = future.get("impostor", {})
+    population_recomputed = stable_hash(
+        {
+            "schema": future.get("population_fingerprint_schema"),
+            "release": future.get("release"),
+            "genuine": genuine,
+            "impostor": impostor,
+        },
+        length=64,
+    )
+    if (
+        reservation.get("population_derived_from_existing_frozen_manifests")
+        is not True
+        or reservation.get("new_biometric_manifest_created") is not False
+        or future.get("biometric_manifest_created_by_this_reservation") is not False
+        or future.get("planned_evaluation_comparisons") != 25_000
+        or genuine.get("pair_count") != 500
+        or genuine.get("source_pair_manifest_hash") != LEGACY_PAIR_MANIFEST_HASH
+        or genuine.get("pair_ids_sha256") != FUTURE_GENUINE_PAIR_IDS_SHA256
+        or genuine.get("pair_set_fingerprint")
+        != FUTURE_GENUINE_PAIR_SET_FINGERPRINT
+        or impostor.get("pair_count") != 24_500
+        or impostor.get("source_pair_manifest_hash")
+        != CROSS_SUBJECT_PAIR_MANIFEST_HASH
+        or impostor.get("pair_ids_sha256") != FUTURE_IMPOSTOR_PAIR_IDS_SHA256
+        or impostor.get("pair_set_fingerprint")
+        != FUTURE_IMPOSTOR_PAIR_SET_FINGERPRINT
+        or future.get("population_fingerprint") != population_recomputed
+        or reservation.get("future_challenger_population_fingerprint")
+        != population_recomputed
+        or marker.get("future_challenger_population_fingerprint")
+        != population_recomputed
+    ):
+        raise Stage21AError("published future-challenger population binding is invalid")
     leakage = _read_json(directory / "no-leakage-audit.json")
-    if not leakage.get("pass") or leakage.get("algorithm_runs_performed") != 0:
+    if (
+        not leakage.get("pass")
+        or leakage.get("algorithm_runs_performed") != 0
+        or leakage.get("cross_subject_strategy_selected_from_score_values") is not False
+    ):
         raise Stage21AError("published no-leakage audit failed")
     return marker

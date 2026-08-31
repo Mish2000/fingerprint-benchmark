@@ -232,7 +232,9 @@ def _alignment(stage21a, specs, verified) -> dict:
         "preparation_set_id": PREPARATION_SET_ID,
         "preparation_set_fingerprint": digest("prep-set"),
         "preparation_profile_id": PREPARATION_PROFILE_ID,
-        "future_sd300b_pair_ids_sha256": digest("future-sd300b"),
+        "future_sd300b_pair_ids_sha256": stage21a.future_challenger_binding[
+            "impostor"
+        ]["pair_ids_sha256"],
         "methods": [
             {
                 "algorithm_id": algorithm_id,
@@ -460,6 +462,13 @@ def test_the_published_receipts_keep_failures_without_inventing_scores(
     )
     assert future["release"] == FUTURE_TEST_RELEASE
     assert future["pair_count"] == EXPECTED_PAIRS_PER_RELEASE
+    assert future["planned_evaluation_comparisons"] == 25_000
+    assert future["genuine_pair_count"] == 500
+    assert future["impostor_pair_count"] == EXPECTED_PAIRS_PER_RELEASE
+    assert future["genuine"] == stage21a.future_challenger_binding["genuine"]
+    assert future["impostor"] == stage21a.future_challenger_binding["impostor"]
+    assert future["derived_from_existing_frozen_manifests"] is True
+    assert future["new_biometric_manifest_created"] is False
     assert future["future_method_development_started"] is False
 
 

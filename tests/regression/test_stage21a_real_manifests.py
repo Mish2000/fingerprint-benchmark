@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from fpbench.experiments.stage21a_finalization import LEGACY_PAIR_MANIFEST_HASH
+from fpbench.core.serialization import stable_hash
 from fpbench.protocols.cross_subject import audit_cross_subject_pairs
 from fpbench.protocols.sd300_protocol import SD300Protocol
 from fpbench.storage.manifest_store import ManifestStore
@@ -17,6 +18,21 @@ WORKSPACE = ROOT / "workspace"
 LEGACY_PROTOCOL = "sd300_50_subjects"
 LEGACY_COHORT = "sd300_50_subjects_test_22f8d52a7478"
 pytestmark = pytest.mark.stage21a_workspace
+
+
+def _pair_rows(pairs):
+    return [
+        {
+            "pair_id": str(pair.pair_id),
+            "dataset_id": pair.dataset_id,
+            "release": pair.release,
+            "left_image_id": str(pair.left_image_id),
+            "right_image_id": str(pair.right_image_id),
+            "ground_truth": pair.ground_truth.value,
+            "protocol_stage": pair.protocol_stage.value,
+        }
+        for pair in pairs
+    ]
 
 
 def _store_or_skip() -> ManifestStore:
@@ -80,3 +96,38 @@ def test_the_real_cross_subject_manifest_matches_its_published_audit() -> None:
     assert store.pair_manifest_metadata(protocol_id, cohort_id)[
         "pair_manifest_hash"
     ] == binding["pair_manifest_hash"]
+
+
+def test_future_challenger_pair_sets_derive_from_the_two_frozen_manifests() -> None:
+    store = _store_or_skip()
+    evidence = ROOT / "evidence/stage21a-final-baseline-evaluation-protocol"
+    reservation = json.loads(
+        (evidence / "high-resolution-test-reservation.json").read_text(
+            encoding="utf-8"
+        )
+    )["reservation"]["future_test_population"]
+    cross = json.loads(
+        (evidence / "cross-subject-pair-binding.json").read_text(encoding="utf-8")
+    )
+    genuine = [
+        pair
+        for pair in store.read_pairs(LEGACY_PROTOCOL, LEGACY_COHORT)
+        if pair.release == "SD300B"
+        and pair.protocol_stage.value == "plain_roll_mated"
+    ]
+    impostor = [
+        pair
+        for pair in store.read_pairs(cross["protocol_id"], cross["cohort_id"])
+        if pair.release == "SD300B"
+    ]
+    for pairs, frozen in (
+        (genuine, reservation["genuine"]),
+        (impostor, reservation["impostor"]),
+    ):
+        assert len(pairs) == frozen["pair_count"]
+        assert stable_hash(
+            [str(pair.pair_id) for pair in pairs], length=64
+        ) == frozen["pair_ids_sha256"]
+        assert stable_hash(_pair_rows(pairs), length=64) == frozen[
+            "pair_set_fingerprint"
+        ]

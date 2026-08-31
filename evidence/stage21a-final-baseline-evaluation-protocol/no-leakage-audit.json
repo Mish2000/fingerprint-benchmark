@@ -3,6 +3,7 @@
   "algorithm_ranking_used_for_policy": false,
   "algorithm_runs_performed": 0,
   "calibration_performed": false,
+  "cross_subject_strategy_selected_from_score_values": false,
   "existing_raw_score_values_read": false,
   "kind": "stage_21a_no_leakage_audit",
   "new_cross_subject_scores_read": false,

@@ -1,8 +1,11 @@
 {
   "config": "configs/research/high_resolution_test_reservation_v1.yaml",
-  "config_sha256": "2c76a42e0d06cd08dbdf8af6cd9bcd39cad951ea2c37f1f723495618b64372db",
+  "config_sha256": "18b1c74694e76c8571541c268d96be0e6a2e81b540eedcc1b6ab7faf2a8bfa41",
   "frozen": true,
+  "future_challenger_population_fingerprint": "f8ff91d2628d0d5edf81212ea8ca5455293bc951fc52daa3c526ff6cdfa4d0d4",
   "kind": "stage_21a_high_resolution_test_reservation",
+  "new_biometric_manifest_created": false,
+  "population_derived_from_existing_frozen_manifests": true,
   "reservation": {
     "cohort_role": "future_test",
     "dataset": "NIST_SD300",
@@ -10,6 +13,37 @@
     "future_method_lane": {
       "development_started_by_stage21a": false,
       "input_resolution": "native_1000ppi_or_higher"
+    },
+    "future_test_population": {
+      "biometric_manifest_created_by_this_reservation": false,
+      "genuine": {
+        "ground_truth": "mated",
+        "pair_count": 500,
+        "pair_ids_sha256": "2aaebeedf5249ab9304fbceab5cf7083497e7fc4c9a5aa0fdc5194274258354d",
+        "pair_set_fingerprint": "bda93e4798293a5da28f2f2e6cc75dad73f86057903739f7c222bab7196b5d3d",
+        "pair_set_fingerprint_schema": "stage21a_ordered_pair_rows_v1",
+        "population": "plain_roll_mated",
+        "selection": "release_equals_SD300B_and_protocol_stage_equals_plain_roll_mated",
+        "source_cohort_id": "sd300_50_subjects_test_22f8d52a7478",
+        "source_pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+        "source_protocol_id": "sd300_50_subjects"
+      },
+      "impostor": {
+        "ground_truth": "non_mated",
+        "pair_count": 24500,
+        "pair_ids_sha256": "2d7e936c86c23aae9d8efedca1a58aeec8781af9d13f0ec851f728d30750224a",
+        "pair_set_fingerprint": "c112288b01b581cf55f7afed8bc4d4d15fe30d30bc5be099de7ad30ba0011999",
+        "pair_set_fingerprint_schema": "stage21a_ordered_pair_rows_v1",
+        "population": "plain_roll_cross_subject_non_mated",
+        "selection": "release_equals_SD300B",
+        "source_cohort_id": "sd300_cross_subject_non_mated_v1_test_aa23881bd8ca",
+        "source_pair_manifest_hash": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
+        "source_protocol_id": "sd300_cross_subject_non_mated_v1"
+      },
+      "planned_evaluation_comparisons": 25000,
+      "population_fingerprint": "f8ff91d2628d0d5edf81212ea8ca5455293bc951fc52daa3c526ff6cdfa4d0d4",
+      "population_fingerprint_schema": "stage21a_future_challenger_population_v1",
+      "release": "SD300B"
     },
     "legacy_lane": {
       "changed_by_this_reservation": false,
@@ -19,7 +53,7 @@
     "parameter_tuning_allowed": false,
     "primary_release": "SD300B",
     "reservation_id": "high_resolution_test_reservation_v1",
-    "schema_version": 1,
+    "schema_version": 2,
     "source_cohort_id": "sd300_50_subjects_test_22f8d52a7478",
     "subjects": "same_frozen_50",
     "supplementary_release": {

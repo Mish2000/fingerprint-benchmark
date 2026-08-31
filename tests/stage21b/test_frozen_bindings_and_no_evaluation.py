@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from fpbench.stage21b.bindings import load_frozen_pairs, load_stage21a_binding
+from fpbench.stage21b.bindings import _require_reissued_stage21a_contract
 from fpbench.core.enums import FailureCode, FailureStage
 from fpbench.core.execution_models import FailureInfo
 from fpbench.stage21b.adapters import (
@@ -57,6 +58,31 @@ def test_stage21a_final_marker_is_consumed_dynamically_and_all_six_routes_bind()
         binding.algorithm_ids
     )
     assert len(binding.accepted_legacy_result_identities_fingerprint) == 64
+    assert binding.strategy_decision["selected_without_score_values"] is True
+    assert binding.future_challenger_binding["genuine"]["pair_count"] == 500
+    assert binding.future_challenger_binding["impostor"]["pair_count"] == 24_500
+
+
+@pytest.mark.parametrize("missing", ["strategy_condition", "future_population"])
+def test_preflight_refuses_pre_reissue_stage21a_contract(missing: str) -> None:
+    directory = ROOT / "evidence/stage21a-final-baseline-evaluation-protocol"
+    marker = _read_json(directory / "stage-21a-finalization.json")
+    strategy = _read_json(directory / "cross-subject-strategy-decision.json")
+    reservation = _read_json(directory / "high-resolution-test-reservation.json")
+    pair = _read_json(directory / "cross-subject-pair-binding.json")
+    legacy = _read_json(directory / "legacy-protocol-invariance.json")
+    if missing == "strategy_condition":
+        marker["conditions"].pop("cross_subject_strategy_selected_and_justified")
+    else:
+        reservation["reservation"].pop("future_test_population")
+    with pytest.raises(Stage21BPreflightError, match="strategy|future|re-issue"):
+        _require_reissued_stage21a_contract(
+            marker=marker,
+            strategy=strategy,
+            reservation=reservation,
+            pair_binding=pair,
+            legacy_binding=legacy,
+        )
 
 
 def test_local_predecessor_closure_carries_all_six_finalizations() -> None:
@@ -161,3 +187,7 @@ def test_composed_route_failure_split_preserves_predecessor_semantics() -> None:
     assert mcc(
         failure(status_key="stage20b_status", status="MCC_RUNTIME_FAILURE")
     ) is FailureDisposition.INFRASTRUCTURE
+
+
+def _read_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))

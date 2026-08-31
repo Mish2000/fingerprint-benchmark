@@ -2562,6 +2562,13 @@ collisions, same-subject pairs, different-finger pairs, cross-release pairs, unk
 subjects and unknown images. The old same-subject/different-finger negatives remain a
 sanity population and are not the primary FAR denominator.
 
+The exhaustive strategy is frozen in a separate, score-blind decision record together
+with the deterministic sampled alternatives that were considered and the one-event FAR
+increment of each design. Its 1/24,500 per-release and 1/73,500 pooled increments are
+statements about observed-FAR granularity on fixed denominators, not claims of
+statistical precision. Exhaustive enumeration was selected before scores because it
+removes opponent-sampling discretion and uses every eligible ordered pair.
+
 Final reporting is limited to TAR, FAR and FRR. The primary all-attempt view uses all
 1,500 existing genuine attempts and all 73,500 new impostor attempts, with no SELF
 eligibility filtering. A scoreless genuine attempt is not accepted and contributes to
@@ -2576,9 +2583,13 @@ are reported, with pooled numerators and denominators summed rather than release
 averaged. A common-score population across all six methods is secondary only.
 
 SD300B at native 1000 ppi is reserved as the future test lane for the pore-aware
-method; training, parameter tuning and threshold tuning are forbidden. SD300C may be
-supplementary 2000 ppi evaluation but is not an independent development set, because
-both releases derive from the same physical cards. `canonical500` is unchanged.
+method: exactly 500 genuine pairs from the frozen legacy manifest plus 24,500
+cross-subject impostor pairs from the frozen exhaustive manifest. Their ordered
+pair-set IDs and fingerprints are derived from those existing manifests; no new
+biometric manifest is introduced. Training, parameter tuning and threshold tuning are
+forbidden. SD300C may be supplementary 2000 ppi evaluation but is not an independent
+development set, because both releases derive from the same physical cards.
+`canonical500` is unchanged.
 
 Evidence: [`evidence/stage21a-final-baseline-evaluation-protocol/`](evidence/stage21a-final-baseline-evaluation-protocol/).
 

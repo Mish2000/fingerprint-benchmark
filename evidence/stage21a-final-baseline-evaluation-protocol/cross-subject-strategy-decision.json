@@ -1,0 +1,102 @@
+{
+  "algorithm_runs_performed": 0,
+  "alternatives_considered": [
+    {
+      "disposition": "selected because it removes opponent-sampling degrees of freedom, uses every eligible ordered cross-subject pair, and provides the finest observed-FAR step available from the frozen 50-subject cohort",
+      "observed_far_increment": {
+        "per_release": {
+          "decimal": "4.0816326530612245e-05",
+          "exact_fraction": "1/24500",
+          "impostor_attempt_denominator": 24500,
+          "one_additional_false_accept": 1
+        },
+        "pooled": {
+          "decimal": "1.3605442176870749e-05",
+          "exact_fraction": "1/73500",
+          "impostor_attempt_denominator": 73500,
+          "one_additional_false_accept": 1
+        }
+      },
+      "opponents_per_left_subject_and_finger": 49,
+      "pair_count_per_release": 24500,
+      "pooled_pair_count": 73500,
+      "selected": true,
+      "strategy_id": "exhaustive_directed_all_other_subjects"
+    },
+    {
+      "disposition": "rejected because it introduces an unnecessary opponent-selection rule and yields a coarser observed-FAR step",
+      "observed_far_increment": {
+        "per_release": {
+          "decimal": "0.00020000000000000001",
+          "exact_fraction": "1/5000",
+          "impostor_attempt_denominator": 5000,
+          "one_additional_false_accept": 1
+        },
+        "pooled": {
+          "decimal": "6.666666666666667e-05",
+          "exact_fraction": "1/15000",
+          "impostor_attempt_denominator": 15000,
+          "one_additional_false_accept": 1
+        }
+      },
+      "opponents_per_left_subject_and_finger": 10,
+      "pair_count_per_release": 5000,
+      "pooled_pair_count": 15000,
+      "selected": false,
+      "strategy_id": "deterministic_ten_opponents_per_left_subject_and_finger"
+    },
+    {
+      "disposition": "rejected because it is dominated by the exhaustive design in this fixed cohort and has the coarsest observed-FAR step",
+      "observed_far_increment": {
+        "per_release": {
+          "decimal": "0.002",
+          "exact_fraction": "1/500",
+          "impostor_attempt_denominator": 500,
+          "one_additional_false_accept": 1
+        },
+        "pooled": {
+          "decimal": "0.00066666666666666664",
+          "exact_fraction": "1/1500",
+          "impostor_attempt_denominator": 1500,
+          "one_additional_false_accept": 1
+        }
+      },
+      "opponents_per_left_subject_and_finger": 1,
+      "pair_count_per_release": 500,
+      "pooled_pair_count": 1500,
+      "selected": false,
+      "strategy_id": "deterministic_one_opponent_per_left_subject_and_finger"
+    }
+  ],
+  "confidence_interval_precision_claimed": false,
+  "decision_id": "sd300_cross_subject_strategy_exhaustive_v1",
+  "decision_status": "frozen_before_cross_subject_scores",
+  "kind": "stage_21a_cross_subject_strategy_decision",
+  "observed_far_granularity": {
+    "interpretation": "These increments are the smallest changes in observed FAR caused by one additional false accept in the fixed evaluation denominators. They are granularity statements only, not claims of statistical precision, confidence-interval width, or population-level accuracy.",
+    "per_release": {
+      "decimal": "4.0816326530612245e-05",
+      "exact_fraction": "1/24500",
+      "impostor_attempt_denominator": 24500,
+      "one_additional_false_accept": 1
+    },
+    "pooled": {
+      "decimal": "1.3605442176870749e-05",
+      "exact_fraction": "1/73500",
+      "impostor_attempt_denominator": 73500,
+      "one_additional_false_accept": 1
+    }
+  },
+  "observed_far_granularity_not_statistical_precision": true,
+  "schema_version": "1",
+  "score_values_read": 0,
+  "selected_pair_count_per_release": 24500,
+  "selected_pair_ids_sha256": "46d7390cfdd8f5c678d7f7df997066029c37afc9c1e5854a90063c0d0162bc4f",
+  "selected_pair_manifest_hash": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
+  "selected_pooled_pair_count": 73500,
+  "selected_strategy_id": "exhaustive_directed_all_other_subjects",
+  "selected_without_score_values": true,
+  "selection_justification": "The exhaustive 50 x 49 x 10 directed design was selected because all eligible different-subject opponents are already fixed and tractable. It avoids a post hoc sampling choice and freezes 24,500 comparisons per release, 73,500 pooled, before any cross-subject score exists.",
+  "statistical_precision_claimed": false,
+  "strategy_decision_fingerprint": "9741dbf03faa268e87b5c89f7e8441fc575351860fd77149445db122346e9977"
+}

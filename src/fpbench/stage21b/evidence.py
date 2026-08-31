@@ -146,6 +146,13 @@ def publish_stage21b_evidence(
     )
     if alignment["future_sd300b_pair_ids_sha256"] in (None, ""):
         raise Stage21BIntegrityError("future SD300B identity was not derived")
+    future_population = stage21a.future_challenger_binding
+    if alignment["future_sd300b_pair_ids_sha256"] != future_population[
+        "impostor"
+    ]["pair_ids_sha256"]:
+        raise Stage21BIntegrityError(
+            "aligned SD300B impostors differ from the re-issued Stage 21A binding"
+        )
     documents: dict[str, dict[str, Any]] = {}
     documents["stage21a-binding.json"] = _stage21a_document(stage21a)
     documents["execution-roster.json"] = _roster_document(stage21a, specs)
@@ -166,12 +173,20 @@ def publish_stage21b_evidence(
     }
     documents["cross-method-alignment.json"] = alignment
     documents["future-challenger-binding.json"] = {
-        "schema_version": "1",
+        "schema_version": "2",
         "stage": "21B",
         "kind": "stage_21b_future_challenger_binding",
         "release": FUTURE_TEST_RELEASE,
+        "planned_evaluation_comparisons": 25_000,
         "pair_count": EXPECTED_PAIRS_PER_RELEASE,
         "pair_ids_sha256": alignment["future_sd300b_pair_ids_sha256"],
+        "genuine_pair_count": 500,
+        "impostor_pair_count": EXPECTED_PAIRS_PER_RELEASE,
+        "population_fingerprint": stage21a.future_challenger_population_fingerprint,
+        "genuine": dict(future_population["genuine"]),
+        "impostor": dict(future_population["impostor"]),
+        "derived_from_existing_frozen_manifests": True,
+        "new_biometric_manifest_created": False,
         "same_pairs_in_every_baseline_result_set": True,
         "future_lane": "native_1000ppi_or_higher",
         "baseline_lane": "canonical500",
@@ -453,8 +468,14 @@ def _verify_committed_document_set(
         "roster_fingerprint": stage21a.roster_fingerprint,
         "protocol_config_fingerprint": stage21a.protocol_config_sha256,
         "cross_subject_pair_manifest_fingerprint": stage21a.pair_manifest_hash,
+        "cross_subject_strategy_decision_fingerprint": (
+            stage21a.cross_subject_strategy_decision_fingerprint
+        ),
         "high_resolution_reservation_fingerprint": (
             stage21a.high_resolution_reservation_fingerprint
+        ),
+        "future_challenger_population_fingerprint": (
+            stage21a.future_challenger_population_fingerprint
         ),
         "accepted_legacy_result_identities_fingerprint": (
             stage21a.accepted_legacy_result_identities_fingerprint
@@ -814,6 +835,12 @@ def _verify_committed_document_set(
         raise Stage21BIntegrityError("cross-method alignment contains a failed gate")
     if not _is_digest(alignment.get("future_sd300b_pair_ids_sha256")):
         raise Stage21BIntegrityError("future SD300B pair identity is invalid")
+    if alignment.get("future_sd300b_pair_ids_sha256") != stage21a.future_challenger_binding[
+        "impostor"
+    ]["pair_ids_sha256"]:
+        raise Stage21BIntegrityError(
+            "future SD300B pair identity differs from the re-issued Stage 21A contract"
+        )
     alignment_methods = alignment.get("methods")
     if not isinstance(alignment_methods, list) or [
         row.get("algorithm_id") for row in alignment_methods
@@ -832,12 +859,23 @@ def _verify_committed_document_set(
         )
 
     future = _json(directory / "future-challenger-binding.json")
+    frozen_future = stage21a.future_challenger_binding
     _require_values(
         future,
         {
             "release": FUTURE_TEST_RELEASE,
+            "planned_evaluation_comparisons": 25_000,
             "pair_count": EXPECTED_PAIRS_PER_RELEASE,
             "pair_ids_sha256": alignment["future_sd300b_pair_ids_sha256"],
+            "genuine_pair_count": 500,
+            "impostor_pair_count": EXPECTED_PAIRS_PER_RELEASE,
+            "population_fingerprint": (
+                stage21a.future_challenger_population_fingerprint
+            ),
+            "genuine": frozen_future["genuine"],
+            "impostor": frozen_future["impostor"],
+            "derived_from_existing_frozen_manifests": True,
+            "new_biometric_manifest_created": False,
             "same_pairs_in_every_baseline_result_set": True,
             "future_lane": "native_1000ppi_or_higher",
             "baseline_lane": "canonical500",
@@ -983,7 +1021,13 @@ def _stage21a_document(binding: Stage21ABinding) -> dict[str, Any]:
         "roster_fingerprint": binding.roster_fingerprint,
         "protocol_config_fingerprint": binding.protocol_config_sha256,
         "cross_subject_pair_manifest_fingerprint": binding.pair_manifest_hash,
+        "cross_subject_strategy_decision_fingerprint": (
+            binding.cross_subject_strategy_decision_fingerprint
+        ),
         "high_resolution_reservation_fingerprint": binding.high_resolution_reservation_fingerprint,
+        "future_challenger_population_fingerprint": (
+            binding.future_challenger_population_fingerprint
+        ),
         "accepted_legacy_result_identities_fingerprint": (
             binding.accepted_legacy_result_identities_fingerprint
         ),

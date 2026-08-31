@@ -33,6 +33,13 @@ from fpbench.stage21b.errors import Stage21BPreflightError
 from fpbench.storage.manifest_store import ManifestStore
 
 _STAGE21A_OUTCOME = "FINAL_BASELINE_EVALUATION_PROTOCOL_READY"
+_REISSUED_STAGE21A_CONDITIONS = {
+    "cross_subject_strategy_selected_and_justified",
+    "strategy_selected_without_score_values",
+    "future_challenger_genuine_pairs_frozen",
+    "future_challenger_impostor_pairs_frozen",
+    "future_challenger_population_bound_to_frozen_manifests",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +68,8 @@ class Stage21ABinding:
     pair_ids_sha256: str
     pair_count: int
     high_resolution_reservation_fingerprint: str
+    cross_subject_strategy_decision_fingerprint: str
+    future_challenger_population_fingerprint: str
     future_test_release: str
     legacy_pair_manifest_hash: str
     cohort_id: str
@@ -68,6 +77,8 @@ class Stage21ABinding:
     marker: Mapping[str, Any]
     pair_binding: Mapping[str, Any]
     legacy_binding: Mapping[str, Any]
+    strategy_decision: Mapping[str, Any]
+    future_challenger_binding: Mapping[str, Any]
 
     @property
     def algorithm_ids(self) -> tuple[str, ...]:
@@ -118,6 +129,139 @@ class PairManifestSnapshot:
     cohort_id: str
 
 
+def _is_sha256(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def _require_reissued_stage21a_contract(
+    *,
+    marker: Mapping[str, Any],
+    strategy: Mapping[str, Any],
+    reservation: Mapping[str, Any],
+    pair_binding: Mapping[str, Any],
+    legacy_binding: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    """Reject the original 21A marker and require the score-blind re-issue."""
+    conditions = marker.get("conditions")
+    if marker.get("schema_version") != "2" or not isinstance(conditions, Mapping):
+        raise Stage21BPreflightError("Stage 21A predates the required protocol re-issue")
+    if not _REISSUED_STAGE21A_CONDITIONS.issubset(conditions) or any(
+        conditions[name] is not True for name in _REISSUED_STAGE21A_CONDITIONS
+    ):
+        raise Stage21BPreflightError(
+            "Stage 21A lacks the strategy decision or future-challenger binding"
+        )
+    hashes = marker.get("evidence_content_hashes")
+    if not isinstance(hashes, Mapping) or not {
+        "cross-subject-strategy-decision.json",
+        "high-resolution-test-reservation.json",
+    }.issubset(hashes):
+        raise Stage21BPreflightError(
+            "Stage 21A does not hash-bind the re-issued contract documents"
+        )
+
+    strategy_body = dict(strategy)
+    strategy_fingerprint = strategy_body.pop("strategy_decision_fingerprint", None)
+    alternatives = strategy.get("alternatives_considered")
+    if (
+        strategy.get("kind") != "stage_21a_cross_subject_strategy_decision"
+        or strategy_fingerprint != _canonical_json_hash(strategy_body)
+        or marker.get("cross_subject_strategy_decision_fingerprint")
+        != strategy_fingerprint
+        or strategy.get("selected_strategy_id")
+        != "exhaustive_directed_all_other_subjects"
+        or strategy.get("selected_pair_count_per_release")
+        != EXPECTED_PAIRS_PER_RELEASE
+        or strategy.get("selected_pooled_pair_count") != EXPECTED_PAIRS_PER_METHOD
+        or strategy.get("selected_pair_manifest_hash")
+        != pair_binding.get("pair_manifest_hash")
+        or strategy.get("selected_pair_ids_sha256")
+        != pair_binding.get("pair_ids_sha256")
+        or not str(strategy.get("selection_justification", "")).strip()
+        or strategy.get("selected_without_score_values") is not True
+        or strategy.get("score_values_read") != 0
+        or strategy.get("algorithm_runs_performed") != 0
+        or strategy.get("observed_far_granularity_not_statistical_precision")
+        is not True
+        or strategy.get("statistical_precision_claimed") is not False
+        or not isinstance(alternatives, list)
+        or len(alternatives) < 2
+        or sum(row.get("selected") is True for row in alternatives) != 1
+        or any(
+            not isinstance(row.get("observed_far_increment"), Mapping)
+            for row in alternatives
+        )
+    ):
+        raise Stage21BPreflightError(
+            "Stage 21A cross-subject strategy decision is not the accepted re-issue"
+        )
+
+    reservation_body = reservation.get("reservation")
+    future = (
+        reservation_body.get("future_test_population")
+        if isinstance(reservation_body, Mapping)
+        else None
+    )
+    if not isinstance(future, Mapping):
+        raise Stage21BPreflightError(
+            "Stage 21A future-challenger population binding is absent"
+        )
+    genuine = future.get("genuine")
+    impostor = future.get("impostor")
+    if not isinstance(genuine, Mapping) or not isinstance(impostor, Mapping):
+        raise Stage21BPreflightError(
+            "Stage 21A future-challenger pair-set bindings are absent"
+        )
+    recomputed_population = stable_hash(
+        {
+            "schema": future.get("population_fingerprint_schema"),
+            "release": future.get("release"),
+            "genuine": genuine,
+            "impostor": impostor,
+        },
+        length=64,
+    )
+    digests = (
+        genuine.get("pair_ids_sha256"),
+        genuine.get("pair_set_fingerprint"),
+        impostor.get("pair_ids_sha256"),
+        impostor.get("pair_set_fingerprint"),
+        recomputed_population,
+    )
+    if (
+        reservation.get("population_derived_from_existing_frozen_manifests")
+        is not True
+        or reservation.get("new_biometric_manifest_created") is not False
+        or future.get("release") != FUTURE_TEST_RELEASE
+        or future.get("planned_evaluation_comparisons")
+        != 500 + EXPECTED_PAIRS_PER_RELEASE
+        or future.get("biometric_manifest_created_by_this_reservation") is not False
+        or genuine.get("pair_count") != 500
+        or genuine.get("source_pair_manifest_hash") != LEGACY_PAIR_MANIFEST_HASH
+        or genuine.get("source_protocol_id") != legacy_binding.get("protocol_id")
+        or genuine.get("source_cohort_id") != legacy_binding.get("cohort_id")
+        or impostor.get("pair_count") != EXPECTED_PAIRS_PER_RELEASE
+        or impostor.get("source_pair_manifest_hash")
+        != pair_binding.get("pair_manifest_hash")
+        or impostor.get("source_protocol_id") != pair_binding.get("protocol_id")
+        or impostor.get("source_cohort_id") != pair_binding.get("cohort_id")
+        or not all(_is_sha256(value) for value in digests)
+        or future.get("population_fingerprint") != recomputed_population
+        or reservation.get("future_challenger_population_fingerprint")
+        != recomputed_population
+        or marker.get("future_challenger_population_fingerprint")
+        != recomputed_population
+    ):
+        raise Stage21BPreflightError(
+            "Stage 21A future-challenger population is not bound to the frozen manifests"
+        )
+    return future
+
+
 def load_stage21a_binding(
     repository_root: Path, *, require_predecessor_files: bool = False
 ) -> Stage21ABinding:
@@ -128,6 +272,7 @@ def load_stage21a_binding(
 
     roster_document = _json(directory / "baseline-roster.json")
     pair = _json(directory / "cross-subject-pair-binding.json")
+    strategy = _json(directory / "cross-subject-strategy-decision.json")
     reservation = _json(directory / "high-resolution-test-reservation.json")
     predecessors = _json(directory / "predecessor-bindings.json")
     predecessor_values: set[str] = set()
@@ -223,9 +368,6 @@ def load_stage21a_binding(
         raise Stage21BPreflightError("Stage 21A marker and pair binding disagree")
     if pair.get("legacy_pair_manifest_hash") != LEGACY_PAIR_MANIFEST_HASH:
         raise Stage21BPreflightError("the legacy pair manifest changed")
-    reserved_release = reservation.get("reservation", {}).get("primary_release")
-    if reserved_release != FUTURE_TEST_RELEASE:
-        raise Stage21BPreflightError("the future challenger is no longer bound to SD300B")
 
     legacy = _json(directory / "legacy-protocol-invariance.json")
     if (
@@ -237,6 +379,14 @@ def load_stage21a_binding(
         or not str(legacy.get("pair_ids_sha256", "")).strip()
     ):
         raise Stage21BPreflightError("Stage 21A legacy-protocol invariance is not intact")
+    future_population = _require_reissued_stage21a_contract(
+        marker=marker,
+        strategy=strategy,
+        reservation=reservation,
+        pair_binding=pair,
+        legacy_binding=legacy,
+    )
+    reserved_release = str(future_population["release"])
 
     hashes = marker["evidence_content_hashes"]
     return Stage21ABinding(
@@ -251,6 +401,12 @@ def load_stage21a_binding(
         high_resolution_reservation_fingerprint=str(
             hashes["high-resolution-test-reservation.json"]
         ),
+        cross_subject_strategy_decision_fingerprint=str(
+            strategy["strategy_decision_fingerprint"]
+        ),
+        future_challenger_population_fingerprint=str(
+            future_population["population_fingerprint"]
+        ),
         future_test_release=str(reserved_release),
         legacy_pair_manifest_hash=LEGACY_PAIR_MANIFEST_HASH,
         cohort_id=str(pair["cohort_id"]),
@@ -258,6 +414,8 @@ def load_stage21a_binding(
         marker=marker,
         pair_binding=pair,
         legacy_binding=legacy,
+        strategy_decision=strategy,
+        future_challenger_binding=future_population,
     )
 
 
@@ -289,6 +447,34 @@ def load_frozen_pairs(
             raise Stage21BPreflightError(
                 f"pair {pair.pair_id} is outside the frozen Stage 21B population"
             )
+    future_pairs = tuple(pair for pair in pairs if pair.release == FUTURE_TEST_RELEASE)
+    future_binding = binding.future_challenger_binding["impostor"]
+    future_ids = stable_hash(
+        [str(pair.pair_id) for pair in future_pairs], length=64
+    )
+    future_rows = stable_hash(
+        [
+            {
+                "pair_id": str(pair.pair_id),
+                "dataset_id": pair.dataset_id,
+                "release": pair.release,
+                "left_image_id": str(pair.left_image_id),
+                "right_image_id": str(pair.right_image_id),
+                "ground_truth": pair.ground_truth.value,
+                "protocol_stage": pair.protocol_stage.value,
+            }
+            for pair in future_pairs
+        ],
+        length=64,
+    )
+    if (
+        len(future_pairs) != EXPECTED_PAIRS_PER_RELEASE
+        or future_ids != future_binding["pair_ids_sha256"]
+        or future_rows != future_binding["pair_set_fingerprint"]
+    ):
+        raise Stage21BPreflightError(
+            "local SD300B impostor pairs do not match the re-issued Stage 21A binding"
+        )
     return PairManifestSnapshot(
         pairs=pairs,
         pair_manifest_hash=binding.pair_manifest_hash,

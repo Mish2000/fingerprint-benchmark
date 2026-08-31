@@ -130,6 +130,37 @@ def test_the_cross_subject_manifest_has_exact_shape_and_no_violation() -> None:
     assert audit["expected_appearances_per_side_per_subject_per_release"] == 490
 
 
+def test_the_exhaustive_strategy_was_selected_before_scores() -> None:
+    decision = _read("cross-subject-strategy-decision.json")
+    assert decision["decision_status"] == "frozen_before_cross_subject_scores"
+    assert decision["selected_strategy_id"] == (
+        "exhaustive_directed_all_other_subjects"
+    )
+    assert decision["selected_pair_count_per_release"] == 24_500
+    assert decision["selected_pooled_pair_count"] == 73_500
+    assert decision["selected_pair_manifest_hash"] == (
+        "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505"
+    )
+    assert decision["selected_without_score_values"] is True
+    assert decision["score_values_read"] == 0
+    assert decision["algorithm_runs_performed"] == 0
+    assert decision["observed_far_granularity_not_statistical_precision"] is True
+    assert decision["statistical_precision_claimed"] is False
+    alternatives = decision["alternatives_considered"]
+    assert len(alternatives) >= 3
+    assert sum(row["selected"] for row in alternatives) == 1
+    assert all(
+        set(row["observed_far_increment"]) == {"per_release", "pooled"}
+        for row in alternatives
+    )
+    assert decision["observed_far_granularity"]["per_release"][
+        "exact_fraction"
+    ] == "1/24500"
+    assert decision["observed_far_granularity"]["pooled"][
+        "exact_fraction"
+    ] == "1/73500"
+
+
 def test_the_evaluation_policy_is_reporting_and_never_calibration() -> None:
     policy = _read("evaluation-policy.json")
     assert policy["allowed_biometric_metrics"] == ["TAR", "FAR", "FRR"]
@@ -176,3 +207,42 @@ def test_the_future_1000ppi_test_lane_is_protected() -> None:
     assert reservation["threshold_tuning_allowed"] is False
     assert reservation["supplementary_release"]["independent_development_set"] is False
     assert reservation["legacy_lane"]["changed_by_this_reservation"] is False
+    future = reservation["future_test_population"]
+    assert future["release"] == "SD300B"
+    assert future["planned_evaluation_comparisons"] == 25_000
+    assert future["biometric_manifest_created_by_this_reservation"] is False
+    assert future["genuine"]["pair_count"] == 500
+    assert future["genuine"]["pair_ids_sha256"] == (
+        "2aaebeedf5249ab9304fbceab5cf7083497e7fc4c9a5aa0fdc5194274258354d"
+    )
+    assert future["genuine"]["pair_set_fingerprint"] == (
+        "bda93e4798293a5da28f2f2e6cc75dad73f86057903739f7c222bab7196b5d3d"
+    )
+    assert future["impostor"]["pair_count"] == 24_500
+    assert future["impostor"]["pair_ids_sha256"] == (
+        "2d7e936c86c23aae9d8efedca1a58aeec8781af9d13f0ec851f728d30750224a"
+    )
+    assert future["impostor"]["pair_set_fingerprint"] == (
+        "c112288b01b581cf55f7afed8bc4d4d15fe30d30bc5be099de7ad30ba0011999"
+    )
+    assert artifact["population_derived_from_existing_frozen_manifests"] is True
+    assert artifact["new_biometric_manifest_created"] is False
+
+
+def test_the_reissued_marker_carries_the_new_contract_conditions() -> None:
+    marker = _read(FINALIZATION_NAME)
+    assert marker["schema_version"] == "2"
+    for condition in (
+        "cross_subject_strategy_selected_and_justified",
+        "strategy_selected_without_score_values",
+        "future_challenger_genuine_pairs_frozen",
+        "future_challenger_impostor_pairs_frozen",
+        "future_challenger_population_bound_to_frozen_manifests",
+    ):
+        assert marker["conditions"][condition] is True
+    assert marker["cross_subject_strategy_decision_fingerprint"] == _read(
+        "cross-subject-strategy-decision.json"
+    )["strategy_decision_fingerprint"]
+    assert marker["future_challenger_population_fingerprint"] == _read(
+        "high-resolution-test-reservation.json"
+    )["future_challenger_population_fingerprint"]

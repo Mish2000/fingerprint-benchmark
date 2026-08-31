@@ -33,7 +33,10 @@ BRIDGE_JAR := integrations/sourceafis-java/target/fpbench-sourceafis-bridge.jar
         stage17a-score stage17a-verify stage17a-documents stage17a-publish \
         stage20b-contract stage20b-evidence stage20b-build stage20b-gate-a \
         stage20b-gate-b stage20b-environment stage20b-run stage20b-publish \
-        stage21a-contract stage21a-evidence stage21a-freeze stage21a-verify
+        stage21a-contract stage21a-evidence stage21a-freeze stage21a-verify \
+        stage21b-contract stage21b-preflight stage21b-run stage21b-status \
+        stage21b-integrity stage21b-alignment stage21b-supersede \
+        stage21b-publish stage21b-verify
 
 help:
 	@echo "test                    unit + integration, no dataset, no Java, no full run"
@@ -154,6 +157,15 @@ help:
 	@echo "stage21a-evidence       verify the committed protocol-freeze evidence without workspace data"
 	@echo "stage21a-freeze         regenerate the 73,500-pair manifest and Stage 21A evidence from metadata"
 	@echo "stage21a-verify         verify Stage 21A evidence hashes and frozen source identities"
+	@echo "stage21b-contract       synthetic raw-run, resume, integrity and regression tests only"
+	@echo "stage21b-preflight      readiness without scores (ALGORITHM=... ADAPTER_CONFIG=...)"
+	@echo "stage21b-run            start/resume one frozen method (ALGORITHM=... ADAPTER_CONFIG=...)"
+	@echo "stage21b-status         operational counts and timings, never score values"
+	@echo "stage21b-integrity      validate one run (ALGORITHM=...; optional RUN_ID=...)"
+	@echo "stage21b-alignment      score-blind alignment of all six sealed result sets"
+	@echo "stage21b-supersede      retire a defective run without deleting that it happened"
+	@echo "stage21b-publish        test, validate and publish non-score receipts after all six seals"
+	@echo "stage21b-verify         verify committed receipts without SDKs or raw workspace"
 	@echo "stage15a-contract       the fingerprints-matching qualification: six gates, the route contract, the failure split"
 	@echo "stage15a-evidence       verify the committed Stage 15A evidence"
 	@echo "stage15a-acquire        fetch the two published PyPI artifacts and check both digests"
@@ -1190,3 +1202,35 @@ stage21a-freeze:
 
 stage21a-verify:
 	python scripts/stage21a_freeze.py --verify
+
+# --------------------------------------------------------------------- Stage 21B
+# Raw execution only.  None of these targets computes an evaluation metric.
+
+stage21b-contract:
+	pytest -m "stage21b_contract" -q
+
+stage21b-preflight:
+	python scripts/stage21b.py --workspace "$(if $(WORKSPACE),$(WORKSPACE),workspace)" preflight --algorithm "$(ALGORITHM)" --adapter-config "$(ADAPTER_CONFIG)"
+
+stage21b-run:
+	python scripts/stage21b.py --workspace "$(if $(WORKSPACE),$(WORKSPACE),workspace)" run --algorithm "$(ALGORITHM)" --adapter-config "$(ADAPTER_CONFIG)" $(if $(LIMIT),--limit "$(LIMIT)",)
+
+stage21b-status:
+	python scripts/stage21b.py --workspace "$(if $(WORKSPACE),$(WORKSPACE),workspace)" status $(if $(ALGORITHM),--algorithm "$(ALGORITHM)",)
+
+stage21b-integrity:
+	python scripts/stage21b.py --workspace "$(if $(WORKSPACE),$(WORKSPACE),workspace)" integrity --algorithm "$(ALGORITHM)" $(if $(RUN_ID),--run-id "$(RUN_ID)",)
+
+stage21b-alignment:
+	python scripts/stage21b.py --workspace "$(if $(WORKSPACE),$(WORKSPACE),workspace)" alignment
+
+# Gate 21B-S1's recovery path: a run found defective is recorded as superseded
+# and left in place, never deleted and never silently patched over.
+stage21b-supersede:
+	python scripts/stage21b.py --workspace "$(if $(WORKSPACE),$(WORKSPACE),workspace)" supersede --algorithm "$(ALGORITHM)" --run-id "$(RUN_ID)" --reason "$(REASON)" --superseded-by-run-id "$(SUPERSEDED_BY)"
+
+stage21b-publish:
+	python scripts/stage21b.py --workspace "$(if $(WORKSPACE),$(WORKSPACE),workspace)" publish
+
+stage21b-verify:
+	python scripts/stage21b.py verify

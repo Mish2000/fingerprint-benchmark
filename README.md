@@ -2582,6 +2582,73 @@ both releases derive from the same physical cards. `canonical500` is unchanged.
 
 Evidence: [`evidence/stage21a-final-baseline-evaluation-protocol/`](evidence/stage21a-final-baseline-evaluation-protocol/).
 
-The next stage is Stage 21B: run only the 73,500 new cross-subject attempts for every
-roster method over the existing canonical500 images. Stage 21C will then apply the
-frozen score sweeps and publish TAR/FAR/FRR at the same FAR targets.
+## Stage 21B - frozen cross-subject baseline expansion
+
+Stage 21B is execution only. It runs the 73,500 frozen
+`plain_roll_cross_subject_non_mated` pairs against all six members of
+`final_baseline_roster_v1`, over the same `prepset_be560e047991` canonical500
+images and the same certified adapter routes their 6,000-comparison
+predecessors used, and stores one terminal outcome per pair. It computes no
+TAR, FAR, FRR, threshold, sweep, normalization, calibration or ranking, and
+`stage21b-status` never prints a score value: those belong to Stage 21C, and
+the point of the boundary is that no decision can be taken while three of the
+six methods are done.
+
+`fpbench.stage21b` is the whole layer - one orchestrator over six frozen
+bindings, not six benchmarks. It consumes the accepted Stage 21A marker rather
+than a hard-coded fingerprint, pins the Stage 21A finalization and source
+fingerprints, the roster, the protocol config, the 73,500-pair manifest and the
+high-resolution reservation into every run specification, and refuses to invoke
+a matcher when any of them moves. A run is addressed by the hash of its own
+specification, so a changed binding is a different run rather than a silent
+continuation of the old one; an existing run can be resumed, sealed or
+explicitly superseded, never overwritten.
+
+A raw score is stored exactly as the adapter returned it, beside its
+hexadecimal spelling, so `0.0`, `-0.0` and a negative score survive
+serialization intact. A matcher failure is a terminal outcome with a null score
+and its predecessor's failure classification, never a zero and never a deleted
+pair; an infrastructure fault is not a biometric outcome at all - it stops the
+batch, leaves the pair pending and is resumed. PASS therefore requires complete
+outcome coverage, not 100% score coverage. Adapter cleanup is part of that
+transaction: a result set is sealed only after the route has proved that its
+worker closed; cleanup failure leaves already-recorded outcomes unsealed and
+resumable without invoking their matchers again.
+
+The execution-source fingerprint covers only code and configuration that can
+change what a comparison produces, so editing this README or the publisher
+cannot invalidate 441,000 attempts. It normalises CRLF to LF before hashing:
+95 of the 188 files in the closure are shared code that a `core.autocrlf=true`
+checkout materialises with CRLF, and hashing raw bytes would have bound the six
+sealed result sets to one machine, while `stage21b-verify` has to reproduce on
+CI. Both publication and offline verification re-derive the complete
+route-specific closure, so a self-consistent receipt that omits a load-bearing
+file is rejected.
+
+**What exists right now.** The execution layer, the preflight, the append-safe
+checkpoint journal, the sealed result sets, the integrity and score-blind
+alignment audits, the evidence publisher and the offline verifier are
+implemented and their contract suite passes. **No SD300 matcher attempt has
+been made**: all six methods report 0 of 73,500, and the finalization marker is
+deliberately absent. Its absence is the honest statement that Stage 21B has not
+happened yet, and the publisher refuses to write it until six sealed,
+integrity-checked, pair-aligned result sets exist.
+
+Publication re-reads the legacy 6,000-pair manifest from the local store and
+carries forward the six accepted legacy raw-result identities from the
+hash-bound Stage 21A roster. It does not pretend to reopen legacy score stores,
+and it writes only to the disjoint `workspace/stage21b` namespace. The
+finalizer also runs its own contract/regression suite; it does not accept a
+caller-supplied PASS attestation.
+
+Running it needs the frozen source committed - the preflight refuses a dirty or
+untracked execution closure - a private per-method adapter configuration that is
+never committed, and each route's own runtime, including the VeriFinger licence
+and the MCC SDK. Order is operational and is chosen without looking at any new
+score.
+
+Evidence: [`evidence/stage21b-cross-subject-baseline-expansion/`](evidence/stage21b-cross-subject-baseline-expansion/).
+
+The next stage is Stage 21C: join the 1,500 existing genuine outcomes to the
+73,500 new impostor outcomes per method, apply the frozen score sweeps and
+publish TAR/FAR/FRR at the frozen FAR targets.

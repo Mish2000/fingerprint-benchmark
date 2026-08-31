@@ -108,4 +108,5 @@ markers = [
     "stage21a_contract: the final-baseline protocol extension, exhaustive cross-subject pair invariants, tie-atomic TAR/FAR/FRR sweeps, failures, FAR targets and no-calibration boundary (pure Python, synthetic scores only)",
     "stage21a: the committed Stage 21A protocol-freeze evidence gate (no dataset, runtime, result workspace or score file)",
     "stage21a_workspace: re-derive the legacy 6,000 and new 73,500 pair manifests from local metadata only (needs dataset manifests, never a matcher or score file)",
+    "stage21b_contract: the frozen Stage 21B execution layer, raw-score/failure storage, checkpoint-resume, sealing, score-blind alignment and evidence schemas (synthetic only; no dataset, SDK, licence, model or network)",
 ]

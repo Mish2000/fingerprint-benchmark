@@ -1,0 +1,39 @@
+# Stage 21B consumes the roster from Stage 21A.  These rows do not select the
+# roster; they bind each already-selected adapter route to the same operational
+# limits used by its certified 6,000-comparison predecessor.
+schema_version: 1
+policy_id: stage21b_frozen_execution_v1
+roster_ref: configs/comparisons/final_baseline_roster_v1.yaml
+preparation_set_id: prepset_be560e047991
+preparation_profile_id: canonical_gray8_500ppi_lanczos3_v1
+execution_strategy: sequential_single_worker
+concurrency: 1
+orchestrator_algorithm_retries: 0
+infrastructure_resume_allowed: true
+optimizations_enabled: false
+
+routes:
+  sourceafis_java_subprocess:
+    timeout_seconds: 60
+    failure_classifier: sourceafis_certified_v1
+    algorithm_config: configs/algorithms/sourceafis_java_3_18_1.yaml
+  nbis_mindtct_bozorth3_subprocess:
+    timeout_seconds: 60
+    failure_classifier: nbis_certified_v1
+    algorithm_config: configs/algorithms/nbis_mindtct_bozorth3_5_0_0_v1.yaml
+  flx_pytorch_subprocess:
+    timeout_seconds: 480
+    failure_classifier: flx_certified_v1
+    algorithm_config: configs/algorithms/flx_deepprint_texminu_512_without_localization_v1.yaml
+  verifinger_java_subprocess:
+    timeout_seconds: 180
+    failure_classifier: verifinger_certified_v1
+    algorithm_config: configs/algorithms/verifinger_2025_2_1to1_v1.yaml
+  nbis_mindtct_mcc_sdk_v2_subprocess:
+    timeout_seconds: 300
+    failure_classifier: mcc_stage20b_certified_v1
+    algorithm_config: evidence/stage20b-mindtct-mcc-canonical500-raw/algorithm-identity.json
+  nbis_mindtct_openafis_capacity_extended_subprocess:
+    timeout_seconds: 120
+    failure_classifier: openafis_stage19b_certified_v1
+    algorithm_config: evidence/stage19b-openafis-capacity-extended/variant-identity.json

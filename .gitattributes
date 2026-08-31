@@ -152,3 +152,19 @@ tests/regression/test_stage21a_real_manifests.py text eol=lf
 tests/test_stage21a_evidence.py text eol=lf
 tests/unit/test_baseline_*.py text eol=lf
 tests/unit/test_cross_subject_protocol.py text eol=lf
+
+# Stage 21B cross-subject execution.
+#
+# Stage 21B does not need this block the way the stages above need theirs: its
+# execution-source digest normalises CRLF to LF before hashing
+# (`stage21b.source_freeze.source_file_sha256`, the answer Stage 11A already
+# reached), because 95 of the 188 files in its closure are shared code that is
+# CRLF in a `core.autocrlf=true` working copy and cannot be renormalised
+# without moving an older stage's published fingerprint. These entries are for
+# the files Stage 21B introduces, where LF costs nothing and keeps the new tree
+# uniform with the rest of the repository.
+configs/stage21b/** text eol=lf
+scripts/stage21b.py text eol=lf
+src/fpbench/stage21b/** text eol=lf
+tests/regression/test_stage21b_regression.py text eol=lf
+tests/stage21b/** text eol=lf

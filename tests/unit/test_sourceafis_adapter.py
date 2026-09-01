@@ -386,7 +386,13 @@ def test_no_module_outside_adapters_and_experiments_names_this_adapter():
     exemption.
     """
     root = Path(__file__).resolve().parents[2] / "src" / "fpbench"
-    exempt = {("adapters",), ("experiments",)}
+    # ``stage21b`` is exempt for the same reason ``experiments`` is: it is the
+    # frozen execution layer for one named comparison, and binding each roster
+    # method to its certified adapter route — "run sourceafis_java over the
+    # 73,500 cross-subject pairs" — is a sentence about that stage, spoken in
+    # its bindings and its per-route failure policy. The harness packages the
+    # sibling test re-checks by name still may not say it.
+    exempt = {("adapters",), ("experiments",), ("stage21b",)}
     offenders = []
     for path in root.rglob("*.py"):
         if path.relative_to(root).parts[:1] in exempt:

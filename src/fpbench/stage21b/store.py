@@ -118,7 +118,7 @@ class Stage21BResultStore:
 
         with self._connect(write=True) as connection:
             self._create_schema(connection)
-            if created:
+            if created or self._is_pristine_uninitialised_checkpoint(connection):
                 self._write_initial_state(connection)
             self._verify_database_binding(connection)
 
@@ -188,6 +188,25 @@ class Stage21BResultStore:
             CREATE INDEX IF NOT EXISTS attempts_pair_id ON attempts(pair_id);
             """
         )
+
+    @staticmethod
+    def _is_pristine_uninitialised_checkpoint(
+        connection: sqlite3.Connection,
+    ) -> bool:
+        """Recognise the only safe interrupted-initialisation state.
+
+        SQLite commits ``executescript`` schema creation before the transaction
+        that inserts the frozen metadata and 73,500 planned pairs.  If the host
+        process is terminated in that narrow window, the database exists with
+        all four tables but every table is empty.  Replaying the deterministic
+        initial transaction is safe.  Any partial metadata, pair, attempt, or
+        outcome state remains a hard conflict and is never repaired implicitly.
+        """
+        counts = (
+            int(connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+            for table in ("metadata", "planned_pairs", "attempts", "terminal_outcomes")
+        )
+        return not any(counts)
 
     def _write_initial_state(self, connection: sqlite3.Connection) -> None:
         values = {

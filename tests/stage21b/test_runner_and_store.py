@@ -378,3 +378,47 @@ def test_resume_refuses_a_run_directory_holding_a_different_run_spec(tmp_path) -
         Stage21BResultStore(
             workspace=workspace, spec=second_spec, planned_pairs=pairs
         )
+
+
+def test_resume_recovers_a_schema_only_interrupted_checkpoint(tmp_path) -> None:
+    pairs = make_pairs(3)
+    adapter = ScriptedAdapter("initialisation_resume")
+    spec = make_spec(adapter, pairs)
+    workspace = tmp_path / "workspace"
+    first = Stage21BResultStore(
+        workspace=workspace, spec=spec, planned_pairs=pairs
+    )
+    with sqlite3.connect(first.database_path) as connection:
+        connection.execute("DELETE FROM planned_pairs")
+        connection.execute("DELETE FROM metadata")
+
+    reopened = Stage21BResultStore(
+        workspace=workspace, spec=spec, planned_pairs=pairs
+    )
+    assert reopened.terminal_count() == 0
+    assert [pair.pair_id for pair in reopened.pending_pairs()] == [
+        pair.pair_id for pair in pairs
+    ]
+    with sqlite3.connect(reopened.database_path) as connection:
+        metadata = dict(connection.execute("SELECT key,value FROM metadata"))
+        assert metadata["run_id"] == spec.run_id
+        assert connection.execute("SELECT COUNT(*) FROM planned_pairs").fetchone()[
+            0
+        ] == len(pairs)
+
+
+def test_resume_refuses_a_partially_empty_checkpoint(tmp_path) -> None:
+    pairs = make_pairs(2)
+    adapter = ScriptedAdapter("partial_initialisation_guard")
+    spec = make_spec(adapter, pairs)
+    workspace = tmp_path / "workspace"
+    first = Stage21BResultStore(
+        workspace=workspace, spec=spec, planned_pairs=pairs
+    )
+    with sqlite3.connect(first.database_path) as connection:
+        connection.execute("DELETE FROM metadata")
+
+    with pytest.raises(Stage21BStoreConflict, match="different frozen run"):
+        Stage21BResultStore(
+            workspace=workspace, spec=spec, planned_pairs=pairs
+        )

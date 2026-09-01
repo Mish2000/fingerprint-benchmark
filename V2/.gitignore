@@ -1,0 +1,7 @@
+# V2 is experimental; keep third-party bytes and bulk outputs out of git (repo policy: ADR 0083)
+third_party/
+env/
+results/
+data/
+__pycache__/
+*.pyc

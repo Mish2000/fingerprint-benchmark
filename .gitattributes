@@ -168,3 +168,17 @@ scripts/stage21b.py text eol=lf
 src/fpbench/stage21b/** text eol=lf
 tests/regression/test_stage21b_regression.py text eol=lf
 tests/stage21b/** text eol=lf
+
+# Final-baseline reporting introduces the reporting boundary. Its source
+# fingerprint and evidence content hashes cover working-tree bytes, so every file
+# either hashes into the marker or is re-hashed by the verifier — all of them
+# must check out identically on every machine. The evidence directories of
+# stages 21A and 21B are pinned for the same reason: their markers re-hash the
+# committed documents on whatever machine runs `--verify`.
+scripts/final_baseline.py text eol=lf
+scripts/final_baseline_pipeline.py text eol=lf
+src/fpbench/final_baseline/** text eol=lf
+tests/unit/test_final_baseline_evaluation.py text eol=lf
+evidence/stage21a-final-baseline-evaluation-protocol/** text eol=lf
+evidence/stage21b-cross-subject-baseline-expansion/** text eol=lf
+evidence/final-baseline-tar-far-frr/** text eol=lf

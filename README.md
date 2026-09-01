@@ -2601,9 +2601,9 @@ Stage 21B is execution only. It runs the 73,500 frozen
 images and the same certified adapter routes their 6,000-comparison
 predecessors used, and stores one terminal outcome per pair. It computes no
 TAR, FAR, FRR, threshold, sweep, normalization, calibration or ranking, and
-`stage21b-status` never prints a score value: those belong to Stage 21C, and
-the point of the boundary is that no decision can be taken while three of the
-six methods are done.
+`stage21b-status` never prints a score value: those belong to the final-baseline
+reporting component. The boundary prevents decisions while only part of the
+six-method roster is complete.
 
 `fpbench.stage21b` is the whole layer - one orchestrator over six frozen
 bindings, not six benchmarks. It consumes the accepted Stage 21A marker rather
@@ -2660,6 +2660,45 @@ score.
 
 Evidence: [`evidence/stage21b-cross-subject-baseline-expansion/`](evidence/stage21b-cross-subject-baseline-expansion/).
 
-The next stage is Stage 21C: join the 1,500 existing genuine outcomes to the
-73,500 new impostor outcomes per method, apply the frozen score sweeps and
-publish TAR/FAR/FRR at the frozen FAR targets.
+The remaining reporting operation joins the 1,500 existing genuine outcomes
+to the 73,500 new impostor outcomes per method, applies the frozen score
+sweeps and publishes TAR/FAR/FRR at the frozen FAR targets.
+
+## Final baseline TAR/FAR/FRR reporting
+
+The final-baseline reporting component is the boundary Stage 21A predeclared
+and Stage 21B deliberately refused to be. It is the only component allowed to
+read raw score values across the whole roster. Per method it joins the 1,500 accepted
+legacy plain-roll mated outcomes (identities sealed in the Stage 21A roster,
+every raw record re-hashed against its result-set entry) to the 73,500 sealed
+Stage 21B cross-subject outcomes (seal fingerprint, file digests,
+ordered-outcomes hash and result-set fingerprint all re-derived from the rows
+as read, every row checked against the frozen pair manifest by position, pair
+id, release and truth). It then runs the frozen tie-atomic sweeps from
+`fpbench.baseline_evaluation` — one method and one view at a time, a
+composition a unit test holds equal to `evaluate_comparison_roster` — and
+publishes observed TAR, FAR and FRR at FAR <= 1%, 0.1% (primary) and 0.01%,
+per release and pooled, for the primary all-attempt view and the secondary
+common-score view, with methods ordered by observed TAR and ties resolved by
+frozen roster order. The native documented rules (SourceAFIS >= 40, NBIS > 40)
+appear in a separate context table that ranks nothing.
+
+It creates no operational threshold, calibrates nothing, normalizes nothing,
+interpolates nothing, and compares no raw score across algorithms; a score cut
+in the report is an observed reporting boundary on one algorithm's own scale.
+The verifier needs no workspace: it re-hashes the committed documents
+(line-ending-normalised, the Stage 21B lesson), re-derives the marker
+fingerprint and re-renders the Markdown report from the committed JSON,
+requiring byte equality.
+
+**What exists right now.** The unnumbered package (`fpbench.final_baseline`), its CLI
+(`scripts/final_baseline.py`: `preflight`, `evaluate`, `publish`, `verify`), the
+pipeline driver (`scripts/final_baseline_pipeline.py`: `status`, `next`,
+`run`) and the contract tests are implemented. **The finalization marker is
+deliberately absent**: it cannot exist before the six Stage 21B result sets
+are sealed and published, and the publisher refuses to write it until both
+predecessor verifications pass and every score source re-verifies. The
+operator's guide is
+[`docs/experiments/final-baseline-pipeline-runbook.md`](docs/experiments/final-baseline-pipeline-runbook.md).
+
+Evidence: [`evidence/final-baseline-tar-far-frr/`](evidence/final-baseline-tar-far-frr/).

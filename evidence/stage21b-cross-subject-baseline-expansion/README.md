@@ -20,5 +20,6 @@ can be sealed.
 
 This stage deliberately does not compute or publish TAR, FAR, FRR, thresholds,
 score sweeps, calibration, normalization, cross-algorithm score comparisons or
-rankings. Those operations belong to Stage 21C. Operational status may report
+rankings. Those operations belong to the final-baseline reporting component.
+Operational status may report
 completion, failures and timing, but never raw score values or score summaries.

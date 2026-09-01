@@ -109,4 +109,5 @@ markers = [
     "stage21a: the committed Stage 21A protocol-freeze evidence gate (no dataset, runtime, result workspace or score file)",
     "stage21a_workspace: re-derive the legacy 6,000 and new 73,500 pair manifests from local metadata only (needs dataset manifests, never a matcher or score file)",
     "stage21b_contract: the frozen Stage 21B execution layer, raw-score/failure storage, checkpoint-resume, sealing, score-blind alignment and evidence schemas (synthetic only; no dataset, SDK, licence, model or network)",
+    "final_baseline_contract: the frozen final-baseline reporting boundary — verified score sources, bounded-memory view composition, ranking, native-rule context and deterministic rendering (pure Python, synthetic scores, no dataset, runtime or workspace)",
 ]

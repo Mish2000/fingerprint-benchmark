@@ -1,0 +1,13 @@
+{
+  "canonical500_v2_created": false,
+  "effective_ppi": 500,
+  "kind": "stage_21b_prepared_input_binding",
+  "method_count": 6,
+  "native_1000ppi_baseline_run": false,
+  "preparation_profile_fingerprint": "28abd453d86918132c03a57a2ace1a59024b5fb9c2e02eb5339e2a61e4597373",
+  "preparation_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+  "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+  "preparation_set_id": "prepset_be560e047991",
+  "schema_version": "1",
+  "stage": "21B"
+}

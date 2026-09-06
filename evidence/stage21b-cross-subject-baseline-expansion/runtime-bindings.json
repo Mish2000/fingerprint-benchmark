@@ -1,0 +1,211 @@
+{
+  "kind": "stage_21b_runtime_bindings",
+  "methods": [
+    {
+      "adapter_descriptor_fingerprint": "5a1784faae1e82c12c374e050fcd6cfd41aa25b7a9ade3905d099df2e06a9531",
+      "adapter_id": "sourceafis_java_subprocess",
+      "algorithm_id": "sourceafis_java",
+      "assets": [
+        {
+          "role": "sourceafis_bridge_jar",
+          "sha256": "2435b0737792756722a7db19f842dd1438f8a5b5313a5f83cfa9ecae741e32a8",
+          "size_bytes": 27185110
+        }
+      ],
+      "implementation_version": "3.18.1",
+      "orchestrator_runtime": {
+        "platform_machine": "AMD64",
+        "platform_system": "Windows",
+        "pyarrow_version": "25.0.0",
+        "python_executable_identity": "python.exe",
+        "python_implementation": "CPython",
+        "python_version": "3.12.13",
+        "sqlite_version": "3.53.1"
+      },
+      "predecessor_finalization_fingerprint": "7e2c46b69aecc937dce79cfe58c1b8e1ced8e642974b858fda22a46efeaaa0c1",
+      "runtime_identity_fingerprint": "3bf77ed908212b9ca1a30a9e0e1b0c0cdd6632edecfd6b53b73ee743ff188e9e"
+    },
+    {
+      "adapter_descriptor_fingerprint": "41ebe6eeda877e959d58df40d007daab74a8a1a560462984a6f58a444dbfebc5",
+      "adapter_id": "nbis_mindtct_bozorth3_subprocess",
+      "algorithm_id": "nbis_mindtct_bozorth3",
+      "assets": [
+        {
+          "role": "nbis_bozorth3_executable",
+          "sha256": "fe5822ff2559832bbf0b3397143d51215546e338f6c3e5343ca96936f648afab",
+          "size_bytes": 61584
+        },
+        {
+          "role": "nbis_build_manifest",
+          "sha256": "dcb44c0b9a341c159dc43a713e99d63bb20fb2c28f64cc0a7241bd13eadcde5f",
+          "size_bytes": 4145
+        },
+        {
+          "role": "nbis_mindtct_executable",
+          "sha256": "9ccbcaae35f446b35e9c94f177b9cd1d26854a0aed5ded8e8bbbdd5ce371e847",
+          "size_bytes": 758720
+        }
+      ],
+      "implementation_version": "5.0.0",
+      "orchestrator_runtime": {
+        "platform_machine": "x86_64",
+        "platform_system": "Linux",
+        "pyarrow_version": "25.0.0",
+        "python_executable_identity": "python",
+        "python_implementation": "CPython",
+        "python_version": "3.12.3",
+        "sqlite_version": "3.45.1"
+      },
+      "predecessor_finalization_fingerprint": "76a678adefef2c070161d15ccae1e1689ac85cefcbc83700fdbd36e7d906fb7e",
+      "runtime_identity_fingerprint": "db5ec63310151b47823f7539e833fd4b1fd97ae9a3f919d277dd3b88680b4f89"
+    },
+    {
+      "adapter_descriptor_fingerprint": "fab45bd80425c4909d87212c5680bf6a5505fc416415adb5580248af8eb27134",
+      "adapter_id": "flx_pytorch_subprocess",
+      "algorithm_id": "flx_deepprint_texminu_512_without_localization",
+      "assets": [
+        {
+          "role": "flx_runtime_lock",
+          "sha256": "e0ee3a5f902a84df000310d2d495cb433e1cd8bb3bc98d48475f9f552036d392",
+          "size_bytes": 4184
+        },
+        {
+          "role": "flx_runtime_policy",
+          "sha256": "ae93f6849ee6bbb832d002fed0fd94b95081bbf5d3c5cda28424e9ebe1269c42",
+          "size_bytes": 1796
+        },
+        {
+          "role": "flx_worker_script",
+          "sha256": "2d6fbf50b7ad76bbdedd78640f6c9f5729f42e128a6a4861d5f7c0661ac9a7da",
+          "size_bytes": 30831
+        }
+      ],
+      "implementation_version": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+      "orchestrator_runtime": {
+        "platform_machine": "x86_64",
+        "platform_system": "Linux",
+        "pyarrow_version": "25.0.0",
+        "python_executable_identity": "python",
+        "python_implementation": "CPython",
+        "python_version": "3.12.3",
+        "sqlite_version": "3.45.1"
+      },
+      "predecessor_finalization_fingerprint": "87690c967a9cd939cbad63d92edf5e117a9a6d0e8bf20eb3cd11c33c7369ad0a",
+      "runtime_identity_fingerprint": "08f8d14e5e5f5603c2a2af32d1b1b7179d10580e93e440e05e6a457adffc2182"
+    },
+    {
+      "adapter_descriptor_fingerprint": "5400435f34025e5b200402c6bb378ac5dd589afa37627c8d43639fc0e71a0932",
+      "adapter_id": "verifinger_java_subprocess",
+      "algorithm_id": "verifinger_1to1",
+      "assets": [
+        {
+          "role": "verifinger_bridge_jar",
+          "sha256": "26be77c7703b0a7e13e0966fb3843340ec9d19067e6b6d9c9d9950d48ba658d5",
+          "size_bytes": 16793
+        },
+        {
+          "role": "verifinger_runtime_manifest",
+          "sha256": "e02c43c6e601c4b8e230b8ec06f2433f1bb71645ae89b1e8c740d922bf79ec91",
+          "size_bytes": 4279
+        },
+        {
+          "role": "verifinger_runtime_policy",
+          "sha256": "7c949defe3035a139c2b8e18d724c293dd5c85998dfd14b79779aee06dfee97f",
+          "size_bytes": 7311
+        }
+      ],
+      "implementation_version": "2025.2",
+      "orchestrator_runtime": {
+        "platform_machine": "AMD64",
+        "platform_system": "Windows",
+        "pyarrow_version": "25.0.0",
+        "python_executable_identity": "python.exe",
+        "python_implementation": "CPython",
+        "python_version": "3.12.13",
+        "sqlite_version": "3.53.1"
+      },
+      "predecessor_finalization_fingerprint": "98ff570630409d430235fc4c489ea29797fdc38d907539ba42a5daf60da5d877",
+      "runtime_identity_fingerprint": "730c161a0133483b5668fd7ed97321a9096086a65972f8c53623dac5da71b75f"
+    },
+    {
+      "adapter_descriptor_fingerprint": "d251e7c950083f801b2a19359e5650b6b8bf445665416afc341fdcb810b5573b",
+      "adapter_id": "nbis_mindtct_mcc_sdk_v2_subprocess",
+      "algorithm_id": "nbis_mindtct_mcc_sdk_v2",
+      "assets": [
+        {
+          "role": "mcc_bridge_manifest",
+          "sha256": "ddefa49084e03ba9501b6d50ffc606b7ff5555ac3cd4ca011f227ce12283955e",
+          "size_bytes": 639
+        },
+        {
+          "role": "mcc_match_bridge",
+          "sha256": "68fd85b06b5b4fdf0fd3f81a2cdc6a175c78ccaaf890851a97110d44246a51a5",
+          "size_bytes": 14336
+        },
+        {
+          "role": "mcc_sdk_dll",
+          "sha256": "7267ea9f2ea4c32bdeef30a49e648a516381941b531c59960517a87e5cd2eb01",
+          "size_bytes": 171008
+        },
+        {
+          "role": "nbis_build_manifest",
+          "sha256": "dcb44c0b9a341c159dc43a713e99d63bb20fb2c28f64cc0a7241bd13eadcde5f",
+          "size_bytes": 4145
+        },
+        {
+          "role": "nbis_mindtct_executable",
+          "sha256": "9ccbcaae35f446b35e9c94f177b9cd1d26854a0aed5ded8e8bbbdd5ce371e847",
+          "size_bytes": 758720
+        }
+      ],
+      "implementation_version": "nbis-5.0.0+mcc-sdk-2.0.0.0",
+      "orchestrator_runtime": {
+        "platform_machine": "x86_64",
+        "platform_system": "Linux",
+        "pyarrow_version": "25.0.0",
+        "python_executable_identity": "python",
+        "python_implementation": "CPython",
+        "python_version": "3.12.3",
+        "sqlite_version": "3.45.1"
+      },
+      "predecessor_finalization_fingerprint": "5164621d1f1c6c67681846ad0fdb044080b290719f0f520a9500065ef1514db1",
+      "runtime_identity_fingerprint": "64223ef3a9b56927f067c8b6a7a6d1729cf87cb994e191713a7a85be45582fea"
+    },
+    {
+      "adapter_descriptor_fingerprint": "d7fe2cdcfb0ed927a314ae2ebc8cbc15acf2f34a8c581aa7612f1a6c448c5be7",
+      "adapter_id": "nbis_mindtct_openafis_capacity_extended_subprocess",
+      "algorithm_id": "nbis_mindtct_openafis_capacity_extended",
+      "assets": [
+        {
+          "role": "nbis_build_manifest",
+          "sha256": "dcb44c0b9a341c159dc43a713e99d63bb20fb2c28f64cc0a7241bd13eadcde5f",
+          "size_bytes": 4145
+        },
+        {
+          "role": "nbis_mindtct_executable",
+          "sha256": "9ccbcaae35f446b35e9c94f177b9cd1d26854a0aed5ded8e8bbbdd5ce371e847",
+          "size_bytes": 758720
+        },
+        {
+          "role": "openafis_match_bridge",
+          "sha256": "7a16311f7034d922e3cbaad4f5dba7e0f4591b5b307dd0611050cd1ed509fd0b",
+          "size_bytes": 367128
+        }
+      ],
+      "implementation_version": "nbis-5.0.0+openafis-3ae1c757+capacity-extended",
+      "orchestrator_runtime": {
+        "platform_machine": "x86_64",
+        "platform_system": "Linux",
+        "pyarrow_version": "25.0.0",
+        "python_executable_identity": "python",
+        "python_implementation": "CPython",
+        "python_version": "3.12.3",
+        "sqlite_version": "3.45.1"
+      },
+      "predecessor_finalization_fingerprint": "0d6f715228696ef29fc7fedbd7e1cbb7a450cb3ee1d264fcb7a953cf3e09eff9",
+      "runtime_identity_fingerprint": "daf289dcaeef51f86c0b05356223e95ae7dd7e7842e50fb8bab28a5aba256d1d"
+    }
+  ],
+  "schema_version": "1",
+  "stage": "21B"
+}

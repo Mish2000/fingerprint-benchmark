@@ -2636,14 +2636,18 @@ CI. Both publication and offline verification re-derive the complete
 route-specific closure, so a self-consistent receipt that omits a load-bearing
 file is rejected.
 
-**What exists right now.** The execution layer, the preflight, the append-safe
-checkpoint journal, the sealed result sets, the integrity and score-blind
-alignment audits, the evidence publisher and the offline verifier are
-implemented and their contract suite passes. **No SD300 matcher attempt has
-been made**: all six methods report 0 of 73,500, and the finalization marker is
-deliberately absent. Its absence is the honest statement that Stage 21B has not
-happened yet, and the publisher refuses to write it until six sealed,
-integrity-checked, pair-aligned result sets exist.
+**Completed on 6 September 2026.** All six methods have 73,500 terminal
+outcomes each: 441,000 in total. Every authoritative result set is sealed and
+passes integrity verification, and the cross-method audit confirms identical
+ordered pairs and canonical500 inputs, including the frozen SD300B population.
+VeriFinger's 1,323 structured extraction failures remain terminal outcomes with
+null scores. The published
+[`stage-21b-finalization.json`](evidence/stage21b-cross-subject-baseline-expansion/stage-21b-finalization.json)
+declares `FINAL_BASELINE_CROSS_SUBJECT_RAW_RESULTS_READY`; the offline verifier
+checks its evidence and source bindings. No biometric evaluation was performed
+as part of this execution stage. Recorded timings are operational measurements
+from the production runs, which included changing power conditions, and should
+not be treated as a controlled comparison of algorithm speed.
 
 Publication re-reads the legacy 6,000-pair manifest from the local store and
 carries forward the six accepted legacy raw-result identities from the

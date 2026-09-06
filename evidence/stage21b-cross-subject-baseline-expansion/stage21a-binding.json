@@ -1,0 +1,15 @@
+{
+  "accepted_legacy_result_identities_fingerprint": "30416ff980abf9d348a92e2595e170e6750c55665ae1396a156ca0c43895be69",
+  "accepted_outcome": "FINAL_BASELINE_EVALUATION_PROTOCOL_READY",
+  "cross_subject_pair_manifest_fingerprint": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
+  "cross_subject_strategy_decision_fingerprint": "9741dbf03faa268e87b5c89f7e8441fc575351860fd77149445db122346e9977",
+  "future_challenger_population_fingerprint": "f8ff91d2628d0d5edf81212ea8ca5455293bc951fc52daa3c526ff6cdfa4d0d4",
+  "high_resolution_reservation_fingerprint": "98e95704079a74086f7847287147de109653f361039fcf6fc7dd4e37a581ce32",
+  "kind": "stage_21b_stage21a_binding",
+  "protocol_config_fingerprint": "0bc02fee2cb52962f81abbc7aac6338546aa980aec1091262446a945489c7ffb",
+  "roster_fingerprint": "a7c4526d433751395cbbb2e3352b0d02c6adda0815e5976897b4d827d4e19426",
+  "schema_version": "1",
+  "stage": "21B",
+  "stage21a_finalization_fingerprint": "4b179dad7053ae1ada3cb2dd1fede4e37531c20b2b07b67ebc4a90173c860c86",
+  "stage21a_source_fingerprint": "0bfbeaa441a26a54cf761573d70400e4d206e4af240ec7bf8968cbb054169841"
+}

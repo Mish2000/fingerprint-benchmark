@@ -1,0 +1,22 @@
+{
+  "algorithm_parameters_changed_from_results": false,
+  "algorithm_ranking_performed": false,
+  "audit_pass": true,
+  "calibration_performed": false,
+  "cross_algorithm_raw_scores_compared": false,
+  "far_computed": false,
+  "far_target_selected_from_results": false,
+  "forbidden_evaluation_imports": [],
+  "frr_computed": false,
+  "future_method_development_started": false,
+  "kind": "stage_21b_no_evaluation_audit",
+  "new_raw_scores_generated": true,
+  "pair_selection_used_scores": false,
+  "runner_import_direction_valid": true,
+  "schema_version": "1",
+  "score_normalization_performed": false,
+  "score_sweep_performed": false,
+  "stage": "21B",
+  "tar_computed": false,
+  "threshold_selected": false
+}

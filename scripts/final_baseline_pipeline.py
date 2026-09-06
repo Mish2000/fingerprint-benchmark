@@ -127,11 +127,11 @@ def _next_commands(
         commands.append(f"{python} scripts/stage21b.py --workspace {workspace} alignment")
         commands.append(f"{python} scripts/stage21b.py --workspace {workspace} publish")
         commands.append(
-            "# add the Stage 21B registry row first (runbook step 2), then:"
+            "# verify the Stage 21B publication registry entry (runbook step 2), then:"
         )
         commands.append(
             f"git add {STAGE21B_EVIDENCE.as_posix()} "
-            "src/fpbench/experiments/stage_registry.py && "
+            "src/fpbench/experiments/publication_registry.py && "
             'git commit -m "Publish the Stage 21B cross-subject raw-result receipts"'
         )
         return commands

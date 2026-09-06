@@ -1,0 +1,19 @@
+{
+  "command": [
+    "python",
+    "-m",
+    "pytest",
+    "tests/stage21b",
+    "tests/regression/test_stage21b_regression.py",
+    "-q"
+  ],
+  "completed_utc": "2026-09-06T08:40:39.878909+00:00",
+  "contract_tests_pass": true,
+  "kind": "stage_21b_contract_test_attestation",
+  "regression_tests_pass": true,
+  "schema_version": "1",
+  "sd300_matcher_attempts": 0,
+  "stage": "21B",
+  "synthetic_only": true,
+  "vendor_sdk_required": false
+}

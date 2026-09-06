@@ -130,11 +130,12 @@ python scripts/stage21b.py alignment
 python scripts/stage21b.py publish
 ```
 
-The repository's stage-registry contract requires every evidence directory
-with a finalization marker to have a registry row. Before committing, add this
-entry at the end of `PUBLISHED_STAGES` in
-`src/fpbench/experiments/stage_registry.py` (after the `"21A"` entry, matching
-its shape exactly):
+The repository's publication-registry contract requires every evidence
+directory with a finalization marker to have a registry row. Stage 21B is
+registered in `src/fpbench/experiments/publication_registry.py`, which extends
+the registry frozen by Stage 21A. Keep `stage_registry.py` unchanged: its bytes
+are signed by Stage 21A and bound into all six Stage 21B runs. The extension
+contains:
 
 ```python
     PublishedStage(
@@ -149,7 +150,7 @@ its shape exactly):
 Then commit and verify:
 
 ```bash
-git add evidence/stage21b-cross-subject-baseline-expansion src/fpbench/experiments/stage_registry.py
+git add evidence/stage21b-cross-subject-baseline-expansion src/fpbench/experiments/publication_registry.py
 git commit -m "Publish the Stage 21B cross-subject raw-result receipts"
 python scripts/stage21b.py verify
 python -m pytest tests/contract/test_stage_registry.py -q

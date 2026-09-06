@@ -1,0 +1,68 @@
+{
+  "alignment_pass": true,
+  "common_score_population_computed": false,
+  "future_sd300b_pair_count": 24500,
+  "future_sd300b_pair_ids_sha256": "2d7e936c86c23aae9d8efedca1a58aeec8781af9d13f0ec851f728d30750224a",
+  "gates": {
+    "all_left_right_image_identities_identical": true,
+    "all_pair_manifest_hashes_identical": true,
+    "all_pair_sets_and_order_identical": true,
+    "all_preparation_entry_identities_identical": true,
+    "no_method_specific_filtering": true
+  },
+  "kind": "stage_21b_cross_method_alignment",
+  "method_count": 6,
+  "methods": [
+    {
+      "algorithm_id": "flx_deepprint_texminu_512_without_localization",
+      "result_set_fingerprint": "40bcc9d8490173b5118408963317e7c4c947288545ffa1090738a7a9022e24f8",
+      "result_set_id": "resultset21b_9493e62e2e88",
+      "run_id": "run_stage21b_9493e62e2e88"
+    },
+    {
+      "algorithm_id": "nbis_mindtct_bozorth3",
+      "result_set_fingerprint": "ff0f4df5f9bde4ee9be36e54b0c150c1f6ef1907f0a49d543868c97ecfae07f1",
+      "result_set_id": "resultset21b_44c039d38d25",
+      "run_id": "run_stage21b_44c039d38d25"
+    },
+    {
+      "algorithm_id": "nbis_mindtct_mcc_sdk_v2",
+      "result_set_fingerprint": "1e27adff512ce17604887164c3296e89bb3a086cc0553036c20134e8be24e85f",
+      "result_set_id": "resultset21b_063bb95cd224",
+      "run_id": "run_stage21b_063bb95cd224"
+    },
+    {
+      "algorithm_id": "nbis_mindtct_openafis_capacity_extended",
+      "result_set_fingerprint": "912029476a0c7094482376403a00060e45afb4141b504b59b6f2d29d222d1d6c",
+      "result_set_id": "resultset21b_337454a6853f",
+      "run_id": "run_stage21b_337454a6853f"
+    },
+    {
+      "algorithm_id": "sourceafis_java",
+      "result_set_fingerprint": "996240cc8bafa47dc2091dbf88d78a0d89b0909e81d984a25f3985eaa2fd8056",
+      "result_set_id": "resultset21b_3f9ef24f15ac",
+      "run_id": "run_stage21b_3f9ef24f15ac"
+    },
+    {
+      "algorithm_id": "verifinger_1to1",
+      "result_set_fingerprint": "24bc7b13570f4254c75c78fe2d63b0ae61876ad40488c1f19047b273e20a2a2c",
+      "result_set_id": "resultset21b_934c84b82d12",
+      "run_id": "run_stage21b_934c84b82d12"
+    }
+  ],
+  "ordered_pair_input_identity_sha256": "7d2f28b163a50d4356560e8a44bb5f8f1aa7a985d0089e5ecf9dda5a6d62ef98",
+  "pair_count_per_method": 73500,
+  "pair_ids_sha256": "46d7390cfdd8f5c678d7f7df997066029c37afc9c1e5854a90063c0d0162bc4f",
+  "pair_manifest_hash": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
+  "preparation_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+  "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+  "preparation_set_id": "prepset_be560e047991",
+  "raw_score_column_loaded": false,
+  "release_counts_per_method": {
+    "SD300A": 24500,
+    "SD300B": 24500,
+    "SD300C": 24500
+  },
+  "schema_version": "1",
+  "stage": "21B"
+}

@@ -1,0 +1,77 @@
+{
+  "kind": "stage_21b_execution_roster",
+  "method_count": 6,
+  "methods": [
+    {
+      "adapter_id": "sourceafis_java_subprocess",
+      "algorithm_id": "sourceafis_java",
+      "display_name": "SourceAFIS Java 3.18.1",
+      "implementation_version": "3.18.1",
+      "integration_id": "sourceafis_java_research_v1",
+      "predecessor_finalization_fingerprint": "7e2c46b69aecc937dce79cfe58c1b8e1ced8e642974b858fda22a46efeaaa0c1",
+      "role": "primary_baseline",
+      "run_spec_fingerprint": "3f9ef24f15ac230e341c2fae80f24d50975ee0c701e6d1df114762e24185af66",
+      "score_direction": "higher_is_better"
+    },
+    {
+      "adapter_id": "nbis_mindtct_bozorth3_subprocess",
+      "algorithm_id": "nbis_mindtct_bozorth3",
+      "display_name": "NBIS MINDTCT 5.0.0 + BOZORTH3",
+      "implementation_version": "5.0.0",
+      "integration_id": "nbis_mindtct_bozorth3_research_v1",
+      "predecessor_finalization_fingerprint": "76a678adefef2c070161d15ccae1e1689ac85cefcbc83700fdbd36e7d906fb7e",
+      "role": "primary_baseline",
+      "run_spec_fingerprint": "44c039d38d257286560c0b828fe7b2ae81497a3d6a9d12aecf92da2aeda6ea04",
+      "score_direction": "higher_is_better"
+    },
+    {
+      "adapter_id": "flx_pytorch_subprocess",
+      "algorithm_id": "flx_deepprint_texminu_512_without_localization",
+      "display_name": "FLX DeepPrint TexMinu 512 without localization",
+      "implementation_version": "7accfca1f33b9b42bfd220e43cd5bc13b4a7fa13",
+      "integration_id": "flx_deepprint_texminu_research_v1",
+      "predecessor_finalization_fingerprint": "87690c967a9cd939cbad63d92edf5e117a9a6d0e8bf20eb3cd11c33c7369ad0a",
+      "role": "primary_baseline",
+      "run_spec_fingerprint": "9493e62e2e889598f7ce10245daa01d280205a6a23cffcdf04ff0cfb30e25b2f",
+      "score_direction": "higher_is_better"
+    },
+    {
+      "adapter_id": "verifinger_java_subprocess",
+      "algorithm_id": "verifinger_1to1",
+      "display_name": "VeriFinger 2025.2",
+      "implementation_version": "2025.2",
+      "integration_id": "verifinger_2025_2_1to1_research_v1",
+      "predecessor_finalization_fingerprint": "98ff570630409d430235fc4c489ea29797fdc38d907539ba42a5daf60da5d877",
+      "role": "primary_baseline",
+      "run_spec_fingerprint": "934c84b82d1221d1b36e7da2dc597c6ac2d50418ece7f1213e364fc6eb9213e6",
+      "score_direction": "higher_is_better"
+    },
+    {
+      "adapter_id": "nbis_mindtct_mcc_sdk_v2_subprocess",
+      "algorithm_id": "nbis_mindtct_mcc_sdk_v2",
+      "display_name": "NBIS MINDTCT + MCC SDK v2.0",
+      "implementation_version": "nbis-5.0.0+mcc-sdk-2.0.0.0",
+      "integration_id": null,
+      "predecessor_finalization_fingerprint": "5164621d1f1c6c67681846ad0fdb044080b290719f0f520a9500065ef1514db1",
+      "role": "primary_baseline",
+      "run_spec_fingerprint": "063bb95cd224932fe470ddc5c8f0f506c8aefa09bad889e0fc96dbcecb98ceb8",
+      "score_direction": "higher_is_better"
+    },
+    {
+      "adapter_id": "nbis_mindtct_openafis_capacity_extended_subprocess",
+      "algorithm_id": "nbis_mindtct_openafis_capacity_extended",
+      "display_name": "NBIS MINDTCT + OpenAFIS (capacity-extended)",
+      "implementation_version": "nbis-5.0.0+openafis-3ae1c757+capacity-extended",
+      "integration_id": null,
+      "predecessor_finalization_fingerprint": "0d6f715228696ef29fc7fedbd7e1cbb7a450cb3ee1d264fcb7a953cf3e09eff9",
+      "role": "additional_experimentally_evaluated_method",
+      "run_spec_fingerprint": "337454a6853f6cba9350a1aac38225b0bde8990c5c3f994528b535bbe69d8931",
+      "score_direction": "higher_is_better"
+    }
+  ],
+  "roster_fingerprint": "a7c4526d433751395cbbb2e3352b0d02c6adda0815e5976897b4d827d4e19426",
+  "roster_id": "final_baseline_roster_v1",
+  "roster_selected_from_new_scores": false,
+  "schema_version": "1",
+  "stage": "21B"
+}

@@ -1,0 +1,70 @@
+{
+  "algorithm_failure_is_terminal": true,
+  "algorithm_failure_score": null,
+  "calibration_allowed": false,
+  "concurrency": 1,
+  "execution_strategy": "sequential_single_worker",
+  "infrastructure_failure_is_biometric_outcome": false,
+  "infrastructure_resume_allowed": true,
+  "kind": "stage_21b_execution_policy",
+  "metrics_allowed": false,
+  "optimizations_enabled": false,
+  "orchestrator_algorithm_retries": 0,
+  "policy_id": "stage21b_frozen_execution_v1",
+  "prepared_input_verification": {
+    "bytes_delivered_to_adapter_unchanged": true,
+    "every_planned_image_verified": true,
+    "per_comparison_verification_in_frozen_route": false,
+    "reverified_when_artefact_changes": true,
+    "verification_memoised_per_image": true
+  },
+  "routes": [
+    {
+      "adapter_id": "sourceafis_java_subprocess",
+      "algorithm_config": "configs/algorithms/sourceafis_java_3_18_1.yaml",
+      "algorithm_config_sha256": "2b6446118a2e9cb09b864e63980e197619263841c9d32d21488d1609cf904a1f",
+      "failure_classifier": "sourceafis_certified_v1",
+      "timeout_seconds": 60.0
+    },
+    {
+      "adapter_id": "nbis_mindtct_bozorth3_subprocess",
+      "algorithm_config": "configs/algorithms/nbis_mindtct_bozorth3_5_0_0_v1.yaml",
+      "algorithm_config_sha256": "2eb0982d7b3e680c733b843bf219fc6a69d50a1631c37a0e754fbfc5235b04f8",
+      "failure_classifier": "nbis_certified_v1",
+      "timeout_seconds": 60.0
+    },
+    {
+      "adapter_id": "flx_pytorch_subprocess",
+      "algorithm_config": "configs/algorithms/flx_deepprint_texminu_512_without_localization_v1.yaml",
+      "algorithm_config_sha256": "1630b7e7dea1c13d759922ea781aa1c65f51c4d32083226af23974f480130204",
+      "failure_classifier": "flx_certified_v1",
+      "timeout_seconds": 480.0
+    },
+    {
+      "adapter_id": "verifinger_java_subprocess",
+      "algorithm_config": "configs/algorithms/verifinger_2025_2_1to1_v1.yaml",
+      "algorithm_config_sha256": "38dffc04306df4f90ff20e2c89693ab6171a28860e06e45b5256bc2315359144",
+      "failure_classifier": "verifinger_certified_v1",
+      "timeout_seconds": 180.0
+    },
+    {
+      "adapter_id": "nbis_mindtct_mcc_sdk_v2_subprocess",
+      "algorithm_config": "evidence/stage20b-mindtct-mcc-canonical500-raw/algorithm-identity.json",
+      "algorithm_config_sha256": "c48e6199e091263479f2aaf1c2280bb19f8404121718ea245f534348cfb780bb",
+      "failure_classifier": "mcc_stage20b_certified_v1",
+      "timeout_seconds": 300.0
+    },
+    {
+      "adapter_id": "nbis_mindtct_openafis_capacity_extended_subprocess",
+      "algorithm_config": "evidence/stage19b-openafis-capacity-extended/variant-identity.json",
+      "algorithm_config_sha256": "c6fc70791eb8b1c564bcc60a47ca7abfbce1f39372e7a7a38c29da76d3b979d4",
+      "failure_classifier": "openafis_stage19b_certified_v1",
+      "timeout_seconds": 120.0
+    }
+  ],
+  "schema_version": "1",
+  "score_transform_allowed": false,
+  "stage": "21B",
+  "status_outputs_raw_scores": false,
+  "threshold_allowed": false
+}

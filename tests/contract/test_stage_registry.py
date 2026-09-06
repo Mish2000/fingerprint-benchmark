@@ -6,7 +6,7 @@ marker had already declared ``MINDTCT_MCC_SDK_V2_CANONICAL_RAW_COMPLETE`` and
 ``publication_eligible: true``. Nobody was misled on purpose; there was simply
 nothing that would notice.
 
-The registry in :mod:`fpbench.experiments.stage_registry` is the authority these
+The registry in :mod:`fpbench.experiments.publication_registry` is the authority these
 check against.
 """
 
@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from fpbench.experiments.stage_registry import (
+from fpbench.experiments.publication_registry import (
     PUBLISHED_STAGES,
     PublishedStage,
     read_marker,
@@ -58,7 +58,7 @@ def test_every_evidence_directory_with_a_marker_is_registered() -> None:
     )
     assert not unregistered, (
         f"evidence directories carry a stage marker but no registry row: "
-        f"{unregistered}. Add them to fpbench.experiments.stage_registry"
+        f"{unregistered}. Add them to fpbench.experiments.publication_registry"
     )
 
 

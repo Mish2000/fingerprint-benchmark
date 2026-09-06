@@ -1,0 +1,331 @@
+{
+  "all_integrity_gates_pass": true,
+  "all_result_sets_sealed": true,
+  "kind": "stage_21b_result_integrity",
+  "method_count": 6,
+  "methods": [
+    {
+      "algorithm_failures": 0,
+      "algorithm_id": "sourceafis_java",
+      "attempt_records": 73500,
+      "attempts_file_sha256": "1c0bbc5a1642f3dc392e19a4a5c8f07da678d6d6407d7e31192c124c555df3d2",
+      "failure_classifications": {},
+      "infrastructure_events_before_completion": {},
+      "infrastructure_gaps": 0,
+      "integrity_pass": true,
+      "outcomes_file_sha256": "e8752cb6827e440f2cd837ba69f00af1970d9c8d3d632f25baa98ba8b381db6b",
+      "pair_ids_sha256": "46d7390cfdd8f5c678d7f7df997066029c37afc9c1e5854a90063c0d0162bc4f",
+      "pair_manifest_hash": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
+      "planned_attempts": 73500,
+      "planned_pair_input_fingerprint": "0a80e8dfa3aeaeb24a03133968402d180da59d953ed0eb28c42a0be2bfce9edc",
+      "preparation_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+      "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+      "preparation_set_id": "prepset_be560e047991",
+      "production_gates": {
+        "planned_attempts_exact_73500": true,
+        "release_counts_exact": true,
+        "terminal_outcomes_exact_73500": true
+      },
+      "release_counts": {
+        "SD300A": 24500,
+        "SD300B": 24500,
+        "SD300C": 24500
+      },
+      "result_set_fingerprint": "996240cc8bafa47dc2091dbf88d78a0d89b0909e81d984a25f3985eaa2fd8056",
+      "result_set_id": "resultset21b_3f9ef24f15ac",
+      "result_set_manifest_fingerprint": "5eb1626de12a81413ab4bfe7e73795afd6d6baf7c5eeaab617412f23f36cfddd",
+      "result_set_manifest_sha256": "43d96645ba6593f55237b2785036105d6fdb2bf9c68e44cbdea4980c7ec77de6",
+      "run_id": "run_stage21b_3f9ef24f15ac",
+      "run_spec_fingerprint": "3f9ef24f15ac230e341c2fae80f24d50975ee0c701e6d1df114762e24185af66",
+      "score_bearing_outcomes": 73500,
+      "terminal_outcomes": 73500,
+      "timing": {
+        "adapter_component_totals_ms": {
+          "bridge_total": 39244017.85069992,
+          "left_input_read": 145360.7478999992,
+          "left_template_extraction": 20089776.643299926,
+          "matcher_initialization": 1233293.4716000017,
+          "matching": 399612.66040000255,
+          "right_input_read": 31920.88530000012,
+          "right_template_extraction": 17342813.32249979
+        },
+        "adapter_wall_time_total_ms": 55827953.2995,
+        "definition": "wall time around one certified adapter.compare invocation",
+        "first_attempt_started_utc": "2026-09-04T04:35:30.122857+00:00",
+        "last_attempt_finished_utc": "2026-09-04T20:26:08.502342+00:00",
+        "run_wall_clock_span_seconds": 57038.379485,
+        "terminal_attempts": 73500,
+        "wall_clock_throughput_terminal_per_second": 1.2886060344566608
+      }
+    },
+    {
+      "algorithm_failures": 0,
+      "algorithm_id": "nbis_mindtct_bozorth3",
+      "attempt_records": 73500,
+      "attempts_file_sha256": "c48f203f3f05997dfc1b23ac06c8a75147516e9f48d391f515401168dd3c7b10",
+      "failure_classifications": {},
+      "infrastructure_events_before_completion": {},
+      "infrastructure_gaps": 0,
+      "integrity_pass": true,
+      "outcomes_file_sha256": "a334c9847cbf849d32af1d76e65c0f01c8713312f672e190c11e0643d432bc74",
+      "pair_ids_sha256": "46d7390cfdd8f5c678d7f7df997066029c37afc9c1e5854a90063c0d0162bc4f",
+      "pair_manifest_hash": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
+      "planned_attempts": 73500,
+      "planned_pair_input_fingerprint": "0a80e8dfa3aeaeb24a03133968402d180da59d953ed0eb28c42a0be2bfce9edc",
+      "preparation_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+      "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+      "preparation_set_id": "prepset_be560e047991",
+      "production_gates": {
+        "planned_attempts_exact_73500": true,
+        "release_counts_exact": true,
+        "terminal_outcomes_exact_73500": true
+      },
+      "release_counts": {
+        "SD300A": 24500,
+        "SD300B": 24500,
+        "SD300C": 24500
+      },
+      "result_set_fingerprint": "ff0f4df5f9bde4ee9be36e54b0c150c1f6ef1907f0a49d543868c97ecfae07f1",
+      "result_set_id": "resultset21b_44c039d38d25",
+      "result_set_manifest_fingerprint": "4177a32785a90e424e3ec52dff24f6eb967b3691702879817c0eea8fa0ba6b69",
+      "result_set_manifest_sha256": "8323cfa9130e6fbc0c9766a37ec1148c1c5259f90ee6210cbaa43bceeadfb0cc",
+      "run_id": "run_stage21b_44c039d38d25",
+      "run_spec_fingerprint": "44c039d38d257286560c0b828fe7b2ae81497a3d6a9d12aecf92da2aeda6ea04",
+      "score_bearing_outcomes": 73500,
+      "terminal_outcomes": 73500,
+      "timing": {
+        "adapter_component_totals_ms": {
+          "cleanup": 18316.031012999676,
+          "input_staging": 57070.683833000774,
+          "left_extraction": 2702740.5754620023,
+          "matching": 533725.2219399997,
+          "right_extraction": 6588658.396731019
+        },
+        "adapter_wall_time_total_ms": 11094081.655704,
+        "definition": "wall time around one certified adapter.compare invocation",
+        "first_attempt_started_utc": "2026-09-01T13:50:18.074669+00:00",
+        "last_attempt_finished_utc": "2026-09-01T17:21:31.731673+00:00",
+        "run_wall_clock_span_seconds": 12673.657004,
+        "terminal_attempts": 73500,
+        "wall_clock_throughput_terminal_per_second": 5.799431054257052
+      }
+    },
+    {
+      "algorithm_failures": 0,
+      "algorithm_id": "flx_deepprint_texminu_512_without_localization",
+      "attempt_records": 73500,
+      "attempts_file_sha256": "e045ce29e07529ce1f42c0286238a6275f6d2eb86318ae272447d59199ee771e",
+      "failure_classifications": {},
+      "infrastructure_events_before_completion": {},
+      "infrastructure_gaps": 0,
+      "integrity_pass": true,
+      "outcomes_file_sha256": "252f592b3a151a728efb73fb34f732119fb0a377c344a20523bec3d2d9966513",
+      "pair_ids_sha256": "46d7390cfdd8f5c678d7f7df997066029c37afc9c1e5854a90063c0d0162bc4f",
+      "pair_manifest_hash": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
+      "planned_attempts": 73500,
+      "planned_pair_input_fingerprint": "0a80e8dfa3aeaeb24a03133968402d180da59d953ed0eb28c42a0be2bfce9edc",
+      "preparation_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+      "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+      "preparation_set_id": "prepset_be560e047991",
+      "production_gates": {
+        "planned_attempts_exact_73500": true,
+        "release_counts_exact": true,
+        "terminal_outcomes_exact_73500": true
+      },
+      "release_counts": {
+        "SD300A": 24500,
+        "SD300B": 24500,
+        "SD300C": 24500
+      },
+      "result_set_fingerprint": "40bcc9d8490173b5118408963317e7c4c947288545ffa1090738a7a9022e24f8",
+      "result_set_id": "resultset21b_9493e62e2e88",
+      "result_set_manifest_fingerprint": "ebaeb38f1d3107c9fb02c835b784f26e4efd0434a1de0f2741c24fd9b9b6bbfe",
+      "result_set_manifest_sha256": "e3ff98e531fe3b6d9aae64957ecce0cb8c0256e617c097b34d57c885aae790ea",
+      "run_id": "run_stage21b_9493e62e2e88",
+      "run_spec_fingerprint": "9493e62e2e889598f7ce10245daa01d280205a6a23cffcdf04ff0cfb30e25b2f",
+      "score_bearing_outcomes": 73500,
+      "terminal_outcomes": 73500,
+      "timing": {
+        "adapter_component_totals_ms": {
+          "compare_ms": 30546.682732999885,
+          "left_extract_ms": 51544595.99348496,
+          "left_preprocess_ms": 1754296.7706140126,
+          "right_extract_ms": 51560071.567317344,
+          "right_preprocess_ms": 5323052.063503992
+        },
+        "adapter_wall_time_total_ms": 110293501.747435,
+        "definition": "wall time around one certified adapter.compare invocation",
+        "first_attempt_started_utc": "2026-09-01T17:25:56.395074+00:00",
+        "last_attempt_finished_utc": "2026-09-03T02:30:50.312279+00:00",
+        "run_wall_clock_span_seconds": 119093.917205,
+        "terminal_attempts": 73500,
+        "wall_clock_throughput_terminal_per_second": 0.6171599836915449
+      }
+    },
+    {
+      "algorithm_failures": 1323,
+      "algorithm_id": "verifinger_1to1",
+      "attempt_records": 73500,
+      "attempts_file_sha256": "c71df6b8ed4c23a4a411e8d32481ca0818c8af3767e6896dcfa2b6155a812a56",
+      "failure_classifications": {
+        "template_extraction_failed": 1323
+      },
+      "infrastructure_events_before_completion": {},
+      "infrastructure_gaps": 0,
+      "integrity_pass": true,
+      "outcomes_file_sha256": "72cf82b6b01c4482be7e1e52469f33ff115562d433fb10adcae8594cc0d8ca03",
+      "pair_ids_sha256": "46d7390cfdd8f5c678d7f7df997066029c37afc9c1e5854a90063c0d0162bc4f",
+      "pair_manifest_hash": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
+      "planned_attempts": 73500,
+      "planned_pair_input_fingerprint": "0a80e8dfa3aeaeb24a03133968402d180da59d953ed0eb28c42a0be2bfce9edc",
+      "preparation_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+      "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+      "preparation_set_id": "prepset_be560e047991",
+      "production_gates": {
+        "planned_attempts_exact_73500": true,
+        "release_counts_exact": true,
+        "terminal_outcomes_exact_73500": true
+      },
+      "release_counts": {
+        "SD300A": 24500,
+        "SD300B": 24500,
+        "SD300C": 24500
+      },
+      "result_set_fingerprint": "24bc7b13570f4254c75c78fe2d63b0ae61876ad40488c1f19047b273e20a2a2c",
+      "result_set_id": "resultset21b_934c84b82d12",
+      "result_set_manifest_fingerprint": "73ccca28c0de4e9573212661387a133077e80b81e96bed437c510a37a08344d5",
+      "result_set_manifest_sha256": "b63f6096b2ea23bfddf787d045b01c372bcc4ab6c44e778320009d84ed8b1475",
+      "run_id": "run_stage21b_934c84b82d12",
+      "run_spec_fingerprint": "934c84b82d1221d1b36e7da2dc597c6ac2d50418ece7f1213e364fc6eb9213e6",
+      "score_bearing_outcomes": 72177,
+      "terminal_outcomes": 73500,
+      "timing": {
+        "adapter_component_totals_ms": {
+          "bridge_total": 106084643.10899997,
+          "verify": 88775380.10610063
+        },
+        "adapter_wall_time_total_ms": 127790317.1008,
+        "definition": "wall time around one certified adapter.compare invocation",
+        "first_attempt_started_utc": "2026-09-04T20:34:23.201705+00:00",
+        "last_attempt_finished_utc": "2026-09-06T08:22:24.811434+00:00",
+        "run_wall_clock_span_seconds": 128881.609729,
+        "terminal_attempts": 73500,
+        "wall_clock_throughput_terminal_per_second": 0.5702908285716544
+      }
+    },
+    {
+      "algorithm_failures": 0,
+      "algorithm_id": "nbis_mindtct_mcc_sdk_v2",
+      "attempt_records": 73500,
+      "attempts_file_sha256": "c95223c9425305fcced2fc9a483e87c284ffdcbfb6d319d5b0a1605c15ab8931",
+      "failure_classifications": {},
+      "infrastructure_events_before_completion": {},
+      "infrastructure_gaps": 0,
+      "integrity_pass": true,
+      "outcomes_file_sha256": "0a1e3cabca175e0b28d5d0a4485e95fc7f9d513eeaa6a3734245e161fc046aeb",
+      "pair_ids_sha256": "46d7390cfdd8f5c678d7f7df997066029c37afc9c1e5854a90063c0d0162bc4f",
+      "pair_manifest_hash": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
+      "planned_attempts": 73500,
+      "planned_pair_input_fingerprint": "0a80e8dfa3aeaeb24a03133968402d180da59d953ed0eb28c42a0be2bfce9edc",
+      "preparation_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+      "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+      "preparation_set_id": "prepset_be560e047991",
+      "production_gates": {
+        "planned_attempts_exact_73500": true,
+        "release_counts_exact": true,
+        "terminal_outcomes_exact_73500": true
+      },
+      "release_counts": {
+        "SD300A": 24500,
+        "SD300B": 24500,
+        "SD300C": 24500
+      },
+      "result_set_fingerprint": "1e27adff512ce17604887164c3296e89bb3a086cc0553036c20134e8be24e85f",
+      "result_set_id": "resultset21b_063bb95cd224",
+      "result_set_manifest_fingerprint": "2f74ee2108a6dfb538e695a217b59fb1bb51594afa889de7ded32858e8757d47",
+      "result_set_manifest_sha256": "a9f4da057eaee30a14dfbfe48665ba1546cc21dc959e1aea54442cdd31c472d0",
+      "run_id": "run_stage21b_063bb95cd224",
+      "run_spec_fingerprint": "063bb95cd224932fe470ddc5c8f0f506c8aefa09bad889e0fc96dbcecb98ceb8",
+      "score_bearing_outcomes": 73500,
+      "terminal_outcomes": 73500,
+      "timing": {
+        "adapter_component_totals_ms": {
+          "cleanup": 3223378.632638012,
+          "input_staging": 5525406.387791002,
+          "mcc_match": 1333614.4866000086,
+          "mcc_template_left": 2229288.036799986,
+          "mcc_template_right": 613163.062399992,
+          "mindtct_left": 4808200.900131065,
+          "mindtct_right": 9559486.939635022,
+          "translation_left": 3107.5586649999937,
+          "translation_right": 8420.378503000029
+        },
+        "adapter_wall_time_total_ms": 49707536.207925,
+        "definition": "wall time around one certified adapter.compare invocation",
+        "first_attempt_started_utc": "2026-09-03T02:57:57.078389+00:00",
+        "last_attempt_finished_utc": "2026-09-04T03:53:02.266084+00:00",
+        "run_wall_clock_span_seconds": 89705.187695,
+        "terminal_attempts": 73500,
+        "wall_clock_throughput_terminal_per_second": 0.8193506071232127
+      }
+    },
+    {
+      "algorithm_failures": 0,
+      "algorithm_id": "nbis_mindtct_openafis_capacity_extended",
+      "attempt_records": 73500,
+      "attempts_file_sha256": "328883bc7c3509b8b34b090ed19c9b7f6780380abb31d329b1585e6357a414da",
+      "failure_classifications": {},
+      "infrastructure_events_before_completion": {},
+      "infrastructure_gaps": 0,
+      "integrity_pass": true,
+      "outcomes_file_sha256": "99df8d0741e22c6b40cfefade866e0ab4981c8316a3ca1d79b887f032e85c11f",
+      "pair_ids_sha256": "46d7390cfdd8f5c678d7f7df997066029c37afc9c1e5854a90063c0d0162bc4f",
+      "pair_manifest_hash": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
+      "planned_attempts": 73500,
+      "planned_pair_input_fingerprint": "0a80e8dfa3aeaeb24a03133968402d180da59d953ed0eb28c42a0be2bfce9edc",
+      "preparation_profile_id": "canonical_gray8_500ppi_lanczos3_v1",
+      "preparation_set_fingerprint": "be560e047991a0d58af8f86a4576f8b78dc350e643af82f0e2405350d9e2fd3f",
+      "preparation_set_id": "prepset_be560e047991",
+      "production_gates": {
+        "planned_attempts_exact_73500": true,
+        "release_counts_exact": true,
+        "terminal_outcomes_exact_73500": true
+      },
+      "release_counts": {
+        "SD300A": 24500,
+        "SD300B": 24500,
+        "SD300C": 24500
+      },
+      "result_set_fingerprint": "912029476a0c7094482376403a00060e45afb4141b504b59b6f2d29d222d1d6c",
+      "result_set_id": "resultset21b_337454a6853f",
+      "result_set_manifest_fingerprint": "48f43040436c8069d1b3527858a4686ff493a9ffd644eb0da16d61f968a2f637",
+      "result_set_manifest_sha256": "037ffef11407802086ac4be741fbc16498f7e0d24a6a0915846266181a30b4c6",
+      "run_id": "run_stage21b_337454a6853f",
+      "run_spec_fingerprint": "337454a6853f6cba9350a1aac38225b0bde8990c5c3f994528b535bbe69d8931",
+      "score_bearing_outcomes": 73500,
+      "terminal_outcomes": 73500,
+      "timing": {
+        "adapter_component_totals_ms": {
+          "cleanup": 86300.60800299943,
+          "input_staging": 173224.03419100065,
+          "mindtct_left": 4063887.1685809814,
+          "mindtct_right": 8764902.054149907,
+          "openafis_match": 32555.83399999982,
+          "openafis_template_left": 291043.10595499893,
+          "openafis_template_right": 64126.33892900078
+        },
+        "adapter_wall_time_total_ms": 16033910.44037,
+        "definition": "wall time around one certified adapter.compare invocation",
+        "first_attempt_started_utc": "2026-09-01T08:13:01.155612+00:00",
+        "last_attempt_finished_utc": "2026-09-01T13:41:47.354837+00:00",
+        "run_wall_clock_span_seconds": 19726.199225,
+        "terminal_attempts": 73500,
+        "wall_clock_throughput_terminal_per_second": 3.7260092104742495
+      }
+    }
+  ],
+  "raw_score_contract_checked": true,
+  "schema_version": "1",
+  "score_summaries_computed": false,
+  "stage": "21B"
+}

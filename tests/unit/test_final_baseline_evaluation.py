@@ -293,7 +293,12 @@ def test_report_renders_deterministically_with_disclosures() -> None:
     )
     assert first == second
     assert reporting.release_dependence_disclosure.splitlines()[0][:20] in first
-    assert "Beta Matcher †" in first
+    assert "| Alpha Matcher |" in first
+    assert "| Beta Matcher |" in first
+    assert "†" not in first
+    assert "five primary baselines" not in first
+    assert "additional experimentally evaluated method" not in first
+    assert "retained beyond" not in first
     assert "no operational threshold" in first
     assert "not an average of release rates" in first
 

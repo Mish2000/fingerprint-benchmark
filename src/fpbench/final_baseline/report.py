@@ -41,13 +41,6 @@ def _cut(cell: Mapping[str, Any]) -> str:
     return f"{comparator} {cell['score_cut']!r}"
 
 
-def _method_label(method: Mapping[str, Any]) -> str:
-    name = str(method["display_name"])
-    if method["role"] == "additional_experimentally_evaluated_method":
-        return f"{name} †"
-    return name
-
-
 def _target_heading(target: str, primary_target: str) -> str:
     suffix = " (primary)" if target == primary_target else ""
     return f"FAR target ≤ {target}{suffix}"
@@ -107,7 +100,7 @@ def render_final_baseline_report(
 ) -> str:
     methods = list(inputs_document["methods"])
     labels = {
-        str(method["algorithm_id"]): _method_label(method) for method in methods
+        str(method["algorithm_id"]): str(method["display_name"]) for method in methods
     }
     roster_order = [str(method["algorithm_id"]) for method in methods]
     scopes = [str(scope) for scope in results_document["scopes"]]
@@ -141,12 +134,6 @@ def render_final_baseline_report(
         "(exhaustive cross-subject, 24,500 per release)"
     )
     lines.append("")
-    lines.append(
-        "† additional experimentally evaluated method (retained beyond the "
-        "five primary baselines)."
-    )
-    lines.append("")
-
     lines.append("## How to read this report")
     lines.append("")
     lines.append(

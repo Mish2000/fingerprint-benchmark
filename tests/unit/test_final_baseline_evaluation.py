@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from fractions import Fraction
 from pathlib import Path
 
@@ -21,12 +22,16 @@ from fpbench.final_baseline.constants import (
     REPORTING_PATH,
 )
 from fpbench.final_baseline.evaluate import (
+    _published_stage21b_methods,
+    _require_published_stage21b_identity,
     far_target_cell,
     rank_algorithms,
     roster_view_documents,
 )
+from fpbench.final_baseline.errors import FinalBaselineError
 from fpbench.final_baseline.report import render_final_baseline_report
 from fpbench.final_baseline.reporting import load_final_baseline_reporting
+from fpbench.final_baseline.sources import Stage21BImpostorSource
 
 pytestmark = pytest.mark.final_baseline_contract
 
@@ -291,3 +296,130 @@ def test_report_renders_deterministically_with_disclosures() -> None:
     assert "Beta Matcher †" in first
     assert "no operational threshold" in first
     assert "not an average of release rates" in first
+
+
+def _stage21b_method(algorithm_id: str = "alpha") -> dict[str, str]:
+    return {
+        "algorithm_id": algorithm_id,
+        "run_id": f"run-{algorithm_id}",
+        "result_set_id": f"resultset-{algorithm_id}",
+        "result_set_fingerprint": "a" * 64,
+    }
+
+
+@pytest.fixture
+def stage21b_source() -> Stage21BImpostorSource:
+    """Identity-only synthetic source; no workspace or score is needed."""
+    return Stage21BImpostorSource(
+        **_stage21b_method(),
+        seal_fingerprint="c" * 64,
+        run_directory_name="synthetic-run",
+        attempts=(),
+        planned_attempts=0,
+        score_bearing_attempts=0,
+        algorithm_failures=0,
+    )
+
+
+def test_published_stage21b_identity_matches(stage21b_source) -> None:
+    published = _published_stage21b_methods(
+        {"methods": [_stage21b_method()]}, expected_algorithm_ids=("alpha",)
+    )
+    _require_published_stage21b_identity(stage21b_source, published["alpha"])
+
+
+def test_published_stage21b_identity_uses_algorithm_not_list_position(
+    stage21b_source,
+) -> None:
+    published = _published_stage21b_methods(
+        {"methods": [_stage21b_method("beta"), _stage21b_method()]},
+        expected_algorithm_ids=("alpha", "beta"),
+    )
+    _require_published_stage21b_identity(stage21b_source, published["alpha"])
+
+
+def test_published_stage21b_fingerprint_on_another_algorithm_is_not_a_binding(
+    stage21b_source,
+) -> None:
+    alpha = dict(_stage21b_method(), result_set_fingerprint="b" * 64)
+    beta = _stage21b_method("beta")
+    assert beta["result_set_fingerprint"] == stage21b_source.result_set_fingerprint
+    published = _published_stage21b_methods(
+        {"methods": [alpha, beta]}, expected_algorithm_ids=("alpha", "beta")
+    )
+    with pytest.raises(FinalBaselineError, match="alpha:.*result_set_fingerprint"):
+        _require_published_stage21b_identity(stage21b_source, published["alpha"])
+
+
+def test_published_stage21b_fingerprint_elsewhere_is_not_a_binding(
+    stage21b_source,
+) -> None:
+    marker = {
+        "methods": [dict(_stage21b_method(), result_set_fingerprint="b" * 64)],
+        "unrelated_receipt": {"result_set_fingerprint": "a" * 64},
+    }
+    published = _published_stage21b_methods(marker, expected_algorithm_ids=("alpha",))
+    with pytest.raises(FinalBaselineError, match="alpha:.*result_set_fingerprint"):
+        _require_published_stage21b_identity(stage21b_source, published["alpha"])
+
+
+@pytest.mark.parametrize(
+    "field", ("algorithm_id", "run_id", "result_set_id", "result_set_fingerprint")
+)
+def test_published_stage21b_identity_rejects_each_mismatched_field(
+    stage21b_source, field,
+) -> None:
+    published = _published_stage21b_methods(
+        {"methods": [_stage21b_method()]}, expected_algorithm_ids=("alpha",)
+    )
+    changed = replace(stage21b_source, **{field: "different"})
+    with pytest.raises(FinalBaselineError, match=f"alpha:.*{field}"):
+        _require_published_stage21b_identity(changed, published["alpha"])
+
+
+@pytest.mark.parametrize(
+    ("methods", "expected", "message"),
+    (
+        ([_stage21b_method(), _stage21b_method()], ("alpha",), "alpha:.*duplicate"),
+        ([], ("alpha",), "alpha:.*missing"),
+        ([_stage21b_method()], ("alpha", "beta"), "beta:.*missing"),
+        ([_stage21b_method("beta")], ("alpha",), "beta:.*unexpected"),
+        (
+            [_stage21b_method(), _stage21b_method("beta")],
+            ("alpha",),
+            "beta:.*unexpected",
+        ),
+    ),
+    ids=("duplicate", "empty", "missing", "substitution", "extra"),
+)
+def test_published_stage21b_methods_require_exact_membership(
+    methods, expected, message,
+) -> None:
+    with pytest.raises(FinalBaselineError, match=message):
+        _published_stage21b_methods({"methods": methods}, expected_algorithm_ids=expected)
+
+
+@pytest.mark.parametrize(
+    "field", ("algorithm_id", "run_id", "result_set_id", "result_set_fingerprint")
+)
+@pytest.mark.parametrize("value", (None, "", " \t", 123))
+def test_published_stage21b_identity_fields_must_be_nonempty_strings(field, value) -> None:
+    method = dict(_stage21b_method(), **{field: value})
+    with pytest.raises(FinalBaselineError, match=f"{field} must be a non-empty string"):
+        _published_stage21b_methods({"methods": [method]}, expected_algorithm_ids=("alpha",))
+
+
+@pytest.mark.parametrize(
+    "field", ("algorithm_id", "run_id", "result_set_id", "result_set_fingerprint")
+)
+def test_published_stage21b_identity_fields_must_be_present(field) -> None:
+    method = _stage21b_method()
+    method.pop(field)
+    with pytest.raises(FinalBaselineError, match=f"{field} must be a non-empty string"):
+        _published_stage21b_methods({"methods": [method]}, expected_algorithm_ids=("alpha",))
+
+
+@pytest.mark.parametrize("marker", ({}, {"methods": None}, {"methods": {}}, {"methods": [None]}))
+def test_published_stage21b_methods_must_be_structured(marker) -> None:
+    with pytest.raises(FinalBaselineError, match="Stage 21B publication method"):
+        _published_stage21b_methods(marker, expected_algorithm_ids=("alpha",))

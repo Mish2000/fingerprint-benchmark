@@ -9,7 +9,6 @@ compositions agree on the same inputs.
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
@@ -49,7 +48,6 @@ from fpbench.final_baseline.constants import (
     REPORTING_PATH,
     COMPONENT,
     STAGE21A_MARKER_FINGERPRINT_KEY,
-    STAGE21B_EVIDENCE,
     STAGE21B_MARKER_FINGERPRINT_KEY,
 )
 from fpbench.final_baseline.errors import FinalBaselineError
@@ -59,6 +57,7 @@ from fpbench.final_baseline.reporting import (
     load_final_baseline_reporting,
 )
 from fpbench.final_baseline.sources import (
+    Stage21BImpostorSource,
     VerifiedMethodAttempts,
     load_legacy_genuine_attempts,
     load_legacy_mated_pairs,
@@ -148,9 +147,7 @@ def collect_final_baseline_inputs(
     if not stage21a_fingerprint:
         raise FinalBaselineError("Stage 21A marker carries no finalization fingerprint")
 
-    verify_stage21b_evidence(root)
-    stage21b_marker_path = root / STAGE21B_EVIDENCE / "stage-21b-finalization.json"
-    stage21b_marker = json.loads(stage21b_marker_path.read_text(encoding="utf-8"))
+    stage21b_marker = verify_stage21b_evidence(root)
     stage21b_fingerprint = str(
         stage21b_marker.get(STAGE21B_MARKER_FINGERPRINT_KEY, "")
     )
@@ -173,6 +170,9 @@ def collect_final_baseline_inputs(
             f"{EXPECTED_METHODS}"
         )
 
+    published_21b = _published_stage21b_methods(
+        stage21b_marker, expected_algorithm_ids=binding.algorithm_ids
+    )
     frozen = load_frozen_pairs(workspace=workspace, binding=binding)
     legacy_invariance = verify_legacy_manifest_unchanged(
         workspace=workspace, binding=binding
@@ -182,20 +182,15 @@ def collect_final_baseline_inputs(
         workspace, binding.algorithm_ids
     )
 
-    published_21b = _published_stage21b_text(root)
     methods: list[VerifiedMethodAttempts] = []
     for algorithm in binding.algorithms:
         genuine = load_legacy_genuine_attempts(workspace, algorithm, mated_pairs)
         impostor = load_stage21b_impostor_attempts(
             run_directories[algorithm.algorithm_id], algorithm, frozen
         )
-        if impostor.result_set_fingerprint not in published_21b:
-            raise FinalBaselineError(
-                f"{algorithm.algorithm_id}: sealed run "
-                f"{impostor.run_id} (result set "
-                f"{impostor.result_set_fingerprint[:12]}…) is not the one the "
-                "committed Stage 21B evidence published"
-            )
+        _require_published_stage21b_identity(
+            impostor, published_21b[algorithm.algorithm_id]
+        )
         methods.append(
             VerifiedMethodAttempts(
                 algorithm_id=algorithm.algorithm_id,
@@ -222,16 +217,60 @@ def collect_final_baseline_inputs(
     )
 
 
-def _published_stage21b_text(root: Path) -> str:
-    """Concatenate the committed Stage 21B evidence for identity membership."""
-    directory = root / STAGE21B_EVIDENCE
-    fragments = [
-        path.read_text(encoding="utf-8")
-        for path in sorted(directory.glob("*.json"))
-    ]
-    if not fragments:
-        raise FinalBaselineError(f"{directory}: no committed Stage 21B receipts found")
-    return "\n".join(fragments)
+def _published_stage21b_methods(
+    marker: Mapping[str, Any], *, expected_algorithm_ids: Sequence[str]
+) -> dict[str, Mapping[str, Any]]:
+    """Index the verified marker by algorithm, requiring the exact frozen roster."""
+    methods = marker.get("methods")
+    if not isinstance(methods, list):
+        raise FinalBaselineError("Stage 21B publication methods must be a list")
+    expected = set(expected_algorithm_ids)
+    published: dict[str, Mapping[str, Any]] = {}
+    for index, method in enumerate(methods):
+        if not isinstance(method, Mapping):
+            raise FinalBaselineError(
+                f"Stage 21B publication method entry {index} must be a mapping"
+            )
+        algorithm_id = method.get("algorithm_id")
+        if not isinstance(algorithm_id, str) or not algorithm_id.strip():
+            raise FinalBaselineError(
+                f"Stage 21B publication method entry {index}: "
+                "algorithm_id must be a non-empty string"
+            )
+        if algorithm_id not in expected:
+            raise FinalBaselineError(
+                f"{algorithm_id}: unexpected algorithm_id in Stage 21B publication"
+            )
+        if algorithm_id in published:
+            raise FinalBaselineError(
+                f"{algorithm_id}: duplicate algorithm_id in Stage 21B publication"
+            )
+        for key in ("run_id", "result_set_id", "result_set_fingerprint"):
+            value = method.get(key)
+            if not isinstance(value, str) or not value.strip():
+                raise FinalBaselineError(
+                    f"{algorithm_id}: Stage 21B publication {key} "
+                    "must be a non-empty string"
+                )
+        published[algorithm_id] = method
+    missing = sorted(expected - set(published))
+    if missing:
+        raise FinalBaselineError(
+            f"{', '.join(missing)}: missing algorithm_id entry in Stage 21B publication"
+        )
+    return published
+
+
+def _require_published_stage21b_identity(
+    source: Stage21BImpostorSource, published: Mapping[str, Any]
+) -> None:
+    """Bind all four sealed identity fields to the same published method entry."""
+    for key in ("algorithm_id", "run_id", "result_set_id", "result_set_fingerprint"):
+        if getattr(source, key) != published[key]:
+            raise FinalBaselineError(
+                f"{published['algorithm_id']}: sealed Stage 21B {key} does not "
+                "match the verified Stage 21B publication"
+            )
 
 
 def _view_for_algorithm(

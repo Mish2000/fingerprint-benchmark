@@ -1,0 +1,378 @@
+{
+  "comparison_id": "final_baseline_tar_far_frr_v1",
+  "component": "final_baseline_reporting",
+  "config_digests": {
+    "policy": "4735335bf58c42974007a76bc13c3d44abff29f7a8c460b98fb1cf4f4f366022",
+    "reporting": "31c1f693ed3ac281ed14267932d9efd9175282916b884bebc255195a869140d0",
+    "roster": "224e4f6ea3140a78aa0face21caf6a0b6df3f33d29f4d005c48a82e93936ecc5"
+  },
+  "cross_subject_pair_ids_sha256": "46d7390cfdd8f5c678d7f7df997066029c37afc9c1e5854a90063c0d0162bc4f",
+  "cross_subject_pair_manifest_hash": "a8b836cb3901daf66648ac1a5a850651ca9292f8bb0c8814ebce972f37c52505",
+  "genuine_population": "plain_roll_mated",
+  "impostor_population": "plain_roll_cross_subject_non_mated",
+  "kind": "final_baseline_evaluation_inputs",
+  "legacy_manifest_invariance": {
+    "accepted_legacy_result_identities": {
+      "flx_deepprint_texminu_512_without_localization": {
+        "predecessor_finalization_fingerprint": "87690c967a9cd939cbad63d92edf5e117a9a6d0e8bf20eb3cd11c33c7369ad0a",
+        "raw_result_identity": {
+          "result_set_fingerprint": "d63e523e04369ee4e7d57ed63bac3980e656425a832759b71315ca3fc155be5a",
+          "result_set_id": "resultset_d63e523e0436",
+          "run_fingerprint": "902136b3b8ae72747959395fb06bd9586a911505adb8b9e7a1d1e13bb32da884",
+          "run_id": "run_902136b3b8ae"
+        }
+      },
+      "nbis_mindtct_bozorth3": {
+        "predecessor_finalization_fingerprint": "76a678adefef2c070161d15ccae1e1689ac85cefcbc83700fdbd36e7d906fb7e",
+        "raw_result_identity": {
+          "result_set_fingerprint": "73a9d93a8528e95322b69c64af416a234e7bd100cbb6556e66f1ae8c1cdd7fff",
+          "result_set_id": "resultset_73a9d93a8528",
+          "run_fingerprint": "f0468f28ffba544fc7f2df0d4e9844cc0c6f0ed8e5359fd338d49ab6e8022c9f",
+          "run_id": "run_f0468f28ffba"
+        }
+      },
+      "nbis_mindtct_mcc_sdk_v2": {
+        "predecessor_finalization_fingerprint": "5164621d1f1c6c67681846ad0fdb044080b290719f0f520a9500065ef1514db1",
+        "raw_result_identity": {
+          "run_id": "run_stage20b_canonical500"
+        }
+      },
+      "nbis_mindtct_openafis_capacity_extended": {
+        "predecessor_finalization_fingerprint": "0d6f715228696ef29fc7fedbd7e1cbb7a450cb3ee1d264fcb7a953cf3e09eff9",
+        "raw_result_identity": {
+          "kind": "immutable_outcome_store_sha256",
+          "sha256": "3e0c2c54c77bdd42745c802522c75866b64b6cc9944af72541fa706edc9de2f2"
+        }
+      },
+      "sourceafis_java": {
+        "predecessor_finalization_fingerprint": "7e2c46b69aecc937dce79cfe58c1b8e1ced8e642974b858fda22a46efeaaa0c1",
+        "raw_result_identity": {
+          "result_set_fingerprint": "087b084fb8a8001eb92e20d4900dfc759dc5abbc9d5346144c83f5298f61e38b",
+          "result_set_id": "resultset_087b084fb8a8",
+          "run_fingerprint": "4c59fa02a6ab0471bdd46e134c61d74a7b6463276bf7c1bb6bd2e217622ceb5a",
+          "run_id": "run_4c59fa02a6ab"
+        }
+      },
+      "verifinger_1to1": {
+        "predecessor_finalization_fingerprint": "98ff570630409d430235fc4c489ea29797fdc38d907539ba42a5daf60da5d877",
+        "raw_result_identity": {
+          "result_set_fingerprint": "73fd6c6d46730e93a245b2fda9fad1c088ea6aa45333664565510ea7e2bd0ae3",
+          "result_set_id": "resultset_73fd6c6d4673",
+          "run_fingerprint": "a76145fb5ab253ebf9057fae0632a79de6af22c367addd7ddbbd6e822f0ba5be",
+          "run_id": "run_a76145fb5ab2"
+        }
+      }
+    },
+    "accepted_legacy_result_identities_fingerprint": "30416ff980abf9d348a92e2595e170e6750c55665ae1396a156ca0c43895be69",
+    "cohort_id": "sd300_50_subjects_test_22f8d52a7478",
+    "pair_count": 6000,
+    "pair_ids_sha256": "c1020b43de6693c7d2b2c8a6c94ce1e3f8867da75a541043d2c8cd6a2ec39721",
+    "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+    "protocol_id": "sd300_50_subjects",
+    "reread_from_local_store": true
+  },
+  "legacy_pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+  "methods": [
+    {
+      "algorithm_id": "sourceafis_java",
+      "display_name": "SourceAFIS Java 3.18.1",
+      "legacy_genuine": {
+        "algorithm_failures": 0,
+        "planned_attempts": 1500,
+        "predecessor_raw_result_identity": {
+          "result_set_fingerprint": "087b084fb8a8001eb92e20d4900dfc759dc5abbc9d5346144c83f5298f61e38b",
+          "result_set_id": "resultset_087b084fb8a8",
+          "run_fingerprint": "4c59fa02a6ab0471bdd46e134c61d74a7b6463276bf7c1bb6bd2e217622ceb5a",
+          "run_id": "run_4c59fa02a6ab"
+        },
+        "record_algorithm_identity": {
+          "algorithm_fingerprint": "5a1784faae1e82c12c374e050fcd6cfd41aa25b7a9ade3905d099df2e06a9531",
+          "algorithm_id": "sourceafis_java"
+        },
+        "score_bearing_attempts": 1500,
+        "source_format": "result_set_store",
+        "source_locator": {
+          "relative_path": "results/run_4c59fa02a6ab",
+          "root": "workspace"
+        },
+        "stage21c_observed_source_identity": {
+          "kind": "result_set_store_content_identity",
+          "result_set_fingerprint": "087b084fb8a8001eb92e20d4900dfc759dc5abbc9d5346144c83f5298f61e38b",
+          "result_set_id": "resultset_087b084fb8a8",
+          "run_fingerprint": "4c59fa02a6ab0471bdd46e134c61d74a7b6463276bf7c1bb6bd2e217622ceb5a",
+          "run_id": "run_4c59fa02a6ab"
+        },
+        "verification": {
+          "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+          "predecessor_content_identity_verified": true,
+          "predecessor_exact_byte_hash_bound": false,
+          "raw_record_hashes_verified": 6000,
+          "stored_outcomes": 6000
+        }
+      },
+      "role": "primary_baseline",
+      "score_direction": "higher_is_better",
+      "stage21b_impostor": {
+        "algorithm_failures": 0,
+        "planned_attempts": 73500,
+        "result_set_fingerprint": "996240cc8bafa47dc2091dbf88d78a0d89b0909e81d984a25f3985eaa2fd8056",
+        "result_set_id": "resultset21b_3f9ef24f15ac",
+        "run_id": "run_stage21b_3f9ef24f15ac",
+        "score_bearing_attempts": 73500,
+        "seal_fingerprint": "5eb1626de12a81413ab4bfe7e73795afd6d6baf7c5eeaab617412f23f36cfddd"
+      }
+    },
+    {
+      "algorithm_id": "nbis_mindtct_bozorth3",
+      "display_name": "NBIS MINDTCT 5.0.0 + BOZORTH3",
+      "legacy_genuine": {
+        "algorithm_failures": 0,
+        "planned_attempts": 1500,
+        "predecessor_raw_result_identity": {
+          "result_set_fingerprint": "73a9d93a8528e95322b69c64af416a234e7bd100cbb6556e66f1ae8c1cdd7fff",
+          "result_set_id": "resultset_73a9d93a8528",
+          "run_fingerprint": "f0468f28ffba544fc7f2df0d4e9844cc0c6f0ed8e5359fd338d49ab6e8022c9f",
+          "run_id": "run_f0468f28ffba"
+        },
+        "record_algorithm_identity": {
+          "algorithm_fingerprint": "41ebe6eeda877e959d58df40d007daab74a8a1a560462984a6f58a444dbfebc5",
+          "algorithm_id": "nbis_mindtct_bozorth3"
+        },
+        "score_bearing_attempts": 1500,
+        "source_format": "result_set_store",
+        "source_locator": {
+          "relative_path": "results/run_f0468f28ffba",
+          "root": "workspace"
+        },
+        "stage21c_observed_source_identity": {
+          "kind": "result_set_store_content_identity",
+          "result_set_fingerprint": "73a9d93a8528e95322b69c64af416a234e7bd100cbb6556e66f1ae8c1cdd7fff",
+          "result_set_id": "resultset_73a9d93a8528",
+          "run_fingerprint": "f0468f28ffba544fc7f2df0d4e9844cc0c6f0ed8e5359fd338d49ab6e8022c9f",
+          "run_id": "run_f0468f28ffba"
+        },
+        "verification": {
+          "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+          "predecessor_content_identity_verified": true,
+          "predecessor_exact_byte_hash_bound": false,
+          "raw_record_hashes_verified": 6000,
+          "stored_outcomes": 6000
+        }
+      },
+      "role": "primary_baseline",
+      "score_direction": "higher_is_better",
+      "stage21b_impostor": {
+        "algorithm_failures": 0,
+        "planned_attempts": 73500,
+        "result_set_fingerprint": "ff0f4df5f9bde4ee9be36e54b0c150c1f6ef1907f0a49d543868c97ecfae07f1",
+        "result_set_id": "resultset21b_44c039d38d25",
+        "run_id": "run_stage21b_44c039d38d25",
+        "score_bearing_attempts": 73500,
+        "seal_fingerprint": "4177a32785a90e424e3ec52dff24f6eb967b3691702879817c0eea8fa0ba6b69"
+      }
+    },
+    {
+      "algorithm_id": "flx_deepprint_texminu_512_without_localization",
+      "display_name": "FLX DeepPrint TexMinu 512 without localization",
+      "legacy_genuine": {
+        "algorithm_failures": 0,
+        "planned_attempts": 1500,
+        "predecessor_raw_result_identity": {
+          "result_set_fingerprint": "d63e523e04369ee4e7d57ed63bac3980e656425a832759b71315ca3fc155be5a",
+          "result_set_id": "resultset_d63e523e0436",
+          "run_fingerprint": "902136b3b8ae72747959395fb06bd9586a911505adb8b9e7a1d1e13bb32da884",
+          "run_id": "run_902136b3b8ae"
+        },
+        "record_algorithm_identity": {
+          "algorithm_fingerprint": "fab45bd80425c4909d87212c5680bf6a5505fc416415adb5580248af8eb27134",
+          "algorithm_id": "flx_deepprint_texminu_512_without_localization"
+        },
+        "score_bearing_attempts": 1500,
+        "source_format": "result_set_store",
+        "source_locator": {
+          "relative_path": "results/run_902136b3b8ae",
+          "root": "workspace"
+        },
+        "stage21c_observed_source_identity": {
+          "kind": "result_set_store_content_identity",
+          "result_set_fingerprint": "d63e523e04369ee4e7d57ed63bac3980e656425a832759b71315ca3fc155be5a",
+          "result_set_id": "resultset_d63e523e0436",
+          "run_fingerprint": "902136b3b8ae72747959395fb06bd9586a911505adb8b9e7a1d1e13bb32da884",
+          "run_id": "run_902136b3b8ae"
+        },
+        "verification": {
+          "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+          "predecessor_content_identity_verified": true,
+          "predecessor_exact_byte_hash_bound": false,
+          "raw_record_hashes_verified": 6000,
+          "stored_outcomes": 6000
+        }
+      },
+      "role": "primary_baseline",
+      "score_direction": "higher_is_better",
+      "stage21b_impostor": {
+        "algorithm_failures": 0,
+        "planned_attempts": 73500,
+        "result_set_fingerprint": "40bcc9d8490173b5118408963317e7c4c947288545ffa1090738a7a9022e24f8",
+        "result_set_id": "resultset21b_9493e62e2e88",
+        "run_id": "run_stage21b_9493e62e2e88",
+        "score_bearing_attempts": 73500,
+        "seal_fingerprint": "ebaeb38f1d3107c9fb02c835b784f26e4efd0434a1de0f2741c24fd9b9b6bbfe"
+      }
+    },
+    {
+      "algorithm_id": "verifinger_1to1",
+      "display_name": "VeriFinger 2025.2",
+      "legacy_genuine": {
+        "algorithm_failures": 27,
+        "planned_attempts": 1500,
+        "predecessor_raw_result_identity": {
+          "result_set_fingerprint": "73fd6c6d46730e93a245b2fda9fad1c088ea6aa45333664565510ea7e2bd0ae3",
+          "result_set_id": "resultset_73fd6c6d4673",
+          "run_fingerprint": "a76145fb5ab253ebf9057fae0632a79de6af22c367addd7ddbbd6e822f0ba5be",
+          "run_id": "run_a76145fb5ab2"
+        },
+        "record_algorithm_identity": {
+          "algorithm_fingerprint": "5400435f34025e5b200402c6bb378ac5dd589afa37627c8d43639fc0e71a0932",
+          "algorithm_id": "verifinger_1to1"
+        },
+        "score_bearing_attempts": 1473,
+        "source_format": "result_set_store",
+        "source_locator": {
+          "relative_path": "results/run_a76145fb5ab2",
+          "root": "workspace"
+        },
+        "stage21c_observed_source_identity": {
+          "kind": "result_set_store_content_identity",
+          "result_set_fingerprint": "73fd6c6d46730e93a245b2fda9fad1c088ea6aa45333664565510ea7e2bd0ae3",
+          "result_set_id": "resultset_73fd6c6d4673",
+          "run_fingerprint": "a76145fb5ab253ebf9057fae0632a79de6af22c367addd7ddbbd6e822f0ba5be",
+          "run_id": "run_a76145fb5ab2"
+        },
+        "verification": {
+          "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+          "predecessor_content_identity_verified": true,
+          "predecessor_exact_byte_hash_bound": false,
+          "raw_record_hashes_verified": 6000,
+          "stored_outcomes": 6000
+        }
+      },
+      "role": "primary_baseline",
+      "score_direction": "higher_is_better",
+      "stage21b_impostor": {
+        "algorithm_failures": 1323,
+        "planned_attempts": 73500,
+        "result_set_fingerprint": "24bc7b13570f4254c75c78fe2d63b0ae61876ad40488c1f19047b273e20a2a2c",
+        "result_set_id": "resultset21b_934c84b82d12",
+        "run_id": "run_stage21b_934c84b82d12",
+        "score_bearing_attempts": 72177,
+        "seal_fingerprint": "73ccca28c0de4e9573212661387a133077e80b81e96bed437c510a37a08344d5"
+      }
+    },
+    {
+      "algorithm_id": "nbis_mindtct_mcc_sdk_v2",
+      "display_name": "NBIS MINDTCT + MCC SDK v2.0",
+      "legacy_genuine": {
+        "algorithm_failures": 0,
+        "planned_attempts": 1500,
+        "predecessor_raw_result_identity": {
+          "run_id": "run_stage20b_canonical500"
+        },
+        "record_algorithm_identity": {
+          "algorithm_id": "nbis_mindtct_mcc_sdk_v2"
+        },
+        "score_bearing_attempts": 1500,
+        "source_format": "stage20b_pair_outcomes_jsonl",
+        "source_locator": {
+          "relative_path": "pair-outcomes.jsonl",
+          "root_environment_variable": "FPBENCH_STAGE20B_ROOT"
+        },
+        "stage21c_observed_source_identity": {
+          "kind": "outcome_store_sha256",
+          "sha256": "700ffd68767caf9f40732c2012830ff36f7fd2d972a1dea8f70c3aad4629b6db"
+        },
+        "verification": {
+          "algorithm_failures": 0,
+          "bound_manifest_digest": "e6bc22002ae9148e42f129186b229dd533540b39816292991eed28f70c45c57f",
+          "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+          "predecessor_content_identity_verified": false,
+          "predecessor_evidence_content_hashes": {
+            "canonical-run-binding.json": "99bc947645bba4c118c2f9ff37889b68dbe73f199129d9776dfbd565eca30114",
+            "diagnostic-report.json": "fbae665ae6810019a16bed43cf11719b4fd4bb42d3151ca03d34a0db3405b6b3",
+            "result-integrity.json": "d619671d567b282a85ea90365ca2fb0cac9487f7d70047e4a00a7fc14f796579"
+          },
+          "predecessor_exact_byte_hash_bound": false,
+          "predecessor_finalization_fingerprint": "5164621d1f1c6c67681846ad0fdb044080b290719f0f520a9500065ef1514db1",
+          "row_manifest_and_outcome_contract_verified": true,
+          "score_bearing_outcomes": 6000,
+          "stored_outcomes": 6000
+        }
+      },
+      "role": "primary_baseline",
+      "score_direction": "higher_is_better",
+      "stage21b_impostor": {
+        "algorithm_failures": 0,
+        "planned_attempts": 73500,
+        "result_set_fingerprint": "1e27adff512ce17604887164c3296e89bb3a086cc0553036c20134e8be24e85f",
+        "result_set_id": "resultset21b_063bb95cd224",
+        "run_id": "run_stage21b_063bb95cd224",
+        "score_bearing_attempts": 73500,
+        "seal_fingerprint": "2f74ee2108a6dfb538e695a217b59fb1bb51594afa889de7ded32858e8757d47"
+      }
+    },
+    {
+      "algorithm_id": "nbis_mindtct_openafis_capacity_extended",
+      "display_name": "NBIS MINDTCT + OpenAFIS (capacity-extended)",
+      "legacy_genuine": {
+        "algorithm_failures": 0,
+        "planned_attempts": 1500,
+        "predecessor_raw_result_identity": {
+          "kind": "immutable_outcome_store_sha256",
+          "sha256": "3e0c2c54c77bdd42745c802522c75866b64b6cc9944af72541fa706edc9de2f2"
+        },
+        "record_algorithm_identity": {
+          "algorithm_id": "nbis_mindtct_openafis_capacity_extended"
+        },
+        "score_bearing_attempts": 1500,
+        "source_format": "stage19b_pair_outcomes_jsonl",
+        "source_locator": {
+          "relative_path": "pair-outcomes.jsonl",
+          "root_environment_variable": "FPBENCH_STAGE19B_ROOT"
+        },
+        "stage21c_observed_source_identity": {
+          "kind": "outcome_store_sha256",
+          "sha256": "3e0c2c54c77bdd42745c802522c75866b64b6cc9944af72541fa706edc9de2f2"
+        },
+        "verification": {
+          "algorithm_failures": 0,
+          "bound_manifest_digest": "e6bc22002ae9148e42f129186b229dd533540b39816292991eed28f70c45c57f",
+          "pair_manifest_hash": "ee4d942e23cdc112e17ed69e0abc603d5f26e17cc5839edc9aa412edc57dfe3b",
+          "predecessor_content_identity_verified": true,
+          "predecessor_evidence_content_hashes": {
+            "canonical-run-binding.json": "b59d0ce2e759fa81e5edf46d3fcfdf444233a9076a8e8548e8a3cd16295916d0"
+          },
+          "predecessor_exact_byte_hash_bound": true,
+          "predecessor_finalization_fingerprint": "0d6f715228696ef29fc7fedbd7e1cbb7a450cb3ee1d264fcb7a953cf3e09eff9",
+          "row_manifest_and_outcome_contract_verified": true,
+          "score_bearing_outcomes": 6000,
+          "stored_outcomes": 6000
+        }
+      },
+      "role": "additional_experimentally_evaluated_method",
+      "score_direction": "higher_is_better",
+      "stage21b_impostor": {
+        "algorithm_failures": 0,
+        "planned_attempts": 73500,
+        "result_set_fingerprint": "912029476a0c7094482376403a00060e45afb4141b504b59b6f2d29d222d1d6c",
+        "result_set_id": "resultset21b_337454a6853f",
+        "run_id": "run_stage21b_337454a6853f",
+        "score_bearing_attempts": 73500,
+        "seal_fingerprint": "48f43040436c8069d1b3527858a4686ff493a9ffd644eb0da16d61f968a2f637"
+      }
+    }
+  ],
+  "report_id": "final_baseline_reporting_v1",
+  "roster_id": "final_baseline_roster_v1",
+  "stage21a_finalization_fingerprint": "4b179dad7053ae1ada3cb2dd1fede4e37531c20b2b07b67ebc4a90173c860c86",
+  "stage21b_finalization_fingerprint": "2e18d406f08b1adb35e7af57e7a30c94569ed25764f78aa0b9dd701bc2a436d7"
+}

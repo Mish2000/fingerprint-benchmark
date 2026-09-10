@@ -1,0 +1,42 @@
+{
+  "comparison_id": "final_baseline_tar_far_frr_v1",
+  "component": "final_baseline_reporting",
+  "conditions": {
+    "common_score_view_secondary": true,
+    "genuine_population_frozen": true,
+    "native_rules_context_separate": true,
+    "no_calibration_performed": true,
+    "no_cross_algorithm_raw_score_comparison": true,
+    "no_interpolation": true,
+    "no_operational_threshold_created": true,
+    "no_score_normalization": true,
+    "per_release_and_pooled_reported": true,
+    "primary_far_target_is_one_per_mille": true,
+    "report_rendered_from_published_documents": true,
+    "six_roster_methods_evaluated": true,
+    "source_tree_clean": true,
+    "stage21a_verified": true,
+    "stage21b_verified": true,
+    "three_far_targets_reported": true,
+    "ties_move_together": true
+  },
+  "created_utc": "2026-09-10T19:22:57.377284+00:00",
+  "evidence_content_hashes": {
+    "evaluation-inputs.json": "7cb640dcce963d5ff88fb3bd6ba84e2de24781d5ca5987068720ddc0c84d9c44",
+    "final-baseline-report.md": "2d02fe0fa0f932b6ac5154cee926a39a12493acccc407615153eef991670f42a",
+    "native-documented-rules-context.json": "5a386714d160a19cea5abddd2f4542de4e76b9a60d7eda363f776ef226346e74",
+    "tar-far-frr-results.json": "e34d90b1d8f8e4e785440d1696a0b3f6876825ef2725d294ecffe299fd0b1873"
+  },
+  "failed_conditions": [],
+  "final_baseline_finalization_fingerprint": "9d913ea78908437295b70c066c06421c66f09326cf602111657b59d5c4fec896",
+  "final_baseline_source_fingerprint": "32ac95874f8c712d18d95620742d44c7d0f5dfdd1523d2df0d174bdd4fe38e45",
+  "kind": "final_baseline_finalization",
+  "outcome": "FINAL_BASELINE_TAR_FAR_FRR_REPORT_READY",
+  "report_id": "final_baseline_reporting_v1",
+  "roster_id": "final_baseline_roster_v1",
+  "schema_version": "1",
+  "source_tree_clean": true,
+  "source_tree_clean_attestation_scope": "the repository was clean before the self-contained final-baseline reporting change set and the finalized source set is content-fingerprinted",
+  "stage21a_finalization_fingerprint": "4b179dad7053ae1ada3cb2dd1fede4e37531c20b2b07b67ebc4a90173c860c86",
+  "stage21b_finalization_fingerprint": "2e18d406f08b1adb35e7af57e7a30c94569ed25764f78aa0b9dd701bc2a436d7"
+}

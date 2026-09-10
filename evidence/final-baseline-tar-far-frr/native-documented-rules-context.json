@@ -1,0 +1,146 @@
+{
+  "component": "final_baseline_reporting",
+  "direct_cross_algorithm_ranking": "forbidden",
+  "kind": "final_baseline_native_documented_rules_context",
+  "methods": {
+    "flx_deepprint_texminu_512_without_localization": {
+      "rule": "none",
+      "scopes": null
+    },
+    "nbis_mindtct_bozorth3": {
+      "rule": "score_greater_than_40",
+      "scopes": {
+        "SD300A": {
+          "far": {
+            "denominator": 24500,
+            "numerator": 0
+          },
+          "frr": {
+            "denominator": 500,
+            "numerator": 199
+          },
+          "tar": {
+            "denominator": 500,
+            "numerator": 301
+          }
+        },
+        "SD300B": {
+          "far": {
+            "denominator": 24500,
+            "numerator": 0
+          },
+          "frr": {
+            "denominator": 500,
+            "numerator": 196
+          },
+          "tar": {
+            "denominator": 500,
+            "numerator": 304
+          }
+        },
+        "SD300C": {
+          "far": {
+            "denominator": 24500,
+            "numerator": 0
+          },
+          "frr": {
+            "denominator": 500,
+            "numerator": 200
+          },
+          "tar": {
+            "denominator": 500,
+            "numerator": 300
+          }
+        },
+        "pooled": {
+          "far": {
+            "denominator": 73500,
+            "numerator": 0
+          },
+          "frr": {
+            "denominator": 1500,
+            "numerator": 595
+          },
+          "tar": {
+            "denominator": 1500,
+            "numerator": 905
+          }
+        }
+      }
+    },
+    "nbis_mindtct_mcc_sdk_v2": {
+      "rule": "none",
+      "scopes": null
+    },
+    "nbis_mindtct_openafis_capacity_extended": {
+      "rule": "none",
+      "scopes": null
+    },
+    "sourceafis_java": {
+      "rule": "score_greater_than_or_equal_to_40",
+      "scopes": {
+        "SD300A": {
+          "far": {
+            "denominator": 24500,
+            "numerator": 0
+          },
+          "frr": {
+            "denominator": 500,
+            "numerator": 164
+          },
+          "tar": {
+            "denominator": 500,
+            "numerator": 336
+          }
+        },
+        "SD300B": {
+          "far": {
+            "denominator": 24500,
+            "numerator": 0
+          },
+          "frr": {
+            "denominator": 500,
+            "numerator": 176
+          },
+          "tar": {
+            "denominator": 500,
+            "numerator": 324
+          }
+        },
+        "SD300C": {
+          "far": {
+            "denominator": 24500,
+            "numerator": 0
+          },
+          "frr": {
+            "denominator": 500,
+            "numerator": 181
+          },
+          "tar": {
+            "denominator": 500,
+            "numerator": 319
+          }
+        },
+        "pooled": {
+          "far": {
+            "denominator": 73500,
+            "numerator": 0
+          },
+          "frr": {
+            "denominator": 1500,
+            "numerator": 521
+          },
+          "tar": {
+            "denominator": 1500,
+            "numerator": 979
+          }
+        }
+      }
+    },
+    "verifinger_1to1": {
+      "rule": "none_unless_formally_authorized_as_native_documented_rule",
+      "scopes": null
+    }
+  },
+  "purpose": "separate_context_table_only"
+}

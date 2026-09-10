@@ -1,0 +1,4318 @@
+{
+  "comparison_id": "final_baseline_tar_far_frr_v1",
+  "component": "final_baseline_reporting",
+  "far_targets": [
+    "1/1000",
+    "1/100",
+    "1/10000"
+  ],
+  "kind": "final_baseline_tar_far_frr_results",
+  "primary_far_target": "1/1000",
+  "ranking_rule": "highest TAR at or below the requested FAR, ties resolved by frozen roster order; primary view, all planned attempts",
+  "rankings": {
+    "SD300A": {
+      "1/100": [
+        "verifinger_1to1",
+        "nbis_mindtct_mcc_sdk_v2",
+        "nbis_mindtct_bozorth3",
+        "sourceafis_java",
+        "nbis_mindtct_openafis_capacity_extended",
+        "flx_deepprint_texminu_512_without_localization"
+      ],
+      "1/1000": [
+        "verifinger_1to1",
+        "nbis_mindtct_mcc_sdk_v2",
+        "nbis_mindtct_bozorth3",
+        "sourceafis_java",
+        "nbis_mindtct_openafis_capacity_extended",
+        "flx_deepprint_texminu_512_without_localization"
+      ],
+      "1/10000": [
+        "verifinger_1to1",
+        "nbis_mindtct_mcc_sdk_v2",
+        "nbis_mindtct_bozorth3",
+        "sourceafis_java",
+        "nbis_mindtct_openafis_capacity_extended",
+        "flx_deepprint_texminu_512_without_localization"
+      ]
+    },
+    "SD300B": {
+      "1/100": [
+        "verifinger_1to1",
+        "nbis_mindtct_mcc_sdk_v2",
+        "nbis_mindtct_bozorth3",
+        "sourceafis_java",
+        "nbis_mindtct_openafis_capacity_extended",
+        "flx_deepprint_texminu_512_without_localization"
+      ],
+      "1/1000": [
+        "verifinger_1to1",
+        "nbis_mindtct_mcc_sdk_v2",
+        "nbis_mindtct_bozorth3",
+        "sourceafis_java",
+        "nbis_mindtct_openafis_capacity_extended",
+        "flx_deepprint_texminu_512_without_localization"
+      ],
+      "1/10000": [
+        "verifinger_1to1",
+        "nbis_mindtct_mcc_sdk_v2",
+        "nbis_mindtct_bozorth3",
+        "sourceafis_java",
+        "nbis_mindtct_openafis_capacity_extended",
+        "flx_deepprint_texminu_512_without_localization"
+      ]
+    },
+    "SD300C": {
+      "1/100": [
+        "verifinger_1to1",
+        "nbis_mindtct_mcc_sdk_v2",
+        "nbis_mindtct_bozorth3",
+        "sourceafis_java",
+        "nbis_mindtct_openafis_capacity_extended",
+        "flx_deepprint_texminu_512_without_localization"
+      ],
+      "1/1000": [
+        "verifinger_1to1",
+        "nbis_mindtct_mcc_sdk_v2",
+        "nbis_mindtct_bozorth3",
+        "sourceafis_java",
+        "nbis_mindtct_openafis_capacity_extended",
+        "flx_deepprint_texminu_512_without_localization"
+      ],
+      "1/10000": [
+        "verifinger_1to1",
+        "nbis_mindtct_mcc_sdk_v2",
+        "nbis_mindtct_bozorth3",
+        "sourceafis_java",
+        "nbis_mindtct_openafis_capacity_extended",
+        "flx_deepprint_texminu_512_without_localization"
+      ]
+    },
+    "pooled": {
+      "1/100": [
+        "verifinger_1to1",
+        "nbis_mindtct_mcc_sdk_v2",
+        "nbis_mindtct_bozorth3",
+        "sourceafis_java",
+        "nbis_mindtct_openafis_capacity_extended",
+        "flx_deepprint_texminu_512_without_localization"
+      ],
+      "1/1000": [
+        "verifinger_1to1",
+        "nbis_mindtct_mcc_sdk_v2",
+        "nbis_mindtct_bozorth3",
+        "sourceafis_java",
+        "nbis_mindtct_openafis_capacity_extended",
+        "flx_deepprint_texminu_512_without_localization"
+      ],
+      "1/10000": [
+        "verifinger_1to1",
+        "nbis_mindtct_mcc_sdk_v2",
+        "nbis_mindtct_bozorth3",
+        "sourceafis_java",
+        "nbis_mindtct_openafis_capacity_extended",
+        "flx_deepprint_texminu_512_without_localization"
+      ]
+    }
+  },
+  "releases": [
+    "SD300A",
+    "SD300B",
+    "SD300C"
+  ],
+  "report_id": "final_baseline_reporting_v1",
+  "roster_id": "final_baseline_roster_v1",
+  "scopes": [
+    "SD300A",
+    "SD300B",
+    "SD300C",
+    "pooled"
+  ],
+  "views": {
+    "primary_all_attempt": {
+      "flx_deepprint_texminu_512_without_localization": {
+        "scopes": {
+          "SD300A": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 13
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 499
+                },
+                "genuine_accepted": 1,
+                "impostor_accepted": 13,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 1.9780957102775574,
+                "score_cut_hex": "0x1.fa647b0000000p+0",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 1
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 218
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 493
+                },
+                "genuine_accepted": 7,
+                "impostor_accepted": 218,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 1.9659647941589355,
+                "score_cut_hex": "0x1.f749780000000p+0",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 7
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "accept_none",
+                "comparator": null,
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 500
+                },
+                "genuine_accepted": 0,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": null,
+                "score_cut_hex": null,
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 0
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 24925
+          },
+          "SD300B": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 8
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 499
+                },
+                "genuine_accepted": 1,
+                "impostor_accepted": 8,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 1.9793428182601929,
+                "score_cut_hex": "0x1.fab6360000000p+0",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 1
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 210
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 494
+                },
+                "genuine_accepted": 6,
+                "impostor_accepted": 210,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 1.9657549262046814,
+                "score_cut_hex": "0x1.f73bb70000000p+0",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 6
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "accept_none",
+                "comparator": null,
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 500
+                },
+                "genuine_accepted": 0,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": null,
+                "score_cut_hex": null,
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 0
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 24950
+          },
+          "SD300C": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 5
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 499
+                },
+                "genuine_accepted": 1,
+                "impostor_accepted": 5,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 1.9797134399414062,
+                "score_cut_hex": "0x1.face800000000p+0",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 1
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 210
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 494
+                },
+                "genuine_accepted": 6,
+                "impostor_accepted": 210,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 1.9660930037498474,
+                "score_cut_hex": "0x1.f751df0000000p+0",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 6
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "accept_none",
+                "comparator": null,
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 500
+                },
+                "genuine_accepted": 0,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": null,
+                "score_cut_hex": null,
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 0
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 24920
+          },
+          "pooled": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 30
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 1497
+                },
+                "genuine_accepted": 3,
+                "impostor_accepted": 30,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 1.9780957102775574,
+                "score_cut_hex": "0x1.fa647b0000000p+0",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 3
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 651
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 1481
+                },
+                "genuine_accepted": 19,
+                "impostor_accepted": 651,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 1.9657549262046814,
+                "score_cut_hex": "0x1.f73bb70000000p+0",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 19
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "accept_none",
+                "comparator": null,
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 1500
+                },
+                "genuine_accepted": 0,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": null,
+                "score_cut_hex": null,
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 0
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 1500,
+                "score_bearing_attempts": 1500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 73500,
+                "score_bearing_attempts": 73500
+              }
+            },
+            "unique_score_cuts": 74341
+          }
+        }
+      },
+      "nbis_mindtct_bozorth3": {
+        "scopes": {
+          "SD300A": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 18
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 90
+                },
+                "genuine_accepted": 410,
+                "impostor_accepted": 18,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 18.0,
+                "score_cut_hex": "0x1.2000000000000p+4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 410
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 220
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 66
+                },
+                "genuine_accepted": 434,
+                "impostor_accepted": 220,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 13.0,
+                "score_cut_hex": "0x1.a000000000000p+3",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 434
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 107
+                },
+                "genuine_accepted": 393,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 21.0,
+                "score_cut_hex": "0x1.5000000000000p+4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 393
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 146
+          },
+          "SD300B": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 17
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 84
+                },
+                "genuine_accepted": 416,
+                "impostor_accepted": 17,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 18.0,
+                "score_cut_hex": "0x1.2000000000000p+4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 416
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 229
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 64
+                },
+                "genuine_accepted": 436,
+                "impostor_accepted": 229,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 13.0,
+                "score_cut_hex": "0x1.a000000000000p+3",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 436
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 110
+                },
+                "genuine_accepted": 390,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 22.0,
+                "score_cut_hex": "0x1.6000000000000p+4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 390
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 144
+          },
+          "SD300C": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 16
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 84
+                },
+                "genuine_accepted": 416,
+                "impostor_accepted": 16,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 18.0,
+                "score_cut_hex": "0x1.2000000000000p+4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 416
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 217
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 59
+                },
+                "genuine_accepted": 441,
+                "impostor_accepted": 217,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 13.0,
+                "score_cut_hex": "0x1.a000000000000p+3",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 441
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 1
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 107
+                },
+                "genuine_accepted": 393,
+                "impostor_accepted": 1,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 23.0,
+                "score_cut_hex": "0x1.7000000000000p+4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 393
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 142
+          },
+          "pooled": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 51
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 258
+                },
+                "genuine_accepted": 1242,
+                "impostor_accepted": 51,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 18.0,
+                "score_cut_hex": "0x1.2000000000000p+4",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 1242
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 666
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 189
+                },
+                "genuine_accepted": 1311,
+                "impostor_accepted": 666,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 13.0,
+                "score_cut_hex": "0x1.a000000000000p+3",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 1311
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 4
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 328
+                },
+                "genuine_accepted": 1172,
+                "impostor_accepted": 4,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 22.0,
+                "score_cut_hex": "0x1.6000000000000p+4",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 1172
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 1500,
+                "score_bearing_attempts": 1500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 73500,
+                "score_bearing_attempts": 73500
+              }
+            },
+            "unique_score_cuts": 176
+          }
+        }
+      },
+      "nbis_mindtct_mcc_sdk_v2": {
+        "scopes": {
+          "SD300A": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 22
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 58
+                },
+                "genuine_accepted": 442,
+                "impostor_accepted": 22,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 0.12013983821960014,
+                "score_cut_hex": "0x1.ec17c041993eep-4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 442
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 154
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 41
+                },
+                "genuine_accepted": 459,
+                "impostor_accepted": 154,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 0.11120139502139982,
+                "score_cut_hex": "0x1.c77b1d2e2f0f9p-4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 459
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 86
+                },
+                "genuine_accepted": 414,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 0.13089089736886614,
+                "score_cut_hex": "0x1.0c1086dc58d3bp-3",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 414
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 25000
+          },
+          "SD300B": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 20
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 62
+                },
+                "genuine_accepted": 438,
+                "impostor_accepted": 20,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 0.12057181836005533,
+                "score_cut_hex": "0x1.eddcb70acfa05p-4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 438
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 233
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 44
+                },
+                "genuine_accepted": 456,
+                "impostor_accepted": 233,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 0.1093517519137056,
+                "score_cut_hex": "0x1.bfe79f63acbb7p-4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 456
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 86
+                },
+                "genuine_accepted": 414,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 0.13451194347631443,
+                "score_cut_hex": "0x1.137aff7137a57p-3",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 414
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 25000
+          },
+          "SD300C": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 20
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 55
+                },
+                "genuine_accepted": 445,
+                "impostor_accepted": 20,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 0.11940436835824061,
+                "score_cut_hex": "0x1.e9148e119225ep-4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 445
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 239
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 36
+                },
+                "genuine_accepted": 464,
+                "impostor_accepted": 239,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 0.1081212765565214,
+                "score_cut_hex": "0x1.badd602cfe142p-4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 464
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 71
+                },
+                "genuine_accepted": 429,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 0.12923149870889264,
+                "score_cut_hex": "0x1.08aa86248ac5dp-3",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 429
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 25000
+          },
+          "pooled": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 68
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 175
+                },
+                "genuine_accepted": 1325,
+                "impostor_accepted": 68,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 0.11940436835824061,
+                "score_cut_hex": "0x1.e9148e119225ep-4",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 1325
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 723
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 123
+                },
+                "genuine_accepted": 1377,
+                "impostor_accepted": 723,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 0.10868215593466943,
+                "score_cut_hex": "0x1.bd2980165eef6p-4",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 1377
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 7
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 246
+                },
+                "genuine_accepted": 1254,
+                "impostor_accepted": 7,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 0.13140129855882177,
+                "score_cut_hex": "0x1.0d1c1fbfb2528p-3",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 1254
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 1500,
+                "score_bearing_attempts": 1500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 73500,
+                "score_bearing_attempts": 73500
+              }
+            },
+            "unique_score_cuts": 75000
+          }
+        }
+      },
+      "nbis_mindtct_openafis_capacity_extended": {
+        "scopes": {
+          "SD300A": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 20
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 487
+                },
+                "genuine_accepted": 13,
+                "impostor_accepted": 20,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 2.0,
+                "score_cut_hex": "0x1.0000000000000p+1",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 13
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 20
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 487
+                },
+                "genuine_accepted": 13,
+                "impostor_accepted": 20,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 2.0,
+                "score_cut_hex": "0x1.0000000000000p+1",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 13
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 1
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 496
+                },
+                "genuine_accepted": 4,
+                "impostor_accepted": 1,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 4.0,
+                "score_cut_hex": "0x1.0000000000000p+2",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 4
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 7
+          },
+          "SD300B": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 24
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 491
+                },
+                "genuine_accepted": 9,
+                "impostor_accepted": 24,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 2.0,
+                "score_cut_hex": "0x1.0000000000000p+1",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 9
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 24
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 491
+                },
+                "genuine_accepted": 9,
+                "impostor_accepted": 24,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 2.0,
+                "score_cut_hex": "0x1.0000000000000p+1",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 9
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 498
+                },
+                "genuine_accepted": 2,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 5.0,
+                "score_cut_hex": "0x1.4000000000000p+2",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 2
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 7
+          },
+          "SD300C": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 493
+                },
+                "genuine_accepted": 7,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 3.0,
+                "score_cut_hex": "0x1.8000000000000p+1",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 7
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 28
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 492
+                },
+                "genuine_accepted": 8,
+                "impostor_accepted": 28,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 2.0,
+                "score_cut_hex": "0x1.0000000000000p+1",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 8
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 493
+                },
+                "genuine_accepted": 7,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 3.0,
+                "score_cut_hex": "0x1.8000000000000p+1",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 7
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 6
+          },
+          "pooled": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 72
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 1470
+                },
+                "genuine_accepted": 30,
+                "impostor_accepted": 72,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 2.0,
+                "score_cut_hex": "0x1.0000000000000p+1",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 30
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 72
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 1470
+                },
+                "genuine_accepted": 30,
+                "impostor_accepted": 72,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 2.0,
+                "score_cut_hex": "0x1.0000000000000p+1",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 30
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 1491
+                },
+                "genuine_accepted": 9,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 4.0,
+                "score_cut_hex": "0x1.0000000000000p+2",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 9
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 1500,
+                "score_bearing_attempts": 1500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 73500,
+                "score_bearing_attempts": 73500
+              }
+            },
+            "unique_score_cuts": 8
+          }
+        }
+      },
+      "sourceafis_java": {
+        "scopes": {
+          "SD300A": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 22
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 121
+                },
+                "genuine_accepted": 379,
+                "impostor_accepted": 22,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 24.42412632657382,
+                "score_cut_hex": "0x1.86c938afe01d6p+4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 379
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 220
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 106
+                },
+                "genuine_accepted": 394,
+                "impostor_accepted": 220,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 14.23171304803726,
+                "score_cut_hex": "0x1.c76a317b6c0c6p+3",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 394
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 137
+                },
+                "genuine_accepted": 363,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 31.350661294812717,
+                "score_cut_hex": "0x1.f59c4f0493192p+4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 363
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 16801
+          },
+          "SD300B": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 15
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 128
+                },
+                "genuine_accepted": 372,
+                "impostor_accepted": 15,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 24.48687767576256,
+                "score_cut_hex": "0x1.87ca403ee8d7dp+4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 372
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 239
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 112
+                },
+                "genuine_accepted": 388,
+                "impostor_accepted": 239,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 13.909871737732695,
+                "score_cut_hex": "0x1.bd1dab55a3bb5p+3",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 388
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 151
+                },
+                "genuine_accepted": 349,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 31.650359667812804,
+                "score_cut_hex": "0x1.fa67df89fe4b7p+4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 349
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 16808
+          },
+          "SD300C": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 17
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 136
+                },
+                "genuine_accepted": 364,
+                "impostor_accepted": 17,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 24.11070116891654,
+                "score_cut_hex": "0x1.81c56e96c2021p+4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 364
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 237
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 119
+                },
+                "genuine_accepted": 381,
+                "impostor_accepted": 237,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 13.93223117984327,
+                "score_cut_hex": "0x1.bdd4d67bb7a08p+3",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 381
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 150
+                },
+                "genuine_accepted": 350,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 30.879122319805724,
+                "score_cut_hex": "0x1.ee10e290cbfcep+4",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 350
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24500
+              }
+            },
+            "unique_score_cuts": 16455
+          },
+          "pooled": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 73
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 382
+                },
+                "genuine_accepted": 1118,
+                "impostor_accepted": 73,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 23.379102652238423,
+                "score_cut_hex": "0x1.7610cdf1530dep+4",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 1118
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 709
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 337
+                },
+                "genuine_accepted": 1163,
+                "impostor_accepted": 709,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 13.909871737732695,
+                "score_cut_hex": "0x1.bd1dab55a3bb5p+3",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 1163
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 7
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 437
+                },
+                "genuine_accepted": 1063,
+                "impostor_accepted": 7,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 31.12343423621331,
+                "score_cut_hex": "0x1.f1f9962d7be2fp+4",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 1063
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 1500,
+                "score_bearing_attempts": 1500
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 73500,
+                "score_bearing_attempts": 73500
+              }
+            },
+            "unique_score_cuts": 50035
+          }
+        }
+      },
+      "verifinger_1to1": {
+        "scopes": {
+          "SD300A": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 9
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 14
+                },
+                "genuine_accepted": 486,
+                "impostor_accepted": 9,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 49.0,
+                "score_cut_hex": "0x1.8800000000000p+5",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 486
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 35
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 12
+                },
+                "genuine_accepted": 488,
+                "impostor_accepted": 35,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 42.0,
+                "score_cut_hex": "0x1.5000000000000p+5",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 488
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 15
+                },
+                "genuine_accepted": 485,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 62.0,
+                "score_cut_hex": "0x1.f000000000000p+5",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 485
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 9,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 491
+              },
+              "impostor": {
+                "algorithm_failures": 441,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24059
+              }
+            },
+            "unique_score_cuts": 457
+          },
+          "SD300B": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 17
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 13
+                },
+                "genuine_accepted": 487,
+                "impostor_accepted": 17,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 46.0,
+                "score_cut_hex": "0x1.7000000000000p+5",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 487
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 224
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 11
+                },
+                "genuine_accepted": 489,
+                "impostor_accepted": 224,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 32.0,
+                "score_cut_hex": "0x1.0000000000000p+5",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 489
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 15
+                },
+                "genuine_accepted": 485,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 65.0,
+                "score_cut_hex": "0x1.0400000000000p+6",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 485
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 10,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 490
+              },
+              "impostor": {
+                "algorithm_failures": 490,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24010
+              }
+            },
+            "unique_score_cuts": 456
+          },
+          "SD300C": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 13
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 12
+                },
+                "genuine_accepted": 488,
+                "impostor_accepted": 13,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 48.0,
+                "score_cut_hex": "0x1.8000000000000p+5",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 488
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 46
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 10
+                },
+                "genuine_accepted": 490,
+                "impostor_accepted": 46,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 41.0,
+                "score_cut_hex": "0x1.4800000000000p+5",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 490
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24500,
+                  "numerator": 1
+                },
+                "frr": {
+                  "denominator": 500,
+                  "numerator": 15
+                },
+                "genuine_accepted": 485,
+                "impostor_accepted": 1,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 61.0,
+                "score_cut_hex": "0x1.e800000000000p+5",
+                "tar": {
+                  "denominator": 500,
+                  "numerator": 485
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 8,
+                "planned_attempts": 500,
+                "score_bearing_attempts": 492
+              },
+              "impostor": {
+                "algorithm_failures": 392,
+                "planned_attempts": 24500,
+                "score_bearing_attempts": 24108
+              }
+            },
+            "unique_score_cuts": 462
+          },
+          "pooled": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 52
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 39
+                },
+                "genuine_accepted": 1461,
+                "impostor_accepted": 52,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 46.0,
+                "score_cut_hex": "0x1.7000000000000p+5",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 1461
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 679
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 33
+                },
+                "genuine_accepted": 1467,
+                "impostor_accepted": 679,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 32.0,
+                "score_cut_hex": "0x1.0000000000000p+5",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 1467
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 73500,
+                  "numerator": 1
+                },
+                "frr": {
+                  "denominator": 1500,
+                  "numerator": 45
+                },
+                "genuine_accepted": 1455,
+                "impostor_accepted": 1,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 61.0,
+                "score_cut_hex": "0x1.e800000000000p+5",
+                "tar": {
+                  "denominator": 1500,
+                  "numerator": 1455
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 27,
+                "planned_attempts": 1500,
+                "score_bearing_attempts": 1473
+              },
+              "impostor": {
+                "algorithm_failures": 1323,
+                "planned_attempts": 73500,
+                "score_bearing_attempts": 72177
+              }
+            },
+            "unique_score_cuts": 948
+          }
+        }
+      }
+    },
+    "secondary_common_score": {
+      "flx_deepprint_texminu_512_without_localization": {
+        "scopes": {
+          "SD300A": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 13
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 490
+                },
+                "genuine_accepted": 1,
+                "impostor_accepted": 13,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 1.9780957102775574,
+                "score_cut_hex": "0x1.fa647b0000000p+0",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 1
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 215
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 484
+                },
+                "genuine_accepted": 7,
+                "impostor_accepted": 215,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 1.9659647941589355,
+                "score_cut_hex": "0x1.f749780000000p+0",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 7
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "accept_none",
+                "comparator": null,
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 491
+                },
+                "genuine_accepted": 0,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": null,
+                "score_cut_hex": null,
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 0
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 491,
+                "score_bearing_attempts": 491
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24059,
+                "score_bearing_attempts": 24059
+              }
+            },
+            "unique_score_cuts": 24476
+          },
+          "SD300B": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 8
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 489
+                },
+                "genuine_accepted": 1,
+                "impostor_accepted": 8,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 1.9793428182601929,
+                "score_cut_hex": "0x1.fab6360000000p+0",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 1
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 205
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 484
+                },
+                "genuine_accepted": 6,
+                "impostor_accepted": 205,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 1.9657549262046814,
+                "score_cut_hex": "0x1.f73bb70000000p+0",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 6
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "accept_none",
+                "comparator": null,
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 490
+                },
+                "genuine_accepted": 0,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": null,
+                "score_cut_hex": null,
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 0
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 490,
+                "score_bearing_attempts": 490
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24010,
+                "score_bearing_attempts": 24010
+              }
+            },
+            "unique_score_cuts": 24452
+          },
+          "SD300C": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 5
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 491
+                },
+                "genuine_accepted": 1,
+                "impostor_accepted": 5,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 1.9797134399414062,
+                "score_cut_hex": "0x1.face800000000p+0",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 1
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 210
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 486
+                },
+                "genuine_accepted": 6,
+                "impostor_accepted": 210,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 1.9660930037498474,
+                "score_cut_hex": "0x1.f751df0000000p+0",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 6
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "accept_none",
+                "comparator": null,
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 492
+                },
+                "genuine_accepted": 0,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": null,
+                "score_cut_hex": null,
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 0
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 492,
+                "score_bearing_attempts": 492
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24108,
+                "score_bearing_attempts": 24108
+              }
+            },
+            "unique_score_cuts": 24525
+          },
+          "pooled": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 30
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 1470
+                },
+                "genuine_accepted": 3,
+                "impostor_accepted": 30,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 1.9780957102775574,
+                "score_cut_hex": "0x1.fa647b0000000p+0",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 3
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 643
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 1454
+                },
+                "genuine_accepted": 19,
+                "impostor_accepted": 643,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 1.9657549262046814,
+                "score_cut_hex": "0x1.f73bb70000000p+0",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 19
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "accept_none",
+                "comparator": null,
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 1473
+                },
+                "genuine_accepted": 0,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": null,
+                "score_cut_hex": null,
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 0
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 1473,
+                "score_bearing_attempts": 1473
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 72177,
+                "score_bearing_attempts": 72177
+              }
+            },
+            "unique_score_cuts": 73016
+          }
+        }
+      },
+      "nbis_mindtct_bozorth3": {
+        "scopes": {
+          "SD300A": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 18
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 81
+                },
+                "genuine_accepted": 410,
+                "impostor_accepted": 18,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 18.0,
+                "score_cut_hex": "0x1.2000000000000p+4",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 410
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 220
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 59
+                },
+                "genuine_accepted": 432,
+                "impostor_accepted": 220,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 13.0,
+                "score_cut_hex": "0x1.a000000000000p+3",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 432
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 98
+                },
+                "genuine_accepted": 393,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 21.0,
+                "score_cut_hex": "0x1.5000000000000p+4",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 393
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 491,
+                "score_bearing_attempts": 491
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24059,
+                "score_bearing_attempts": 24059
+              }
+            },
+            "unique_score_cuts": 146
+          },
+          "SD300B": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 17
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 75
+                },
+                "genuine_accepted": 415,
+                "impostor_accepted": 17,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 18.0,
+                "score_cut_hex": "0x1.2000000000000p+4",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 415
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 227
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 56
+                },
+                "genuine_accepted": 434,
+                "impostor_accepted": 227,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 13.0,
+                "score_cut_hex": "0x1.a000000000000p+3",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 434
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 100
+                },
+                "genuine_accepted": 390,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 22.0,
+                "score_cut_hex": "0x1.6000000000000p+4",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 390
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 490,
+                "score_bearing_attempts": 490
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24010,
+                "score_bearing_attempts": 24010
+              }
+            },
+            "unique_score_cuts": 144
+          },
+          "SD300C": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 24
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 76
+                },
+                "genuine_accepted": 416,
+                "impostor_accepted": 24,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 17.0,
+                "score_cut_hex": "0x1.1000000000000p+4",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 416
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 215
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 54
+                },
+                "genuine_accepted": 438,
+                "impostor_accepted": 215,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 13.0,
+                "score_cut_hex": "0x1.a000000000000p+3",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 438
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 1
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 99
+                },
+                "genuine_accepted": 393,
+                "impostor_accepted": 1,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 23.0,
+                "score_cut_hex": "0x1.7000000000000p+4",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 393
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 492,
+                "score_bearing_attempts": 492
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24108,
+                "score_bearing_attempts": 24108
+              }
+            },
+            "unique_score_cuts": 142
+          },
+          "pooled": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 50
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 233
+                },
+                "genuine_accepted": 1240,
+                "impostor_accepted": 50,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 18.0,
+                "score_cut_hex": "0x1.2000000000000p+4",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 1240
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 662
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 169
+                },
+                "genuine_accepted": 1304,
+                "impostor_accepted": 662,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 13.0,
+                "score_cut_hex": "0x1.a000000000000p+3",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 1304
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 4
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 301
+                },
+                "genuine_accepted": 1172,
+                "impostor_accepted": 4,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 22.0,
+                "score_cut_hex": "0x1.6000000000000p+4",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 1172
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 1473,
+                "score_bearing_attempts": 1473
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 72177,
+                "score_bearing_attempts": 72177
+              }
+            },
+            "unique_score_cuts": 176
+          }
+        }
+      },
+      "nbis_mindtct_mcc_sdk_v2": {
+        "scopes": {
+          "SD300A": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 17
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 52
+                },
+                "genuine_accepted": 439,
+                "impostor_accepted": 17,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 0.12013983821960014,
+                "score_cut_hex": "0x1.ec17c041993eep-4",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 439
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 117
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 36
+                },
+                "genuine_accepted": 455,
+                "impostor_accepted": 117,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 0.11120139502139982,
+                "score_cut_hex": "0x1.c77b1d2e2f0f9p-4",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 455
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 76
+                },
+                "genuine_accepted": 415,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 0.12950073902018955,
+                "score_cut_hex": "0x1.0937aef73244cp-3",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 415
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 491,
+                "score_bearing_attempts": 491
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24059,
+                "score_bearing_attempts": 24059
+              }
+            },
+            "unique_score_cuts": 24550
+          },
+          "SD300B": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 21
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 53
+                },
+                "genuine_accepted": 437,
+                "impostor_accepted": 21,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 0.11868253630155352,
+                "score_cut_hex": "0x1.e61fa8c05815dp-4",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 437
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 240
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 34
+                },
+                "genuine_accepted": 456,
+                "impostor_accepted": 240,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 0.10841617551620115,
+                "score_cut_hex": "0x1.bc1299833111dp-4",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 456
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 64
+                },
+                "genuine_accepted": 426,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 0.12934142314295674,
+                "score_cut_hex": "0x1.08e427f35636dp-3",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 426
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 490,
+                "score_bearing_attempts": 490
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24010,
+                "score_bearing_attempts": 24010
+              }
+            },
+            "unique_score_cuts": 24500
+          },
+          "SD300C": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 18
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 49
+                },
+                "genuine_accepted": 443,
+                "impostor_accepted": 18,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 0.11940436835824061,
+                "score_cut_hex": "0x1.e9148e119225ep-4",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 443
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 226
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 31
+                },
+                "genuine_accepted": 461,
+                "impostor_accepted": 226,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 0.10791000002628323,
+                "score_cut_hex": "0x1.b9ffd610634f6p-4",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 461
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 65
+                },
+                "genuine_accepted": 427,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 0.12923149870889264,
+                "score_cut_hex": "0x1.08aa86248ac5dp-3",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 427
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 492,
+                "score_bearing_attempts": 492
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24108,
+                "score_bearing_attempts": 24108
+              }
+            },
+            "unique_score_cuts": 24600
+          },
+          "pooled": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 72
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 153
+                },
+                "genuine_accepted": 1320,
+                "impostor_accepted": 72,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 0.11837092281048064,
+                "score_cut_hex": "0x1.e4d8e8a44b2e6p-4",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 1320
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 698
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 102
+                },
+                "genuine_accepted": 1371,
+                "impostor_accepted": 698,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 0.1081212765565214,
+                "score_cut_hex": "0x1.badd602cfe142p-4",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 1371
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 6
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 205
+                },
+                "genuine_accepted": 1268,
+                "impostor_accepted": 6,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 0.12923149870889264,
+                "score_cut_hex": "0x1.08aa86248ac5dp-3",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 1268
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 1473,
+                "score_bearing_attempts": 1473
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 72177,
+                "score_bearing_attempts": 72177
+              }
+            },
+            "unique_score_cuts": 73650
+          }
+        }
+      },
+      "nbis_mindtct_openafis_capacity_extended": {
+        "scopes": {
+          "SD300A": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 18
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 478
+                },
+                "genuine_accepted": 13,
+                "impostor_accepted": 18,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 2.0,
+                "score_cut_hex": "0x1.0000000000000p+1",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 13
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 18
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 478
+                },
+                "genuine_accepted": 13,
+                "impostor_accepted": 18,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 2.0,
+                "score_cut_hex": "0x1.0000000000000p+1",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 13
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 1
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 487
+                },
+                "genuine_accepted": 4,
+                "impostor_accepted": 1,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 4.0,
+                "score_cut_hex": "0x1.0000000000000p+2",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 4
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 491,
+                "score_bearing_attempts": 491
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24059,
+                "score_bearing_attempts": 24059
+              }
+            },
+            "unique_score_cuts": 7
+          },
+          "SD300B": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 24
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 481
+                },
+                "genuine_accepted": 9,
+                "impostor_accepted": 24,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 2.0,
+                "score_cut_hex": "0x1.0000000000000p+1",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 9
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 24
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 481
+                },
+                "genuine_accepted": 9,
+                "impostor_accepted": 24,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 2.0,
+                "score_cut_hex": "0x1.0000000000000p+1",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 9
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 488
+                },
+                "genuine_accepted": 2,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 5.0,
+                "score_cut_hex": "0x1.4000000000000p+2",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 2
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 490,
+                "score_bearing_attempts": 490
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24010,
+                "score_bearing_attempts": 24010
+              }
+            },
+            "unique_score_cuts": 7
+          },
+          "SD300C": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 485
+                },
+                "genuine_accepted": 7,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 3.0,
+                "score_cut_hex": "0x1.8000000000000p+1",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 7
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 28
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 484
+                },
+                "genuine_accepted": 8,
+                "impostor_accepted": 28,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 2.0,
+                "score_cut_hex": "0x1.0000000000000p+1",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 8
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 485
+                },
+                "genuine_accepted": 7,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 3.0,
+                "score_cut_hex": "0x1.8000000000000p+1",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 7
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 492,
+                "score_bearing_attempts": 492
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24108,
+                "score_bearing_attempts": 24108
+              }
+            },
+            "unique_score_cuts": 6
+          },
+          "pooled": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 70
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 1443
+                },
+                "genuine_accepted": 30,
+                "impostor_accepted": 70,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 2.0,
+                "score_cut_hex": "0x1.0000000000000p+1",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 30
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 70
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 1443
+                },
+                "genuine_accepted": 30,
+                "impostor_accepted": 70,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 2.0,
+                "score_cut_hex": "0x1.0000000000000p+1",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 30
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 1464
+                },
+                "genuine_accepted": 9,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 4.0,
+                "score_cut_hex": "0x1.0000000000000p+2",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 9
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 1473,
+                "score_bearing_attempts": 1473
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 72177,
+                "score_bearing_attempts": 72177
+              }
+            },
+            "unique_score_cuts": 8
+          }
+        }
+      },
+      "sourceafis_java": {
+        "scopes": {
+          "SD300A": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 24
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 113
+                },
+                "genuine_accepted": 378,
+                "impostor_accepted": 24,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 24.19027129743923,
+                "score_cut_hex": "0x1.830b59ea7de76p+4",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 378
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 219
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 99
+                },
+                "genuine_accepted": 392,
+                "impostor_accepted": 219,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 14.23171304803726,
+                "score_cut_hex": "0x1.c76a317b6c0c6p+3",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 392
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 130
+                },
+                "genuine_accepted": 361,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 31.350661294812717,
+                "score_cut_hex": "0x1.f59c4f0493192p+4",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 361
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 491,
+                "score_bearing_attempts": 491
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24059,
+                "score_bearing_attempts": 24059
+              }
+            },
+            "unique_score_cuts": 16567
+          },
+          "SD300B": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 15
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 120
+                },
+                "genuine_accepted": 370,
+                "impostor_accepted": 15,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 24.48687767576256,
+                "score_cut_hex": "0x1.87ca403ee8d7dp+4",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 370
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 239
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 104
+                },
+                "genuine_accepted": 386,
+                "impostor_accepted": 239,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 13.909871737732695,
+                "score_cut_hex": "0x1.bd1dab55a3bb5p+3",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 386
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 143
+                },
+                "genuine_accepted": 347,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 31.650359667812804,
+                "score_cut_hex": "0x1.fa67df89fe4b7p+4",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 347
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 490,
+                "score_bearing_attempts": 490
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24010,
+                "score_bearing_attempts": 24010
+              }
+            },
+            "unique_score_cuts": 16548
+          },
+          "SD300C": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 17
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 130
+                },
+                "genuine_accepted": 362,
+                "impostor_accepted": 17,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 24.11070116891654,
+                "score_cut_hex": "0x1.81c56e96c2021p+4",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 362
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 236
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 113
+                },
+                "genuine_accepted": 379,
+                "impostor_accepted": 236,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 13.93223117984327,
+                "score_cut_hex": "0x1.bdd4d67bb7a08p+3",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 379
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 2
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 144
+                },
+                "genuine_accepted": 348,
+                "impostor_accepted": 2,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 30.879122319805724,
+                "score_cut_hex": "0x1.ee10e290cbfcep+4",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 348
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 492,
+                "score_bearing_attempts": 492
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24108,
+                "score_bearing_attempts": 24108
+              }
+            },
+            "unique_score_cuts": 16200
+          },
+          "pooled": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 72
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 361
+                },
+                "genuine_accepted": 1112,
+                "impostor_accepted": 72,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 23.379102652238423,
+                "score_cut_hex": "0x1.7610cdf1530dep+4",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 1112
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 707
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 316
+                },
+                "genuine_accepted": 1157,
+                "impostor_accepted": 707,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 13.909871737732695,
+                "score_cut_hex": "0x1.bd1dab55a3bb5p+3",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 1157
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 7
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 416
+                },
+                "genuine_accepted": 1057,
+                "impostor_accepted": 7,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 31.12343423621331,
+                "score_cut_hex": "0x1.f1f9962d7be2fp+4",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 1057
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 1473,
+                "score_bearing_attempts": 1473
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 72177,
+                "score_bearing_attempts": 72177
+              }
+            },
+            "unique_score_cuts": 49286
+          }
+        }
+      },
+      "verifinger_1to1": {
+        "scopes": {
+          "SD300A": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 9
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 5
+                },
+                "genuine_accepted": 486,
+                "impostor_accepted": 9,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 49.0,
+                "score_cut_hex": "0x1.8800000000000p+5",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 486
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 35
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 3
+                },
+                "genuine_accepted": 488,
+                "impostor_accepted": 35,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 42.0,
+                "score_cut_hex": "0x1.5000000000000p+5",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 488
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24059,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 491,
+                  "numerator": 6
+                },
+                "genuine_accepted": 485,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 62.0,
+                "score_cut_hex": "0x1.f000000000000p+5",
+                "tar": {
+                  "denominator": 491,
+                  "numerator": 485
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 491,
+                "score_bearing_attempts": 491
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24059,
+                "score_bearing_attempts": 24059
+              }
+            },
+            "unique_score_cuts": 457
+          },
+          "SD300B": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 17
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 3
+                },
+                "genuine_accepted": 487,
+                "impostor_accepted": 17,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 46.0,
+                "score_cut_hex": "0x1.7000000000000p+5",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 487
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 224
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 1
+                },
+                "genuine_accepted": 489,
+                "impostor_accepted": 224,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 32.0,
+                "score_cut_hex": "0x1.0000000000000p+5",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 489
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24010,
+                  "numerator": 0
+                },
+                "frr": {
+                  "denominator": 490,
+                  "numerator": 5
+                },
+                "genuine_accepted": 485,
+                "impostor_accepted": 0,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 65.0,
+                "score_cut_hex": "0x1.0400000000000p+6",
+                "tar": {
+                  "denominator": 490,
+                  "numerator": 485
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 490,
+                "score_bearing_attempts": 490
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24010,
+                "score_bearing_attempts": 24010
+              }
+            },
+            "unique_score_cuts": 456
+          },
+          "SD300C": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 13
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 4
+                },
+                "genuine_accepted": 488,
+                "impostor_accepted": 13,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 48.0,
+                "score_cut_hex": "0x1.8000000000000p+5",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 488
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 46
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 2
+                },
+                "genuine_accepted": 490,
+                "impostor_accepted": 46,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 41.0,
+                "score_cut_hex": "0x1.4800000000000p+5",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 490
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 24108,
+                  "numerator": 1
+                },
+                "frr": {
+                  "denominator": 492,
+                  "numerator": 7
+                },
+                "genuine_accepted": 485,
+                "impostor_accepted": 1,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 61.0,
+                "score_cut_hex": "0x1.e800000000000p+5",
+                "tar": {
+                  "denominator": 492,
+                  "numerator": 485
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 492,
+                "score_bearing_attempts": 492
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 24108,
+                "score_bearing_attempts": 24108
+              }
+            },
+            "unique_score_cuts": 462
+          },
+          "pooled": {
+            "far_targets": [
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 52
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 12
+                },
+                "genuine_accepted": 1461,
+                "impostor_accepted": 52,
+                "interpolation_performed": false,
+                "requested_far": "1/1000",
+                "score_cut": 46.0,
+                "score_cut_hex": "0x1.7000000000000p+5",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 1461
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 679
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 6
+                },
+                "genuine_accepted": 1467,
+                "impostor_accepted": 679,
+                "interpolation_performed": false,
+                "requested_far": "1/100",
+                "score_cut": 32.0,
+                "score_cut_hex": "0x1.0000000000000p+5",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 1467
+                }
+              },
+              {
+                "accepts_all_score_bearing": false,
+                "boundary_kind": "observed_score_cut",
+                "comparator": "greater_than_or_equal",
+                "far": {
+                  "denominator": 72177,
+                  "numerator": 1
+                },
+                "frr": {
+                  "denominator": 1473,
+                  "numerator": 18
+                },
+                "genuine_accepted": 1455,
+                "impostor_accepted": 1,
+                "interpolation_performed": false,
+                "requested_far": "1/10000",
+                "score_cut": 61.0,
+                "score_cut_hex": "0x1.e800000000000p+5",
+                "tar": {
+                  "denominator": 1473,
+                  "numerator": 1455
+                }
+              }
+            ],
+            "operational": {
+              "genuine": {
+                "algorithm_failures": 0,
+                "planned_attempts": 1473,
+                "score_bearing_attempts": 1473
+              },
+              "impostor": {
+                "algorithm_failures": 0,
+                "planned_attempts": 72177,
+                "score_bearing_attempts": 72177
+              }
+            },
+            "unique_score_cuts": 948
+          }
+        }
+      }
+    },
+    "secondary_common_score_membership": {
+      "definition": "pairs_scored_by_every_roster_method",
+      "genuine_pairs": 1473,
+      "impostor_pairs": 72177
+    }
+  }
+}

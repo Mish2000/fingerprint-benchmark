@@ -24,6 +24,13 @@ PUBLISHED_STAGES: tuple[PublishedStage, ...] = (
         "outcome",
         readme_heading="## Stage 21B",
     ),
+    PublishedStage(
+        "21C",
+        "evidence/final-baseline-tar-far-frr",
+        "final-baseline-finalization.json",
+        "outcome",
+        readme_heading="## Stage 21C",
+    ),
 )
 
 

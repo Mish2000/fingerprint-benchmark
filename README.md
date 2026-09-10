@@ -2695,14 +2695,15 @@ The verifier needs no workspace: it re-hashes the committed documents
 fingerprint and re-renders the Markdown report from the committed JSON,
 requiring byte equality.
 
-**What exists right now.** The unnumbered package (`fpbench.final_baseline`), its CLI
-(`scripts/final_baseline.py`: `preflight`, `evaluate`, `publish`, `verify`), the
-pipeline driver (`scripts/final_baseline_pipeline.py`: `status`, `next`,
-`run`) and the contract tests are implemented. **The finalization marker is
-deliberately absent**: it cannot exist before the six Stage 21B result sets
-are sealed and published, and the publisher refuses to write it until both
-predecessor verifications pass and every score source re-verifies. The
-operator's guide is
+## Stage 21C
+
+The six-method Final Baseline TAR/FAR/FRR report is published. Stage 21C
+consumes the frozen Stage 21A protocol and the sealed Stage 21B cross-subject
+results. The authoritative
+[`final-baseline-report.md`](evidence/final-baseline-tar-far-frr/final-baseline-report.md)
+is bound by the authoritative
+[`final-baseline-finalization.json`](evidence/final-baseline-tar-far-frr/final-baseline-finalization.json)
+marker. The operator's guide is
 [`docs/experiments/final-baseline-pipeline-runbook.md`](docs/experiments/final-baseline-pipeline-runbook.md).
 
 Evidence: [`evidence/final-baseline-tar-far-frr/`](evidence/final-baseline-tar-far-frr/).

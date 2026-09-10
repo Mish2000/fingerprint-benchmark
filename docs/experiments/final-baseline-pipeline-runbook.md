@@ -158,6 +158,41 @@ python -m pytest tests/contract/test_stage_registry.py -q
 
 ## 3. Produce the final report
 
+The legacy genuine sources retain the identities Stage 21A actually froze:
+
+| Methods | Source and predecessor identity | Operator location |
+|---|---|---|
+| SourceAFIS, NBIS/BOZORTH3, FLX, VeriFinger | ResultSetStore; exact `run_id`, `run_fingerprint`, `result_set_id`, `result_set_fingerprint` | Existing `workspace/results/<run_id>/` |
+| MCC | Stage 20B `pair-outcomes.jsonl`; `run_id: run_stage20b_canonical500` | Set `FPBENCH_STAGE20B_ROOT` to its retained directory |
+| OpenAFIS capacity-extended | Stage 19B `pair-outcomes.jsonl`; `immutable_outcome_store_sha256` | Set `FPBENCH_STAGE19B_ROOT` to its retained directory |
+
+Supply the two environment variables in the operator's shell or private launch
+configuration, outside Git. Each points to the directory containing
+`pair-outcomes.jsonl`. There is no machine-specific fallback; a missing source
+refuses with the required variable name. Source verification never runs a matcher.
+
+Both JSONL routes are checked against every row of the frozen 6,000-pair
+manifest and their existing score/status/failure contracts, before selecting
+the same 1,500 mated attempts in manifest order. Frozen predecessor evidence
+supplies independent counts and identities. OpenAFIS must reproduce its frozen
+byte SHA-256 exactly.
+
+Stage 21A historically bound the Stage 20B source by run_id; Stage 21C therefore
+structurally re-verifies the retained canonical store and seals its exact byte
+identity at evaluation time. MCC's byte hash is first established by Stage 21C;
+the predecessor supplied no exact outcome-store byte hash.
+
+In `evaluation-inputs.json`, each `legacy_genuine` records
+`predecessor_raw_result_identity`, `source_format`, a portable `source_locator`,
+`stage21c_observed_source_identity`, `record_algorithm_identity`, verification
+facts and planned/score-bearing/failure counts. The machine-readable
+`verification.predecessor_exact_byte_hash_bound` is true only for OpenAFIS.
+Modern ResultSetStore identities bind record content, rather than physical
+Parquet bytes; their four fields and record algorithm fingerprint remain
+explicit. MCC receives no invented predecessor fingerprint or result-set ID.
+This provenance correction consumes retained results and does not change or
+rerun the biometric experiment or change the final report presentation.
+
 ```bash
 python scripts/final_baseline.py preflight     # re-verifies every score source; writes nothing
 python scripts/final_baseline.py evaluate      # prints the pooled primary ranking (no evidence written)

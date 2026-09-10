@@ -1,7 +1,7 @@
 """Verified score sources for the final-baseline report.
 
 Two bodies of scores enter the frozen comparison: the six legacy plain↔roll
-mated result sets whose identities Stage 21A sealed into the roster, and the
+mated sources whose identities Stage 21A sealed into the roster, and the
 six sealed Stage 21B cross-subject result sets.  Both are re-verified from
 bytes here — every hash is re-derived from the artifact it describes, never
 read back and repeated, because a repeated fingerprint is a claim and this
@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -40,6 +42,7 @@ from fpbench.final_baseline.constants import (
     EXPECTED_RELEASES,
     LEGACY_PAIR_COUNT,
     LEGACY_PAIR_MANIFEST_HASH,
+    PREPARATION_SET_ID,
 )
 from fpbench.final_baseline.errors import FinalBaselineError
 from fpbench.storage.manifest_store import ManifestStore
@@ -53,25 +56,42 @@ __all__ = [
     "VerifiedMethodAttempts",
     "load_legacy_mated_pairs",
     "load_legacy_genuine_attempts",
+    "legacy_source_format",
     "load_stage21b_impostor_attempts",
 ]
 
 
 @dataclass(frozen=True, slots=True)
 class LegacyGenuineSource:
-    """The 1,500 plain↔roll mated attempts of one accepted legacy result set."""
+    """Mated attempts, with predecessor claims separate from observed identity."""
 
     algorithm_id: str
-    run_id: str
-    result_set_id: str
-    result_set_fingerprint: str
-    run_fingerprint: str
-    record_algorithm_id: str
-    record_algorithm_fingerprint: str
+    predecessor_raw_result_identity: Mapping[str, Any]
+    source_format: str
+    source_locator: Mapping[str, str]
+    stage21c_observed_source_identity: Mapping[str, Any]
+    verification: Mapping[str, Any]
+    record_algorithm_identity: Mapping[str, str]
     attempts: tuple[EvaluationAttempt, ...]
     planned_attempts: int
     score_bearing_attempts: int
     algorithm_failures: int
+
+    def provenance(self) -> dict[str, Any]:
+        """Public source evidence, without scores or machine-local paths."""
+        return {
+            "predecessor_raw_result_identity": dict(self.predecessor_raw_result_identity),
+            "source_format": self.source_format,
+            "source_locator": dict(self.source_locator),
+            "stage21c_observed_source_identity": dict(
+                self.stage21c_observed_source_identity
+            ),
+            "verification": dict(self.verification),
+            "record_algorithm_identity": dict(self.record_algorithm_identity),
+            "planned_attempts": self.planned_attempts,
+            "score_bearing_attempts": self.score_bearing_attempts,
+            "algorithm_failures": self.algorithm_failures,
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -164,6 +184,60 @@ def load_legacy_mated_pairs(workspace: Path) -> tuple[CanonicalPair, ...]:
 
 
 def load_legacy_genuine_attempts(
+    workspace: Path,
+    algorithm: AlgorithmBinding,
+    mated_pairs: tuple[CanonicalPair, ...],
+    *,
+    repository_root: Path,
+) -> LegacyGenuineSource:
+    """Dispatch using exactly the identity schema the predecessor froze."""
+    source_format = legacy_source_format(
+        algorithm.algorithm_id, algorithm.raw_result_identity
+    )
+    if source_format == "result_set_store":
+        return _load_result_set_genuine_attempts(workspace, algorithm, mated_pairs)
+    return _load_jsonl_genuine_attempts(
+        workspace, algorithm, mated_pairs,
+        repository_root=repository_root, source_format=source_format,
+    )
+
+
+def legacy_source_format(
+    algorithm_id: str, identity: Mapping[str, Any]
+) -> str:
+    """Recognize frozen metadata only; never open a result store to dispatch."""
+    if isinstance(identity, Mapping):
+        if (
+            algorithm_id not in {
+                "nbis_mindtct_mcc_sdk_v2",
+                "nbis_mindtct_openafis_capacity_extended",
+            }
+            and set(identity) == {
+                "run_id", "run_fingerprint", "result_set_id", "result_set_fingerprint"
+            }
+            and all(isinstance(value, str) and value.strip() for value in identity.values())
+        ):
+            return "result_set_store"
+        if algorithm_id == "nbis_mindtct_mcc_sdk_v2" and identity == {
+            "run_id": "run_stage20b_canonical500"
+        }:
+            return "stage20b_pair_outcomes_jsonl"
+        if (
+            algorithm_id == "nbis_mindtct_openafis_capacity_extended"
+            and set(identity) == {"kind", "sha256"}
+            and identity["kind"] == "immutable_outcome_store_sha256"
+            and isinstance(identity["sha256"], str)
+            and re.fullmatch(r"[0-9a-f]{64}", identity["sha256"])
+        ):
+            return "stage19b_pair_outcomes_jsonl"
+    raise FinalBaselineError(
+        f"{algorithm_id}: unsupported Stage 21A raw_result_identity; expected "
+        "four ResultSetStore fields, the MCC Stage 20B run_id, or the "
+        "OpenAFIS immutable_outcome_store_sha256 identity"
+    )
+
+
+def _load_result_set_genuine_attempts(
     workspace: Path,
     algorithm: AlgorithmBinding,
     mated_pairs: tuple[CanonicalPair, ...],
@@ -273,16 +347,265 @@ def load_legacy_genuine_attempts(
 
     return LegacyGenuineSource(
         algorithm_id=algorithm.algorithm_id,
-        run_id=run_id,
-        result_set_id=manifest.result_set_id,
-        result_set_fingerprint=manifest.result_set_fingerprint,
-        run_fingerprint=manifest.run_fingerprint,
-        record_algorithm_id=next(iter(record_algorithm_ids)),
-        record_algorithm_fingerprint=next(iter(record_algorithm_fingerprints)),
+        predecessor_raw_result_identity=identity,
+        source_format="result_set_store",
+        source_locator={"root": "workspace", "relative_path": f"results/{run_id}"},
+        stage21c_observed_source_identity={
+            "kind": "result_set_store_content_identity",
+            **dict(checks),
+        },
+        verification={
+            "predecessor_exact_byte_hash_bound": False,
+            "predecessor_content_identity_verified": True,
+            "raw_record_hashes_verified": len(records),
+            "pair_manifest_hash": LEGACY_PAIR_MANIFEST_HASH,
+            "stored_outcomes": len(records),
+        },
+        record_algorithm_identity={
+            "algorithm_id": next(iter(record_algorithm_ids)),
+            "algorithm_fingerprint": next(iter(record_algorithm_fingerprints)),
+        },
         attempts=tuple(attempts),
         planned_attempts=len(attempts),
         score_bearing_attempts=len(attempts) - failures,
         algorithm_failures=failures,
+    )
+
+
+def _read_source_document(path: Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_bytes())
+    except (OSError, ValueError) as exc:
+        raise FinalBaselineError(f"{path}: unreadable source evidence") from exc
+    if not isinstance(value, dict):
+        raise FinalBaselineError(f"{path}: source evidence must be a JSON object")
+    return value
+
+
+def _require_source_fields(
+    document: Mapping[str, Any], expected: Mapping[str, Any], *, where: str
+) -> None:
+    for field, value in expected.items():
+        if document.get(field) != value:
+            raise FinalBaselineError(f"{where}: {field} disagrees with the frozen source")
+
+
+def _load_jsonl_genuine_attempts(
+    workspace: Path,
+    algorithm: AlgorithmBinding,
+    mated_pairs: tuple[CanonicalPair, ...],
+    *,
+    repository_root: Path,
+    source_format: str,
+) -> LegacyGenuineSource:
+    # Import the existing route contracts, never a runner or diagnostic builder.
+    from fpbench.experiments import stage19b_finalization, stage20b_finalization
+    from fpbench.experiments.stage19_result_integrity import (
+        Stage19ResultIntegrityError,
+        verify_outcome_store_integrity,
+    )
+
+    immutable = source_format == "stage19b_pair_outcomes_jsonl"
+    stage = "19b" if immutable else "20b"
+    contract = stage19b_finalization if immutable else stage20b_finalization
+    variable = f"FPBENCH_STAGE{stage.upper()}_ROOT"
+    location = os.environ.get(variable, "").strip()
+    if not location or not (Path(location) / "pair-outcomes.jsonl").is_file():
+        raise FinalBaselineError(
+            f"{algorithm.algorithm_id}: set {variable} to the retained Stage "
+            f"{stage.upper()} directory containing pair-outcomes.jsonl"
+        )
+    path = Path(location) / "pair-outcomes.jsonl"
+    directory = Path(repository_root) / "evidence" / (
+        "stage19b-openafis-capacity-extended" if immutable
+        else "stage20b-mindtct-mcc-canonical500-raw"
+    )
+    marker = _read_source_document(directory / f"stage-{stage}-finalization.json")
+    fingerprint_key = f"stage_{stage}_finalization_fingerprint"
+    body = dict(marker)
+    claimed = body.pop(fingerprint_key, None)
+    if (
+        claimed != algorithm.predecessor_finalization_fingerprint
+        or claimed != _document_fingerprint(body)
+    ):
+        raise FinalBaselineError(f"Stage {stage.upper()}: predecessor fingerprint mismatch")
+
+    checked_documents: dict[str, str] = {}
+
+    def evidence(name: str) -> dict[str, Any]:
+        document_path = directory / name
+        # Parse the very bytes whose hash the predecessor marker binds.
+        try:
+            payload = document_path.read_bytes()
+            digest = hashlib.sha256(payload).hexdigest()
+            if digest != marker.get("evidence_content_hashes", {}).get(name):
+                raise FinalBaselineError(f"{document_path}: predecessor evidence hash mismatch")
+            value = json.loads(payload)
+            if not isinstance(value, dict):
+                raise ValueError("expected a JSON object")
+        except (OSError, ValueError) as exc:
+            raise FinalBaselineError(f"{document_path}: unreadable source evidence") from exc
+        checked_documents[name] = digest
+        return value
+
+    binding = evidence("canonical-run-binding.json")
+    common = {
+        "algorithm_id": algorithm.algorithm_id,
+        "pair_manifest_hash": LEGACY_PAIR_MANIFEST_HASH,
+        "preparation_set_id": PREPARATION_SET_ID,
+        "expected_outcomes": LEGACY_PAIR_COUNT,
+        "stored_outcomes": LEGACY_PAIR_COUNT,
+        "missing": 0,
+    }
+    _require_source_fields(
+        marker,
+        {**common, "publication_eligible": True,
+         "score_direction": "HIGHER_MORE_SIMILAR", "score_transform": "NONE"},
+        where="predecessor marker",
+    )
+    _require_source_fields(binding, common, where="canonical-run-binding.json")
+    if algorithm.score_direction != ScoreDirection.HIGHER_IS_BETTER.value:
+        raise FinalBaselineError(f"{algorithm.algorithm_id}: unexpected frozen score direction")
+
+    if immutable:
+        expected_sha = algorithm.raw_result_identity["sha256"]
+        for document, label in ((marker, "Stage 19B marker"), (binding, "Stage 19B binding")):
+            _require_source_fields(
+                document, {"outcome_store_sha256": expected_sha}, where=label
+            )
+        diagnostics = {
+            "overall": {
+                "comparisons": binding["diagnostic_comparisons"],
+                "score_bearing": binding["score_bearing"],
+            },
+            "outcome_counts": binding["outcome_counts"],
+            "failure_reasons": binding["failure_reasons"],
+            "by_protocol_stage": [
+                {key: row[key] for key in ("label", "comparisons", "score_bearing")}
+                for row in binding["by_protocol_stage"]
+            ],
+        }
+        if _sha256(path) != expected_sha:
+            raise FinalBaselineError("Stage 19B outcome-store bytes differ from the frozen SHA-256")
+    else:
+        _require_source_fields(binding, algorithm.raw_result_identity, where="Stage 20B binding")
+        historical = evidence("diagnostic-report.json")
+        _require_source_fields(
+            historical,
+            {key: common[key] for key in (
+                "algorithm_id", "expected_outcomes", "stored_outcomes", "missing"
+            )},
+            where="Stage 20B diagnostics",
+        )
+        # Historical structural names only. Score summaries are not inputs to
+        # this compatibility boundary and the frozen document is never rewritten.
+        diagnostics = {
+            "overall": {
+                "comparisons": historical["stored_outcomes"],
+                "score_bearing": historical["overall"]["score_bearing"],
+            },
+            "outcome_counts": historical["outcome_counts"],
+            "failure_reasons": historical["failure_reasons"],
+            "by_protocol_stage": [
+                {"label": row["protocol_stage"], "comparisons": row["attempted"],
+                 "score_bearing": row["score_bearing"]}
+                for row in historical["by_protocol_stage"]
+            ],
+        }
+
+    manifest = load_canonical_pair_manifest(
+        ManifestStore(Path(workspace)).pairs_path(LEGACY_PROTOCOL_ID, LEGACY_COHORT_ID),
+        expected_pair_manifest_hash=LEGACY_PAIR_MANIFEST_HASH,
+    )
+    frozen_mated = tuple(
+        pair for pair in manifest.pairs if pair.protocol_stage == "plain_roll_mated"
+    )
+    if frozen_mated != mated_pairs or len(mated_pairs) != EXPECTED_GENUINE_PER_METHOD:
+        raise FinalBaselineError(
+            "legacy genuine selection differs from the frozen mated population"
+        )
+    try:
+        integrity = verify_outcome_store_integrity(
+            path, diagnostics, expected_outcomes=LEGACY_PAIR_COUNT,
+            manifest=manifest.pairs, algorithm_id=algorithm.algorithm_id,
+            pair_manifest_hash=manifest.pair_manifest_hash,
+            classified_failure_reasons=contract.CLASSIFIED_FAILURE_REASONS,
+            outcome_contract=contract.OUTCOME_CONTRACT,
+        )
+    except Stage19ResultIntegrityError as exc:
+        raise FinalBaselineError(str(exc)) from exc
+    if immutable and integrity.outcome_store_sha256 != expected_sha:
+        raise FinalBaselineError("Stage 19B outcome-store bytes differ from the frozen SHA-256")
+    _require_source_fields(
+        marker, {"score_bearing": integrity.score_bearing}, where="predecessor marker"
+    )
+    _require_source_fields(binding, {
+        "score_bearing": integrity.score_bearing,
+        "outcome_counts": dict(integrity.outcome_counts),
+        "failure_reasons": dict(integrity.failure_reasons),
+    }, where="canonical-run-binding.json")
+    if not immutable:
+        _require_source_fields(binding, {
+            "protocol_stages": {
+                row["label"]: row["comparisons"] for row in integrity.by_protocol_stage
+            },
+        }, where="Stage 20B binding")
+        _require_source_fields(evidence("result-integrity.json"), {
+            "algorithm_id": algorithm.algorithm_id,
+            "algorithm_ids_present": [algorithm.algorithm_id],
+            "expected_outcomes": LEGACY_PAIR_COUNT,
+            "stored_outcomes": integrity.stored_outcomes,
+            "score_bearing": integrity.score_bearing,
+            "missing": 0, "duplicate_pair_ids": 0,
+            "ordinals_are_complete": True, "ordinals_are_the_manifest_order": True,
+            "scores_outside_contract": 0, "failures_recorded_as_zero": 0,
+            "successes_recorded_without_a_score": 0,
+        }, where="Stage 20B result integrity")
+
+    # Re-reading for extraction must reproduce the verifier's exact bytes.
+    # Parse this in-memory payload so a later on-disk mutation cannot change an attempt.
+    payload = path.read_bytes()
+    if hashlib.sha256(payload).hexdigest() != integrity.outcome_store_sha256:
+        raise FinalBaselineError("legacy outcome store changed during verification")
+    rows = [json.loads(line) for line in payload.splitlines() if line.strip()]
+    by_pair = {row["pair_id"].strip(): row for row in rows}
+    attempts = tuple(
+        EvaluationAttempt(
+            pair_id=pair.pair_id, release=pair.release,
+            population=BaselinePopulation.GENUINE, ground_truth=GroundTruth.MATED,
+            status=(ExecutionStatus.SUCCESS if by_pair[pair.pair_id]["status"].strip() == "OK"
+                    else ExecutionStatus.FAILURE),
+            score=(float(by_pair[pair.pair_id]["raw_score"])
+                   if by_pair[pair.pair_id]["status"].strip() == "OK" else None),
+        )
+        for pair in mated_pairs
+    )
+    scored = sum(attempt.status is ExecutionStatus.SUCCESS for attempt in attempts)
+    return LegacyGenuineSource(
+        algorithm_id=algorithm.algorithm_id,
+        predecessor_raw_result_identity=dict(algorithm.raw_result_identity),
+        source_format=source_format,
+        source_locator={
+            "root_environment_variable": variable, "relative_path": "pair-outcomes.jsonl"
+        },
+        stage21c_observed_source_identity={
+            "kind": "outcome_store_sha256", "sha256": integrity.outcome_store_sha256,
+        },
+        verification={
+            "predecessor_exact_byte_hash_bound": immutable,
+            "predecessor_content_identity_verified": immutable,
+            "predecessor_finalization_fingerprint": claimed,
+            "predecessor_evidence_content_hashes": checked_documents,
+            "pair_manifest_hash": integrity.pair_manifest_hash,
+            "bound_manifest_digest": integrity.bound_manifest_digest,
+            "stored_outcomes": integrity.stored_outcomes,
+            "score_bearing_outcomes": integrity.score_bearing,
+            "algorithm_failures": integrity.stored_outcomes - integrity.score_bearing,
+            "row_manifest_and_outcome_contract_verified": True,
+        },
+        record_algorithm_identity={"algorithm_id": algorithm.algorithm_id},
+        attempts=attempts, planned_attempts=len(attempts),
+        score_bearing_attempts=scored, algorithm_failures=len(attempts) - scored,
     )
 
 

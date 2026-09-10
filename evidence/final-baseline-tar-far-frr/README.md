@@ -21,8 +21,13 @@ algorithm's own scale, never an execution parameter.
 ## Evidence map
 
 - `evaluation-inputs.json` — every verified identity the report reads: both
-  predecessor finalization fingerprints, the twelve result-set identities,
-  manifest hashes, config digests and operational counts
+  predecessor finalization fingerprints, the heterogeneous legacy source
+  identities and six Stage 21B result-set identities, manifest hashes, config
+  digests and operational counts. Legacy provenance separates the identity
+  Stage 21A froze from the content or byte identity Stage 21C observes. MCC's
+  retained Stage 20B store was bound by run ID; Stage 21C structurally verifies
+  it and first seals its exact bytes. OpenAFIS's predecessor byte SHA must
+  match exactly. See the [source-location contract](../../docs/experiments/final-baseline-pipeline-runbook.md#3-produce-the-final-report).
 - `tar-far-frr-results.json` — the complete numeric results: both views, all
   scopes, all targets, rankings under the frozen ranking rule
 - `native-documented-rules-context.json` — the contextual table's numbers

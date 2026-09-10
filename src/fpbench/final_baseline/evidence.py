@@ -55,6 +55,10 @@ _SOURCE_PATHS = (
     "src/fpbench/final_baseline/hashing.py",
     "src/fpbench/final_baseline/reporting.py",
     "src/fpbench/final_baseline/sources.py",
+    "src/fpbench/experiments/stage19_pair_manifest.py",
+    "src/fpbench/experiments/stage19_result_integrity.py",
+    "src/fpbench/experiments/stage19b_finalization.py",
+    "src/fpbench/experiments/stage20b_finalization.py",
     "src/fpbench/final_baseline/evaluate.py",
     "src/fpbench/final_baseline/report.py",
     "src/fpbench/final_baseline/evidence.py",
@@ -70,6 +74,8 @@ _SOURCE_PATHS = (
     "configs/comparisons/final_baseline_tar_far_frr_v1.yaml",
     "configs/reports/final_baseline_reporting_v1.yaml",
     "tests/unit/test_final_baseline_evaluation.py",
+    "tests/unit/test_final_baseline_sources.py",
+    "tests/contract/test_final_baseline_legacy_identities.py",
 )
 
 _ABSOLUTE_PATH_PATTERN = re.compile(

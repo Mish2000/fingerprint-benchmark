@@ -184,7 +184,9 @@ def collect_final_baseline_inputs(
 
     methods: list[VerifiedMethodAttempts] = []
     for algorithm in binding.algorithms:
-        genuine = load_legacy_genuine_attempts(workspace, algorithm, mated_pairs)
+        genuine = load_legacy_genuine_attempts(
+            workspace, algorithm, mated_pairs, repository_root=root
+        )
         impostor = load_stage21b_impostor_attempts(
             run_directories[algorithm.algorithm_id], algorithm, frozen
         )
@@ -564,23 +566,7 @@ def _inputs_document(inputs: FinalBaselineInputs) -> dict[str, Any]:
                 "display_name": method.display_name,
                 "role": method.role,
                 "score_direction": method.score_direction.value,
-                "legacy_genuine": {
-                    "run_id": method.genuine.run_id,
-                    "run_fingerprint": method.genuine.run_fingerprint,
-                    "result_set_id": method.genuine.result_set_id,
-                    "result_set_fingerprint": (
-                        method.genuine.result_set_fingerprint
-                    ),
-                    "record_algorithm_id": method.genuine.record_algorithm_id,
-                    "record_algorithm_fingerprint": (
-                        method.genuine.record_algorithm_fingerprint
-                    ),
-                    "planned_attempts": method.genuine.planned_attempts,
-                    "score_bearing_attempts": (
-                        method.genuine.score_bearing_attempts
-                    ),
-                    "algorithm_failures": method.genuine.algorithm_failures,
-                },
+                "legacy_genuine": method.genuine.provenance(),
                 "stage21b_impostor": {
                     "run_id": method.impostor.run_id,
                     "result_set_id": method.impostor.result_set_id,

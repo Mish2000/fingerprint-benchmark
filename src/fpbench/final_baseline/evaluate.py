@@ -221,6 +221,9 @@ def _published_stage21b_methods(
     marker: Mapping[str, Any], *, expected_algorithm_ids: Sequence[str]
 ) -> dict[str, Mapping[str, Any]]:
     """Index the verified marker by algorithm, requiring the exact frozen roster."""
+    # Even after verify_stage21b_evidence() succeeds, Final Baseline checks exact
+    # per-algorithm identity at the trust boundary between the verified Stage 21B
+    # publication and the Stage 21B result source it consumes.
     methods = marker.get("methods")
     if not isinstance(methods, list):
         raise FinalBaselineError("Stage 21B publication methods must be a list")

@@ -284,6 +284,12 @@ def verify_final_baseline_evidence(
     )
     if len(inputs_document.get("methods", ())) != EXPECTED_METHODS:
         raise FinalBaselineError("published inputs do not carry six roster methods")
+    for index, method in enumerate(inputs_document["methods"]):
+        role = method.get("role") if isinstance(method, Mapping) else None
+        if not isinstance(role, str) or not role.strip():
+            raise FinalBaselineError(
+                f"published input method entry {index}: role must be a non-empty string"
+            )
     if results_document.get("primary_far_target") != "1/1000":
         raise FinalBaselineError("published primary FAR target moved")
     rendered = _render(root, inputs_document, results_document, context_document)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from copy import deepcopy
 from dataclasses import replace
 from fractions import Fraction
 from pathlib import Path
@@ -15,10 +17,16 @@ from fpbench.baseline_evaluation import (
 )
 from fpbench.baseline_evaluation.policy import load_baseline_evaluation_policy
 from fpbench.core.enums import ExecutionStatus, GroundTruth, ScoreDirection
+from fpbench.final_baseline import evidence as final_baseline_evidence
 from fpbench.final_baseline.constants import (
+    EVIDENCE_DOCUMENTS,
+    EXPECTED_METHODS,
     EXPECTED_RELEASES,
+    FINALIZATION_NAME,
+    OUTCOME,
     POLICY_PATH,
     POOLED_SCOPE,
+    REPORT_NAME,
     REPORTING_PATH,
 )
 from fpbench.final_baseline.evaluate import (
@@ -227,7 +235,9 @@ def test_frozen_configs_load_and_carry_the_native_rules() -> None:
         assert not reporting.native_rule(score_only).exists
 
 
-def test_report_renders_deterministically_with_disclosures() -> None:
+@pytest.fixture
+def report_documents() -> dict:
+    """Renderer inputs built exclusively from the existing synthetic scores."""
     attempts, directions = _small_roster()
     policy = load_baseline_evaluation_policy(REPOSITORY_ROOT / POLICY_PATH)
     reporting = load_final_baseline_reporting(
@@ -279,18 +289,18 @@ def test_report_renders_deterministically_with_disclosures() -> None:
             "beta": {"rule": "none", "scopes": None},
         }
     }
-    first = render_final_baseline_report(
-        inputs_document=inputs_document,
-        results_document=results_document,
-        context_document=context_document,
-        reporting=reporting,
-    )
-    second = render_final_baseline_report(
-        inputs_document=inputs_document,
-        results_document=results_document,
-        context_document=context_document,
-        reporting=reporting,
-    )
+    return {
+        "inputs_document": inputs_document,
+        "results_document": results_document,
+        "context_document": context_document,
+        "reporting": reporting,
+    }
+
+
+def test_report_renders_deterministically_with_disclosures(report_documents) -> None:
+    reporting = report_documents["reporting"]
+    first = render_final_baseline_report(**report_documents)
+    second = render_final_baseline_report(**report_documents)
     assert first == second
     assert reporting.release_dependence_disclosure.splitlines()[0][:20] in first
     assert "| Alpha Matcher |" in first
@@ -301,6 +311,130 @@ def test_report_renders_deterministically_with_disclosures() -> None:
     assert "retained beyond" not in first
     assert "no operational threshold" in first
     assert "not an average of release rates" in first
+
+
+@pytest.mark.parametrize("method_index", (0, 1))
+@pytest.mark.parametrize(
+    "role",
+    (
+        "primary_baseline",
+        "additional_experimentally_evaluated_method",
+        "other_historical_role",
+    ),
+)
+def test_changing_only_role_preserves_the_entire_report(
+    report_documents, method_index, role,
+) -> None:
+    original = render_final_baseline_report(**report_documents)
+    changed = dict(report_documents)
+    changed["inputs_document"] = deepcopy(report_documents["inputs_document"])
+    changed["inputs_document"]["methods"][method_index]["role"] = role
+    assert render_final_baseline_report(**changed) == original
+
+
+def test_report_never_decorates_method_labels_by_role(report_documents) -> None:
+    rendered = render_final_baseline_report(**report_documents)
+    for method in report_documents["inputs_document"]["methods"]:
+        label = method["display_name"]
+        rows = [
+            line for line in rendered.splitlines()
+            if line.startswith("| ") and label in line
+        ]
+        assert rows
+        assert all(line.split("|")[1].strip() == label for line in rows)
+        assert method["role"] not in rendered
+
+
+def _write_synthetic_publication(directory: Path, inputs_document: dict) -> None:
+    """Seal provenance-only test documents with valid content and source hashes."""
+    documents = {
+        "evaluation-inputs.json": inputs_document,
+        "tar-far-frr-results.json": {"primary_far_target": "1/1000"},
+        "native-documented-rules-context.json": {},
+    }
+    for name, document in documents.items():
+        (directory / name).write_bytes(json.dumps(document).encode("utf-8"))
+    (directory / "README.md").write_bytes(b"Synthetic publication fixture.\n")
+    (directory / REPORT_NAME).write_bytes(b"Synthetic report.\n")
+    marker = {
+        "outcome": OUTCOME,
+        "conditions": {"source_tree_clean": True},
+        "evidence_content_hashes": {
+            name: final_baseline_evidence._sha256(directory / name)
+            for name in EVIDENCE_DOCUMENTS
+        },
+        "final_baseline_source_fingerprint": (
+            final_baseline_evidence.final_baseline_source_fingerprint(REPOSITORY_ROOT)
+        ),
+    }
+    marker["final_baseline_finalization_fingerprint"] = (
+        final_baseline_evidence._canonical_json_hash(marker)
+    )
+    (directory / FINALIZATION_NAME).write_bytes(json.dumps(marker).encode("utf-8"))
+
+
+@pytest.fixture
+def published_inputs(monkeypatch: pytest.MonkeyPatch) -> dict:
+    # Only rendering is stubbed; the public verifier still checks real file and
+    # source hashes, then method provenance. No score or metric result is needed.
+    monkeypatch.setattr(
+        final_baseline_evidence, "_render", lambda *args: "Synthetic report.\n"
+    )
+    return {
+        "methods": [
+            {"algorithm_id": f"synthetic-{index}", "role": "primary_baseline"}
+            for index in range(EXPECTED_METHODS)
+        ]
+    }
+
+
+@pytest.mark.parametrize("method_index", range(EXPECTED_METHODS))
+@pytest.mark.parametrize(
+    "role_fields",
+    (
+        {},
+        {"role": None},
+        {"role": ""},
+        {"role": " \t"},
+        {"role": 123},
+        {"role": False},
+        {"role": []},
+        {"role": {}},
+    ),
+    ids=("missing", "null", "empty", "blank", "integer", "boolean", "list", "mapping"),
+)
+def test_published_method_provenance_requires_nonempty_string_role(
+    tmp_path, published_inputs, method_index, role_fields,
+) -> None:
+    method = published_inputs["methods"][method_index]
+    method.pop("role")
+    method.update(role_fields)
+    _write_synthetic_publication(tmp_path, published_inputs)
+    with pytest.raises(FinalBaselineError, match="role must be a non-empty string"):
+        final_baseline_evidence.verify_final_baseline_evidence(
+            REPOSITORY_ROOT, evidence_directory=tmp_path
+        )
+
+
+@pytest.mark.parametrize(
+    "role",
+    (
+        "primary_baseline",
+        "additional_experimentally_evaluated_method",
+        "other_historical_role",
+    ),
+)
+def test_published_role_is_retained_without_restricting_historical_values(
+    tmp_path, published_inputs, role,
+) -> None:
+    for method in published_inputs["methods"]:
+        method["role"] = role
+    _write_synthetic_publication(tmp_path, published_inputs)
+    final_baseline_evidence.verify_final_baseline_evidence(
+        REPOSITORY_ROOT, evidence_directory=tmp_path
+    )
+    retained = json.loads((tmp_path / "evaluation-inputs.json").read_text(encoding="utf-8"))
+    assert retained == published_inputs
 
 
 def _stage21b_method(algorithm_id: str = "alpha") -> dict[str, str]:

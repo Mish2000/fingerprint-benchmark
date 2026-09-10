@@ -9,6 +9,10 @@ predeclared FAR targets 1%, 0.1% (primary) and 0.01%, per release and pooled,
 for the primary all-attempt view and the secondary common-score view, plus the
 separate native-documented-rules context table.
 
+Historical roster roles are retained as provenance; all six completed methods
+participate uniformly in the final comparison, and historical role does not
+alter TAR/FAR/FRR computation, ranking or final-comparison eligibility.
+
 It creates no operational threshold, calibrates nothing, normalizes nothing,
 interpolates nothing, and never compares a raw score across algorithms. A
 score cut appearing in the report is an observed reporting boundary on one

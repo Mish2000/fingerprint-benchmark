@@ -198,5 +198,5 @@ attestation flag asserts); if you changed anything, commit before publishing.
 | VeriFinger run stops with licence errors | Licensing service stopped or trial lapsed. Restart the service / reactivate, rerun the same command — the run resumes. |
 | A few `ALGORITHM_FAILURE` rows appear | Expected for some routes (the legacy runs had e.g. 81 VeriFinger extraction failures). Failures are recorded, kept in denominators, and never retried. |
 | `alignment` refuses | The six runs disagree about the planned pairs — do not work around this; read the message, it names the run to inspect with `stage21b.py integrity`. |
-| `final-baseline reporting refused: … not the one the committed Stage 21B evidence published` | The workspace holds a sealed run that differs from the published receipts (e.g. a superseded rerun). Use `stage21b.py supersede`/`publish` so evidence and workspace agree. |
+| `final-baseline reporting refused: … sealed Stage 21B <field> does not match the verified Stage 21B publication` | The workspace holds a sealed run that differs from the published receipts (e.g. a superseded rerun). Use `stage21b.py supersede`/`publish` so evidence and workspace agree. |
 | Any verifier fails on "source fingerprint" | Stale line-ending smudge — see step 0.4. |

@@ -6,6 +6,10 @@ the frozen baseline. [ADR 0141](../../../docs/adr/0141-l3-bridge-is-a-bounded-de
 defines the boundary; [settings.json](settings.json) pins the actual sources,
 weights, environments and parameters used here.
 
+The [first execution results](RESULTS.md) record complete scoring for P1 and R,
+and 246 retained P2 extraction failures. The full CSV and demonstration remain
+in the local workspace.
+
 P1 is Survey FCN f40 → Dahia SIFT → Pamplona Segundo/Lemes spatial score.
 P2 replaces the detector with Experiment 004 seed 40401 and keeps the same
 descriptor and matcher runtime. They are configurations of a composite chain,

@@ -38,6 +38,9 @@ a bounded native-SD300B development execution with two composite pore routes
 and the existing SourceAFIS control. It selects outside the frozen 50 subjects,
 retains every planned outcome, and leaves Stage 21A–21C unchanged. This is
 exploratory development support, not a final benchmark claim.
+The [first pilot](V2/experiments/l3_bridge_v1/RESULTS.md) completed all 250 pairs
+per route: P1 and SourceAFIS scored every pair; P2 retained 246 extraction
+failures under its original ridge-scale settings.
 
 Phase 2 built the reproducible experiment definition: **datasets, protocol,
 provenance and manifest storage**. It records which exact image delivery was

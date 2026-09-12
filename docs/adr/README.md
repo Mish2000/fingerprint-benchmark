@@ -148,6 +148,7 @@ can be held to.
 | [0139](0139-one-writer-wins-and-the-loser-is-told.md) | One writer creates a file; the loser is told, never silently replaced | Accepted, implemented |
 | [0140](0140-configuration-is-read-with-its-types.md) | Protocol configuration is read with its YAML types, and a cohort is checked | Accepted, implemented |
 | [0141](0141-l3-bridge-is-a-bounded-development-pilot.md) | The L3 bridge uses a bounded native-resolution development pilot outside the frozen baseline | Accepted, implemented |
+| [0142](0142-l3-scale-repair-is-a-separate-development-variant.md) | L3 scale repair separates estimator, TRAIN target and scale-band effects in the original development population | Accepted, implemented |
 
 "Not yet implemented" means the decision is agreed and binding on the code that
 will implement it, but that code is out of scope for the current stage.

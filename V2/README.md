@@ -6,6 +6,11 @@ bulk results are kept out of git (see `.gitignore`).
 
 ## Layout
 
+The [L3 bridge first execution](experiments/l3_bridge_v1/README.md) is a separate,
+bounded development pilot on original SD300B. Its source and artifact inventory
+are checked locally; the historical environment/results below are not evidence
+that those assets are installed on another machine.
+
 ```
 V2/
 ├── notes/            validation-log.md (what was tested, what happened)

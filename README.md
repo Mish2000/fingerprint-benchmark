@@ -33,6 +33,12 @@ applies to this repository's own code
 
 ## What exists right now
 
+The separate [L3 bridge pilot](V2/experiments/l3_bridge_v1/README.md) supports
+a bounded native-SD300B development execution with two composite pore routes
+and the existing SourceAFIS control. It selects outside the frozen 50 subjects,
+retains every planned outcome, and leaves Stage 21A–21C unchanged. This is
+exploratory development support, not a final benchmark claim.
+
 Phase 2 built the reproducible experiment definition: **datasets, protocol,
 provenance and manifest storage**. It records which exact image delivery was
 audited, which 50 subjects were chosen, and which 6,000 comparisons the

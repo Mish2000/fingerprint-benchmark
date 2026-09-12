@@ -1,0 +1,153 @@
+{
+  "P1": {
+    "device": "cpu",
+    "features": 40,
+    "input_overlap": 16,
+    "nms_iou": 0.2,
+    "nms_probability": 0.65,
+    "output_tile": 256,
+    "torch_threads": 4,
+    "window": 17
+  },
+  "P2": {
+    "baseline": {
+      "nms_radius_px": 4,
+      "percentile": 99.25,
+      "sigma": 2.0
+    },
+    "configuration_id": "6a4ec24d7facfdc7c72e327827c31a0f3c3859046506d9b497f9c487661f8014",
+    "coordinate_convention": "x=column, y=row, direct zero-addressed pixel locations",
+    "local_maximum_window": [
+      3,
+      3
+    ],
+    "nms_radius_px": 2,
+    "preprocessing": {
+      "clahe_clip_limit": 2.0,
+      "clahe_tile_grid": [
+        8,
+        8
+      ],
+      "grayscale": true,
+      "output_range": [
+        0.0,
+        1.0
+      ],
+      "percentile_clip": [
+        1.0,
+        99.0
+      ]
+    },
+    "ridge_scale": {
+      "allowed_scale_factor": [
+        0.2,
+        1.5
+      ],
+      "maximum_mad_over_median": 0.25,
+      "minimum_tiles": 5,
+      "period_search_px": [
+        5,
+        64
+      ],
+      "stride": 128,
+      "target_period_px": 34.0,
+      "tile_size": 256,
+      "train_estimates_sha256": "6b88f0b54f00fe04fd92e808118f4f05fa9601a897d7a5b86e2da06940e1a616"
+    },
+    "threshold": 0.72,
+    "tiled_inference": {
+      "blend_ramp": 32,
+      "overlap": 64,
+      "tile_size": 512
+    }
+  },
+  "cohort_sha256": "48cce07616bd83a7a65f3f7cefdfcd8728c5f82e82119c55bd66c5c65defb643",
+  "external": {
+    "dahia_dir": {
+      "files": {
+        "matching.py": "46ea10d87fc34a9c7d73c9f1b5dfc8f33ec21dca361ed6cf3edb75407ec3dc05",
+        "utils.py": "57ac08ee6cd817877c5b7f8cb5b5fab96bb7dfa1209356dc6a96eb8bc85dc681"
+      },
+      "revision": "b3c46518f2fba4937902b5e56093177c01474de9"
+    },
+    "method_dir": {
+      "files": {
+        "artifacts/experiment-004/local-large/checkpoints/seed-40401/best.pt": "06ce96be30f336b48ee19f9107cbd19c83f2b4253dc1aa62440f84f43b60cfcb",
+        "artifacts/experiment-004/model_manifest.json": "3c119086461397e14292bb61cd06fb14a4fdd8a88b5d441256c40a8b9ec0ae0e",
+        "src/fingerprint_new_method/__init__.py": "e9fec479e6f6a21a594dc43d3adc333bb74f738d6266a021f9775103cc53bbfd",
+        "src/fingerprint_new_method/experiment004.py": "79640f8b589cf7463af025337f1d9f9acff4b8a8853f1dbb9d27617283134ee6",
+        "src/fingerprint_new_method/experiment004_model.py": "3003e06781bbb2d9e6aa9a6235b47f86b8455469e7ba21dc469bb07b4c2a3bcf",
+        "src/fingerprint_new_method/experiment004_transfer.py": "5e0f499b55781b6b744de88e6007b4ea0063733d1bea55b473454e9d92a5d2fc",
+        "src/fingerprint_new_method/paths.py": "5b70839ab352d72d00ea5af07c3759998f7eee15c340d3e0968abcaef67369f8"
+      },
+      "revision": "732099d9faef124bd030be564c1e751faf1e9c72"
+    },
+    "survey_dir": {
+      "files": {
+        "architectures/gabriel.py": "5b34ef0ceaa02cf6cb1432e74fed25af4978954f43980744d69b4214a6cc36de",
+        "architectures/net13max.py": "18f40704adce4ffcd326ecf3695deec174fe82ce6424fdefbc788aafe27292d5",
+        "architectures/net13nomax.py": "75f406eb2ea26b6c435b6a30b5e9c0bd28646692c244bbcc5b2075af83334367",
+        "architectures/net15max.py": "1a98b2e87fbeb9b1bc3f7a62554b73493ac60b29039f652862c85e9a463a54ab",
+        "architectures/net15nomax.py": "45429e372ec0c1d365dc2bd8b3b6f619a68897e1469eca4a29bb719c87f620ee",
+        "architectures/net17max.py": "763cedd0f724a0f1ced90f2e596b0058fbe62b8cc96942ad51f0ab5a44cf0b95",
+        "architectures/net17nomax.py": "e0ebb3fcf1281064d9a5fd525c560a1ea86c10fc5f94240b7acbd402259f37af",
+        "architectures/net19max.py": "1b77d358602ddd1b30b6f91a259379fd51c2cb9eaadb7a9be7d454ce86013c9b",
+        "architectures/net19nomax.py": "c559c36ae2793558dc2f454b2aeef604a9204f9165ea85637507c9e337ee0014",
+        "architectures/resnet13max.py": "b42880c69f8cfbeaccc5a423a53cd52efd5760c155014bffcde8a43a634174e2",
+        "architectures/resnet13nomax.py": "cc6cd58918f46d6e9de45b612df53247b0514f7eb05102e3567c650b24906a1a",
+        "architectures/resnet15max.py": "a3d1b29ca52aad77335d4a00436fa618dff1465263f453030a721955440f464b",
+        "architectures/resnet15nomax.py": "267c70a38dd5e5c1156cddbb72f148b8a938d2cac6c60d319752f2b02f507638",
+        "architectures/resnet17max.py": "649aa5e800773c238f0e8e2189fffd3a69e4f5070fe339879f22dfbaa7e33a68",
+        "architectures/resnet17nomax.py": "90e9431938b09c48c46dd3758b0ebc012b671474ce5abe9ff054fa3cd4a9e240",
+        "architectures/resnet19max.py": "d07786ac1dc7106051aac86508ef2e935c95683885b94a7be757645dd2f4dbc0",
+        "architectures/resnet19nomax.py": "048892962b3a68465581959bb0ef8d61190845fec3c19870fd5ad10eca5eb52d",
+        "architectures/su.py": "70f29db9e24fcde385921ab29d33eaba751a42ce7587b04ef54ad1c78d1ad8a4",
+        "architectures/template.py": "3142e10b52ced3c88410aa520f0bb1a99b5878df642a655d2420a23a0a75d891",
+        "entireImage.py": "b8fa062d03bdc8aed46fa0bc3167ae9e21ca63a6acf9165df85e048df33e03ca",
+        "out_of_the_box_detect/models/40": "3787e82d851701319c15fcd907d0e60df376aab2d7b8b9fe73003d2f41bffc99",
+        "util/utils.py": "9af0761cee702f4d9485f4b79180e0836ee93437bb6558bf9ee686c1a0a5864f"
+      },
+      "revision": "47b128e55a540d84292f91e212ad1ce3789b2aec"
+    }
+  },
+  "images_sha256": "efa500d751e8ffd217c5efe3af7b4b2a1620ca30c5189c732db68bc6d56a7dfb",
+  "routes": {
+    "P1": "Survey FCN f40 -> Dahia SIFT -> spatial",
+    "P2": "Experiment 004 seed40401 frozen scale -> native coordinates -> same Dahia SIFT -> spatial",
+    "R": "existing SourceAFIS Java bridge, native SD300B at 1000 PPI"
+  },
+  "runtimes": {
+    "p2_python": {
+      "numpy": "2.5.2",
+      "opencv-python-headless": "4.13.0",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "python": "3.12.14",
+      "scipy": "1.16.1",
+      "torch": "2.11.0+cu128"
+    },
+    "pore_python": {
+      "numpy": "1.26.4",
+      "opencv-contrib-python": "3.4.18.65",
+      "platform": "Windows-10-10.0.26200-SP0",
+      "python": "3.10.21",
+      "scipy": "1.15.3",
+      "torch": "1.13.0",
+      "torchvision": "0.14.0"
+    }
+  },
+  "schema": "l3_bridge_v1_settings",
+  "shared_descriptor_matcher": {
+    "clahe_clip": 3,
+    "median_blur": 3,
+    "opencv": "3.4.18",
+    "ratio_threshold_on_squared_distance": 0.7,
+    "sift_scale": 4
+  },
+  "sourceafis_jar_sha256": "4c4be1c205b33b76a4622efd42db2bac92bc813b9318c3a983314534c7a89213",
+  "upstream_urls": {
+    "dahia_mirror": "https://github.com/xiaochengcike/high-res-fingerprint-recognition",
+    "experiment004": "https://github.com/Mish2000/fingerprint-new-method",
+    "survey": "https://github.com/azimIbragimov/Fingerprint-Pore-Detection-A-Survey"
+  },
+  "variant": "native-coordinate-corrected-v1"
+}

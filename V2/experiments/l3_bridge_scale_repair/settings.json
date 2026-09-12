@@ -1,0 +1,24 @@
+{
+  "schema": "l3_bridge_p2_scale_repair_v1",
+  "base_revision": "864261d0334e22c7bcc11b1be40516e04cc50a2f",
+  "predecessor_execution_revision": "699bde574155a9d1aee37c7dd9f0301e3748e695",
+  "plan_sha256": "8571cbf6be1d9a3bd036c03d0b61872b98bad35ef8998ad3eda42388f585babb",
+  "split_manifest_sha256": "8ee397516a431a0c8608d1375ebbd19759a966990ba530d2b217d6d026e0eb42",
+  "train_images": 440,
+  "train_groups": 88,
+  "estimator": "experiment004-ridge-rotation-sign-v1",
+  "estimator_source_sha256": "5e0f499b55781b6b744de88e6007b4ea0063733d1bea55b473454e9d92a5d2fc",
+  "rotation_before": "90.0 - math.degrees(orientation)",
+  "rotation_after": "math.degrees(orientation) - 90.0",
+  "target_rule": "median of reliable corrected estimates of the original TRAIN images only",
+  "policies": {
+    "rotation-only": {"target": 34.0, "band": [0.2, 1.5], "inference": false},
+    "P2R": {"target": "T_train_fixed", "band": [0.2, 1.5], "inference": true},
+    "P2R-wide": {"target": "T_train_fixed", "band": [0.2, 3.0], "inference": true}
+  },
+  "descriptive_far_targets": ["0.01", "0.05"],
+  "acceptance": "score >= cut; atomic ties",
+  "cut_selection": "maximum TA, then minimum FA, then highest cut",
+  "denominators": {"genuine": 50, "impostor": 200},
+  "source_mode": "local uncommitted development snapshot with archived source bytes; no commit or push"
+}

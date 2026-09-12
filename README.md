@@ -41,6 +41,9 @@ exploratory development support, not a final benchmark claim.
 The [first pilot](V2/experiments/l3_bridge_v1/RESULTS.md) completed all 250 pairs
 per route: P1 and SourceAFIS scored every pair; P2 retained 246 extraction
 failures under its original ridge-scale settings.
+The [P2 scale-repair continuation](V2/experiments/l3_bridge_scale_repair/README.md)
+isolates the rotation correction, a TRAIN-derived target and the declared scale
+bands on the same five development subjects, retaining the original pilot.
 
 Phase 2 built the reproducible experiment definition: **datasets, protocol,
 provenance and manifest storage**. It records which exact image delivery was

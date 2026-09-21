@@ -290,7 +290,7 @@ nbis-seal:
 	             --tests "$(TESTS)" --tests-url "$(TESTS_URL)"
 
 nbis-fetch:
-	$(NBIS) fetch
+	python scripts/fetch_nbis_archives.py
 
 nbis-build:
 	$(NBIS) build

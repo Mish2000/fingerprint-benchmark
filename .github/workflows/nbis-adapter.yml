@@ -27,6 +27,8 @@ on:
       - "src/fpbench/experiments/nbis_research.py"
       - "src/fpbench/adapters/registry.py"
       - "integrations/nbis/**"
+      - "scripts/fetch_nbis_archives.py"
+      - "Makefile"
       - "configs/algorithms/nbis_mindtct_bozorth3_5_0_0_v1.yaml"
       - "tests/nbisworld.py"
       - "tests/fixtures/nbis_cli/**"
@@ -43,6 +45,8 @@ on:
       - "src/fpbench/experiments/nbis_research.py"
       - "src/fpbench/adapters/registry.py"
       - "integrations/nbis/**"
+      - "scripts/fetch_nbis_archives.py"
+      - "Makefile"
       - "configs/algorithms/nbis_mindtct_bozorth3_5_0_0_v1.yaml"
       - "tests/nbisworld.py"
       - "tests/fixtures/nbis_cli/**"
@@ -200,7 +204,10 @@ jobs:
           key: nbis-5.0.0-${{ steps.identity.outputs.key }}
 
       - name: Fetch the locked archives
-        run: python integrations/nbis/build.py fetch
+        # NIST returns HTTP 403 to urllib's default client identity. The launcher
+        # identifies fpbench and delegates every byte check to the unchanged,
+        # historically fingerprinted build script.
+        run: make nbis-fetch
 
       # The runner's own compiler. NBIS 5.0.0 predates GCC 10's switch to
       # -fno-common, and the build script *measures* whether -fcommon is needed

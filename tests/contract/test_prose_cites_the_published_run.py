@@ -38,7 +38,7 @@ import pytest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 EVIDENCE = REPOSITORY_ROOT / "evidence" / "stage11b-verifinger-canonical500-raw"
-REPOSITORY_README = REPOSITORY_ROOT / "README.md"
+STAGE_HISTORY = REPOSITORY_ROOT / "docs" / "stage-history.md"
 EVIDENCE_README = EVIDENCE / "README.md"
 
 #: ``run_0123456789ab`` and its two siblings, as every document spells them.
@@ -66,7 +66,7 @@ def _operational_summary() -> dict:
 
 
 def _stage_11b_section(text: str) -> str:
-    """The repository README's Stage 11B section, and nothing else.
+    """The linked stage history's Stage 11B section, and nothing else.
 
     The file describes twenty stages; holding all of them to Stage 11B's
     published identifiers would fail on every other stage's run.
@@ -92,8 +92,8 @@ def _prose() -> list[tuple[str, str]]:
     return [
         ("evidence/.../README.md", EVIDENCE_README.read_text(encoding="utf-8")),
         (
-            "README.md (Stage 11B section)",
-            _stage_11b_section(REPOSITORY_README.read_text(encoding="utf-8")),
+            "docs/stage-history.md (Stage 11B section)",
+            _stage_11b_section(STAGE_HISTORY.read_text(encoding="utf-8")),
         ),
     ]
 
@@ -121,7 +121,7 @@ def test_the_prose_names_the_run_that_was_published() -> None:
     """The weaker rule above passes on prose that names no run at all."""
     summary = _operational_summary()
     text = EVIDENCE_README.read_text(encoding="utf-8") + _stage_11b_section(
-        REPOSITORY_README.read_text(encoding="utf-8")
+        STAGE_HISTORY.read_text(encoding="utf-8")
     )
     for field in ("run_id", "plan_id"):
         assert summary[field] in text, (

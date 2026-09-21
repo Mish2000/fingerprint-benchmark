@@ -1,4 +1,4 @@
-"""The README, the evidence index and the markers must describe one set of runs.
+"""The linked stage history, evidence index and markers describe one set of runs.
 
 They are three hand-maintained descriptions of the same thing, and they drifted:
 the README's Stage 20A section ended "...which opens Stage 20B" while Stage 20B's
@@ -26,6 +26,13 @@ from fpbench.experiments.publication_registry import (
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 EVIDENCE = REPOSITORY_ROOT / "evidence"
+STAGE_HISTORY = REPOSITORY_ROOT / "docs" / "stage-history.md"
+
+
+def test_the_readme_links_to_the_published_stage_history() -> None:
+    readme = (REPOSITORY_ROOT / "README.md").read_text(encoding="utf-8")
+    assert "(docs/stage-history.md)" in readme
+    assert STAGE_HISTORY.is_file()
 
 
 @pytest.mark.parametrize("stage", PUBLISHED_STAGES, ids=lambda s: s.stage)
@@ -62,14 +69,24 @@ def test_every_evidence_directory_with_a_marker_is_registered() -> None:
     )
 
 
-def test_the_readme_documents_every_stage_the_registry_says_it_should() -> None:
-    readme = (REPOSITORY_ROOT / "README.md").read_text(encoding="utf-8")
-    missing = stages_missing_from(readme)
+def test_the_stage_history_documents_every_registered_stage() -> None:
+    history = STAGE_HISTORY.read_text(encoding="utf-8")
+    missing = stages_missing_from(history)
     assert not missing, (
-        "README.md has no section for "
+        "docs/stage-history.md has no section for "
         + ", ".join(f"Stage {stage.stage}" for stage in missing)
-        + ". The evidence for it is published and the README does not say so"
+        + ". The evidence for it is published and the stage history does not say so"
     )
+
+
+@pytest.mark.parametrize("stage", PUBLISHED_STAGES, ids=lambda s: s.stage)
+def test_the_stage_history_links_every_published_evidence_package(
+    stage: PublishedStage,
+) -> None:
+    history = STAGE_HISTORY.read_text(encoding="utf-8")
+    assert f"## Stage {stage.stage} " in history
+    assert f"(../{stage.directory}/)" in history
+    assert f"`{read_marker(stage, REPOSITORY_ROOT)[stage.outcome_key]}`" in history
 
 
 @pytest.mark.parametrize("stage", PUBLISHED_STAGES, ids=lambda s: s.stage)
@@ -87,6 +104,7 @@ def test_the_readme_does_not_call_a_finished_stage_unopened(
     if "COMPLETE" not in outcome:
         pytest.skip(f"Stage {stage.stage} did not finish a run")
     readme = (REPOSITORY_ROOT / "README.md").read_text(encoding="utf-8")
+    readme += "\n" + STAGE_HISTORY.read_text(encoding="utf-8")
     for phrase in (f"opens Stage {stage.stage}", f"opens stage {stage.stage}"):
         if phrase not in readme:
             continue

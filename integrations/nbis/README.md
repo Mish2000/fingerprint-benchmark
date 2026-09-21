@@ -53,7 +53,7 @@ python integrations/nbis/build.py seal \
 ## Building
 
 ```bash
-python integrations/nbis/build.py fetch     # download exactly the locked archives
+python scripts/fetch_nbis_archives.py       # download exactly the locked archives
 python integrations/nbis/build.py build     # compile them. No network at all
 python integrations/nbis/build.py test      # NIST's own suite + PNG/PPI probes
 python integrations/nbis/build.py inspect   # where lock, cache and builds stand
@@ -66,6 +66,14 @@ archive. Sources are extracted into a fresh directory under
 never into `integrations/`, never into the working tree. Every archive entry is
 inspected first: an absolute path, a `..`, a symlink, a hard link, a device node
 or a FIFO refuses the whole archive.
+
+The fetch launcher supplies an explicit `fpbench` HTTP User-Agent. On
+2026-09-21, the same official release URL returned HTTP 403 to Python urllib's
+default identity and HTTP 200 to the identified client. The launcher delegates
+to the original `build.py fetch`, preserving its locked URLs, archive checks
+and historical build fingerprint. It does not change TLS verification, use a
+mirror, or make a failed download successful. `--cache` selects an external
+cache; `FPBENCH_NBIS_CACHE` remains supported by the underlying script.
 
 The **execute bits** an archive stores are restored, because `ZipFile.extractall`
 drops them and NBIS's build runs `./setup.sh` as a program. Strictly additive,

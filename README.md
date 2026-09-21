@@ -29,12 +29,11 @@ evaluation; the external biometric algorithms are attributed individually below.
 
 ```mermaid
 flowchart LR
-    D[Verified source images] --> P[Shared 500 PPI preparation]
-    F[Frozen pair protocol] --> R[Route adapter and runner]
+    D[Verified images] --> P[500 PPI]
+    F[Frozen pairs] --> R[Route adapter]
     P --> R
-    R --> S[Raw score or explicit failure]
-    S --> E[Verified result sets]
-    E --> M[Predeclared evaluation and report]
+    R --> S[Score or failure]
+    S --> E[Verify and report]
 ```
 
 The harness owns image selection and comparison coverage. An adapter receives

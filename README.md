@@ -141,6 +141,14 @@ own protocols and results. Focused Level-3 work continues in
 [fingerprint-l3-benchmark](https://github.com/Mish2000/fingerprint-l3-benchmark);
 it does not replace or reinterpret this completed 500 PPI comparison.
 
+The [research project map](https://github.com/Mish2000/fingerprint-l3-benchmark/blob/main/docs/research-projects.md)
+explains the four public repositories. This repository is the completed comparison
+and experiment-infrastructure project. The
+[ML/CV case study](https://github.com/Mish2000/fingerprint-new-method) covers
+synthetic pore localization and its transfer limits; the
+[software workbench](https://github.com/Mish2000/fingerprint-research) demonstrates
+the API, user interface, storage and external-engine integration.
+
 Developed by [Michael Sirkovich](https://github.com/Mish2000) as a personal
 educational research project. Source code, weights, data and SDKs have separate
 terms. This repository has no blanket software license; its own code retains

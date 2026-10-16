@@ -135,19 +135,18 @@ on `main`.
 
 ## Related research and scope
 
-The historical [V2 L3 pilot](V2/experiments/l3_bridge_v1/README.md) and
-[scale-repair study](V2/experiments/l3_bridge_scale_repair/README.md) retain their
-own protocols and results. Focused Level-3 work continues in
-[fingerprint-l3-benchmark](https://github.com/Mish2000/fingerprint-l3-benchmark);
-it does not replace or reinterpret this completed 500 PPI comparison.
+This is the completed 500 PPI comparison and experiment-infrastructure project.
+Current research on SD302, including the learned pore descriptor and improved
+verification results, is in
+[fingerprint-level3-recognition-research](https://github.com/Mish2000/fingerprint-level3-recognition-research).
+The [research overview](https://github.com/Mish2000/fingerprint-level3-recognition-research/blob/main/docs/research-projects.md)
+connects all five repositories and their contributions.
 
-The [research project map](https://github.com/Mish2000/fingerprint-l3-benchmark/blob/main/docs/research-projects.md)
-explains the four public repositories. This repository is the completed comparison
-and experiment-infrastructure project. The
-[ML/CV case study](https://github.com/Mish2000/fingerprint-new-method) covers
-synthetic pore localization and its transfer limits; the
-[software workbench](https://github.com/Mish2000/fingerprint-research) demonstrates
-the API, user interface, storage and external-engine integration.
+The historical [V2 L3 pilot](V2/experiments/l3_bridge_v1/README.md),
+[scale-repair study](V2/experiments/l3_bridge_scale_repair/README.md) and
+[SD300B Level-3 study](https://github.com/Mish2000/fingerprint-l3-benchmark)
+retain their own protocols and results. The new SD302 work does not reinterpret
+this completed comparison.
 
 Developed by [Michael Sirkovich](https://github.com/Mish2000) as a personal
 educational research project. Source code, weights, data and SDKs have separate
